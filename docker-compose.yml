@@ -1,0 +1,44 @@
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    container_name: dotwatch-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dotwatch
+      POSTGRES_PASSWORD: dotwatch123
+      POSTGRES_DB: dotwatch
+    ports:
+      - "5432:5432"
+    volumes:
+      - dotwatch_pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./dotwatch-backend
+    container_name: dotwatch-backend
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file:
+      - ./dotwatch-backend/.env
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./dotwatch-backend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run migrate && npm run dev"
+
+  dashboard:
+    build: ./dotwatch-dashboard
+    container_name: dotwatch-dashboard
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./dotwatch-dashboard:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+volumes:
+  dotwatch_pgdata:
