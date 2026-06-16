@@ -19,6 +19,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: dotwatch-dashboard
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,13 +31,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: dotwatch-dashboard/package-lock.json
+
+      - name: Check files
+        run: |
+          pwd
+          ls
+          cat package.json
 
       - name: Install dependencies
-        working-directory: dotwatch-dashboard
         run: npm install
 
       - name: Build dashboard
-        working-directory: dotwatch-dashboard
         run: npm run build
 
       - name: Upload Pages artifact
