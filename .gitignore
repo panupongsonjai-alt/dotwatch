@@ -1,9 +1,12 @@
 # Dependencies
 node_modules/
+**/node_modules/
 
 # Build
 dist/
 build/
+**dist/
+
 
 # Logs
 *.log
@@ -13,6 +16,8 @@ npm-debug.log*
 .env
 .env.*
 !.env.example
+.env.local
+
 
 # Vite
 .vite/
