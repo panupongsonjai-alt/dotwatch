@@ -43,11 +43,18 @@ jobs:
           ls
           cat package.json
 
+      - name: Clean old files
+        working-directory: dotwatch-dashboard
+        run: |
+          rm -rf node_modules
+          rm -rf dist
+
       - name: Clean old dependencies
         working-directory: dotwatch-dashboard
         run: |
           rm -rf node_modules
           rm -rf dist    
+
       - name: Install dependencies
         working-directory: dotwatch-dashboard
         run: npm install
