@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Vite
+.vite/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Firebase
+service-account.json
+firebase-adminsdk*.json
+
+# Backend
+dotwatch-backend/.env
+
+# Dashboard
+dotwatch-dashboard/.env
+
+# Docker
+postgres-data/
+timescale-data/
+
+# PlatformIO
+.pio/
