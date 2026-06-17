@@ -1,15 +1,23 @@
 import React from 'react'
-import { Battery, Droplets, Thermometer } from 'lucide-react'
+import { Droplets, Thermometer } from 'lucide-react'
 
 function DashboardDeviceCard({ device }) {
+  const statusClass =
+    device.status === 'online'
+      ? 'status online'
+      : device.status === 'warning'
+      ? 'status warning'
+      : 'status offline'
+
   return (
     <article className="dashboard-device-card">
       <div className="device-header">
         <div>
           <h3>{device.name || 'Unnamed Device'}</h3>
+          <small>{device.deviceId}</small>
         </div>
 
-        <span className={device.status === 'online' ? 'status online' : 'status offline'}>
+        <span className={statusClass}>
           {device.status || 'offline'}
         </span>
       </div>
@@ -23,7 +31,7 @@ function DashboardDeviceCard({ device }) {
               : '--'}
             °C
           </span>
-          <small>Temp</small>
+          <small>Temperature</small>
         </div>
 
         <div className="metric">
@@ -36,17 +44,15 @@ function DashboardDeviceCard({ device }) {
           </span>
           <small>Humidity</small>
         </div>
+      </div>
 
-        <div className="metric">
-          <Battery size={18} />
-          <span>
-            {device.battery != null
-              ? Number(device.battery).toFixed(1)
-              : '--'}
-            %
-          </span>
-          <small>Battery</small>
-        </div>
+      <div className="device-footer">
+        <small>
+          Last Seen:{' '}
+          {device.lastSeen
+            ? new Date(device.lastSeen).toLocaleString('th-TH')
+            : '--'}
+        </small>
       </div>
     </article>
   )

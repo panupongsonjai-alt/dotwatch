@@ -64,3 +64,9 @@ export function getHistory(deviceId, from, to) {
 
   return apiFetch(`/api/devices/${deviceId}/history?${params.toString()}`)
 }
+
+export function resetDeviceSecret(id) {
+  return apiFetch(`/api/devices/${id}/reset-secret`, {
+    method: 'POST',
+  })
+}

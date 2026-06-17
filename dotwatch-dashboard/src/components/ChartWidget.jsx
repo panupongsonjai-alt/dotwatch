@@ -10,6 +10,8 @@ import {
 } from 'recharts'
 
 import { getDevices, getHistory } from '../services/api'
+import { auth } from '../services/firebase'
+import { connectRealtime, disconnectRealtime } from '../services/realtime'
 
 const RANGE_OPTIONS = [
   { label: '24 ชั่วโมง', value: '24h', hours: 24 },
@@ -72,14 +74,30 @@ function getAverage(data, key) {
   )
 }
 
+function makeRealtimePoint(reading) {
+  const rawTime = reading.latest_time || reading.time || Date.now()
+  const timestamp = new Date(rawTime).getTime()
+
+  return {
+    timestamp,
+    datetime: new Date(timestamp).toLocaleString('th-TH'),
+    temperature:
+      reading.temperature != null
+        ? Number(Number(reading.temperature).toFixed(1))
+        : null,
+    humidity:
+      reading.humidity != null
+        ? Number(Number(reading.humidity).toFixed(1))
+        : null,
+  }
+}
+
 function ChartWidget() {
   const [devices, setDevices] = useState([])
   const [selectedDeviceId, setSelectedDeviceId] = useState('')
   const [range, setRange] = useState('24h')
   const [chartData, setChartData] = useState([])
   const [loading, setLoading] = useState(false)
-
-  const selectedRange = RANGE_OPTIONS.find((item) => item.value === range)
 
   const selectedDeviceName = useMemo(() => {
     const device = devices.find((item) => String(item.id) === selectedDeviceId)
@@ -137,14 +155,33 @@ function ChartWidget() {
   }, [selectedDeviceId, range])
 
   useEffect(() => {
-    if (!selectedDeviceId) return
+    const user = auth.currentUser
 
-    const timer = setInterval(() => {
-      loadHistory(selectedDeviceId, range)
-    }, 10000)
+    if (!user || !selectedDeviceId) return
 
-    return () => clearInterval(timer)
-  }, [selectedDeviceId, range])
+    connectRealtime(user.uid, (reading) => {
+      if (String(reading.id) !== String(selectedDeviceId)) return
+
+      const point = makeRealtimePoint(reading)
+
+      setChartData((prev) => {
+        const duplicated = prev.some(
+          (item) => item.timestamp === point.timestamp
+        )
+
+        if (duplicated) return prev
+
+        return [...prev, point]
+          .filter((item) => Number.isFinite(item.timestamp))
+          .sort((a, b) => a.timestamp - b.timestamp)
+          .slice(-1000)
+      })
+    })
+
+    return () => {
+      disconnectRealtime()
+    }
+  }, [selectedDeviceId])
 
   function exportCSV() {
     if (chartData.length === 0) return
@@ -182,7 +219,7 @@ function ChartWidget() {
         <div className="realtime-graph-header">
           <div className="realtime-graph-title">
             <h2>Real Time Graph</h2>
-            <p>History จาก TimescaleDB</p>
+            <p>History จาก TimescaleDB + Realtime WebSocket</p>
           </div>
 
           <div className="realtime-graph-stats">

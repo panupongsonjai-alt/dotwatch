@@ -1,19 +1,41 @@
-import { pool } from '../db/pool.js';
+import { pool } from '../db/pool.js'
 
 export async function markOfflineDevices() {
-  const result = await pool.query(`
+  // 30-60 วินาที = warning
+
+  const warningResult = await pool.query(`
     UPDATE devices
-    SET status = 'offline'
+    SET status = 'warning'
     WHERE status = 'online'
       AND last_ingest_at < now() - interval '30 seconds'
+      AND last_ingest_at >= now() - interval '60 seconds'
     RETURNING id, device_code, name
-  `);
+  `)
 
-  if (result.rows.length > 0) {
+  if (warningResult.rows.length > 0) {
     console.log(
-      `[OfflineDetection] ${result.rows.length} device(s) marked offline`
-    );
+      `[WarningDetection] ${warningResult.rows.length} device(s) marked warning`
+    )
   }
 
-  return result.rows;
+  // มากกว่า 60 วินาที = offline
+
+  const offlineResult = await pool.query(`
+    UPDATE devices
+    SET status = 'offline'
+    WHERE status <> 'offline'
+      AND last_ingest_at < now() - interval '60 seconds'
+    RETURNING id, device_code, name
+  `)
+
+  if (offlineResult.rows.length > 0) {
+    console.log(
+      `[OfflineDetection] ${offlineResult.rows.length} device(s) marked offline`
+    )
+  }
+
+  return {
+    warning: warningResult.rows,
+    offline: offlineResult.rows,
+  }
 }

@@ -5,13 +5,14 @@ import {
   addDevice,
   deleteDevice,
   updateDeviceName,
+  resetDeviceSecret,
 } from '../services/api'
 
-function createDeviceId() {
+function createDeviceCode() {
   return `dotwatch-${Date.now()}`
 }
 
-function createDeviceKey() {
+function createDeviceSecret() {
   return crypto.randomUUID()
 }
 
@@ -43,23 +44,22 @@ function Device() {
   const handleAddDevice = async () => {
     try {
       const name = deviceName.trim() || `dotWatch ${devices.length + 1}`
-
-      const id = createDeviceId()
-      const deviceKey = createDeviceKey()
+      const deviceCode = createDeviceCode()
+      const deviceSecret = createDeviceSecret()
 
       setSaving(true)
 
-      await addDevice({
-        id,
+      const created = await addDevice({
+        deviceCode,
         name,
-        deviceKey,
+        deviceSecret,
       })
 
       setDeviceName('')
       await loadDevices()
 
       alert(
-        `เพิ่ม Device สำเร็จ\n\nDevice ID:\n${id}\n\nDevice Key:\n${deviceKey}\n\nกรุณาเก็บ Device Key นี้ไว้ใช้ใน ESP`
+        `เพิ่ม Device สำเร็จ\n\nDevice Code:\n${created.device_code}\n\nDevice Secret:\n${created.deviceSecret}\n\nกรุณาเก็บ Device Secret นี้ไว้ เพราะจะแสดงครั้งเดียว`
       )
     } catch (error) {
       console.error('Add device error:', error)
@@ -77,12 +77,9 @@ function Device() {
 
     try {
       setSaving(true)
-
       await updateDeviceName(deviceId, editingName.trim())
-
       setEditingDeviceId(null)
       setEditingName('')
-
       await loadDevices()
     } catch (error) {
       console.error('Update device error:', error)
@@ -98,7 +95,6 @@ function Device() {
 
     try {
       setSaving(true)
-
       await deleteDevice(deviceId)
       await loadDevices()
     } catch (error) {
@@ -109,12 +105,36 @@ function Device() {
     }
   }
 
+  const handleResetSecret = async (device) => {
+    const ok = confirm(
+      `ต้องการ Reset Secret ของ ${device.name || device.device_code} ใช่ไหม?\n\nSecret เดิมจะใช้งานไม่ได้ทันที`
+    )
+
+    if (!ok) return
+
+    try {
+      setSaving(true)
+
+      const result = await resetDeviceSecret(device.id)
+      await loadDevices()
+
+      alert(
+        `Reset Secret สำเร็จ\n\nDevice Code:\n${result.device_code}\n\nDevice Secret ใหม่:\n${result.deviceSecret}\n\nกรุณา Copy เก็บไว้ทันที`
+      )
+    } catch (error) {
+      console.error('Reset secret error:', error)
+      alert(error.message || 'Reset Secret ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="page">
       <section className="panel">
         <div className="section-title">
           <h2>Device Management</h2>
-          <p>จัดการและตรวจสอบอุปกรณ์ dotWatch ทั้งหมด</p>
+          <p>จัดการอุปกรณ์ dotWatch ผ่าน Backend + TimescaleDB</p>
         </div>
 
         <div className="device-add-row">
@@ -195,7 +215,13 @@ function Device() {
                   </div>
                 )}
 
-                <DeviceCard device={device} />
+                <DeviceCard
+                  device={{
+                    ...device,
+                    deviceId: device.device_code,
+                    lastSeen: device.latest_time || device.last_seen_at,
+                  }}
+                />
 
                 <div className="device-actions">
                   {editingDeviceId !== device.id && (
@@ -210,6 +236,14 @@ function Device() {
                       แก้ไขชื่อ
                     </button>
                   )}
+
+                  <button
+                    className="save-btn"
+                    disabled={saving}
+                    onClick={() => handleResetSecret(device)}
+                  >
+                    Reset Secret
+                  </button>
 
                   <button
                     className="delete-btn"
