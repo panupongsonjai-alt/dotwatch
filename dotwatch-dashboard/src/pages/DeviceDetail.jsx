@@ -90,44 +90,62 @@ function DeviceDetail({ deviceId, onBack }) {
         </div>
 
         <div className="device-detail-grid">
-          <div className="summary-card">
-            <span>Status</span>
-            <strong>{device.status || 'offline'}</strong>
-          </div>
+  <div className="summary-card">
+    <span>Status</span>
+    <strong
+      className={
+        device.status === 'online'
+          ? 'status-online'
+          : 'status-offline'
+      }
+    >
+      {device.status || 'offline'}
+    </strong>
+  </div>
 
-          <div className="summary-card">
-            <span>Group</span>
-            <strong>{device.group_name || 'Default'}</strong>
-          </div>
+  <div className="summary-card">
+    <span>Temperature</span>
+    <strong>
+      {device.temperature != null
+        ? `${Number(device.temperature).toFixed(1)}°C`
+        : '--'}
+    </strong>
+  </div>
 
-          <div className="summary-card">
-            <span>Temperature</span>
-            <strong>
-              {device.temperature != null
-                ? `${Number(device.temperature).toFixed(1)}°C`
-                : '--'}
-            </strong>
-          </div>
+  <div className="summary-card">
+    <span>Humidity</span>
+    <strong>
+      {device.humidity != null
+        ? `${Number(device.humidity).toFixed(1)}%`
+        : '--'}
+    </strong>
+  </div>
 
-          <div className="summary-card">
-            <span>Humidity</span>
-            <strong>
-              {device.humidity != null
-                ? `${Number(device.humidity).toFixed(1)}%`
-                : '--'}
-            </strong>
-          </div>
+  <div className="summary-card">
+    <span>RSSI</span>
+    <strong>
+      {device.rssi != null
+        ? `${device.rssi} dBm`
+        : '--'}
+    </strong>
+  </div>
 
-          <div className="summary-card">
-            <span>RSSI</span>
-            <strong>{device.rssi != null ? `${device.rssi} dBm` : '--'}</strong>
-          </div>
+  <div className="summary-card">
+    <span>Firmware</span>
+    <strong>
+      {device.firmware_version || '--'}
+    </strong>
+  </div>
 
-          <div className="summary-card">
-            <span>Firmware</span>
-            <strong>{device.firmware_version || '--'}</strong>
-          </div>
-        </div>
+  <div className="summary-card">
+    <span>Health</span>
+    <strong>
+      {device.status === 'online'
+        ? 'Healthy'
+        : 'Offline'}
+    </strong>
+  </div>
+</div>
 
         <div className="device-detail-info">
           <p>
@@ -145,6 +163,44 @@ function DeviceDetail({ deviceId, onBack }) {
           </p>
         </div>
       </section>
+
+     <section className="panel">
+  <h3>Device Information</h3>
+
+  <div className="device-info-grid">
+    <div>
+      <label>Device Code</label>
+      <p>{device.device_code}</p>
+    </div>
+
+    <div>
+      <label>Group</label>
+      <p>{device.group_name || 'Default'}</p>
+    </div>
+
+    <div>
+      <label>Last Seen</label>
+      <p>
+        {device.last_seen_at
+          ? new Date(
+              device.last_seen_at
+            ).toLocaleString('th-TH')
+          : '--'}
+      </p>
+    </div>
+
+    <div>
+      <label>Latest Reading</label>
+      <p>
+        {device.latest_time
+          ? new Date(
+              device.latest_time
+            ).toLocaleString('th-TH')
+          : '--'}
+      </p>
+    </div>
+  </div>
+</section>
 
       <ChartWidget defaultDeviceId={deviceId} />
     </div>
