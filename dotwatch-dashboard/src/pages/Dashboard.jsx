@@ -6,6 +6,7 @@ import AlarmPanel from '../components/AlarmPanel.jsx'
 import { getDevices, getAlarms } from '../services/api'
 import { connectRealtime, disconnectRealtime } from '../services/realtime'
 import { useAlarm } from '../context/AlarmContext'
+import DeviceMap from '../components/DeviceMap'
 
 function Dashboard({ onOpenDevice }) {
   const [devices, setDevices] = useState([])
@@ -205,8 +206,13 @@ function Dashboard({ onOpenDevice }) {
 
       <AlarmPanel />
 
-      <ChartWidget />
+<DeviceMap
+  devices={devices}
+  onOpenDevice={onOpenDevice}
+/>
 
+      <ChartWidget />
+      
       <section className="panel">
         <div className="section-title">
           <h2>Group Summary</h2>

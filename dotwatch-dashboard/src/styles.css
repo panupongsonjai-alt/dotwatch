@@ -2564,3 +2564,323 @@ textarea:focus,
   height: 360px;
   padding-top: 8px;
 }
+
+.device-map-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: var(--shadow, 0 18px 45px rgba(15, 23, 42, 0.12));
+}
+
+.device-map-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.device-map-header h2 {
+  margin: 0;
+  color: var(--text);
+}
+
+.device-map-header span {
+  color: var(--muted);
+}
+
+.map-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.map-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-legend b {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.map-legend .online {
+  background: #22c55e;
+}
+
+.map-legend .warning {
+  background: #f59e0b;
+}
+
+.map-legend .offline {
+  background: #ef4444;
+}
+
+.device-map-wrapper {
+  height: 420px;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+}
+
+.device-map {
+  width: 100%;
+  height: 100%;
+}
+
+.map-popup strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.map-popup p {
+  margin: 4px 0;
+}
+
+@media (max-width: 768px) {
+  .device-map-header {
+    flex-direction: column;
+  }
+
+  .device-map-wrapper {
+    height: 320px;
+  }
+}
+
+.device-status-map {
+  overflow: hidden;
+}
+
+.device-status-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.device-status-tools {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.device-status-search {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 12px;
+  color: var(--muted);
+}
+
+.device-status-search input,
+.device-status-tools select {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.device-status-tools select {
+  height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 14px;
+  background: var(--input);
+}
+
+.status-map-legend {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.status-map-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-map-legend b,
+.device-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.status-map-legend .online,
+.device-status-tile.online .device-status-dot {
+  background: #22c55e;
+}
+
+.status-map-legend .warning,
+.device-status-tile.warning .device-status-dot {
+  background: #f59e0b;
+}
+
+.status-map-legend .offline,
+.device-status-tile.offline .device-status-dot {
+  background: #ef4444;
+}
+
+.device-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.device-status-tile {
+  width: 100%;
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 14px;
+  cursor: pointer;
+}
+
+.device-status-tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+}
+
+.device-status-tile strong {
+  display: block;
+  font-size: 14px;
+}
+
+.device-status-tile small {
+  color: var(--muted);
+}
+
+.device-status-tile em {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+@media (max-width: 768px) {
+  .device-status-header {
+    flex-direction: column;
+  }
+
+  .device-status-tools {
+    width: 100%;
+  }
+
+  .device-status-search,
+  .device-status-tools select {
+    width: 100%;
+  }
+
+  .device-status-grid {
+    grid-template-columns: 1fr;
+    max-height: 360px;
+  }
+}
+
+.device-status-info {
+  flex: 1;
+}
+
+.device-status-values {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.device-status-values span {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.device-map-card {
+  overflow: hidden;
+}
+
+.device-map-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.device-map-wrapper {
+  height: 430px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.device-map {
+  width: 100%;
+  height: 100%;
+}
+
+.map-popup strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.map-popup p {
+  margin: 5px 0;
+}
+
+.status-text.online {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+.status-text.warning {
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+.status-text.offline {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.map-popup-button {
+  margin-top: 8px;
+  width: 100%;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--primary);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .device-map-header {
+    flex-direction: column;
+  }
+
+  .device-map-wrapper {
+    height: 330px;
+  }
+}
