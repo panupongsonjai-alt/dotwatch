@@ -2029,3 +2029,67 @@ select:focus {
   min-height: 52px;
   white-space: nowrap;
 }
+
+.demo-template-list {
+  display: grid;
+  gap: 14px;
+}
+
+.demo-template-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 20px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.demo-template-main h3 {
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+.demo-template-main p {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.demo-template-devices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.demo-template-devices span {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.demo-template-devices small {
+  color: var(--muted);
+}
+
+.demo-template-add {
+  min-width: 150px;
+}
+
+@media (max-width: 720px) {
+  .demo-template-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .demo-template-add {
+    width: 100%;
+  }
+}

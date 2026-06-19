@@ -7,7 +7,7 @@ import {
 
 function DemoTemplatesPanel({ onDone }) {
   const [templates, setTemplates] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loadingKey, setLoadingKey] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -27,19 +27,19 @@ function DemoTemplatesPanel({ onDone }) {
 
   async function handleCreate(templateKey) {
     try {
-      setLoading(true)
+      setLoadingKey(templateKey)
       setError('')
       setMessage('')
 
       await createDemoTemplate(templateKey)
 
-      setMessage('สร้าง Demo Devices สำเร็จแล้ว')
+      setMessage('เพิ่ม Demo Template สำเร็จแล้ว')
       onDone?.()
     } catch (err) {
       console.error(err)
-      setError('สร้าง Demo Devices ไม่สำเร็จ')
+      setError('เพิ่ม Demo Template ไม่สำเร็จ')
     } finally {
-      setLoading(false)
+      setLoadingKey('')
     }
   }
 
@@ -51,7 +51,7 @@ function DemoTemplatesPanel({ onDone }) {
     if (!confirmed) return
 
     try {
-      setLoading(true)
+      setLoadingKey('clear')
       setError('')
       setMessage('')
 
@@ -63,7 +63,7 @@ function DemoTemplatesPanel({ onDone }) {
       console.error(err)
       setError('ลบ Demo Devices ไม่สำเร็จ')
     } finally {
-      setLoading(false)
+      setLoadingKey('')
     }
   }
 
@@ -72,44 +72,46 @@ function DemoTemplatesPanel({ onDone }) {
       <div className="demo-panel-header">
         <div>
           <h2>Demo Templates</h2>
-          <p>สร้างชุดอุปกรณ์ตัวอย่างสำหรับทดสอบหรือพรีเซนต์ลูกค้า</p>
+          <p>เลือกเพิ่มชุด Demo ทีละประเภทตาม Use Case ที่ต้องการ</p>
         </div>
 
         <button
           type="button"
           className="ghost-button"
           onClick={handleDeleteDemo}
-          disabled={loading}
+          disabled={Boolean(loadingKey)}
         >
-          Clear Demo
+          {loadingKey === 'clear' ? 'Clearing...' : 'Clear Demo'}
         </button>
       </div>
 
       {message && <div className="auth-success">{message}</div>}
       {error && <div className="auth-error">{error}</div>}
 
-      <div className="demo-template-grid">
+      <div className="demo-template-list">
         {templates.map((template) => (
-          <article key={template.key} className="demo-template-card">
-            <h3>{template.name}</h3>
-            <p>{template.groupName}</p>
+          <article key={template.key} className="demo-template-row">
+            <div className="demo-template-main">
+              <h3>{template.name}</h3>
+              <p>{template.groupName}</p>
 
-            <ul>
-              {template.devices.map((device) => (
-                <li key={device.name}>
-                  <span>{device.name}</span>
-                  <small>{device.status}</small>
-                </li>
-              ))}
-            </ul>
+              <div className="demo-template-devices">
+                {template.devices.map((device) => (
+                  <span key={device.name}>
+                    {device.name}
+                    <small>{device.status}</small>
+                  </span>
+                ))}
+              </div>
+            </div>
 
             <button
               type="button"
-              className="primary-button full"
+              className="primary-button demo-template-add"
               onClick={() => handleCreate(template.key)}
-              disabled={loading}
+              disabled={Boolean(loadingKey)}
             >
-              {loading ? 'Processing...' : 'Add Template'}
+              {loadingKey === template.key ? 'Adding...' : 'Add Template'}
             </button>
           </article>
         ))}
