@@ -2327,3 +2327,63 @@ select:focus {
     width: 100%;
   }
 }
+
+.rule-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+
+.rule-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rule-form select,
+.rule-form input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--input);
+  color: var(--text);
+}
+
+.rule-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+@media (max-width: 1100px) {
+  .rule-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rule-form button {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 720px) {
+  .rule-form {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-form button {
+    grid-column: auto;
+  }
+
+  .rule-actions {
+    width: 100%;
+  }
+
+  .rule-actions button {
+    flex: 1;
+  }
+}
