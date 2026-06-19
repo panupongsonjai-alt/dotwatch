@@ -2299,3 +2299,31 @@ select:focus {
     width: 100%;
   }
 }
+
+.rule-form {
+  display: grid;
+  grid-template-columns:
+    2fr
+    1fr
+    1fr
+    1fr
+    1fr
+    auto;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.rule-actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .rule-form {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-actions {
+    width: 100%;
+  }
+}

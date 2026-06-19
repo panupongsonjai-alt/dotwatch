@@ -5,7 +5,6 @@ import { getDevices } from '../services/api'
 function AlarmRules() {
   const [rules, setRules] = useState([])
   const [devices, setDevices] = useState([])
-  const [editingRuleId, setEditingRuleId] = useState(null)
 
   const [form, setForm] = useState({
     device_id: '',
@@ -77,6 +76,14 @@ function AlarmRules() {
     loadData()
   }, [])
 
+  function getDeviceName(id) {
+  const device = devices.find(
+    (d) => d.id === id
+  )
+
+  return device?.name || `Device #${id}`
+}
+
   return (
     <div className="page">
 
@@ -86,6 +93,44 @@ function AlarmRules() {
           <h2>Alarm Rules</h2>
           <p>จัดการเงื่อนไขแจ้งเตือนทั้งหมด</p>
         </div>
+
+        <div className="alarm-summary-grid">
+  <article className="summary-card">
+    <span>Total Rules</span>
+    <strong>{rules.length}</strong>
+  </article>
+
+  <article className="summary-card">
+    <span>Active Rules</span>
+    <strong>
+      {rules.filter((r) => r.is_active).length}
+    </strong>
+  </article>
+
+  <article className="summary-card">
+    <span>Critical</span>
+    <strong>
+      {
+        rules.filter(
+          (r) =>
+            r.severity === 'critical'
+        ).length
+      }
+    </strong>
+  </article>
+
+  <article className="summary-card">
+    <span>Warning</span>
+    <strong>
+      {
+        rules.filter(
+          (r) =>
+            r.severity === 'warning'
+        ).length
+      }
+    </strong>
+  </article>
+</div>
 
         <div className="rule-form">
 
@@ -190,54 +235,85 @@ function AlarmRules() {
         <div className="alarm-list">
 
           {rules.map((rule) => (
-            <div
-              key={rule.id}
-              className="alarm-card"
-            >
-              <div>
+  <article
+    key={rule.id}
+    className={`alarm-card ${
+      rule.severity
+    }`}
+  >
+    <div className="alarm-card-main">
 
-                <strong>
-                  Device #{rule.device_id}
-                </strong>
+      <div className="alarm-title-row">
 
-                <div>
-                  {rule.metric}
-                  {' '}
-                  {rule.operator}
-                  {' '}
-                  {rule.threshold}
-                </div>
+        <div>
+          <h3>
+            {getDeviceName(
+              rule.device_id
+            )}
+          </h3>
 
-                <small>
-                  {rule.severity}
-                </small>
+          <p>
+            {rule.metric}
+            {' '}
+            {rule.operator}
+            {' '}
+            {rule.threshold}
+          </p>
+        </div>
 
-                <div>
-                 Status:
-                 {' '}
-                 {rule.is_active ? 'Active' : 'Disabled'}
-                 </div>
+        <div className="alarm-badges">
 
-              </div>
-              
-              <button
-  className="save-btn"
-  onClick={() => handleToggle(rule)}
->
-  {rule.is_active ? 'Disable' : 'Enable'}
-</button>
+          <span
+            className={`alarm-severity ${
+              rule.severity
+            }`}
+          >
+            {rule.severity}
+          </span>
 
-              <button
-                className="delete-btn"
-                onClick={() =>
-                  handleDelete(rule.id)
-                }
-              >
-                Delete
-              </button>
+          <span
+            className={
+              rule.is_active
+                ? 'alarm-status active'
+                : 'alarm-status acknowledged'
+            }
+          >
+            {rule.is_active
+              ? 'ACTIVE'
+              : 'DISABLED'}
+          </span>
 
-            </div>
-          ))}
+        </div>
+
+      </div>
+
+    </div>
+
+    <div className="rule-actions">
+
+      <button
+        className="ghost-button"
+        onClick={() =>
+          handleToggle(rule)
+        }
+      >
+        {rule.is_active
+          ? 'Disable'
+          : 'Enable'}
+      </button>
+
+      <button
+        className="delete-btn"
+        onClick={() =>
+          handleDelete(rule.id)
+        }
+      >
+        Delete
+      </button>
+
+    </div>
+  </article>
+))}
 
         </div>
 
