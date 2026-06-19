@@ -1,4 +1,4 @@
-import { pool } from '../db/pool.js'
+import { pool } from "../db/pool.js";
 
 export async function markOfflineDevices() {
   // 30-60 วินาที = warning
@@ -10,12 +10,12 @@ export async function markOfflineDevices() {
       AND last_ingest_at < now() - interval '30 seconds'
       AND last_ingest_at >= now() - interval '60 seconds'
     RETURNING id, device_code, name
-  `)
+  `);
 
   if (warningResult.rows.length > 0) {
     console.log(
-      `[WarningDetection] ${warningResult.rows.length} device(s) marked warning`
-    )
+      `[WarningDetection] ${warningResult.rows.length} device(s) marked warning`,
+    );
   }
 
   // มากกว่า 60 วินาที = offline
@@ -26,16 +26,16 @@ export async function markOfflineDevices() {
     WHERE status <> 'offline'
       AND last_ingest_at < now() - interval '60 seconds'
     RETURNING id, device_code, name
-  `)
+  `);
 
   if (offlineResult.rows.length > 0) {
     console.log(
-      `[OfflineDetection] ${offlineResult.rows.length} device(s) marked offline`
-    )
+      `[OfflineDetection] ${offlineResult.rows.length} device(s) marked offline`,
+    );
   }
 
   return {
     warning: warningResult.rows,
     offline: offlineResult.rows,
-  }
+  };
 }

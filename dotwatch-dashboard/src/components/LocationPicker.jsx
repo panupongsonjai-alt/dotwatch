@@ -1,37 +1,35 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from "react";
 import {
   MapContainer,
   Marker,
   TileLayer,
   useMap,
   useMapEvents,
-} from 'react-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 const DEFAULT_CENTER = {
   latitude: 13.5991,
   longitude: 100.5998,
-}
+};
 
 const markerIcon = new L.Icon({
-  iconUrl:
-    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl:
-    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
-})
+});
 
 function MapUpdater({ position }) {
-  const map = useMap()
+  const map = useMap();
 
   useEffect(() => {
-    if (!position) return
-    map.setView([position.latitude, position.longitude], 16)
-  }, [map, position])
+    if (!position) return;
+    map.setView([position.latitude, position.longitude], 16);
+  }, [map, position]);
 
-  return null
+  return null;
 }
 
 function LocationMarker({ position, onChange }) {
@@ -40,18 +38,18 @@ function LocationMarker({ position, onChange }) {
       onChange({
         latitude: event.latlng.lat,
         longitude: event.latlng.lng,
-      })
+      });
     },
-  })
+  });
 
-  if (!position) return null
+  if (!position) return null;
 
   return (
     <Marker
       position={[position.latitude, position.longitude]}
       icon={markerIcon}
     />
-  )
+  );
 }
 
 function LocationPicker({ latitude, longitude, onChange }) {
@@ -61,92 +59,92 @@ function LocationPicker({ latitude, longitude, onChange }) {
           latitude: Number(latitude),
           longitude: Number(longitude),
         }
-      : DEFAULT_CENTER
-  )
+      : DEFAULT_CENTER,
+  );
 
-  const [keyword, setKeyword] = useState('')
-  const [suggestions, setSuggestions] = useState([])
-  const [searching, setSearching] = useState(false)
-  const [message, setMessage] = useState('')
-  const searchTimerRef = useRef(null)
+  const [keyword, setKeyword] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [message, setMessage] = useState("");
+  const searchTimerRef = useRef(null);
 
   function handleSelect(nextPosition) {
-    setPosition(nextPosition)
-    setMessage('')
-    onChange?.(nextPosition)
+    setPosition(nextPosition);
+    setMessage("");
+    onChange?.(nextPosition);
   }
 
   function selectSuggestion(place) {
     const nextPosition = {
       latitude: Number(place.lat),
       longitude: Number(place.lon),
-    }
+    };
 
-    setKeyword(place.display_name)
-    setSuggestions([])
-    handleSelect(nextPosition)
+    setKeyword(place.display_name);
+    setSuggestions([]);
+    handleSelect(nextPosition);
   }
 
   async function searchPlaces(query) {
-    const text = query.trim()
+    const text = query.trim();
 
     if (text.length < 3) {
-      setSuggestions([])
-      return
+      setSuggestions([]);
+      return;
     }
 
     const coordinateMatch = text.match(
-      /(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/
-    )
+      /(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+    );
 
     if (coordinateMatch) {
       setSuggestions([
         {
-          place_id: 'coordinate',
+          place_id: "coordinate",
           display_name: `ใช้พิกัด ${coordinateMatch[1]}, ${coordinateMatch[2]}`,
           lat: coordinateMatch[1],
           lon: coordinateMatch[2],
         },
-      ])
-      return
+      ]);
+      return;
     }
 
     try {
-      setSearching(true)
-      setMessage('')
+      setSearching(true);
+      setMessage("");
 
       const params = new URLSearchParams({
         q: text,
-        format: 'json',
-        limit: '5',
-        addressdetails: '1',
-      })
+        format: "json",
+        limit: "5",
+        addressdetails: "1",
+      });
 
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?${params.toString()}`
-      )
+        `https://nominatim.openstreetmap.org/search?${params.toString()}`,
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
-      setSuggestions(Array.isArray(data) ? data : [])
+      setSuggestions(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error(error)
-      setMessage('ค้นหาตำแหน่งไม่สำเร็จ')
+      console.error(error);
+      setMessage("ค้นหาตำแหน่งไม่สำเร็จ");
     } finally {
-      setSearching(false)
+      setSearching(false);
     }
   }
 
   function handleKeywordChange(value) {
-    setKeyword(value)
+    setKeyword(value);
 
     if (searchTimerRef.current) {
-      clearTimeout(searchTimerRef.current)
+      clearTimeout(searchTimerRef.current);
     }
 
     searchTimerRef.current = setTimeout(() => {
-      searchPlaces(value)
-    }, 500)
+      searchPlaces(value);
+    }, 500);
   }
 
   return (
@@ -164,7 +162,7 @@ function LocationPicker({ latitude, longitude, onChange }) {
             onClick={() => searchPlaces(keyword)}
             disabled={searching}
           >
-            {searching ? 'ค้นหา...' : 'ค้นหา'}
+            {searching ? "ค้นหา..." : "ค้นหา"}
           </button>
         </div>
 
@@ -177,7 +175,7 @@ function LocationPicker({ latitude, longitude, onChange }) {
                 onClick={() => selectSuggestion(place)}
               >
                 <strong>
-                  {place.name || place.display_name?.split(',')[0]}
+                  {place.name || place.display_name?.split(",")[0]}
                 </strong>
                 <span>{place.display_name}</span>
               </button>
@@ -208,7 +206,7 @@ function LocationPicker({ latitude, longitude, onChange }) {
         <span>Longitude: {position.longitude.toFixed(6)}</span>
       </div>
     </div>
-  )
+  );
 }
 
-export default LocationPicker
+export default LocationPicker;

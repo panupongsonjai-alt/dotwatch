@@ -1,12 +1,11 @@
-import React from 'react'
+import React from "react";
 import { useState, useEffect } from "react";
 
 function Settings() {
   const [projectName, setProjectName] = useState("");
 
   useEffect(() => {
-    const savedName =
-      localStorage.getItem("projectName") || "dotWatch";
+    const savedName = localStorage.getItem("projectName") || "dotWatch";
 
     setProjectName(savedName);
   }, []);
@@ -30,9 +29,7 @@ function Settings() {
             Project Name
             <input
               value={projectName}
-              onChange={(e) =>
-                setProjectName(e.target.value)
-              }
+              onChange={(e) => setProjectName(e.target.value)}
               placeholder="dotWatch"
             />
           </label>
@@ -47,10 +44,7 @@ function Settings() {
           </label>
         </div>
 
-        <button
-          className="primary-button"
-          onClick={handleSave}
-        >
+        <button className="primary-button" onClick={handleSave}>
           Save Settings
         </button>
       </section>

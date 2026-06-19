@@ -1,88 +1,84 @@
-import { useEffect, useMemo, useState } from 'react'
-import { acknowledgeAlarm, getAlarms } from '../services/api'
+import { useEffect, useMemo, useState } from "react";
+import { acknowledgeAlarm, getAlarms } from "../services/api";
 
 function formatDateTime(value) {
-  if (!value) return '--'
+  if (!value) return "--";
 
-  return new Date(value).toLocaleString('th-TH', {
-    dateStyle: 'short',
-    timeStyle: 'medium',
-  })
+  return new Date(value).toLocaleString("th-TH", {
+    dateStyle: "short",
+    timeStyle: "medium",
+  });
 }
 
 function formatValue(value) {
-  if (value == null) return '--'
-  return Number(value).toFixed(1)
+  if (value == null) return "--";
+  return Number(value).toFixed(1);
 }
 
 function Alarms() {
-  const [alarms, setAlarms] = useState([])
-  const [filter, setFilter] = useState('all')
-  const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState('')
-  const [error, setError] = useState('')
+  const [alarms, setAlarms] = useState([]);
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState("");
+  const [error, setError] = useState("");
 
   async function loadAlarms() {
     try {
-      setError('')
-      const data = await getAlarms()
-      setAlarms(Array.isArray(data) ? data : [])
+      setError("");
+      const data = await getAlarms();
+      setAlarms(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error(err)
-      setError('โหลดข้อมูล Alarm ไม่สำเร็จ')
+      console.error(err);
+      setError("โหลดข้อมูล Alarm ไม่สำเร็จ");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadAlarms()
+    loadAlarms();
 
-    const timer = setInterval(loadAlarms, 10000)
+    const timer = setInterval(loadAlarms, 10000);
 
-    return () => clearInterval(timer)
-  }, [])
+    return () => clearInterval(timer);
+  }, []);
 
   async function handleAcknowledge(id) {
     try {
-      setActionLoading(String(id))
-      await acknowledgeAlarm(id)
-      await loadAlarms()
+      setActionLoading(String(id));
+      await acknowledgeAlarm(id);
+      await loadAlarms();
     } catch (err) {
-      console.error(err)
-      setError('Acknowledge Alarm ไม่สำเร็จ')
+      console.error(err);
+      setError("Acknowledge Alarm ไม่สำเร็จ");
     } finally {
-      setActionLoading('')
+      setActionLoading("");
     }
   }
 
-  const activeCount = alarms.filter((a) => a.status === 'active').length
+  const activeCount = alarms.filter((a) => a.status === "active").length;
   const acknowledgedCount = alarms.filter(
-    (a) => a.status === 'acknowledged'
-  ).length
+    (a) => a.status === "acknowledged",
+  ).length;
 
   const criticalCount = alarms.filter(
-    (a) =>
-      a.status === 'active' &&
-      a.severity?.toLowerCase() === 'critical'
-  ).length
+    (a) => a.status === "active" && a.severity?.toLowerCase() === "critical",
+  ).length;
 
   const warningCount = alarms.filter(
-    (a) =>
-      a.status === 'active' &&
-      a.severity?.toLowerCase() === 'warning'
-  ).length
+    (a) => a.status === "active" && a.severity?.toLowerCase() === "warning",
+  ).length;
 
   const filteredAlarms = useMemo(() => {
     const list =
-      filter === 'all'
+      filter === "all"
         ? alarms
-        : alarms.filter((alarm) => alarm.status === filter)
+        : alarms.filter((alarm) => alarm.status === filter);
 
     return [...list].sort(
-      (a, b) => new Date(b.triggered_at) - new Date(a.triggered_at)
-    )
-  }, [alarms, filter])
+      (a, b) => new Date(b.triggered_at) - new Date(a.triggered_at),
+    );
+  }, [alarms, filter]);
 
   return (
     <div className="page">
@@ -124,16 +120,20 @@ function Alarms() {
           <div className="alarm-filter-row">
             <button
               type="button"
-              className={filter === 'all' ? 'filter-button active' : 'filter-button'}
-              onClick={() => setFilter('all')}
+              className={
+                filter === "all" ? "filter-button active" : "filter-button"
+              }
+              onClick={() => setFilter("all")}
             >
               All
             </button>
 
             <button
               type="button"
-              className={filter === 'active' ? 'filter-button active' : 'filter-button'}
-              onClick={() => setFilter('active')}
+              className={
+                filter === "active" ? "filter-button active" : "filter-button"
+              }
+              onClick={() => setFilter("active")}
             >
               Active
             </button>
@@ -141,9 +141,11 @@ function Alarms() {
             <button
               type="button"
               className={
-                filter === 'acknowledged' ? 'filter-button active' : 'filter-button'
+                filter === "acknowledged"
+                  ? "filter-button active"
+                  : "filter-button"
               }
-              onClick={() => setFilter('acknowledged')}
+              onClick={() => setFilter("acknowledged")}
             >
               Acknowledged
             </button>
@@ -164,8 +166,8 @@ function Alarms() {
         {!loading && filteredAlarms.length > 0 && (
           <div className="alarm-list">
             {filteredAlarms.map((alarm) => {
-              const severity = alarm.severity?.toLowerCase() || 'warning'
-              const isActive = alarm.status === 'active'
+              const severity = alarm.severity?.toLowerCase() || "warning";
+              const isActive = alarm.status === "active";
 
               return (
                 <article
@@ -175,20 +177,22 @@ function Alarms() {
                   <div className="alarm-card-main">
                     <div className="alarm-title-row">
                       <div>
-                        <h3>{alarm.device_name || 'Unknown Device'}</h3>
-                        <p>{alarm.device_code || `Device #${alarm.device_id}`}</p>
+                        <h3>{alarm.device_name || "Unknown Device"}</h3>
+                        <p>
+                          {alarm.device_code || `Device #${alarm.device_id}`}
+                        </p>
                       </div>
 
                       <div className="alarm-badges">
                         <span className={`alarm-severity ${severity}`}>
-                          {alarm.severity || 'warning'}
+                          {alarm.severity || "warning"}
                         </span>
 
                         <span
                           className={
                             isActive
-                              ? 'alarm-status active'
-                              : 'alarm-status acknowledged'
+                              ? "alarm-status active"
+                              : "alarm-status acknowledged"
                           }
                         >
                           {alarm.status}
@@ -234,18 +238,18 @@ function Alarms() {
                       onClick={() => handleAcknowledge(alarm.id)}
                     >
                       {actionLoading === String(alarm.id)
-                        ? 'Processing...'
-                        : 'Acknowledge'}
+                        ? "Processing..."
+                        : "Acknowledge"}
                     </button>
                   )}
                 </article>
-              )
+              );
             })}
           </div>
         )}
       </section>
     </div>
-  )
+  );
 }
 
-export default Alarms
+export default Alarms;

@@ -1,31 +1,31 @@
-import { pool } from '../db/pool.js'
+import { pool } from "../db/pool.js";
 
 function randomValue(base, range) {
-  return Number((base + (Math.random() - 0.5) * range).toFixed(1))
+  return Number((base + (Math.random() - 0.5) * range).toFixed(1));
 }
 
 function getBaseValue(deviceCode) {
-  if (deviceCode.includes('COLD')) {
-    return { temp: 4, humidity: 68 }
+  if (deviceCode.includes("COLD")) {
+    return { temp: 4, humidity: 68 };
   }
 
-  if (deviceCode.includes('SERVER')) {
-    return { temp: 29, humidity: 50 }
+  if (deviceCode.includes("SERVER")) {
+    return { temp: 29, humidity: 50 };
   }
 
-  if (deviceCode.includes('FACTORY')) {
-    return { temp: 32, humidity: 60 }
+  if (deviceCode.includes("FACTORY")) {
+    return { temp: 32, humidity: 60 };
   }
 
-  if (deviceCode.includes('FARM')) {
-    return { temp: 28, humidity: 78 }
+  if (deviceCode.includes("FARM")) {
+    return { temp: 28, humidity: 78 };
   }
 
-  return { temp: 28, humidity: 60 }
+  return { temp: 28, humidity: 60 };
 }
 
 export async function runDemoGeneratorTick() {
-  const client = await pool.connect()
+  const client = await pool.connect();
 
   try {
     const usersResult = await client.query(
@@ -33,12 +33,12 @@ export async function runDemoGeneratorTick() {
       SELECT *
       FROM demo_generators
       WHERE enabled = true
-      `
-    )
+      `,
+    );
 
     for (const generator of usersResult.rows) {
-      let readingsCreated = 0
-      let alarmsCreated = 0
+      let readingsCreated = 0;
+      let alarmsCreated = 0;
 
       const devicesResult = await client.query(
         `
@@ -52,13 +52,12 @@ export async function runDemoGeneratorTick() {
             OR device_code LIKE 'DW-FARM-%'
           )
         `,
-        [generator.user_id]
-      )
+        [generator.user_id],
+      );
 
       for (const device of devicesResult.rows) {
         const shouldOffline =
-          generator.simulate_offline &&
-          Math.random() < 0.08
+          generator.simulate_offline && Math.random() < 0.08;
 
         if (shouldOffline) {
           await client.query(
@@ -69,19 +68,19 @@ export async function runDemoGeneratorTick() {
               last_seen_at = NOW() - INTERVAL '2 minutes'
             WHERE id = $1
             `,
-            [device.id]
-          )
+            [device.id],
+          );
 
-          continue
+          continue;
         }
 
-        const base = getBaseValue(device.device_code)
+        const base = getBaseValue(device.device_code);
 
         const temperature = generator.temperature_drift
           ? randomValue(base.temp, 5)
-          : base.temp
+          : base.temp;
 
-        const humidity = randomValue(base.humidity, 8)
+        const humidity = randomValue(base.humidity, 8);
 
         await client.query(
           `
@@ -105,10 +104,10 @@ export async function runDemoGeneratorTick() {
             temperature,
             humidity,
             -50 - Math.floor(Math.random() * 20),
-          ]
-        )
+          ],
+        );
 
-        readingsCreated += 1
+        readingsCreated += 1;
 
         await client.query(
           `
@@ -122,13 +121,10 @@ export async function runDemoGeneratorTick() {
             last_ingest_at = NOW()
           WHERE id = $1
           `,
-          [device.id, temperature]
-        )
+          [device.id, temperature],
+        );
 
-        if (
-          generator.generate_alarms &&
-          temperature >= 35
-        ) {
+        if (generator.generate_alarms && temperature >= 35) {
           await client.query(
             `
             INSERT INTO alarm_events (
@@ -154,14 +150,10 @@ export async function runDemoGeneratorTick() {
               NOW()
             )
             `,
-            [
-              generator.user_id,
-              device.id,
-              temperature,
-            ]
-          )
+            [generator.user_id, device.id, temperature],
+          );
 
-          alarmsCreated += 1
+          alarmsCreated += 1;
         }
       }
 
@@ -182,14 +174,10 @@ export async function runDemoGeneratorTick() {
             demo_statistics.generated_alarms + EXCLUDED.generated_alarms,
           last_run_at = NOW()
         `,
-        [
-          generator.user_id,
-          readingsCreated,
-          alarmsCreated,
-        ]
-      )
+        [generator.user_id, readingsCreated, alarmsCreated],
+      );
     }
   } finally {
-    client.release()
+    client.release();
   }
 }

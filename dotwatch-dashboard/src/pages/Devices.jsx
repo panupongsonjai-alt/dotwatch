@@ -164,7 +164,6 @@ function Device() {
 
     try {
       setSaving(true)
-
       await updateDeviceLocation(device.id, {
         latitude: location.latitude,
         longitude: location.longitude,

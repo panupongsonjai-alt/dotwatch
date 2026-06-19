@@ -160,45 +160,43 @@ function Dashboard({ onOpenDevice }) {
 
   return (
     <div className="page">
-      <section className="summary-grid">
-        <div className="summary-card">
-          <span>Total Devices</span>
+      <section className="summary-grid compact-summary-grid">
+        <div className="summary-card compact-summary-card">
+          <span>Project</span>
+          <strong>{projectName}</strong>
+        </div>
+
+        <div className="summary-card compact-summary-card">
+          <span>Total</span>
           <strong>{loading ? '...' : devices.length}</strong>
         </div>
 
-        <div className="summary-card">
+        <div className="summary-card compact-summary-card">
           <span>Online</span>
           <strong>{loading ? '...' : onlineCount}</strong>
         </div>
 
-        <div className="summary-card">
+        <div className="summary-card compact-summary-card">
           <span>Offline</span>
           <strong>{loading ? '...' : offlineCount}</strong>
         </div>
 
-        <div className="summary-card alarm-summary-card">
-          <span>Active Alarms</span>
+        <div className="summary-card compact-summary-card alarm-summary-card">
+          <span>Alarm</span>
           <strong>{alarmCount}</strong>
         </div>
 
-        <div className="summary-card">
-          <span>Project</span>
-          <strong>{projectName}</strong>
-        </div>
-      </section>
-
-      <section className="summary-grid">
-        <div className="summary-card">
+        <div className="summary-card compact-summary-card">
           <span>Healthy</span>
           <strong>{healthSummary.healthy}</strong>
         </div>
 
-        <div className="summary-card">
+        <div className="summary-card compact-summary-card">
           <span>Warning</span>
           <strong>{healthSummary.warning}</strong>
         </div>
 
-        <div className="summary-card">
+        <div className="summary-card compact-summary-card">
           <span>Critical</span>
           <strong>{healthSummary.critical}</strong>
         </div>
@@ -206,13 +204,10 @@ function Dashboard({ onOpenDevice }) {
 
       <AlarmPanel />
 
-<DeviceMap
-  devices={devices}
-  onOpenDevice={onOpenDevice}
-/>
+      <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
 
       <ChartWidget />
-      
+
       <section className="panel">
         <div className="section-title">
           <h2>Group Summary</h2>

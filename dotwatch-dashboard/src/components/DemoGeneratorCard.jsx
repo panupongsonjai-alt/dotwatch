@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 import {
   getDemoGeneratorConfig,
   saveDemoGeneratorConfig,
-} from '../services/api'
+} from "../services/api";
 
 function DemoGeneratorCard({ onDone }) {
   const [config, setConfig] = useState({
@@ -11,54 +11,54 @@ function DemoGeneratorCard({ onDone }) {
     generate_alarms: true,
     simulate_offline: true,
     temperature_drift: true,
-  })
+  });
 
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   async function loadConfig() {
     try {
-      const data = await getDemoGeneratorConfig()
+      const data = await getDemoGeneratorConfig();
       setConfig({
         enabled: Boolean(data.enabled),
         interval_seconds: Number(data.interval_seconds || 30),
         generate_alarms: Boolean(data.generate_alarms),
         simulate_offline: Boolean(data.simulate_offline),
         temperature_drift: Boolean(data.temperature_drift),
-      })
+      });
     } catch (err) {
-      console.error(err)
-      setError('โหลดการตั้งค่า Demo Generator ไม่สำเร็จ')
+      console.error(err);
+      setError("โหลดการตั้งค่า Demo Generator ไม่สำเร็จ");
     }
   }
 
   useEffect(() => {
-    loadConfig()
-  }, [])
+    loadConfig();
+  }, []);
 
   function updateField(field, value) {
     setConfig((prev) => ({
       ...prev,
       [field]: value,
-    }))
+    }));
   }
 
   async function handleSave() {
     try {
-      setSaving(true)
-      setMessage('')
-      setError('')
+      setSaving(true);
+      setMessage("");
+      setError("");
 
-      await saveDemoGeneratorConfig(config)
+      await saveDemoGeneratorConfig(config);
 
-      setMessage('บันทึกการตั้งค่า Demo Generator สำเร็จ')
-      onDone?.()
+      setMessage("บันทึกการตั้งค่า Demo Generator สำเร็จ");
+      onDone?.();
     } catch (err) {
-      console.error(err)
-      setError('บันทึกการตั้งค่าไม่สำเร็จ')
+      console.error(err);
+      setError("บันทึกการตั้งค่าไม่สำเร็จ");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
@@ -70,8 +70,8 @@ function DemoGeneratorCard({ onDone }) {
           <p>จำลองข้อมูล Sensor แบบต่อเนื่อง เหมือนมี ESP ส่งค่าจริง</p>
         </div>
 
-        <span className={config.enabled ? 'status online' : 'status offline'}>
-          {config.enabled ? 'Running' : 'Stopped'}
+        <span className={config.enabled ? "status online" : "status offline"}>
+          {config.enabled ? "Running" : "Stopped"}
         </span>
       </div>
 
@@ -88,7 +88,7 @@ function DemoGeneratorCard({ onDone }) {
           <input
             type="checkbox"
             checked={config.enabled}
-            onChange={(e) => updateField('enabled', e.target.checked)}
+            onChange={(e) => updateField("enabled", e.target.checked)}
           />
         </label>
 
@@ -97,7 +97,7 @@ function DemoGeneratorCard({ onDone }) {
           <select
             value={config.interval_seconds}
             onChange={(e) =>
-              updateField('interval_seconds', Number(e.target.value))
+              updateField("interval_seconds", Number(e.target.value))
             }
           >
             <option value={30}>30 seconds</option>
@@ -115,7 +115,7 @@ function DemoGeneratorCard({ onDone }) {
           <input
             type="checkbox"
             checked={config.generate_alarms}
-            onChange={(e) => updateField('generate_alarms', e.target.checked)}
+            onChange={(e) => updateField("generate_alarms", e.target.checked)}
           />
         </label>
 
@@ -128,7 +128,7 @@ function DemoGeneratorCard({ onDone }) {
           <input
             type="checkbox"
             checked={config.simulate_offline}
-            onChange={(e) => updateField('simulate_offline', e.target.checked)}
+            onChange={(e) => updateField("simulate_offline", e.target.checked)}
           />
         </label>
 
@@ -141,7 +141,7 @@ function DemoGeneratorCard({ onDone }) {
           <input
             type="checkbox"
             checked={config.temperature_drift}
-            onChange={(e) => updateField('temperature_drift', e.target.checked)}
+            onChange={(e) => updateField("temperature_drift", e.target.checked)}
           />
         </label>
       </div>
@@ -152,10 +152,10 @@ function DemoGeneratorCard({ onDone }) {
         onClick={handleSave}
         disabled={saving}
       >
-        {saving ? 'Saving...' : 'Save Demo Generator'}
+        {saving ? "Saving..." : "Save Demo Generator"}
       </button>
     </section>
-  )
+  );
 }
 
-export default DemoGeneratorCard
+export default DemoGeneratorCard;

@@ -1,4 +1,4 @@
-import { pool } from '../db/pool.js'
+import { pool } from "../db/pool.js";
 
 export async function findOrCreateUser({ firebaseUid, email }) {
   const result = await pool.query(
@@ -15,8 +15,8 @@ export async function findOrCreateUser({ firebaseUid, email }) {
       updated_at = NOW()
     RETURNING *
     `,
-    [firebaseUid, email || null]
-  )
+    [firebaseUid, email || null],
+  );
 
-  return result.rows[0]
+  return result.rows[0];
 }

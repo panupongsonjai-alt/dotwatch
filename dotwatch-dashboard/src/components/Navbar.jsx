@@ -1,28 +1,22 @@
 import React from 'react'
-import { Moon, Sun, LogOut } from "lucide-react";
+import { Moon, Sun, LogOut } from 'lucide-react'
 
-function Navbar({ user, onLogout, theme, setTheme }) {
+function Navbar({
+  user,
+  onLogout,
+  theme,
+  setTheme,
+  sidebarOpen,
+  setSidebarOpen,
+}) {
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
+    setTheme(theme === 'dark' ? 'light' : 'dark')
+  }
 
-  const displayName =
-    user?.displayName ||
-    user?.email?.split("@")[0] ||
-    "User";
+  const displayName = user?.displayName || user?.email?.split('@')[0] || 'User'
 
   return (
     <header className="top-header">
-      <div className="header-user">
-        <div className="user-avatar">
-          {displayName.charAt(0).toUpperCase()}
-        </div>
-
-        <div className="user-info">
-          <small>{user?.email}</small>
-        </div>
-      </div>
-
       <div className="header-actions">
         <button
           type="button"
@@ -30,24 +24,26 @@ function Navbar({ user, onLogout, theme, setTheme }) {
           onClick={toggleTheme}
           title="Toggle Theme"
         >
-          {theme === "dark" ? (
-            <Sun size={18} />
-          ) : (
-            <Moon size={18} />
-          )}
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
+
+        <div className="header-user">
+          <div className="user-avatar">
+            {displayName.charAt(0).toUpperCase()}
+          </div>
+        </div>
 
         <button
           type="button"
           className="logout-button"
           onClick={onLogout}
+          title="Logout"
         >
           <LogOut size={18} />
-          Logout
         </button>
       </div>
     </header>
-  );
+  )
 }
 
-export default Navbar;
+export default Navbar

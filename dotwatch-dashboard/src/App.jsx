@@ -23,10 +23,19 @@ function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark')
   const [selectedDeviceId, setSelectedDeviceId] = useState(null)
 
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('sidebarOpen')
+    return saved ? JSON.parse(saved) : true
+  })
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen))
+  }, [sidebarOpen])
 
   const handleLogout = async () => {
     await logout()
@@ -53,12 +62,17 @@ function App() {
   }
 
   if (!user.emailVerified) {
-  return <VerifyEmail />
-}
+    return <VerifyEmail />
+  }
 
   return (
-    <div className="layout">
-      <Sidebar page={page} setPage={setPage} />
+    <div className={`layout ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
+      <Sidebar
+        page={page}
+        setPage={setPage}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+      />
 
       <main className="main">
         <Navbar
@@ -68,9 +82,7 @@ function App() {
           setTheme={setTheme}
         />
 
-        {page === 'dashboard' && (
-          <Dashboard onOpenDevice={openDeviceDetail} />
-        )}
+        {page === 'dashboard' && <Dashboard onOpenDevice={openDeviceDetail} />}
 
         {page === 'devices' && <Devices />}
 
@@ -78,7 +90,9 @@ function App() {
 
         {page === 'alarm-rules' && <AlarmRules />}
 
-        {page === 'device-detail' && (<DeviceDetail deviceId={selectedDeviceId}onBack={backToDashboard}/> )}
+        {page === 'device-detail' && (
+          <DeviceDetail deviceId={selectedDeviceId} onBack={backToDashboard} />
+        )}
 
         {page === 'demo-center' && <DemoCenter />}
 

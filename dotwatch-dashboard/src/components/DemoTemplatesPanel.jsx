@@ -1,69 +1,67 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 import {
   getDemoTemplates,
   createDemoTemplate,
   deleteDemoData,
-} from '../services/api'
+} from "../services/api";
 
 function DemoTemplatesPanel({ onDone }) {
-  const [templates, setTemplates] = useState([])
-  const [loadingKey, setLoadingKey] = useState('')
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
+  const [templates, setTemplates] = useState([]);
+  const [loadingKey, setLoadingKey] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   async function loadTemplates() {
     try {
-      const data = await getDemoTemplates()
-      setTemplates(data)
+      const data = await getDemoTemplates();
+      setTemplates(data);
     } catch (err) {
-      console.error(err)
-      setError('โหลด Demo Templates ไม่สำเร็จ')
+      console.error(err);
+      setError("โหลด Demo Templates ไม่สำเร็จ");
     }
   }
 
   useEffect(() => {
-    loadTemplates()
-  }, [])
+    loadTemplates();
+  }, []);
 
   async function handleCreate(templateKey) {
     try {
-      setLoadingKey(templateKey)
-      setError('')
-      setMessage('')
+      setLoadingKey(templateKey);
+      setError("");
+      setMessage("");
 
-      await createDemoTemplate(templateKey)
+      await createDemoTemplate(templateKey);
 
-      setMessage('เพิ่ม Demo Template สำเร็จแล้ว')
-      onDone?.()
+      setMessage("เพิ่ม Demo Template สำเร็จแล้ว");
+      onDone?.();
     } catch (err) {
-      console.error(err)
-      setError('เพิ่ม Demo Template ไม่สำเร็จ')
+      console.error(err);
+      setError("เพิ่ม Demo Template ไม่สำเร็จ");
     } finally {
-      setLoadingKey('')
+      setLoadingKey("");
     }
   }
 
   async function handleDeleteDemo() {
-    const confirmed = window.confirm(
-      'ต้องการลบ Demo Devices ทั้งหมดใช่ไหม?'
-    )
+    const confirmed = window.confirm("ต้องการลบ Demo Devices ทั้งหมดใช่ไหม?");
 
-    if (!confirmed) return
+    if (!confirmed) return;
 
     try {
-      setLoadingKey('clear')
-      setError('')
-      setMessage('')
+      setLoadingKey("clear");
+      setError("");
+      setMessage("");
 
-      await deleteDemoData()
+      await deleteDemoData();
 
-      setMessage('ลบ Demo Devices สำเร็จแล้ว')
-      onDone?.()
+      setMessage("ลบ Demo Devices สำเร็จแล้ว");
+      onDone?.();
     } catch (err) {
-      console.error(err)
-      setError('ลบ Demo Devices ไม่สำเร็จ')
+      console.error(err);
+      setError("ลบ Demo Devices ไม่สำเร็จ");
     } finally {
-      setLoadingKey('')
+      setLoadingKey("");
     }
   }
 
@@ -81,7 +79,7 @@ function DemoTemplatesPanel({ onDone }) {
           onClick={handleDeleteDemo}
           disabled={Boolean(loadingKey)}
         >
-          {loadingKey === 'clear' ? 'Clearing...' : 'Clear Demo'}
+          {loadingKey === "clear" ? "Clearing..." : "Clear Demo"}
         </button>
       </div>
 
@@ -111,13 +109,13 @@ function DemoTemplatesPanel({ onDone }) {
               onClick={() => handleCreate(template.key)}
               disabled={Boolean(loadingKey)}
             >
-              {loadingKey === template.key ? 'Adding...' : 'Add Template'}
+              {loadingKey === template.key ? "Adding..." : "Add Template"}
             </button>
           </article>
         ))}
       </div>
     </section>
-  )
+  );
 }
 
-export default DemoTemplatesPanel
+export default DemoTemplatesPanel;

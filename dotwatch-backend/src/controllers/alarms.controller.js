@@ -1,7 +1,7 @@
-import { pool } from '../db/pool.js'
+import { pool } from "../db/pool.js";
 
 export async function listAlarms(req, res) {
-  const user = req.dbUser
+  const user = req.dbUser;
 
   const result = await pool.query(
     `
@@ -24,15 +24,15 @@ export async function listAlarms(req, res) {
     ORDER BY ae.triggered_at DESC
     LIMIT 100
     `,
-    [user.id]
-  )
+    [user.id],
+  );
 
-  res.json(result.rows)
+  res.json(result.rows);
 }
 
 export async function acknowledgeAlarm(req, res) {
-  const user = req.dbUser
-  const { id } = req.params
+  const user = req.dbUser;
+  const { id } = req.params;
 
   const result = await pool.query(
     `
@@ -44,14 +44,14 @@ export async function acknowledgeAlarm(req, res) {
       AND user_id = $2
     RETURNING *
     `,
-    [id, user.id]
-  )
+    [id, user.id],
+  );
 
   if (!result.rows.length) {
     return res.status(404).json({
-      message: 'Alarm not found',
-    })
+      message: "Alarm not found",
+    });
   }
 
-  res.json(result.rows[0])
+  res.json(result.rows[0]);
 }

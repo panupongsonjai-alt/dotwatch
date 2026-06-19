@@ -10,6 +10,7 @@ GET /api/devices
 POST /api/devices
 
 Body:
+
 ```json
 { "name": "Room Sensor 1" }
 ```
@@ -19,12 +20,14 @@ Body:
 POST /api/ingest
 
 Headers:
+
 ```txt
 x-device-id: DW-000001
 x-device-secret: dev-secret-001
 ```
 
 Body:
+
 ```json
 {
   "temperature": 28.5,

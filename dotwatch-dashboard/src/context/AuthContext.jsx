@@ -1,24 +1,24 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { listenAuthState, logout as authLogout } from '../services/auth'
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { listenAuthState, logout as authLogout } from "../services/auth";
 
-const AuthContext = createContext(null)
+const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [authLoading, setAuthLoading] = useState(true)
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = listenAuthState(async (firebaseUser) => {
       if (firebaseUser) {
-        await firebaseUser.reload()
+        await firebaseUser.reload();
       }
 
-      setUser(firebaseUser)
-      setAuthLoading(false)
-    })
+      setUser(firebaseUser);
+      setAuthLoading(false);
+    });
 
-    return unsubscribe
-  }, [])
+    return unsubscribe;
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -28,18 +28,18 @@ export function AuthProvider({ children }) {
       isEmailVerified: Boolean(user?.emailVerified),
       logout: authLogout,
     }),
-    [user, authLoading]
-  )
+    [user, authLoading],
+  );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
+    throw new Error("useAuth must be used within AuthProvider");
   }
 
-  return context
+  return context;
 }

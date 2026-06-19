@@ -1,7 +1,7 @@
-import { pool } from '../db/pool.js'
+import { pool } from "../db/pool.js";
 
 export async function getGeneratorConfig(req, res) {
-  const user = req.dbUser
+  const user = req.dbUser;
 
   const result = await pool.query(
     `
@@ -9,8 +9,8 @@ export async function getGeneratorConfig(req, res) {
     FROM demo_generators
     WHERE user_id = $1
     `,
-    [user.id]
-  )
+    [user.id],
+  );
 
   if (!result.rows.length) {
     return res.json({
@@ -19,14 +19,14 @@ export async function getGeneratorConfig(req, res) {
       generate_alarms: true,
       simulate_offline: true,
       temperature_drift: true,
-    })
+    });
   }
 
-  res.json(result.rows[0])
+  res.json(result.rows[0]);
 }
 
 export async function saveGeneratorConfig(req, res) {
-  const user = req.dbUser
+  const user = req.dbUser;
 
   const {
     enabled,
@@ -34,7 +34,7 @@ export async function saveGeneratorConfig(req, res) {
     generate_alarms,
     simulate_offline,
     temperature_drift,
-  } = req.body
+  } = req.body;
 
   const result = await pool.query(
     `
@@ -66,9 +66,8 @@ export async function saveGeneratorConfig(req, res) {
       generate_alarms,
       simulate_offline,
       temperature_drift,
-    ]
-  )
+    ],
+  );
 
-  res.json(result.rows[0])
+  res.json(result.rows[0]);
 }
-

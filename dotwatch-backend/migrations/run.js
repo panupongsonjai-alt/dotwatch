@@ -1,6 +1,6 @@
-import pg from 'pg';
-import bcrypt from 'bcryptjs';
-import dotenv from 'dotenv';
+import pg from "pg";
+import bcrypt from "bcryptjs";
+import dotenv from "dotenv";
 dotenv.config();
 
 const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
@@ -40,22 +40,29 @@ async function main() {
     );
   `);
 
-  await client.query(`SELECT create_hypertable('sensor_readings', 'time', if_not_exists => TRUE);`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_sensor_device_time ON sensor_readings (device_id, time DESC);`);
+  await client.query(
+    `SELECT create_hypertable('sensor_readings', 'time', if_not_exists => TRUE);`,
+  );
+  await client.query(
+    `CREATE INDEX IF NOT EXISTS idx_sensor_device_time ON sensor_readings (device_id, time DESC);`,
+  );
 
-  const secretHash = await bcrypt.hash('dev-secret-001', 10);
+  const secretHash = await bcrypt.hash("dev-secret-001", 10);
   await client.query(`
     INSERT INTO users (firebase_uid, email)
     VALUES ('dev-user', 'dev@dotwatch.local')
     ON CONFLICT (firebase_uid) DO NOTHING;
   `);
-  await client.query(`
+  await client.query(
+    `
     INSERT INTO devices (user_id, device_code, name, secret_hash)
     SELECT id, 'DW-000001', 'Demo Device', $1 FROM users WHERE firebase_uid = 'dev-user'
     ON CONFLICT (device_code) DO NOTHING;
-  `, [secretHash]);
+  `,
+    [secretHash],
+  );
 
-  console.log('Migration completed');
+  console.log("Migration completed");
   await client.end();
 }
 

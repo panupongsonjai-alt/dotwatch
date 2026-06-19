@@ -1,7 +1,7 @@
-import { pool } from '../db/pool.js'
+import { pool } from "../db/pool.js";
 
 export async function listAlarmRules(req, res) {
-  const user = req.dbUser
+  const user = req.dbUser;
 
   const result = await pool.query(
     `
@@ -10,22 +10,16 @@ export async function listAlarmRules(req, res) {
     WHERE user_id = $1
     ORDER BY created_at DESC
     `,
-    [user.id]
-  )
+    [user.id],
+  );
 
-  res.json(result.rows)
+  res.json(result.rows);
 }
 
 export async function createAlarmRule(req, res) {
-  const user = req.dbUser
+  const user = req.dbUser;
 
-  const {
-    device_id,
-    metric,
-    operator,
-    threshold,
-    severity,
-  } = req.body
+  const { device_id, metric, operator, threshold, severity } = req.body;
 
   const result = await pool.query(
     `
@@ -40,31 +34,18 @@ export async function createAlarmRule(req, res) {
     VALUES ($1,$2,$3,$4,$5,$6)
     RETURNING *
     `,
-    [
-      user.id,
-      device_id || null,
-      metric,
-      operator,
-      threshold,
-      severity,
-    ]
-  )
+    [user.id, device_id || null, metric, operator, threshold, severity],
+  );
 
-  res.status(201).json(result.rows[0])
+  res.status(201).json(result.rows[0]);
 }
 
 export async function updateAlarmRule(req, res) {
-  const user = req.dbUser
-  const { id } = req.params
+  const user = req.dbUser;
+  const { id } = req.params;
 
-  const {
-    device_id,
-    metric,
-    operator,
-    threshold,
-    severity,
-    is_active,
-  } = req.body
+  const { device_id, metric, operator, threshold, severity, is_active } =
+    req.body;
 
   const result = await pool.query(
     `
@@ -80,30 +61,21 @@ export async function updateAlarmRule(req, res) {
       AND user_id = $8
     RETURNING *
     `,
-    [
-      device_id,
-      metric,
-      operator,
-      threshold,
-      severity,
-      is_active,
-      id,
-      user.id,
-    ]
-  )
+    [device_id, metric, operator, threshold, severity, is_active, id, user.id],
+  );
 
   if (!result.rows.length) {
     return res.status(404).json({
-      message: 'Rule not found',
-    })
+      message: "Rule not found",
+    });
   }
 
-  res.json(result.rows[0])
+  res.json(result.rows[0]);
 }
 
 export async function deleteAlarmRule(req, res) {
-  const user = req.dbUser
-  const { id } = req.params
+  const user = req.dbUser;
+  const { id } = req.params;
 
   const result = await pool.query(
     `
@@ -112,16 +84,16 @@ export async function deleteAlarmRule(req, res) {
       AND user_id = $2
     RETURNING id
     `,
-    [id, user.id]
-  )
+    [id, user.id],
+  );
 
   if (!result.rows.length) {
     return res.status(404).json({
-      message: 'Rule not found',
-    })
+      message: "Rule not found",
+    });
   }
 
   res.json({
     ok: true,
-  })
+  });
 }

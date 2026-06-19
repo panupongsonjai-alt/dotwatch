@@ -1,13 +1,13 @@
-import { useAlarm } from '../context/AlarmContext'
+import { useAlarm } from "../context/AlarmContext";
 
 function AlarmToast() {
-  const { alarms, removeAlarm } = useAlarm()
+  const { alarms, removeAlarm } = useAlarm();
 
   const activeAlarms = alarms
-    .filter((alarm) => alarm.status !== 'acknowledged')
-    .slice(0, 3)
+    .filter((alarm) => alarm.status !== "acknowledged")
+    .slice(0, 3);
 
-  if (activeAlarms.length === 0) return null
+  if (activeAlarms.length === 0) return null;
 
   return (
     <div className="alarm-toast-wrap">
@@ -21,7 +21,7 @@ function AlarmToast() {
           </button>
 
           <strong>
-            {alarm.severity === 'critical' ? 'Critical Alarm' : 'Warning Alarm'}
+            {alarm.severity === "critical" ? "Critical Alarm" : "Warning Alarm"}
           </strong>
 
           <p>
@@ -30,13 +30,13 @@ function AlarmToast() {
 
           <small>
             {alarm.time
-              ? new Date(alarm.time).toLocaleString('th-TH')
-              : new Date().toLocaleString('th-TH')}
+              ? new Date(alarm.time).toLocaleString("th-TH")
+              : new Date().toLocaleString("th-TH")}
           </small>
         </div>
       ))}
     </div>
-  )
+  );
 }
 
-export default AlarmToast
+export default AlarmToast;

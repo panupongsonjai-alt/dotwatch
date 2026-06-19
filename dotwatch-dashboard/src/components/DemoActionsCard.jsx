@@ -1,46 +1,42 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   generateDemoAlarmNow,
   generateDemoOfflineNow,
   generateDemoHistoryNow,
   deleteDemoData,
-} from '../services/api'
+} from "../services/api";
 
 function DemoActionsCard({ onDone }) {
-  const [loading, setLoading] = useState('')
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
+  const [loading, setLoading] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   async function runAction(actionName, actionFn, successMessage) {
     try {
-      setLoading(actionName)
-      setMessage('')
-      setError('')
+      setLoading(actionName);
+      setMessage("");
+      setError("");
 
-      await actionFn()
+      await actionFn();
 
-      setMessage(successMessage)
-      onDone?.()
+      setMessage(successMessage);
+      onDone?.();
     } catch (err) {
-      console.error(err)
-      setError('ทำรายการไม่สำเร็จ กรุณาสร้าง Demo Template ก่อน')
+      console.error(err);
+      setError("ทำรายการไม่สำเร็จ กรุณาสร้าง Demo Template ก่อน");
     } finally {
-      setLoading('')
+      setLoading("");
     }
   }
 
   async function handleClearDemo() {
     const confirmed = window.confirm(
-      'ต้องการลบ Demo Devices และข้อมูล Demo ทั้งหมดใช่ไหม?'
-    )
+      "ต้องการลบ Demo Devices และข้อมูล Demo ทั้งหมดใช่ไหม?",
+    );
 
-    if (!confirmed) return
+    if (!confirmed) return;
 
-    await runAction(
-      'clear',
-      deleteDemoData,
-      'ลบข้อมูล Demo สำเร็จแล้ว'
-    )
+    await runAction("clear", deleteDemoData, "ลบข้อมูล Demo สำเร็จแล้ว");
   }
 
   return (
@@ -62,13 +58,13 @@ function DemoActionsCard({ onDone }) {
           disabled={Boolean(loading)}
           onClick={() =>
             runAction(
-              'alarm',
+              "alarm",
               generateDemoAlarmNow,
-              'สร้าง Alarm ตัวอย่างสำเร็จแล้ว'
+              "สร้าง Alarm ตัวอย่างสำเร็จแล้ว",
             )
           }
         >
-          {loading === 'alarm' ? 'Generating...' : 'Generate Alarm Now'}
+          {loading === "alarm" ? "Generating..." : "Generate Alarm Now"}
         </button>
 
         <button
@@ -77,15 +73,13 @@ function DemoActionsCard({ onDone }) {
           disabled={Boolean(loading)}
           onClick={() =>
             runAction(
-              'offline',
+              "offline",
               generateDemoOfflineNow,
-              'จำลอง Device Offline สำเร็จแล้ว'
+              "จำลอง Device Offline สำเร็จแล้ว",
             )
           }
         >
-          {loading === 'offline'
-            ? 'Generating...'
-            : 'Generate Offline Device'}
+          {loading === "offline" ? "Generating..." : "Generate Offline Device"}
         </button>
 
         <button
@@ -94,15 +88,13 @@ function DemoActionsCard({ onDone }) {
           disabled={Boolean(loading)}
           onClick={() =>
             runAction(
-              'history',
+              "history",
               generateDemoHistoryNow,
-              'สร้างข้อมูลย้อนหลัง 24 ชั่วโมงสำเร็จแล้ว'
+              "สร้างข้อมูลย้อนหลัง 24 ชั่วโมงสำเร็จแล้ว",
             )
           }
         >
-          {loading === 'history'
-            ? 'Generating...'
-            : 'Generate 24h History'}
+          {loading === "history" ? "Generating..." : "Generate 24h History"}
         </button>
 
         <button
@@ -111,11 +103,11 @@ function DemoActionsCard({ onDone }) {
           disabled={Boolean(loading)}
           onClick={handleClearDemo}
         >
-          {loading === 'clear' ? 'Clearing...' : 'Clear Demo Data'}
+          {loading === "clear" ? "Clearing..." : "Clear Demo Data"}
         </button>
       </div>
     </section>
-  )
+  );
 }
 
-export default DemoActionsCard
+export default DemoActionsCard;

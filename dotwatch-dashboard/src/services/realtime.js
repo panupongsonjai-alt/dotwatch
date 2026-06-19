@@ -1,7 +1,7 @@
 export function connectRealtime(userId, onMessage) {
-  return null
+  return null;
 }
 
 export function disconnectRealtime() {
-  return null
+  return null;
 }

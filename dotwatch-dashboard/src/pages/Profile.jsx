@@ -1,8 +1,8 @@
-import React from 'react'
-import { auth } from '../services/firebase'
+import React from "react";
+import { auth } from "../services/firebase";
 
 function Profile() {
-  const user = auth.currentUser
+  const user = auth.currentUser;
 
   return (
     <div className="page">
@@ -14,18 +14,18 @@ function Profile() {
 
         <div className="profile-card">
           <div className="profile-avatar">
-            {user?.email?.charAt(0).toUpperCase() || 'U'}
+            {user?.email?.charAt(0).toUpperCase() || "U"}
           </div>
 
           <div className="profile-info">
-            <h3>{user?.displayName || 'dotWatch User'}</h3>
+            <h3>{user?.displayName || "dotWatch User"}</h3>
             <p>{user?.email}</p>
             <small>User ID: {user?.uid}</small>
           </div>
         </div>
       </section>
     </div>
-  )
+  );
 }
 
-export default Profile
+export default Profile;

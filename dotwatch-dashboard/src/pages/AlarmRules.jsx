@@ -1,97 +1,97 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from "react";
 import {
   getAlarmRules,
   createAlarmRule,
   updateAlarmRule,
   deleteAlarmRule,
   getDevices,
-} from '../services/api'
+} from "../services/api";
 
 const defaultForm = {
-  device_id: '',
-  metric: 'temperature',
-  operator: '>',
+  device_id: "",
+  metric: "temperature",
+  operator: ">",
   threshold: 35,
-  severity: 'critical',
-}
+  severity: "critical",
+};
 
 function getMetricLabel(metric) {
-  if (metric === 'temperature') return 'Temperature'
-  if (metric === 'humidity') return 'Humidity'
-  if (metric === 'rssi') return 'RSSI'
-  return metric
+  if (metric === "temperature") return "Temperature";
+  if (metric === "humidity") return "Humidity";
+  if (metric === "rssi") return "RSSI";
+  return metric;
 }
 
 function getUnit(metric) {
-  if (metric === 'temperature') return '°C'
-  if (metric === 'humidity') return '%'
-  if (metric === 'rssi') return 'dBm'
-  return ''
+  if (metric === "temperature") return "°C";
+  if (metric === "humidity") return "%";
+  if (metric === "rssi") return "dBm";
+  return "";
 }
 
 function AlarmRules() {
-  const [rules, setRules] = useState([])
-  const [devices, setDevices] = useState([])
-  const [form, setForm] = useState(defaultForm)
-  const [filter, setFilter] = useState('all')
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [actionLoading, setActionLoading] = useState('')
-  const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
+  const [rules, setRules] = useState([]);
+  const [devices, setDevices] = useState([]);
+  const [form, setForm] = useState(defaultForm);
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [actionLoading, setActionLoading] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   async function loadData() {
     try {
-      setError('')
+      setError("");
 
       const [rulesData, devicesData] = await Promise.all([
         getAlarmRules(),
         getDevices(),
-      ])
+      ]);
 
-      setRules(Array.isArray(rulesData) ? rulesData : [])
-      setDevices(Array.isArray(devicesData) ? devicesData : [])
+      setRules(Array.isArray(rulesData) ? rulesData : []);
+      setDevices(Array.isArray(devicesData) ? devicesData : []);
     } catch (err) {
-      console.error(err)
-      setError('โหลดข้อมูล Alarm Rules ไม่สำเร็จ')
+      console.error(err);
+      setError("โหลดข้อมูล Alarm Rules ไม่สำเร็จ");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadData()
-  }, [])
+    loadData();
+  }, []);
 
   function updateForm(field, value) {
     setForm((prev) => ({
       ...prev,
       [field]: value,
-    }))
+    }));
   }
 
   function getDeviceName(id) {
-    const device = devices.find((d) => String(d.id) === String(id))
-    return device?.name || `Device #${id}`
+    const device = devices.find((d) => String(d.id) === String(id));
+    return device?.name || `Device #${id}`;
   }
 
   async function handleCreate(event) {
-    event.preventDefault()
+    event.preventDefault();
 
     if (!form.device_id) {
-      setError('กรุณาเลือก Device ก่อนสร้าง Rule')
-      return
+      setError("กรุณาเลือก Device ก่อนสร้าง Rule");
+      return;
     }
 
-    if (form.threshold === '' || Number.isNaN(Number(form.threshold))) {
-      setError('กรุณาระบุ Threshold ให้ถูกต้อง')
-      return
+    if (form.threshold === "" || Number.isNaN(Number(form.threshold))) {
+      setError("กรุณาระบุ Threshold ให้ถูกต้อง");
+      return;
     }
 
     try {
-      setSaving(true)
-      setError('')
-      setMessage('')
+      setSaving(true);
+      setError("");
+      setMessage("");
 
       await createAlarmRule({
         device_id: Number(form.device_id),
@@ -99,45 +99,45 @@ function AlarmRules() {
         operator: form.operator,
         threshold: Number(form.threshold),
         severity: form.severity,
-      })
+      });
 
-      setForm(defaultForm)
-      setMessage('เพิ่ม Alarm Rule สำเร็จแล้ว')
-      await loadData()
+      setForm(defaultForm);
+      setMessage("เพิ่ม Alarm Rule สำเร็จแล้ว");
+      await loadData();
     } catch (err) {
-      console.error(err)
-      setError(err.message || 'เพิ่ม Alarm Rule ไม่สำเร็จ')
+      console.error(err);
+      setError(err.message || "เพิ่ม Alarm Rule ไม่สำเร็จ");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   async function handleDelete(id) {
-    const confirmed = window.confirm('ต้องการลบ Rule นี้ใช่ไหม?')
-    if (!confirmed) return
+    const confirmed = window.confirm("ต้องการลบ Rule นี้ใช่ไหม?");
+    if (!confirmed) return;
 
     try {
-      setActionLoading(String(id))
-      setError('')
-      setMessage('')
+      setActionLoading(String(id));
+      setError("");
+      setMessage("");
 
-      await deleteAlarmRule(id)
+      await deleteAlarmRule(id);
 
-      setMessage('ลบ Alarm Rule สำเร็จแล้ว')
-      await loadData()
+      setMessage("ลบ Alarm Rule สำเร็จแล้ว");
+      await loadData();
     } catch (err) {
-      console.error(err)
-      setError(err.message || 'ลบ Alarm Rule ไม่สำเร็จ')
+      console.error(err);
+      setError(err.message || "ลบ Alarm Rule ไม่สำเร็จ");
     } finally {
-      setActionLoading('')
+      setActionLoading("");
     }
   }
 
   async function handleToggle(rule) {
     try {
-      setActionLoading(String(rule.id))
-      setError('')
-      setMessage('')
+      setActionLoading(String(rule.id));
+      setError("");
+      setMessage("");
 
       await updateAlarmRule(rule.id, {
         device_id: rule.device_id,
@@ -146,38 +146,38 @@ function AlarmRules() {
         threshold: Number(rule.threshold),
         severity: rule.severity,
         is_active: !rule.is_active,
-      })
+      });
 
       setMessage(
         rule.is_active
-          ? 'ปิดใช้งาน Alarm Rule แล้ว'
-          : 'เปิดใช้งาน Alarm Rule แล้ว'
-      )
+          ? "ปิดใช้งาน Alarm Rule แล้ว"
+          : "เปิดใช้งาน Alarm Rule แล้ว",
+      );
 
-      await loadData()
+      await loadData();
     } catch (err) {
-      console.error(err)
-      setError(err.message || 'อัปเดต Alarm Rule ไม่สำเร็จ')
+      console.error(err);
+      setError(err.message || "อัปเดต Alarm Rule ไม่สำเร็จ");
     } finally {
-      setActionLoading('')
+      setActionLoading("");
     }
   }
 
-  const totalRules = rules.length
-  const activeRules = rules.filter((rule) => rule.is_active).length
+  const totalRules = rules.length;
+  const activeRules = rules.filter((rule) => rule.is_active).length;
   const criticalRules = rules.filter(
-    (rule) => rule.severity === 'critical'
-  ).length
+    (rule) => rule.severity === "critical",
+  ).length;
   const warningRules = rules.filter(
-    (rule) => rule.severity === 'warning'
-  ).length
+    (rule) => rule.severity === "warning",
+  ).length;
 
   const filteredRules = useMemo(() => {
-    if (filter === 'all') return rules
-    if (filter === 'active') return rules.filter((rule) => rule.is_active)
-    if (filter === 'disabled') return rules.filter((rule) => !rule.is_active)
-    return rules.filter((rule) => rule.severity === filter)
-  }, [rules, filter])
+    if (filter === "all") return rules;
+    if (filter === "active") return rules.filter((rule) => rule.is_active);
+    if (filter === "disabled") return rules.filter((rule) => !rule.is_active);
+    return rules.filter((rule) => rule.severity === filter);
+  }, [rules, filter]);
 
   return (
     <div className="page">
@@ -228,7 +228,7 @@ function AlarmRules() {
             Device
             <select
               value={form.device_id}
-              onChange={(e) => updateForm('device_id', e.target.value)}
+              onChange={(e) => updateForm("device_id", e.target.value)}
             >
               <option value="">เลือก Device</option>
 
@@ -244,7 +244,7 @@ function AlarmRules() {
             Metric
             <select
               value={form.metric}
-              onChange={(e) => updateForm('metric', e.target.value)}
+              onChange={(e) => updateForm("metric", e.target.value)}
             >
               <option value="temperature">Temperature</option>
               <option value="humidity">Humidity</option>
@@ -256,7 +256,7 @@ function AlarmRules() {
             Operator
             <select
               value={form.operator}
-              onChange={(e) => updateForm('operator', e.target.value)}
+              onChange={(e) => updateForm("operator", e.target.value)}
             >
               <option value=">">&gt;</option>
               <option value="<">&lt;</option>
@@ -271,7 +271,7 @@ function AlarmRules() {
               type="number"
               step="0.1"
               value={form.threshold}
-              onChange={(e) => updateForm('threshold', e.target.value)}
+              onChange={(e) => updateForm("threshold", e.target.value)}
             />
           </label>
 
@@ -279,7 +279,7 @@ function AlarmRules() {
             Severity
             <select
               value={form.severity}
-              onChange={(e) => updateForm('severity', e.target.value)}
+              onChange={(e) => updateForm("severity", e.target.value)}
             >
               <option value="warning">Warning</option>
               <option value="critical">Critical</option>
@@ -287,7 +287,7 @@ function AlarmRules() {
           </label>
 
           <button type="submit" className="primary-button" disabled={saving}>
-            {saving ? 'Saving...' : 'Add Rule'}
+            {saving ? "Saving..." : "Add Rule"}
           </button>
         </form>
       </section>
@@ -302,16 +302,20 @@ function AlarmRules() {
           <div className="alarm-filter-row">
             <button
               type="button"
-              className={filter === 'all' ? 'filter-button active' : 'filter-button'}
-              onClick={() => setFilter('all')}
+              className={
+                filter === "all" ? "filter-button active" : "filter-button"
+              }
+              onClick={() => setFilter("all")}
             >
               All
             </button>
 
             <button
               type="button"
-              className={filter === 'active' ? 'filter-button active' : 'filter-button'}
-              onClick={() => setFilter('active')}
+              className={
+                filter === "active" ? "filter-button active" : "filter-button"
+              }
+              onClick={() => setFilter("active")}
             >
               Active
             </button>
@@ -319,9 +323,9 @@ function AlarmRules() {
             <button
               type="button"
               className={
-                filter === 'disabled' ? 'filter-button active' : 'filter-button'
+                filter === "disabled" ? "filter-button active" : "filter-button"
               }
-              onClick={() => setFilter('disabled')}
+              onClick={() => setFilter("disabled")}
             >
               Disabled
             </button>
@@ -329,9 +333,9 @@ function AlarmRules() {
             <button
               type="button"
               className={
-                filter === 'critical' ? 'filter-button active' : 'filter-button'
+                filter === "critical" ? "filter-button active" : "filter-button"
               }
-              onClick={() => setFilter('critical')}
+              onClick={() => setFilter("critical")}
             >
               Critical
             </button>
@@ -339,9 +343,9 @@ function AlarmRules() {
             <button
               type="button"
               className={
-                filter === 'warning' ? 'filter-button active' : 'filter-button'
+                filter === "warning" ? "filter-button active" : "filter-button"
               }
-              onClick={() => setFilter('warning')}
+              onClick={() => setFilter("warning")}
             >
               Warning
             </button>
@@ -360,14 +364,14 @@ function AlarmRules() {
         {!loading && filteredRules.length > 0 && (
           <div className="alarm-list">
             {filteredRules.map((rule) => {
-              const severity = rule.severity || 'warning'
-              const isActive = Boolean(rule.is_active)
+              const severity = rule.severity || "warning";
+              const isActive = Boolean(rule.is_active);
 
               return (
                 <article
                   key={rule.id}
                   className={`alarm-card ${severity} ${
-                    isActive ? 'active' : 'acknowledged'
+                    isActive ? "active" : "acknowledged"
                   }`}
                 >
                   <div className="alarm-card-main">
@@ -375,7 +379,7 @@ function AlarmRules() {
                       <div>
                         <h3>{getDeviceName(rule.device_id)}</h3>
                         <p>
-                          {getMetricLabel(rule.metric)} {rule.operator}{' '}
+                          {getMetricLabel(rule.metric)} {rule.operator}{" "}
                           {Number(rule.threshold).toFixed(1)}
                           {getUnit(rule.metric)}
                         </p>
@@ -389,11 +393,11 @@ function AlarmRules() {
                         <span
                           className={
                             isActive
-                              ? 'alarm-status active'
-                              : 'alarm-status acknowledged'
+                              ? "alarm-status active"
+                              : "alarm-status acknowledged"
                           }
                         >
-                          {isActive ? 'ACTIVE' : 'DISABLED'}
+                          {isActive ? "ACTIVE" : "DISABLED"}
                         </span>
                       </div>
                     </div>
@@ -431,7 +435,7 @@ function AlarmRules() {
                       disabled={actionLoading === String(rule.id)}
                       onClick={() => handleToggle(rule)}
                     >
-                      {isActive ? 'Disable' : 'Enable'}
+                      {isActive ? "Disable" : "Enable"}
                     </button>
 
                     <button
@@ -444,13 +448,13 @@ function AlarmRules() {
                     </button>
                   </div>
                 </article>
-              )
+              );
             })}
           </div>
         )}
       </section>
     </div>
-  )
+  );
 }
 
-export default AlarmRules
+export default AlarmRules;

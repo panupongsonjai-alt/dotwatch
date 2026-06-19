@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -8,21 +8,21 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts'
-import { Download, Droplets, Thermometer } from 'lucide-react'
+} from "recharts";
+import { Download, Droplets, Thermometer } from "lucide-react";
 
-import { getDevices, getHistory } from '../services/api'
+import { getDevices, getHistory } from "../services/api";
 
-const MAX_POINTS = 72
-const REFRESH_INTERVAL = 30000
+const MAX_POINTS = 72;
+const REFRESH_INTERVAL = 30000;
 
 function toArray(payload) {
-  if (Array.isArray(payload)) return payload
-  if (Array.isArray(payload?.data)) return payload.data
-  if (Array.isArray(payload?.rows)) return payload.rows
-  if (Array.isArray(payload?.history)) return payload.history
-  if (Array.isArray(payload?.readings)) return payload.readings
-  return []
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.rows)) return payload.rows;
+  if (Array.isArray(payload?.history)) return payload.history;
+  if (Array.isArray(payload?.readings)) return payload.readings;
+  return [];
 }
 
 function getTime(item) {
@@ -35,98 +35,106 @@ function getTime(item) {
     item.createdAt ||
     item.latest_time ||
     item.latestTime
-  )
+  );
 }
 
 function getNumber(...values) {
   for (const value of values) {
-    const number = Number(value)
-    if (value !== null && value !== undefined && value !== '' && Number.isFinite(number)) {
-      return number
+    const number = Number(value);
+    if (
+      value !== null &&
+      value !== undefined &&
+      value !== "" &&
+      Number.isFinite(number)
+    ) {
+      return number;
     }
   }
-  return null
+  return null;
 }
 
 function formatTime(value) {
-  const date = new Date(value)
-  if (!value || Number.isNaN(date.getTime())) return '--'
+  const date = new Date(value);
+  if (!value || Number.isNaN(date.getTime())) return "--";
 
-  return date.toLocaleTimeString('th-TH', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return date.toLocaleTimeString("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function normalizeHistory(payload) {
-  const seen = new Set()
+  const seen = new Set();
 
   return toArray(payload)
     .map((item) => {
-      const time = getTime(item)
+      const time = getTime(item);
 
       const temperature = getNumber(
         item.avg_temperature,
         item.avgTemperature,
-        item.temperature
-      )
+        item.temperature,
+      );
 
       const humidity = getNumber(
         item.avg_humidity,
         item.avgHumidity,
-        item.humidity
-      )
+        item.humidity,
+      );
 
       return {
         time,
         label: formatTime(time),
         temperature,
         humidity,
-      }
+      };
     })
     .filter((item) => {
-      if (!item.time) return false
+      if (!item.time) return false;
 
-      const timestamp = new Date(item.time).getTime()
-      if (Number.isNaN(timestamp)) return false
+      const timestamp = new Date(item.time).getTime();
+      if (Number.isNaN(timestamp)) return false;
 
-      if (seen.has(item.time)) return false
-      seen.add(item.time)
+      if (seen.has(item.time)) return false;
+      seen.add(item.time);
 
-      return item.temperature !== null || item.humidity !== null
+      return item.temperature !== null || item.humidity !== null;
     })
     .sort((a, b) => new Date(a.time) - new Date(b.time))
-    .slice(-MAX_POINTS)
+    .slice(-MAX_POINTS);
 }
 
 function getRange(hours) {
-  const to = new Date()
-  const from = new Date(to.getTime() - hours * 60 * 60 * 1000)
+  const to = new Date();
+  const from = new Date(to.getTime() - hours * 60 * 60 * 1000);
 
   return {
     from: from.toISOString(),
     to: to.toISOString(),
-  }
+  };
 }
 
 function getStats(data, key) {
   const values = data
     .map((item) => item[key])
-    .filter((value) => value !== null && value !== undefined && Number.isFinite(value))
+    .filter(
+      (value) =>
+        value !== null && value !== undefined && Number.isFinite(value),
+    );
 
   if (!values.length) {
-    return { avg: null, min: null, max: null }
+    return { avg: null, min: null, max: null };
   }
 
   return {
     avg: values.reduce((sum, value) => sum + value, 0) / values.length,
     min: Math.min(...values),
     max: Math.max(...values),
-  }
+  };
 }
 
 function CustomTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null
+  if (!active || !payload?.length) return null;
 
   return (
     <div className="dw-chart-tooltip">
@@ -134,130 +142,123 @@ function CustomTooltip({ active, payload, label }) {
 
       {payload.map((item) => (
         <div key={item.dataKey} className="dw-tooltip-row">
-          <span
-            className="dw-tooltip-dot"
-            style={{ background: item.color }}
-          />
+          <span className="dw-tooltip-dot" style={{ background: item.color }} />
           <span>{item.name}</span>
           <b>
             {Number(item.value).toFixed(1)}
-            {item.dataKey === 'temperature' ? ' °C' : ' %'}
+            {item.dataKey === "temperature" ? " °C" : " %"}
           </b>
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function ChartWidget() {
-  const [devices, setDevices] = useState([])
-  const [selectedDeviceId, setSelectedDeviceId] = useState('')
-  const [rangeHours, setRangeHours] = useState(24)
-  const [chartData, setChartData] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [devices, setDevices] = useState([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState("");
+  const [rangeHours, setRangeHours] = useState(24);
+  const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const lastSignatureRef = useRef('')
+  const lastSignatureRef = useRef("");
 
   const stats = useMemo(() => {
     return {
-      temperature: getStats(chartData, 'temperature'),
-      humidity: getStats(chartData, 'humidity'),
-    }
-  }, [chartData])
+      temperature: getStats(chartData, "temperature"),
+      humidity: getStats(chartData, "humidity"),
+    };
+  }, [chartData]);
 
   async function loadDevices() {
     try {
-      setError('')
-      const payload = await getDevices()
-      const list = toArray(payload)
+      setError("");
+      const payload = await getDevices();
+      const list = toArray(payload);
 
-      setDevices(list)
+      setDevices(list);
 
       if (list.length > 0) {
-        setSelectedDeviceId((current) => current || String(list[0].id))
+        setSelectedDeviceId((current) => current || String(list[0].id));
       }
     } catch (err) {
-      console.error('loadDevices error:', err)
-      setError(err.message || 'โหลดรายการอุปกรณ์ไม่ได้')
+      console.error("loadDevices error:", err);
+      setError(err.message || "โหลดรายการอุปกรณ์ไม่ได้");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function loadHistory(deviceId) {
-    if (!deviceId) return
+    if (!deviceId) return;
 
     try {
-      setError('')
+      setError("");
 
-      const { from, to } = getRange(rangeHours)
-      const payload = await getHistory(deviceId, from, to)
-      const nextData = normalizeHistory(payload)
+      const { from, to } = getRange(rangeHours);
+      const payload = await getHistory(deviceId, from, to);
+      const nextData = normalizeHistory(payload);
 
-      const latest = nextData[nextData.length - 1]
+      const latest = nextData[nextData.length - 1];
       const signature = latest
         ? `${latest.time}-${latest.temperature}-${latest.humidity}-${nextData.length}`
-        : 'empty'
+        : "empty";
 
-      if (signature === lastSignatureRef.current) return
+      if (signature === lastSignatureRef.current) return;
 
-      lastSignatureRef.current = signature
-      setChartData(nextData)
+      lastSignatureRef.current = signature;
+      setChartData(nextData);
     } catch (err) {
-      console.error('loadHistory error:', err)
-      setError(err.message || 'โหลดข้อมูลกราฟไม่ได้')
+      console.error("loadHistory error:", err);
+      setError(err.message || "โหลดข้อมูลกราฟไม่ได้");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadDevices()
-  }, [])
+    loadDevices();
+  }, []);
 
   useEffect(() => {
-    if (!selectedDeviceId) return
+    if (!selectedDeviceId) return;
 
-    setLoading(true)
-    setChartData([])
-    lastSignatureRef.current = ''
+    setLoading(true);
+    setChartData([]);
+    lastSignatureRef.current = "";
 
-    loadHistory(selectedDeviceId)
+    loadHistory(selectedDeviceId);
 
     const timer = setInterval(() => {
-      loadHistory(selectedDeviceId)
-    }, REFRESH_INTERVAL)
+      loadHistory(selectedDeviceId);
+    }, REFRESH_INTERVAL);
 
-    return () => clearInterval(timer)
-  }, [selectedDeviceId, rangeHours])
+    return () => clearInterval(timer);
+  }, [selectedDeviceId, rangeHours]);
 
   function handleExportCSV() {
-    if (!chartData.length) return
+    if (!chartData.length) return;
 
     const csv = [
-      'time,temperature,humidity',
+      "time,temperature,humidity",
       ...chartData.map((item) =>
-        [
-          item.time,
-          item.temperature ?? '',
-          item.humidity ?? '',
-        ].join(',')
+        [item.time, item.temperature ?? "", item.humidity ?? ""].join(","),
       ),
-    ].join('\n')
+    ].join("\n");
 
     const blob = new Blob([csv], {
-      type: 'text/csv;charset=utf-8;',
-    })
+      type: "text/csv;charset=utf-8;",
+    });
 
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
 
-    link.href = url
-    link.download = `dotwatch-history-${selectedDeviceId}.csv`
-    link.click()
+    link.href = url;
+    link.download = `dotwatch-history-${selectedDeviceId}.csv`;
+    link.click();
 
-    URL.revokeObjectURL(url)
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -321,17 +322,17 @@ function ChartWidget() {
             <strong>
               {stats.temperature.avg !== null
                 ? `${stats.temperature.avg.toFixed(1)} °C`
-                : '--'}
+                : "--"}
             </strong>
             <p>
-              ต่ำสุด{' '}
+              ต่ำสุด{" "}
               {stats.temperature.min !== null
                 ? `${stats.temperature.min.toFixed(1)} °C`
-                : '--'}{' '}
-              <b>|</b> สูงสุด{' '}
+                : "--"}{" "}
+              <b>|</b> สูงสุด{" "}
               {stats.temperature.max !== null
                 ? `${stats.temperature.max.toFixed(1)} °C`
-                : '--'}
+                : "--"}
             </p>
           </div>
         </div>
@@ -346,17 +347,17 @@ function ChartWidget() {
             <strong>
               {stats.humidity.avg !== null
                 ? `${stats.humidity.avg.toFixed(1)} %`
-                : '--'}
+                : "--"}
             </strong>
             <p>
-              ต่ำสุด{' '}
+              ต่ำสุด{" "}
               {stats.humidity.min !== null
                 ? `${stats.humidity.min.toFixed(0)} %`
-                : '--'}{' '}
-              <b>|</b> สูงสุด{' '}
+                : "--"}{" "}
+              <b>|</b> สูงสุด{" "}
               {stats.humidity.max !== null
                 ? `${stats.humidity.max.toFixed(0)} %`
-                : '--'}
+                : "--"}
             </p>
           </div>
         </div>
@@ -369,9 +370,7 @@ function ChartWidget() {
       )}
 
       {!error && !loading && chartData.length === 0 && (
-        <div className="chart-message">
-          ยังไม่มีข้อมูลกราฟสำหรับอุปกรณ์นี้
-        </div>
+        <div className="chart-message">ยังไม่มีข้อมูลกราฟสำหรับอุปกรณ์นี้</div>
       )}
 
       {!error && chartData.length > 0 && (
@@ -411,7 +410,7 @@ function ChartWidget() {
                 minTickGap={30}
                 tick={{
                   fontSize: 12,
-                  fill: '#94a3b8',
+                  fill: "#94a3b8",
                   fontWeight: 600,
                 }}
               />
@@ -420,10 +419,10 @@ function ChartWidget() {
                 tickLine={false}
                 axisLine={false}
                 width={36}
-                domain={['auto', 'auto']}
+                domain={["auto", "auto"]}
                 tick={{
                   fontSize: 12,
-                  fill: '#94a3b8',
+                  fill: "#94a3b8",
                   fontWeight: 600,
                 }}
               />
@@ -432,8 +431,8 @@ function ChartWidget() {
                 content={<CustomTooltip />}
                 animationDuration={0}
                 cursor={{
-                  stroke: 'rgba(96, 165, 250, 0.7)',
-                  strokeDasharray: '3 3',
+                  stroke: "rgba(96, 165, 250, 0.7)",
+                  strokeDasharray: "3 3",
                 }}
               />
 
@@ -469,7 +468,7 @@ function ChartWidget() {
         </div>
       )}
     </section>
-  )
+  );
 }
 
-export default ChartWidget
+export default ChartWidget;

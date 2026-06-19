@@ -1,8 +1,8 @@
-import { Navigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function ProtectedRoute({ children }) {
-  const { authLoading, isAuthenticated } = useAuth()
+  const { authLoading, isAuthenticated } = useAuth();
 
   if (authLoading) {
     return (
@@ -12,14 +12,14 @@ function ProtectedRoute({ children }) {
           <p>กำลังตรวจสอบการเข้าสู่ระบบ...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" replace />;
   }
 
-  return children
+  return children;
 }
 
-export default ProtectedRoute
+export default ProtectedRoute;

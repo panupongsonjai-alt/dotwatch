@@ -1,0 +1,13 @@
+{
+  "name": "dotwatch-dashboard",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "eslint": "^10.5.0",
+    "prettier": "^3.8.4"
+  }
+}

@@ -1,12 +1,12 @@
-import { pool } from '../db/pool.js'
+import { pool } from "../db/pool.js";
 
 function compareValue(value, operator, threshold) {
-  if (operator === '>') return value > threshold
-  if (operator === '>=') return value >= threshold
-  if (operator === '<') return value < threshold
-  if (operator === '<=') return value <= threshold
-  if (operator === '=') return value === threshold
-  return false
+  if (operator === ">") return value > threshold;
+  if (operator === ">=") return value >= threshold;
+  if (operator === "<") return value < threshold;
+  if (operator === "<=") return value <= threshold;
+  if (operator === "=") return value === threshold;
+  return false;
 }
 
 export async function checkAlarms({ userId, deviceId, reading }) {
@@ -18,22 +18,22 @@ export async function checkAlarms({ userId, deviceId, reading }) {
       AND is_active = true
       AND (device_id = $2 OR device_id IS NULL)
     `,
-    [userId, deviceId]
-  )
+    [userId, deviceId],
+  );
 
-  const alerts = []
+  const alerts = [];
 
   for (const rule of rulesResult.rows) {
-    const value = Number(reading[rule.metric])
-    if (!Number.isFinite(value)) continue
+    const value = Number(reading[rule.metric]);
+    if (!Number.isFinite(value)) continue;
 
     const triggered = compareValue(
       value,
       rule.operator,
-      Number(rule.threshold)
-    )
+      Number(rule.threshold),
+    );
 
-    if (!triggered) continue
+    if (!triggered) continue;
 
     const eventResult = await pool.query(
       `
@@ -62,11 +62,11 @@ export async function checkAlarms({ userId, deviceId, reading }) {
         value,
         rule.severity,
         reading.time,
-      ]
-    )
+      ],
+    );
 
-    alerts.push(eventResult.rows[0])
+    alerts.push(eventResult.rows[0]);
   }
 
-  return alerts
+  return alerts;
 }

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
-import DemoTemplatesPanel from '../components/DemoTemplatesPanel'
-import DemoGeneratorCard from '../components/DemoGeneratorCard'
-import { getDemoStatistics } from '../services/api'
-import DemoActionsCard from '../components/DemoActionsCard'
+import { useEffect, useState } from "react";
+import DemoTemplatesPanel from "../components/DemoTemplatesPanel";
+import DemoGeneratorCard from "../components/DemoGeneratorCard";
+import { getDemoStatistics } from "../services/api";
+import DemoActionsCard from "../components/DemoActionsCard";
 
 function DemoCenter() {
   const [stats, setStats] = useState({
@@ -10,24 +10,24 @@ function DemoCenter() {
     generated_readings: 0,
     generated_alarms: 0,
     last_run_at: null,
-  })
+  });
 
   async function loadStatistics() {
     try {
-      const data = await getDemoStatistics()
-      setStats(data)
+      const data = await getDemoStatistics();
+      setStats(data);
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
   }
 
   useEffect(() => {
-    loadStatistics()
+    loadStatistics();
 
-    const timer = setInterval(loadStatistics, 10000)
+    const timer = setInterval(loadStatistics, 10000);
 
-    return () => clearInterval(timer)
-  }, [])
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="page">
@@ -63,7 +63,7 @@ function DemoCenter() {
           <strong>
             {stats.last_run_at
               ? new Date(stats.last_run_at).toLocaleTimeString()
-              : '--'}
+              : "--"}
           </strong>
         </article>
       </section>
@@ -74,7 +74,7 @@ function DemoCenter() {
 
       <DemoTemplatesPanel onDone={loadStatistics} />
     </div>
-  )
+  );
 }
 
-export default DemoCenter
+export default DemoCenter;
