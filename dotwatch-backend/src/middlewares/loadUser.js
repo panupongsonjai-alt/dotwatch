@@ -8,7 +8,6 @@ export async function loadUser(req, res, next) {
     })
 
     req.dbUser = user
-
     next()
   } catch (error) {
     next(error)
