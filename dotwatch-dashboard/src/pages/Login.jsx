@@ -1,28 +1,78 @@
-import React from 'react'
-import { useState } from "react";
+import { useState } from 'react'
 import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-} from "firebase/auth";
-import { auth } from "../services/firebase";
+  loginWithEmail,
+  registerWithEmail,
+  resetPassword,
+} from '../services/auth'
 
 function Login() {
-  const [mode, setMode] = useState("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+
+  const isLogin = mode === 'login'
+  const isRegister = mode === 'register'
+  const isForgot = mode === 'forgot'
 
   async function handleSubmit(e) {
-    e.preventDefault();
+    e.preventDefault()
+
+    if (!email) {
+      setError('กรุณากรอกอีเมล')
+      return
+    }
+
+    if (!isForgot && !password) {
+      setError('กรุณากรอกรหัสผ่าน')
+      return
+    }
+
+    if (isRegister && password.length < 6) {
+      setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร')
+      return
+    }
 
     try {
-      if (mode === "login") {
-        await signInWithEmailAndPassword(auth, email, password);
-      } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+      setSubmitting(true)
+      setError('')
+      setMessage('')
+
+      if (isLogin) {
+        await loginWithEmail(email.trim(), password)
       }
-    } catch (error) {
-      alert(error.message);
+
+      if (isRegister) {
+        await registerWithEmail(email.trim(), password)
+      }
+
+      if (isForgot) {
+        await resetPassword(email.trim())
+        setMessage('ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว')
+      }
+    } catch (err) {
+      console.error(err)
+
+      if (err.code === 'auth/invalid-credential') {
+        setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError('อีเมลนี้ถูกใช้งานแล้ว')
+      } else if (err.code === 'auth/user-not-found') {
+        setError('ไม่พบบัญชีผู้ใช้นี้')
+      } else {
+        setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+      }
+    } finally {
+      setSubmitting(false)
     }
+  }
+
+  function changeMode(nextMode) {
+    setMode(nextMode)
+    setError('')
+    setMessage('')
   }
 
   return (
@@ -32,17 +82,22 @@ function Login() {
           <div className="brand">
             <span className="brand-dot"></span>
             <div>
-              <strong>dotDashboard</strong>
-              <small>IoT Monitoring Platform</small>
+              <strong>dotWatch</strong>
+              <small>IoT Easy Monitoring</small>
             </div>
           </div>
         </div>
 
-        <h1>{mode === "login" ? "Welcome back" : "Create account"}</h1>
+        <h1>
+          {isLogin && 'Welcome back'}
+          {isRegister && 'Create account'}
+          {isForgot && 'Reset password'}
+        </h1>
+
         <p>
-          {mode === "login"
-            ? "Sign in to monitor your IoT devices."
-            : "Create an account to start using dotDashboard."}
+          {isLogin && 'Sign in to monitor your IoT devices.'}
+          {isRegister && 'Create an account to start using dotWatch.'}
+          {isForgot && 'Enter your email to receive a reset link.'}
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -53,36 +108,73 @@ function Login() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               required
             />
           </label>
 
-          <label>
-            Password
-            <input
-              type="password"
-              placeholder="Your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </label>
+          {!isForgot && (
+            <label>
+              Password
+              <input
+                type="password"
+                placeholder="Your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
+                required
+              />
+            </label>
+          )}
 
-          <button type="submit" className="primary-button full">
-            {mode === "login" ? "Login" : "Create Account"}
+          {error && <div className="auth-error">{error}</div>}
+          {message && <div className="auth-success">{message}</div>}
+
+          <button
+            type="submit"
+            className="primary-button full"
+            disabled={submitting}
+          >
+            {submitting && 'Processing...'}
+            {!submitting && isLogin && 'Login'}
+            {!submitting && isRegister && 'Create Account'}
+            {!submitting && isForgot && 'Send Reset Link'}
           </button>
         </form>
+
+        {isLogin && (
+          <button
+            type="button"
+            className="ghost-button full"
+            disabled={submitting}
+            onClick={() => changeMode('forgot')}
+          >
+            Forgot password?
+          </button>
+        )}
 
         <button
           type="button"
           className="ghost-button full"
-          onClick={() => setMode(mode === "login" ? "register" : "login")}
+          disabled={submitting}
+          onClick={() => changeMode(isRegister ? 'login' : 'register')}
         >
-          {mode === "login" ? "Create new account" : "Back to login"}
+          {isRegister ? 'Back to login' : 'Create new account'}
         </button>
+
+        {isForgot && (
+          <button
+            type="button"
+            className="ghost-button full"
+            disabled={submitting}
+            onClick={() => changeMode('login')}
+          >
+            Back to login
+          </button>
+        )}
       </div>
     </div>
-  );
+  )
 }
 
-export default Login;
+export default Login

@@ -1,22 +1,7 @@
 import { pool } from '../db/pool.js'
 
-async function upsertUser(firebaseUser) {
-  const result = await pool.query(
-    `
-    INSERT INTO users (firebase_uid, email)
-    VALUES ($1, $2)
-    ON CONFLICT (firebase_uid)
-    DO UPDATE SET email = EXCLUDED.email
-    RETURNING *
-    `,
-    [firebaseUser.uid, firebaseUser.email || null]
-  )
-
-  return result.rows[0]
-}
-
 export async function listAlarmRules(req, res) {
-  const user = await upsertUser(req.user)
+  const user = req.dbUser
 
   const result = await pool.query(
     `
@@ -32,7 +17,7 @@ export async function listAlarmRules(req, res) {
 }
 
 export async function createAlarmRule(req, res) {
-  const user = await upsertUser(req.user)
+  const user = req.dbUser
 
   const {
     device_id,
@@ -69,8 +54,7 @@ export async function createAlarmRule(req, res) {
 }
 
 export async function updateAlarmRule(req, res) {
-  const user = await upsertUser(req.user)
-
+  const user = req.dbUser
   const { id } = req.params
 
   const {
@@ -118,8 +102,7 @@ export async function updateAlarmRule(req, res) {
 }
 
 export async function deleteAlarmRule(req, res) {
-  const user = await upsertUser(req.user)
-
+  const user = req.dbUser
   const { id } = req.params
 
   const result = await pool.query(

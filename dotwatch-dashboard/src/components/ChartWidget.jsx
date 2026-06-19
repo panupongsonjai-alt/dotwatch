@@ -92,7 +92,7 @@ function makeRealtimePoint(reading) {
   }
 }
 
-function ChartWidget() {
+function ChartWidget({ defaultDeviceId }) {
   const [devices, setDevices] = useState([])
   const [selectedDeviceId, setSelectedDeviceId] = useState('')
   const [range, setRange] = useState('24h')
@@ -106,6 +106,12 @@ function ChartWidget() {
 
   const latestData = chartData[chartData.length - 1]
 
+  useEffect(() => {
+  if (defaultDeviceId) {
+    setSelectedDeviceId(String(defaultDeviceId))
+  }
+}, [defaultDeviceId])
+
   async function loadDevices() {
     try {
       const data = await getDevices()
@@ -113,9 +119,11 @@ function ChartWidget() {
 
       setDevices(list)
 
-      if (!selectedDeviceId && list.length > 0) {
-        setSelectedDeviceId(String(list[0].id))
-      }
+      if (defaultDeviceId) {
+  setSelectedDeviceId(String(defaultDeviceId))
+} else if (!selectedDeviceId && list.length > 0) {
+  setSelectedDeviceId(String(list[0].id))
+}
     } catch (error) {
       console.error('Load chart devices error:', error)
       setDevices([])

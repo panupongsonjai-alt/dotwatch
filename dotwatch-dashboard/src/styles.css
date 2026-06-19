@@ -1567,3 +1567,232 @@ select:focus {
   justify-content: space-between;
   align-items: center;
 }
+
+.device-group-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.device-group-row label {
+  min-width: 60px;
+  font-weight: 600;
+}
+
+.device-group-row select {
+  max-width: 220px;
+}
+
+.device-group-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.device-group-filter span {
+  font-weight: 700;
+}
+
+.device-group-filter select {
+  max-width: 240px;
+}
+
+.group-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.group-summary-card {
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.group-summary-card span,
+.group-summary-card small {
+  color: var(--muted);
+}
+
+.device-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.device-detail-info {
+  margin-top: 20px;
+  color: var(--muted);
+}
+
+.device-detail-info p {
+  margin: 6px 0;
+}
+
+.clickable-device-card {
+  cursor: pointer;
+}
+
+.clickable-device-card:hover {
+  transform: translateY(-2px);
+}
+
+.offline-device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.offline-device-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.offline-device-item:hover {
+  transform: translateY(-2px);
+}
+
+.offline-device-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.offline-device-item small {
+  color: var(--muted);
+}
+
+.health-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.health-badge.healthy {
+  background: rgba(34, 197, 94, 0.14);
+  color: #22c55e;
+}
+
+.health-badge.warning {
+  background: rgba(245, 158, 11, 0.14);
+  color: #f59e0b;
+}
+
+.health-badge.critical {
+  background: rgba(239, 68, 68, 0.14);
+  color: #ef4444;
+}
+
+.device-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.health-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.health-badge.healthy {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.health-badge.warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.health-badge.critical {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.health-reason {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.metrics-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.auth-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.loading-card {
+  width: min(360px, calc(100% - 32px));
+  padding: 28px;
+  border-radius: 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 38px;
+  height: 38px;
+  margin: 0 auto 14px;
+  border: 4px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auth-error {
+  margin: 10px 0 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.auth-success {
+  margin: 10px 0 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+  font-size: 13px;
+  font-weight: 600;
+}

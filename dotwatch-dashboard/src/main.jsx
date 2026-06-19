@@ -1,13 +1,16 @@
 import React from 'react'
-import { createRoot } from 'react-dom/client'
+import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+import { AuthProvider } from './context/AuthContext.jsx'
+import { AlarmProvider } from './context/AlarmContext.jsx'
 import './styles.css'
-import { AlarmProvider } from './context/AlarmContext'
 
-createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AlarmProvider>
-      <App />
-    </AlarmProvider>
+    <AuthProvider>
+      <AlarmProvider>
+        <App />
+      </AlarmProvider>
+    </AuthProvider>
   </React.StrictMode>
 )

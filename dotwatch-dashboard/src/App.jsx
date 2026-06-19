@@ -1,7 +1,6 @@
-import React from 'react'
-import { useEffect, useState } from 'react'
-import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { auth } from './services/firebase'
+import { useState, useEffect } from 'react'
+
+import { useAuth } from './context/AuthContext'
 
 import Dashboard from './pages/Dashboard'
 import Devices from './pages/Devices'
@@ -11,24 +10,17 @@ import Profile from './pages/Profile'
 import Alarms from './pages/Alarms.jsx'
 import AlarmToast from './components/AlarmToast.jsx'
 import AlarmRules from './pages/AlarmRules.jsx'
-
+import DeviceDetail from './pages/DeviceDetail.jsx'
 import Sidebar from './components/Sidebar'
 import Navbar from './components/Navbar'
+import VerifyEmail from './pages/VerifyEmail'
 
 function App() {
-  const [user, setUser] = useState(null)
+  const { user, authLoading, logout } = useAuth()
+
   const [page, setPage] = useState('dashboard')
-  const [loading, setLoading] = useState(true)
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark')
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser)
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
-  }, [])
+  const [selectedDeviceId, setSelectedDeviceId] = useState(null)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -36,17 +28,32 @@ function App() {
   }, [theme])
 
   const handleLogout = async () => {
-    await signOut(auth)
+    await logout()
+    setPage('dashboard')
+    setSelectedDeviceId(null)
+  }
+
+  function openDeviceDetail(deviceId) {
+    setSelectedDeviceId(deviceId)
+    setPage('device-detail')
+  }
+
+  function backToDashboard() {
+    setSelectedDeviceId(null)
     setPage('dashboard')
   }
 
-  if (loading) {
+  if (authLoading) {
     return <div className="loading">Loading...</div>
   }
 
   if (!user) {
     return <Login />
   }
+
+  if (!user.emailVerified) {
+  return <VerifyEmail />
+}
 
   return (
     <div className="layout">
@@ -60,14 +67,27 @@ function App() {
           setTheme={setTheme}
         />
 
-        {page === 'dashboard' && <Dashboard />}
+        {page === 'dashboard' && (
+          <Dashboard onOpenDevice={openDeviceDetail} />
+        )}
+
         {page === 'devices' && <Devices />}
+
         {page === 'alarms' && <Alarms />}
+
         {page === 'alarm-rules' && <AlarmRules />}
+
+        {page === 'device-detail' && (
+          <DeviceDetail
+            deviceId={selectedDeviceId}
+            onBack={backToDashboard}
+          />
+        )}
+
         {page === 'profile' && <Profile />}
+
         {page === 'settings' && <Settings />}
 
-        
         <AlarmToast />
       </main>
     </div>

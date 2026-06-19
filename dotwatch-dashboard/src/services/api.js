@@ -105,3 +105,13 @@ export function deleteAlarmRule(id) {
   })
 }
 
+export function updateDeviceGroup(id, groupName) {
+  return apiFetch(`/api/devices/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ groupName }),
+  })
+}
+
+export function getDevice(id) {
+  return apiFetch(`/api/devices/${id}`)
+}

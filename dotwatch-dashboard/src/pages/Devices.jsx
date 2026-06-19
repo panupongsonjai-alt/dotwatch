@@ -1,12 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import DeviceCard from '../components/DeviceCard.jsx'
-import {
-  getDevices,
-  addDevice,
-  deleteDevice,
-  updateDeviceName,
-  resetDeviceSecret,
-} from '../services/api'
+import { getDevices, addDevice, deleteDevice, updateDeviceName, updateDeviceGroup, resetDeviceSecret,} from '../services/api'
 
 function createDeviceCode() {
   return `dotwatch-${Date.now()}`
@@ -129,6 +123,23 @@ function Device() {
     }
   }
 
+  const handleChangeGroup = async (
+  deviceId,
+  groupName
+) => {
+  try {
+    await updateDeviceGroup(
+      deviceId,
+      groupName
+    )
+
+    await loadDevices()
+  } catch (error) {
+    console.error(error)
+    alert('อัปเดต Group ไม่สำเร็จ')
+  }
+}
+
   return (
     <div className="page">
       <section className="panel">
@@ -214,6 +225,48 @@ function Device() {
                     </button>
                   </div>
                 )}
+
+                <div className="device-group-row">
+
+  <label>
+    Group
+  </label>
+
+  <select
+    value={
+      device.group_name ||
+      'Default'
+    }
+    onChange={(e) =>
+      handleChangeGroup(
+        device.id,
+        e.target.value
+      )
+    }
+  >
+    <option value="Default">
+      Default
+    </option>
+
+    <option value="Server Room">
+      Server Room
+    </option>
+
+    <option value="Warehouse">
+      Warehouse
+    </option>
+
+    <option value="Factory">
+      Factory
+    </option>
+
+    <option value="Demo">
+      Demo
+    </option>
+
+  </select>
+
+</div>
 
                 <DeviceCard
                   device={{

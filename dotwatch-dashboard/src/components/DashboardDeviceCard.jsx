@@ -1,7 +1,14 @@
 import React from 'react'
-import { Droplets, Thermometer } from 'lucide-react'
+import {
+  Droplets,
+  Thermometer,
+  Wifi,
+} from 'lucide-react'
 
-function DashboardDeviceCard({ device }) {
+function DashboardDeviceCard({
+  device,
+  health,
+}) {
   const statusClass =
     device.status === 'online'
       ? 'status online'
@@ -17,32 +24,77 @@ function DashboardDeviceCard({ device }) {
           <small>{device.deviceId}</small>
         </div>
 
-        <span className={statusClass}>
-          {device.status || 'offline'}
-        </span>
+        <div className="device-header-right">
+          <span
+            className={
+              statusClass
+            }
+          >
+            {device.status ||
+              'offline'}
+          </span>
+
+          <span
+            className={`health-badge ${
+              health?.className ||
+              'healthy'
+            }`}
+          >
+            {health?.label ||
+              'Healthy'}
+          </span>
+        </div>
       </div>
 
       <div className="metrics-grid">
         <div className="metric">
-          <Thermometer size={18} />
+          <Thermometer
+            size={18}
+          />
+
           <span>
-            {device.temperature != null
-              ? Number(device.temperature).toFixed(1)
+            {device.temperature !=
+            null
+              ? Number(
+                  device.temperature
+                ).toFixed(1)
               : '--'}
             °C
           </span>
-          <small>Temperature</small>
+
+          <small>
+            Temperature
+          </small>
         </div>
 
         <div className="metric">
           <Droplets size={18} />
+
           <span>
-            {device.humidity != null
-              ? Number(device.humidity).toFixed(1)
+            {device.humidity !=
+            null
+              ? Number(
+                  device.humidity
+                ).toFixed(1)
               : '--'}
             %
           </span>
-          <small>Humidity</small>
+
+          <small>
+            Humidity
+          </small>
+        </div>
+
+        <div className="metric">
+          <Wifi size={18} />
+
+          <span>
+            {device.rssi != null
+              ? `${device.rssi} dBm`
+              : '--'}
+          </span>
+
+          <small>RSSI</small>
         </div>
       </div>
 
@@ -50,9 +102,21 @@ function DashboardDeviceCard({ device }) {
         <small>
           Last Seen:{' '}
           {device.lastSeen
-            ? new Date(device.lastSeen).toLocaleString('th-TH')
+            ? new Date(
+                device.lastSeen
+              ).toLocaleString(
+                'th-TH'
+              )
             : '--'}
         </small>
+
+        {health?.reason && (
+          <small
+            className="health-reason"
+          >
+            {health.reason}
+          </small>
+        )}
       </div>
     </article>
   )
