@@ -10,38 +10,47 @@ import {
   YAxis,
 } from 'recharts'
 
-import { getDevices, getDeviceHistory } from '../services/api'
+import { getDevices, getHistory } from '../services/api'
 
 const MAX_POINTS = 144
 
-function getArray(payload) {
+function toArray(payload) {
   if (Array.isArray(payload)) return payload
   if (Array.isArray(payload?.data)) return payload.data
   if (Array.isArray(payload?.rows)) return payload.rows
-  if (Array.isArray(payload?.readings)) return payload.readings
   if (Array.isArray(payload?.history)) return payload.history
+  if (Array.isArray(payload?.readings)) return payload.readings
   return []
+}
+
+function getTime(item) {
+  return (
+    item.time ||
+    item.bucket ||
+    item.created_at ||
+    item.createdAt ||
+    item.latest_time ||
+    item.latestTime
+  )
 }
 
 function formatTime(value) {
   if (!value) return '--'
 
-  return new Date(value).toLocaleTimeString('th-TH', {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) return '--'
+
+  return date.toLocaleTimeString('th-TH', {
     hour: '2-digit',
     minute: '2-digit',
   })
 }
 
 function normalizeHistory(payload) {
-  const rows = getArray(payload)
-
-  return rows
+  return toArray(payload)
     .map((item) => {
-      const time =
-        item.time ||
-        item.created_at ||
-        item.latest_time ||
-        item.bucket
+      const time = getTime(item)
 
       return {
         time,
@@ -59,10 +68,21 @@ function normalizeHistory(payload) {
     .filter(
       (item) =>
         item.time &&
+        !Number.isNaN(new Date(item.time).getTime()) &&
         (item.temperature != null || item.humidity != null)
     )
     .sort((a, b) => new Date(a.time) - new Date(b.time))
     .slice(-MAX_POINTS)
+}
+
+function getDefaultRange() {
+  const to = new Date()
+  const from = new Date(to.getTime() - 24 * 60 * 60 * 1000)
+
+  return {
+    from: from.toISOString(),
+    to: to.toISOString(),
+  }
 }
 
 function ChartWidget() {
@@ -83,21 +103,18 @@ function ChartWidget() {
 
   async function loadDevices() {
     try {
-      setError('')
-
       const payload = await getDevices()
-      const list = getArray(payload)
+      const list = toArray(payload)
 
       setDevices(list)
 
       if (list.length > 0) {
-        setSelectedDeviceId((current) =>
-          current || String(list[0].id)
-        )
+        setSelectedDeviceId((current) => current || String(list[0].id))
       }
     } catch (err) {
-      console.error(err)
+      console.error('loadDevices error:', err)
       setError('โหลดรายการอุปกรณ์ไม่ได้')
+      setLoading(false)
     }
   }
 
@@ -105,8 +122,14 @@ function ChartWidget() {
     if (!deviceId) return
 
     try {
-      const payload = await getDeviceHistory(deviceId)
+      setError('')
+
+      const { from, to } = getDefaultRange()
+      const payload = await getHistory(deviceId, from, to)
       const nextData = normalizeHistory(payload)
+
+      console.log('history payload:', payload)
+      console.log('chart data:', nextData)
 
       const latest = nextData[nextData.length - 1]
       const signature = latest
@@ -120,8 +143,8 @@ function ChartWidget() {
       lastSignatureRef.current = signature
       setChartData(nextData)
     } catch (err) {
-      console.error(err)
-      setError('โหลดข้อมูลกราฟไม่ได้')
+      console.error('loadHistory error:', err)
+      setError(err.message || 'โหลดข้อมูลกราฟไม่ได้')
     } finally {
       setLoading(false)
     }
@@ -153,17 +176,15 @@ function ChartWidget() {
   function handleExportCSV() {
     if (!chartData.length) return
 
-    const header = ['time', 'temperature', 'humidity']
-
-    const rows = chartData.map((item) => [
-      item.time,
-      item.temperature ?? '',
-      item.humidity ?? '',
-    ])
-
     const csv = [
-      header.join(','),
-      ...rows.map((row) => row.join(',')),
+      'time,temperature,humidity',
+      ...chartData.map((item) =>
+        [
+          item.time,
+          item.temperature ?? '',
+          item.humidity ?? '',
+        ].join(',')
+      ),
     ].join('\n')
 
     const blob = new Blob([csv], {
@@ -186,17 +207,13 @@ function ChartWidget() {
         <div>
           <p className="section-eyebrow">Realtime Sensor Activity</p>
           <h2>Temperature & Humidity</h2>
-          <span>
-            แสดงข้อมูลล่าสุดจากอุปกรณ์แบบเรียลไทม์
-          </span>
+          <span>แสดงข้อมูลล่าสุดจากอุปกรณ์แบบเรียลไทม์</span>
         </div>
 
         <div className="chart-actions">
           <select
             value={selectedDeviceId}
-            onChange={(event) =>
-              setSelectedDeviceId(event.target.value)
-            }
+            onChange={(event) => setSelectedDeviceId(event.target.value)}
           >
             {devices.length === 0 ? (
               <option value="">No device</option>
@@ -205,6 +222,7 @@ function ChartWidget() {
                 <option key={device.id} value={device.id}>
                   {device.name ||
                     device.device_code ||
+                    device.deviceCode ||
                     `Device ${device.id}`}
                 </option>
               ))
@@ -213,9 +231,7 @@ function ChartWidget() {
 
           <select
             value={chartSize}
-            onChange={(event) =>
-              setChartSize(event.target.value)
-            }
+            onChange={(event) => setChartSize(event.target.value)}
           >
             <option value="small">Small</option>
             <option value="medium">Medium</option>
@@ -233,16 +249,10 @@ function ChartWidget() {
         </div>
       </div>
 
-      {error && (
-        <div className="chart-message error">
-          {error}
-        </div>
-      )}
+      {error && <div className="chart-message error">{error}</div>}
 
       {!error && loading && (
-        <div className="chart-message">
-          กำลังโหลดข้อมูล...
-        </div>
+        <div className="chart-message">กำลังโหลดข้อมูล...</div>
       )}
 
       {!error && !loading && chartData.length === 0 && (
@@ -252,10 +262,7 @@ function ChartWidget() {
       )}
 
       {!error && chartData.length > 0 && (
-        <div
-          className="chart-wrapper"
-          style={{ height: chartHeight }}
-        >
+        <div className="chart-wrapper" style={{ height: chartHeight }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={chartData}
@@ -267,24 +274,12 @@ function ChartWidget() {
               }}
             >
               <defs>
-                <linearGradient
-                  id="temperatureGradient"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
+                <linearGradient id="tempFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#ef4444" stopOpacity={0.35} />
                   <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                 </linearGradient>
 
-                <linearGradient
-                  id="humidityGradient"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
+                <linearGradient id="humFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#2563eb" stopOpacity={0.35} />
                   <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                 </linearGradient>
@@ -306,10 +301,7 @@ function ChartWidget() {
                 domain={['auto', 'auto']}
               />
 
-              <Tooltip
-                animationDuration={0}
-                labelFormatter={(label) => `เวลา ${label}`}
-              />
+              <Tooltip animationDuration={0} />
 
               <Legend verticalAlign="top" height={36} />
 
@@ -318,7 +310,7 @@ function ChartWidget() {
                 dataKey="temperature"
                 name="Temperature"
                 stroke="#ef4444"
-                fill="url(#temperatureGradient)"
+                fill="url(#tempFill)"
                 strokeWidth={3}
                 dot={false}
                 activeDot={{ r: 5 }}
@@ -331,7 +323,7 @@ function ChartWidget() {
                 dataKey="humidity"
                 name="Humidity"
                 stroke="#2563eb"
-                fill="url(#humidityGradient)"
+                fill="url(#humFill)"
                 strokeWidth={3}
                 dot={false}
                 activeDot={{ r: 5 }}
