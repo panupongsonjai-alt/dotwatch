@@ -30,9 +30,6 @@ import {
   updateDeviceName,
   resetDeviceSecret,
   updateDeviceLocation,
-} from '../services/api'
-
-import {
   getAlarmRules,
   createAlarmRule,
   updateAlarmRule,
@@ -77,6 +74,13 @@ function getLastSeen(device) {
   }
 }
 
+const defaultRuleForm = {
+  metric: 'temperature',
+  operator: '>',
+  threshold: 35,
+  severity: 'critical',
+}
+
 function Devices() {
   const [devices, setDevices] = useState([])
   const [viewMode, setViewMode] = useState('grid')
@@ -87,6 +91,11 @@ function Devices() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
+  const [alarmRules, setAlarmRules] = useState([])
+  const [ruleDrafts, setRuleDrafts] = useState({})
+  const [editingRuleId, setEditingRuleId] = useState(null)
+  const [editingRuleDraft, setEditingRuleDraft] = useState(defaultRuleForm)
+
   const [showCreateWizard, setShowCreateWizard] = useState(false)
   const [createStep, setCreateStep] = useState(1)
   const [createdDevice, setCreatedDevice] = useState(null)
@@ -96,13 +105,6 @@ function Devices() {
     longitude: null,
     deviceCode: '',
     deviceSecret: '',
-  })
-  const [alarmRules, setAlarmRules] = useState([])
-  const [newRule, setNewRule] = useState({
-    metric: 'temperature',
-    operator: '>',
-    threshold: 35,
-    severity: 'critical',
   })
 
   async function loadDevices() {
@@ -115,6 +117,15 @@ function Devices() {
       alert('โหลดข้อมูล Device ไม่สำเร็จ')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadAlarmRules() {
+    try {
+      const data = await getAlarmRules()
+      setAlarmRules(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Load alarm rules error:', error)
     }
   }
 
@@ -157,48 +168,6 @@ function Devices() {
     } catch (error) {
       console.error('Copy error:', error)
       alert('ไม่สามารถ Copy ได้')
-    }
-  }
-
-  function getDeviceAlarmRules(deviceId) {
-    return alarmRules.filter(
-      (rule) => Number(rule.device_id) === Number(deviceId)
-    )
-  }
-
-  async function handleCreateAlarmRule(deviceId) {
-    try {
-      setSaving(true)
-
-      await createAlarmRule({
-        device_id: deviceId,
-        metric: newRule.metric,
-        operator: newRule.operator,
-        threshold: Number(newRule.threshold),
-        severity: newRule.severity,
-      })
-
-      await loadAlarmRules()
-    } catch (error) {
-      console.error(error)
-      alert('เพิ่ม Alarm Rule ไม่สำเร็จ')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function handleDeleteAlarmRule(ruleId) {
-    if (!confirm('ต้องการลบ Alarm Rule นี้ใช่ไหม?')) return
-
-    try {
-      setSaving(true)
-      await deleteAlarmRule(ruleId)
-      await loadAlarmRules()
-    } catch (error) {
-      console.error(error)
-      alert('ลบ Alarm Rule ไม่สำเร็จ')
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -288,6 +257,7 @@ function Devices() {
       setSaving(true)
       await deleteDevice(deviceId)
       await loadDevices()
+      await loadAlarmRules()
     } catch (error) {
       console.error('Delete device error:', error)
       alert(error.message || 'ลบ Device ไม่สำเร็จ')
@@ -348,13 +318,313 @@ function Devices() {
     }
   }
 
-  async function loadAlarmRules() {
-    try {
-      const data = await getAlarmRules()
-      setAlarmRules(Array.isArray(data) ? data : [])
-    } catch (error) {
-      console.error('Load alarm rules error:', error)
+  function getDeviceAlarmRules(deviceId) {
+    return alarmRules.filter(
+      (rule) => Number(rule.device_id) === Number(deviceId)
+    )
+  }
+
+  function getRuleDraft(deviceId) {
+    return ruleDrafts[deviceId] || defaultRuleForm
+  }
+
+  function updateRuleDraft(deviceId, key, value) {
+    setRuleDrafts((prev) => ({
+      ...prev,
+      [deviceId]: {
+        ...(prev[deviceId] || defaultRuleForm),
+        [key]: value,
+      },
+    }))
+  }
+
+  async function handleCreateAlarmRule(deviceId) {
+    const draft = getRuleDraft(deviceId)
+
+    if (draft.threshold === '' || Number.isNaN(Number(draft.threshold))) {
+      alert('กรุณากรอก Threshold ให้ถูกต้อง')
+      return
     }
+
+    try {
+      setSaving(true)
+
+      await createAlarmRule({
+        device_id: deviceId,
+        metric: draft.metric,
+        operator: draft.operator,
+        threshold: Number(draft.threshold),
+        severity: draft.severity,
+      })
+
+      setRuleDrafts((prev) => ({
+        ...prev,
+        [deviceId]: defaultRuleForm,
+      }))
+
+      await loadAlarmRules()
+    } catch (error) {
+      console.error('Create alarm rule error:', error)
+      alert(error.message || 'เพิ่ม Alarm Rule ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function startEditAlarmRule(rule) {
+    setEditingRuleId(rule.id)
+    setEditingRuleDraft({
+      metric: rule.metric || 'temperature',
+      operator: rule.operator || '>',
+      threshold: rule.threshold ?? 35,
+      severity: rule.severity || 'critical',
+    })
+  }
+
+  function cancelEditAlarmRule() {
+    setEditingRuleId(null)
+    setEditingRuleDraft(defaultRuleForm)
+  }
+
+  async function handleUpdateAlarmRule(ruleId) {
+    if (
+      editingRuleDraft.threshold === '' ||
+      Number.isNaN(Number(editingRuleDraft.threshold))
+    ) {
+      alert('กรุณากรอก Threshold ให้ถูกต้อง')
+      return
+    }
+
+    try {
+      setSaving(true)
+
+      await updateAlarmRule(ruleId, {
+        metric: editingRuleDraft.metric,
+        operator: editingRuleDraft.operator,
+        threshold: Number(editingRuleDraft.threshold),
+        severity: editingRuleDraft.severity,
+      })
+
+      cancelEditAlarmRule()
+      await loadAlarmRules()
+    } catch (error) {
+      console.error('Update alarm rule error:', error)
+      alert(error.message || 'แก้ไข Alarm Rule ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDeleteAlarmRule(ruleId) {
+    const ok = confirm('ต้องการลบ Alarm Rule นี้ใช่ไหม?')
+    if (!ok) return
+
+    try {
+      setSaving(true)
+      await deleteAlarmRule(ruleId)
+      await loadAlarmRules()
+    } catch (error) {
+      console.error('Delete alarm rule error:', error)
+      alert(error.message || 'ลบ Alarm Rule ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function renderAlarmRules(device) {
+    const rules = getDeviceAlarmRules(device.id)
+    const draft = getRuleDraft(device.id)
+
+    return (
+      <div className="device-alarm-rule-section">
+        <div className="device-location-header">
+          <strong>
+            <AlertTriangle size={16} />
+            Alarm Rules
+          </strong>
+          <span>ตั้งค่าเงื่อนไขแจ้งเตือนเฉพาะ Device นี้</span>
+        </div>
+
+        <div className="alarm-rule-create-row">
+          <select
+            value={draft.metric}
+            disabled={saving}
+            onChange={(e) =>
+              updateRuleDraft(device.id, 'metric', e.target.value)
+            }
+          >
+            <option value="temperature">Temperature</option>
+            <option value="humidity">Humidity</option>
+          </select>
+
+          <select
+            value={draft.operator}
+            disabled={saving}
+            onChange={(e) =>
+              updateRuleDraft(device.id, 'operator', e.target.value)
+            }
+          >
+            <option value=">">&gt;</option>
+            <option value="<">&lt;</option>
+            <option value=">=">&gt;=</option>
+            <option value="<=">&lt;=</option>
+          </select>
+
+          <input
+            type="number"
+            value={draft.threshold}
+            disabled={saving}
+            onChange={(e) =>
+              updateRuleDraft(device.id, 'threshold', e.target.value)
+            }
+          />
+
+          <select
+            value={draft.severity}
+            disabled={saving}
+            onChange={(e) =>
+              updateRuleDraft(device.id, 'severity', e.target.value)
+            }
+          >
+            <option value="warning">Warning</option>
+            <option value="critical">Critical</option>
+          </select>
+
+          <button
+            type="button"
+            className="save-btn"
+            disabled={saving}
+            onClick={() => handleCreateAlarmRule(device.id)}
+          >
+            Add Rule
+          </button>
+        </div>
+
+        <div className="device-alarm-rule-list">
+          {rules.length === 0 ? (
+            <p className="alarm-rule-empty">ยังไม่มี Alarm Rule</p>
+          ) : (
+            rules.map((rule) => {
+              const isEditing = editingRuleId === rule.id
+
+              return (
+                <div key={rule.id} className="device-alarm-rule-item">
+                  {isEditing ? (
+                    <>
+                      <select
+                        value={editingRuleDraft.metric}
+                        disabled={saving}
+                        onChange={(e) =>
+                          setEditingRuleDraft((prev) => ({
+                            ...prev,
+                            metric: e.target.value,
+                          }))
+                        }
+                      >
+                        <option value="temperature">Temperature</option>
+                        <option value="humidity">Humidity</option>
+                      </select>
+
+                      <select
+                        value={editingRuleDraft.operator}
+                        disabled={saving}
+                        onChange={(e) =>
+                          setEditingRuleDraft((prev) => ({
+                            ...prev,
+                            operator: e.target.value,
+                          }))
+                        }
+                      >
+                        <option value=">">&gt;</option>
+                        <option value="<">&lt;</option>
+                        <option value=">=">&gt;=</option>
+                        <option value="<=">&lt;=</option>
+                      </select>
+
+                      <input
+                        type="number"
+                        value={editingRuleDraft.threshold}
+                        disabled={saving}
+                        onChange={(e) =>
+                          setEditingRuleDraft((prev) => ({
+                            ...prev,
+                            threshold: e.target.value,
+                          }))
+                        }
+                      />
+
+                      <select
+                        value={editingRuleDraft.severity}
+                        disabled={saving}
+                        onChange={(e) =>
+                          setEditingRuleDraft((prev) => ({
+                            ...prev,
+                            severity: e.target.value,
+                          }))
+                        }
+                      >
+                        <option value="warning">Warning</option>
+                        <option value="critical">Critical</option>
+                      </select>
+
+                      <button
+                        type="button"
+                        className="save-btn square"
+                        disabled={saving}
+                        onClick={() => handleUpdateAlarmRule(rule.id)}
+                      >
+                        <Save size={16} />
+                      </button>
+
+                      <button
+                        type="button"
+                        className="cancel-btn square"
+                        disabled={saving}
+                        onClick={cancelEditAlarmRule}
+                      >
+                        <X size={16} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <strong>
+                        {rule.metric} {rule.operator} {rule.threshold}
+                      </strong>
+
+                      <span className={`status ${rule.severity}`}>
+                        {rule.severity}
+                      </span>
+
+                      <div className="alarm-rule-actions">
+                        <button
+                          type="button"
+                          className="rename-btn"
+                          disabled={saving}
+                          onClick={() => startEditAlarmRule(rule)}
+                        >
+                          <Edit3 size={15} />
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          className="delete-btn"
+                          disabled={saving}
+                          onClick={() => handleDeleteAlarmRule(rule.id)}
+                        >
+                          <Trash2 size={15} />
+                          Delete
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+    )
   }
 
   function renderManagePanel(device) {
@@ -404,6 +674,8 @@ function Devices() {
             </button>
           </div>
         )}
+
+        {renderAlarmRules(device)}
 
         <div className="device-location-section compact clean-location-card">
           <div className="device-location-header">
@@ -601,14 +873,17 @@ function Devices() {
         <div className="device-management-header clean-device-header device-v2-header">
           <div>
             <h2>Device Management</h2>
-            <p>จัดการอุปกรณ์, Secret และ Location ของระบบ dotWatch</p>
+            <p>จัดการอุปกรณ์, Secret, Location และ Alarm Rules ของ dotWatch</p>
           </div>
 
           <div className="device-v2-header-actions">
             <button
               type="button"
               className="ghost-button clean-refresh-btn"
-              onClick={loadDevices}
+              onClick={() => {
+                loadDevices()
+                loadAlarmRules()
+              }}
               disabled={loading || saving}
             >
               <RefreshCw size={17} />

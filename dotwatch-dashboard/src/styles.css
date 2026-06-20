@@ -5474,3 +5474,70 @@ textarea:focus,
     align-items: stretch;
   }
 }
+
+.device-alarm-rule-section {
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.alarm-rule-create-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 1fr auto;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.alarm-rule-create-row input,
+.alarm-rule-create-row select,
+.device-alarm-rule-item input,
+.device-alarm-rule-item select {
+  height: 40px;
+}
+
+.device-alarm-rule-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.device-alarm-rule-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+
+  padding: 10px 12px;
+  border-radius: 12px;
+
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.device-alarm-rule-item:has(select) {
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 1fr 42px 42px;
+}
+
+.alarm-rule-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.alarm-rule-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 760px) {
+  .alarm-rule-create-row,
+  .device-alarm-rule-item,
+  .device-alarm-rule-item:has(select) {
+    grid-template-columns: 1fr;
+  }
+
+  .alarm-rule-actions {
+    flex-direction: column;
+  }
+}
