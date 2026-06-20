@@ -3864,3 +3864,73 @@ textarea:focus,
     min-width: 0;
   }
 }
+
+.device-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.device-map-title-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.device-map-title-row h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.status-map-legend {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 0;
+}
+
+.status-map-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.status-map-legend b {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.status-map-legend .online {
+  background: #22c55e;
+}
+
+.status-map-legend .warning {
+  background: #f59e0b;
+}
+
+.status-map-legend .offline {
+  background: #ef4444;
+}
+
+.device-status-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.device-status-search {
+  width: 240px;
+  height: 40px;
+}
+
+.device-status-tools select {
+  width: 150px;
+  height: 40px;
+}

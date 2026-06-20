@@ -130,10 +130,8 @@ function DeviceMap({ devices = [] }) {
   return (
     <section className="device-map-card panel">
       <div className="device-map-header">
-        <div className="section-title">
+        <div className="device-map-title-row">
           <h2>Device Map</h2>
-
-          <p>แสดงตำแหน่งและสถานะอุปกรณ์ทั้งหมดบนแผนที่</p>
 
           <div className="status-map-legend">
             <span>
@@ -153,7 +151,27 @@ function DeviceMap({ devices = [] }) {
           </div>
         </div>
 
-        <div className="device-status-tools">...</div>
+        <div className="device-status-tools">
+          <div className="device-status-search">
+            <Search size={16} />
+
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search device..."
+            />
+          </div>
+
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="online">Online</option>
+            <option value="warning">Warning</option>
+            <option value="offline">Offline</option>
+          </select>
+        </div>
       </div>
 
       <div className="device-map-wrapper">
