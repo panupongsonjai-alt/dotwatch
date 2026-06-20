@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Plus,
-  Search,
   KeyRound,
   Trash2,
   Edit3,
@@ -13,29 +12,28 @@ import {
   Wifi,
   AlertTriangle,
   WifiOff,
-  FlaskConical,
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Copy,
   ShieldCheck,
+  Grid2X2,
+  List,
+  ChevronDown,
 } from 'lucide-react'
 
-import DeviceCard from '../components/DeviceCard.jsx'
 import LocationPicker from '../components/LocationPicker.jsx'
 import {
   getDevices,
   addDevice,
   deleteDevice,
   updateDeviceName,
-  updateDeviceGroup,
   resetDeviceSecret,
   updateDeviceLocation,
 } from '../services/api'
 
-function createDeviceCode(type = 'normal') {
-  const prefix = type === 'demo' ? 'dotwatch-demo' : 'dotwatch'
-  return `${prefix}-${Date.now()}`
+function createDeviceCode() {
+  return `DW-${Date.now()}`
 }
 
 function createDeviceSecret() {
@@ -46,10 +44,36 @@ function createDeviceSecret() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
-function Device() {
+function getStatus(device) {
+  return device.status || 'offline'
+}
+
+function getStatusLabel(status) {
+  if (status === 'online') return 'Online'
+  if (status === 'warning') return 'Warning'
+  return 'Offline'
+}
+
+function getMetricValue(value, unit) {
+  if (value == null || Number.isNaN(Number(value))) return `--${unit}`
+  return `${Number(value).toFixed(1)}${unit}`
+}
+
+function getLastSeen(device) {
+  const value = device.latest_time || device.last_seen_at
+  if (!value) return 'No data yet'
+
+  try {
+    return new Date(value).toLocaleString('th-TH')
+  } catch {
+    return value
+  }
+}
+
+function Devices() {
   const [devices, setDevices] = useState([])
-  const [search, setSearch] = useState('')
-  const [groupFilter, setGroupFilter] = useState('All')
+  const [viewMode, setViewMode] = useState('grid')
+  const [expandedDeviceId, setExpandedDeviceId] = useState(null)
   const [editingDeviceId, setEditingDeviceId] = useState(null)
   const [editingName, setEditingName] = useState('')
   const [locations, setLocations] = useState({})
@@ -58,10 +82,11 @@ function Device() {
 
   const [showCreateWizard, setShowCreateWizard] = useState(false)
   const [createStep, setCreateStep] = useState(1)
+  const [createdDevice, setCreatedDevice] = useState(null)
   const [createForm, setCreateForm] = useState({
-    type: 'normal',
     name: '',
-    group: 'Default',
+    latitude: null,
+    longitude: null,
     deviceCode: '',
     deviceSecret: '',
   })
@@ -83,41 +108,23 @@ function Device() {
     loadDevices()
   }, [])
 
-  const groups = useMemo(() => {
-    return [
-      'All',
-      ...new Set(devices.map((device) => device.group_name || 'Default')),
-    ]
-  }, [devices])
+  const filteredDevices = devices
 
-  const filteredDevices = useMemo(() => {
-    return devices.filter((device) => {
-      const keyword = `${device.name || ''} ${device.device_code || ''}`
-        .toLowerCase()
-        .trim()
-
-      const matchSearch = keyword.includes(search.toLowerCase())
-      const matchGroup =
-        groupFilter === 'All' ||
-        (device.group_name || 'Default') === groupFilter
-
-      return matchSearch && matchGroup
-    })
-  }, [devices, search, groupFilter])
-
-  const onlineCount = devices.filter((d) => d.status === 'online').length
-  const warningCount = devices.filter((d) => d.status === 'warning').length
+  const onlineCount = devices.filter((d) => getStatus(d) === 'online').length
+  const warningCount = devices.filter((d) => getStatus(d) === 'warning').length
   const offlineCount = devices.length - onlineCount - warningCount
 
-  function openCreateWizard(type = 'normal') {
+  function openCreateWizard() {
     setCreateForm({
-      type,
       name: '',
-      group: type === 'demo' ? 'Demo' : 'Default',
-      deviceCode: createDeviceCode(type),
+      latitude: null,
+      longitude: null,
+      deviceCode: createDeviceCode(),
       deviceSecret: createDeviceSecret(),
     })
+
     setCreateStep(1)
+    setCreatedDevice(null)
     setShowCreateWizard(true)
   }
 
@@ -125,16 +132,7 @@ function Device() {
     if (saving) return
     setShowCreateWizard(false)
     setCreateStep(1)
-  }
-
-  function handleSelectCreateType(type) {
-    setCreateForm((prev) => ({
-      ...prev,
-      type,
-      group: type === 'demo' ? 'Demo' : prev.group || 'Default',
-      deviceCode: createDeviceCode(type),
-      deviceSecret: createDeviceSecret(),
-    }))
+    setCreatedDevice(null)
   }
 
   async function copyText(text) {
@@ -147,33 +145,56 @@ function Device() {
     }
   }
 
+  async function findCreatedDeviceId(created, deviceCode) {
+    if (created?.id) return created.id
+    if (created?.device?.id) return created.device.id
+    if (created?.deviceId) return created.deviceId
+
+    const latestDevices = await getDevices()
+    const matchedDevice = Array.isArray(latestDevices)
+      ? latestDevices.find((device) => device.device_code === deviceCode)
+      : null
+
+    return matchedDevice?.id || null
+  }
+
   async function handleConfirmCreateDevice() {
     try {
       setSaving(true)
 
-      const name =
-        createForm.name.trim() ||
-        (createForm.type === 'demo'
-          ? `Demo Device ${devices.length + 1}`
-          : `dotWatch ${devices.length + 1}`)
-
-      const groupName = createForm.type === 'demo' ? 'Demo' : createForm.group
+      const name = createForm.name.trim() || `dotWatch ${devices.length + 1}`
 
       const created = await addDevice({
         deviceCode: createForm.deviceCode,
         name,
         deviceSecret: createForm.deviceSecret,
-        groupName,
       })
 
-      setShowCreateWizard(false)
-      setCreateStep(1)
+      if (createForm.latitude != null && createForm.longitude != null) {
+        const createdDeviceId = await findCreatedDeviceId(
+          created,
+          created.device_code || createForm.deviceCode
+        )
 
+        if (createdDeviceId) {
+          await updateDeviceLocation(createdDeviceId, {
+            latitude: createForm.latitude,
+            longitude: createForm.longitude,
+            mapUrl: null,
+          })
+        }
+      }
+
+      setCreatedDevice({
+        name,
+        deviceCode: created.device_code || createForm.deviceCode,
+        deviceSecret: created.deviceSecret || createForm.deviceSecret,
+        latitude: createForm.latitude,
+        longitude: createForm.longitude,
+      })
+
+      setCreateStep(4)
       await loadDevices()
-
-      alert(
-        `เพิ่ม Device สำเร็จ\n\nDevice Code:\n${created.device_code}\n\nDevice Secret:\n${created.deviceSecret}\n\nกรุณาเก็บ Device Secret นี้ไว้ เพราะจะแสดงครั้งเดียว`
-      )
     } catch (error) {
       console.error('Create device error:', error)
       alert(error.message || 'เพิ่ม Device ไม่สำเร็จ')
@@ -243,19 +264,6 @@ function Device() {
     }
   }
 
-  async function handleChangeGroup(deviceId, groupName) {
-    try {
-      setSaving(true)
-      await updateDeviceGroup(deviceId, groupName)
-      await loadDevices()
-    } catch (error) {
-      console.error('Update group error:', error)
-      alert('อัปเดต Group ไม่สำเร็จ')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   async function handleSavePickedLocation(device) {
     const location = locations[device.id]
 
@@ -266,6 +274,7 @@ function Device() {
 
     try {
       setSaving(true)
+
       await updateDeviceLocation(device.id, {
         latitude: location.latitude,
         longitude: location.longitude,
@@ -282,25 +291,274 @@ function Device() {
     }
   }
 
-  return (
-    <div className="page">
-      <section className="device-management-page clean-device-page">
-        <div className="device-management-header clean-device-header">
-          <div>
-            <span className="page-eyebrow">dotWatch Devices</span>
-            <h2>Device Management</h2>
-            <p>จัดการอุปกรณ์, Group, Secret และ Location ของระบบ dotWatch</p>
+  function renderManagePanel(device) {
+    const isEditing = editingDeviceId === device.id
+
+    return (
+      <div className="device-manage-panel">
+        {isEditing && (
+          <div className="device-edit-row clean">
+            <input
+              className="device-edit-input"
+              type="text"
+              value={editingName}
+              disabled={saving}
+              onChange={(e) => setEditingName(e.target.value)}
+              placeholder="ชื่อ Device"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveDeviceName(device.id)
+
+                if (e.key === 'Escape') {
+                  setEditingDeviceId(null)
+                  setEditingName('')
+                }
+              }}
+            />
+
+            <button
+              className="save-btn square"
+              disabled={saving}
+              onClick={() => handleSaveDeviceName(device.id)}
+              title="Save"
+            >
+              <Save size={16} />
+            </button>
+
+            <button
+              className="cancel-btn square"
+              disabled={saving}
+              onClick={() => {
+                setEditingDeviceId(null)
+                setEditingName('')
+              }}
+              title="Cancel"
+            >
+              <X size={16} />
+            </button>
           </div>
+        )}
+
+        <div className="device-location-section compact clean-location-card">
+          <div className="device-location-header">
+            <strong>
+              <MapPin size={16} />
+              Device Location
+            </strong>
+            <span>คลิกบนแผนที่เพื่อเลือกตำแหน่ง</span>
+          </div>
+
+          <LocationPicker
+            latitude={device.latitude}
+            longitude={device.longitude}
+            onChange={(location) =>
+              setLocations((prev) => ({
+                ...prev,
+                [device.id]: location,
+              }))
+            }
+          />
 
           <button
             type="button"
-            className="ghost-button clean-refresh-btn"
-            onClick={loadDevices}
-            disabled={loading || saving}
+            className="save-btn location-save-btn"
+            disabled={saving}
+            onClick={() => handleSavePickedLocation(device)}
           >
-            <RefreshCw size={17} />
-            Refresh
+            Save Map Location
           </button>
+        </div>
+
+        <div className="device-action-row clean-device-actions">
+          {!isEditing && (
+            <button
+              className="rename-btn"
+              disabled={saving}
+              onClick={() => {
+                setEditingDeviceId(device.id)
+                setEditingName(device.name || '')
+              }}
+            >
+              <Edit3 size={16} />
+              แก้ไขชื่อ
+            </button>
+          )}
+
+          <button
+            className="save-btn"
+            disabled={saving}
+            onClick={() => handleResetSecret(device)}
+          >
+            <KeyRound size={16} />
+            Reset Secret
+          </button>
+
+          <button
+            className="delete-btn"
+            disabled={saving}
+            onClick={() => handleDeleteDevice(device.id)}
+          >
+            <Trash2 size={16} />
+            ลบ Device
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  function renderGridView() {
+    return (
+      <div className="device-v2-grid">
+        {filteredDevices.map((device) => {
+          const status = getStatus(device)
+          const isExpanded = expandedDeviceId === device.id
+
+          return (
+            <article key={device.id} className="device-v2-card">
+              <div className="device-v2-card-header">
+                <div>
+                  <h3>{device.name || device.device_code}</h3>
+                  <p>{device.device_code}</p>
+                </div>
+
+                <span className={`status ${status}`}>
+                  {getStatusLabel(status)}
+                </span>
+              </div>
+
+              <div className="device-v2-metrics">
+                <div>
+                  <span>🌡️</span>
+                  <strong>{getMetricValue(device.temperature, '°C')}</strong>
+                  <small>Temp</small>
+                </div>
+
+                <div>
+                  <span>💧</span>
+                  <strong>{getMetricValue(device.humidity, '%')}</strong>
+                  <small>Humidity</small>
+                </div>
+              </div>
+
+              <div className="device-v2-meta-row">
+                <span>{getLastSeen(device)}</span>
+              </div>
+
+              <button
+                type="button"
+                className="device-detail-toggle"
+                onClick={() =>
+                  setExpandedDeviceId(isExpanded ? null : device.id)
+                }
+              >
+                {isExpanded ? 'Hide Management' : 'Manage Device'}
+                <ChevronDown size={16} className={isExpanded ? 'open' : ''} />
+              </button>
+
+              {isExpanded && renderManagePanel(device)}
+            </article>
+          )
+        })}
+      </div>
+    )
+  }
+
+  function renderTableView() {
+    return (
+      <div className="device-v2-table-wrap">
+        <table className="device-v2-table">
+          <thead>
+            <tr>
+              <th>Device</th>
+              <th>Status</th>
+              <th>Temp</th>
+              <th>Humidity</th>
+              <th>Last Seen</th>
+              <th />
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredDevices.map((device) => {
+              const status = getStatus(device)
+
+              return (
+                <React.Fragment key={device.id}>
+                  <tr>
+                    <td>
+                      <strong>{device.name || device.device_code}</strong>
+                      <span>{device.device_code}</span>
+                    </td>
+
+                    <td>
+                      <span className={`status ${status}`}>
+                        {getStatusLabel(status)}
+                      </span>
+                    </td>
+
+                    <td>{getMetricValue(device.temperature, '°C')}</td>
+                    <td>{getMetricValue(device.humidity, '%')}</td>
+                    <td>{getLastSeen(device)}</td>
+
+                    <td>
+                      <button
+                        type="button"
+                        className="ghost-button table-manage-btn"
+                        onClick={() =>
+                          setExpandedDeviceId(
+                            expandedDeviceId === device.id ? null : device.id
+                          )
+                        }
+                      >
+                        Manage
+                      </button>
+                    </td>
+                  </tr>
+
+                  {expandedDeviceId === device.id && (
+                    <tr className="device-table-expand-row">
+                      <td colSpan="6">{renderManagePanel(device)}</td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  return (
+    <div className="page">
+      <section className="device-management-page clean-device-page device-v2-page">
+        <div className="device-management-header clean-device-header device-v2-header">
+          <div>
+            <h2>Device Management</h2>
+            <p>จัดการอุปกรณ์, Secret และ Location ของระบบ dotWatch</p>
+          </div>
+
+          <div className="device-v2-header-actions">
+            <button
+              type="button"
+              className="ghost-button clean-refresh-btn"
+              onClick={loadDevices}
+              disabled={loading || saving}
+            >
+              <RefreshCw size={17} />
+              Refresh
+            </button>
+
+            <button
+              type="button"
+              className="primary-button"
+              onClick={openCreateWizard}
+              disabled={saving}
+            >
+              <Plus size={18} />
+              Create Device
+            </button>
+          </div>
         </div>
 
         <div className="device-header-stats clean-device-stats">
@@ -329,15 +587,24 @@ function Device() {
           </div>
         </div>
 
-        <div className="device-control-card clean-device-toolbar">
-          <div className="device-add-box">
+        <div className="device-control-card clean-device-toolbar device-v2-toolbar">
+          <div className="device-view-switch">
             <button
-              className="primary-button"
-              onClick={() => openCreateWizard('normal')}
-              disabled={saving}
+              type="button"
+              className={viewMode === 'grid' ? 'active' : ''}
+              onClick={() => setViewMode('grid')}
             >
-              <Plus size={18} />
-              Create Device
+              <Grid2X2 size={16} />
+              Grid
+            </button>
+
+            <button
+              type="button"
+              className={viewMode === 'table' ? 'active' : ''}
+              onClick={() => setViewMode('table')}
+            >
+              <List size={16} />
+              Table
             </button>
           </div>
         </div>
@@ -349,163 +616,13 @@ function Device() {
           </div>
         ) : filteredDevices.length === 0 ? (
           <div className="empty-device clean-empty-state">
-            <h3>ไม่พบ Device</h3>
-            <p>ลองเปลี่ยนคำค้นหา หรือเพิ่มอุปกรณ์ใหม่</p>
+            <h3>ยังไม่มี Device</h3>
+            <p>เพิ่มอุปกรณ์ใหม่เพื่อเริ่มใช้งาน dotWatch</p>
           </div>
+        ) : viewMode === 'grid' ? (
+          renderGridView()
         ) : (
-          <div className="device-management-grid clean-device-grid">
-            {filteredDevices.map((device) => (
-              <article
-                key={device.id}
-                className="device-management-card clean-device-card"
-              >
-                <div className="device-management-card-header clean-device-card-header">
-                  <div>
-                    <h3>{device.name || device.device_code}</h3>
-                    <p>{device.device_code}</p>
-                  </div>
-
-                  <span className={`status ${device.status || 'offline'}`}>
-                    {device.status || 'offline'}
-                  </span>
-                </div>
-
-                {editingDeviceId === device.id && (
-                  <div className="device-edit-row clean">
-                    <input
-                      className="device-edit-input"
-                      type="text"
-                      value={editingName}
-                      disabled={saving}
-                      onChange={(e) => setEditingName(e.target.value)}
-                      placeholder="ชื่อ Device"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveDeviceName(device.id)
-
-                        if (e.key === 'Escape') {
-                          setEditingDeviceId(null)
-                          setEditingName('')
-                        }
-                      }}
-                    />
-
-                    <button
-                      className="save-btn square"
-                      disabled={saving}
-                      onClick={() => handleSaveDeviceName(device.id)}
-                      title="Save"
-                    >
-                      <Save size={16} />
-                    </button>
-
-                    <button
-                      className="cancel-btn square"
-                      disabled={saving}
-                      onClick={() => {
-                        setEditingDeviceId(null)
-                        setEditingName('')
-                      }}
-                      title="Cancel"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                )}
-
-                <div className="device-management-meta clean-device-meta">
-                  <label>
-                    Group
-                    <select
-                      value={device.group_name || 'Default'}
-                      disabled={saving}
-                      onChange={(e) =>
-                        handleChangeGroup(device.id, e.target.value)
-                      }
-                    >
-                      <option value="Default">Default</option>
-                      <option value="Server Room">Server Room</option>
-                      <option value="Warehouse">Warehouse</option>
-                      <option value="Factory">Factory</option>
-                      <option value="Demo">Demo</option>
-                    </select>
-                  </label>
-                </div>
-
-                <DeviceCard
-                  device={{
-                    ...device,
-                    deviceId: device.device_code,
-                    lastSeen: device.latest_time || device.last_seen_at,
-                  }}
-                />
-
-                <div className="device-location-section compact clean-location-card">
-                  <div className="device-location-header">
-                    <strong>
-                      <MapPin size={16} />
-                      Device Location
-                    </strong>
-                    <span>คลิกบนแผนที่เพื่อเลือกตำแหน่ง</span>
-                  </div>
-
-                  <LocationPicker
-                    latitude={device.latitude}
-                    longitude={device.longitude}
-                    onChange={(location) =>
-                      setLocations((prev) => ({
-                        ...prev,
-                        [device.id]: location,
-                      }))
-                    }
-                  />
-
-                  <button
-                    type="button"
-                    className="save-btn location-save-btn"
-                    disabled={saving}
-                    onClick={() => handleSavePickedLocation(device)}
-                  >
-                    Save Map Location
-                  </button>
-                </div>
-
-                <div className="device-action-row clean-device-actions">
-                  {editingDeviceId !== device.id && (
-                    <button
-                      className="rename-btn"
-                      disabled={saving}
-                      onClick={() => {
-                        setEditingDeviceId(device.id)
-                        setEditingName(device.name || '')
-                      }}
-                    >
-                      <Edit3 size={16} />
-                      แก้ไขชื่อ
-                    </button>
-                  )}
-
-                  <button
-                    className="save-btn"
-                    disabled={saving}
-                    onClick={() => handleResetSecret(device)}
-                  >
-                    <KeyRound size={16} />
-                    Reset Secret
-                  </button>
-
-                  <button
-                    className="delete-btn"
-                    disabled={saving}
-                    onClick={() => handleDeleteDevice(device.id)}
-                  >
-                    <Trash2 size={16} />
-                    ลบ Device
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
+          renderTableView()
         )}
       </section>
 
@@ -528,92 +645,31 @@ function Device() {
               </button>
             </div>
 
-            <div className="pro-stepper">
+            <div className="pro-stepper four-step">
               <div className={createStep >= 1 ? 'active' : ''}>
                 <span>1</span>
-                <strong>Create</strong>
-                <small>เลือกประเภท</small>
+                <strong>Information</strong>
               </div>
 
               <div className={createStep >= 2 ? 'active' : ''}>
                 <span>2</span>
-                <strong>Details</strong>
-                <small>กรอกข้อมูล</small>
+                <strong>Location</strong>
               </div>
 
               <div className={createStep >= 3 ? 'active' : ''}>
                 <span>3</span>
-                <strong>Confirm</strong>
-                <small>ตรวจสอบ</small>
+                <strong>Review</strong>
+              </div>
+
+              <div className={createStep >= 4 ? 'active' : ''}>
+                <span>4</span>
+                <strong>Success</strong>
+                <small>Copy Secret</small>
               </div>
             </div>
 
             <div className="pro-wizard-content">
               {createStep === 1 && (
-                <div className="pro-device-type-grid">
-                  <button
-                    type="button"
-                    className={
-                      createForm.type === 'normal'
-                        ? 'pro-device-type-card active'
-                        : 'pro-device-type-card'
-                    }
-                    onClick={() => handleSelectCreateType('normal')}
-                  >
-                    <div className="type-icon">
-                      <Cpu size={24} />
-                    </div>
-
-                    <strong>Normal Device</strong>
-                    <p>อุปกรณ์จริงสำหรับ ESP / Sensor ที่ใช้งานภาคสนาม</p>
-
-                    <ul>
-                      <li>ใช้ Device Secret จริง</li>
-                      <li>เหมาะสำหรับติดตั้งหน้างาน</li>
-                      <li>จัดกลุ่มได้ตามพื้นที่</li>
-                    </ul>
-
-                    {createForm.type === 'normal' && (
-                      <span className="selected-mark">
-                        <CheckCircle2 size={18} />
-                        Selected
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    className={
-                      createForm.type === 'demo'
-                        ? 'pro-device-type-card active'
-                        : 'pro-device-type-card'
-                    }
-                    onClick={() => handleSelectCreateType('demo')}
-                  >
-                    <div className="type-icon demo">
-                      <FlaskConical size={24} />
-                    </div>
-
-                    <strong>Demo Device</strong>
-                    <p>อุปกรณ์ทดลองสำหรับทดสอบ Dashboard และข้อมูลจำลอง</p>
-
-                    <ul>
-                      <li>อยู่ใน Group Demo</li>
-                      <li>สร้างเหมือน Device ปกติ</li>
-                      <li>เหมาะสำหรับทดสอบระบบ</li>
-                    </ul>
-
-                    {createForm.type === 'demo' && (
-                      <span className="selected-mark">
-                        <CheckCircle2 size={18} />
-                        Selected
-                      </span>
-                    )}
-                  </button>
-                </div>
-              )}
-
-              {createStep === 2 && (
                 <div className="pro-device-details">
                   <div className="pro-form-card">
                     <label>
@@ -626,32 +682,8 @@ function Device() {
                             name: e.target.value,
                           }))
                         }
-                        placeholder={
-                          createForm.type === 'demo'
-                            ? 'Demo Device 01'
-                            : 'dotWatch 01'
-                        }
+                        placeholder="Temperature Sensor"
                       />
-                    </label>
-
-                    <label>
-                      Group
-                      <select
-                        value={createForm.group}
-                        disabled={createForm.type === 'demo'}
-                        onChange={(e) =>
-                          setCreateForm((prev) => ({
-                            ...prev,
-                            group: e.target.value,
-                          }))
-                        }
-                      >
-                        <option value="Default">Default</option>
-                        <option value="Server Room">Server Room</option>
-                        <option value="Warehouse">Warehouse</option>
-                        <option value="Factory">Factory</option>
-                        <option value="Demo">Demo</option>
-                      </select>
                     </label>
 
                     <label>
@@ -666,6 +698,48 @@ function Device() {
                         </button>
                       </div>
                     </label>
+                  </div>
+                </div>
+              )}
+
+              {createStep === 2 && (
+                <div className="pro-device-details">
+                  <div className="pro-location-card">
+                    <div className="device-location-header">
+                      <strong>
+                        <MapPin size={16} />
+                        Device Location
+                      </strong>
+                      <span>เลือกตำแหน่งอุปกรณ์ตั้งแต่ขั้นตอนสร้าง Device</span>
+                    </div>
+
+                    <LocationPicker
+                      latitude={createForm.latitude}
+                      longitude={createForm.longitude}
+                      onChange={(location) =>
+                        setCreateForm((prev) => ({
+                          ...prev,
+                          latitude: location.latitude,
+                          longitude: location.longitude,
+                        }))
+                      }
+                    />
+
+                    <div className="create-location-values">
+                      <span>
+                        Lat:{' '}
+                        {createForm.latitude != null
+                          ? Number(createForm.latitude).toFixed(6)
+                          : '--'}
+                      </span>
+
+                      <span>
+                        Lng:{' '}
+                        {createForm.longitude != null
+                          ? Number(createForm.longitude).toFixed(6)
+                          : '--'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="pro-info-card">
@@ -685,28 +759,10 @@ function Device() {
                     <h4>Confirm Device</h4>
 
                     <div className="confirm-row">
-                      <span>Type</span>
-                      <strong>
-                        {createForm.type === 'demo'
-                          ? 'Demo Device'
-                          : 'Normal Device'}
-                      </strong>
-                    </div>
-
-                    <div className="confirm-row">
                       <span>Name</span>
                       <strong>
                         {createForm.name.trim() ||
-                          (createForm.type === 'demo'
-                            ? `Demo Device ${devices.length + 1}`
-                            : `dotWatch ${devices.length + 1}`)}
-                      </strong>
-                    </div>
-
-                    <div className="confirm-row">
-                      <span>Group</span>
-                      <strong>
-                        {createForm.type === 'demo' ? 'Demo' : createForm.group}
+                          `dotWatch ${devices.length + 1}`}
                       </strong>
                     </div>
 
@@ -715,11 +771,76 @@ function Device() {
                       <strong>{createForm.deviceCode}</strong>
                     </div>
 
+                    <div className="confirm-row">
+                      <span>Location</span>
+                      <strong>
+                        {createForm.latitude != null &&
+                        createForm.longitude != null
+                          ? `${Number(createForm.latitude).toFixed(6)}, ${Number(
+                              createForm.longitude
+                            ).toFixed(6)}`
+                          : 'Not selected'}
+                      </strong>
+                    </div>
+
                     <div className="confirm-warning">
                       <KeyRound size={18} />
                       Device Secret จะแสดงหลังสร้างสำเร็จครั้งเดียว กรุณา Copy
                       เก็บไว้ทันที
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {createStep === 4 && createdDevice && (
+                <div className="device-success-card">
+                  <CheckCircle2 size={44} />
+
+                  <h4>Device Created Successfully</h4>
+
+                  <p>
+                    กรุณา Copy Device Secret เก็บไว้ทันที เพราะจะแสดงครั้งเดียว
+                  </p>
+
+                  <div className="secret-result-box">
+                    <label>
+                      Device Code
+                      <div className="copy-input">
+                        <input value={createdDevice.deviceCode} disabled />
+                        <button
+                          type="button"
+                          onClick={() => copyText(createdDevice.deviceCode)}
+                        >
+                          <Copy size={16} />
+                        </button>
+                      </div>
+                    </label>
+
+                    {createdDevice.latitude != null &&
+                      createdDevice.longitude != null && (
+                        <label>
+                          Location
+                          <input
+                            value={`${Number(createdDevice.latitude).toFixed(
+                              6
+                            )}, ${Number(createdDevice.longitude).toFixed(6)}`}
+                            disabled
+                          />
+                        </label>
+                      )}
+
+                    <label>
+                      Device Secret
+                      <div className="copy-input">
+                        <input value={createdDevice.deviceSecret} disabled />
+                        <button
+                          type="button"
+                          onClick={() => copyText(createdDevice.deviceSecret)}
+                        >
+                          <Copy size={16} />
+                        </button>
+                      </div>
+                    </label>
                   </div>
                 </div>
               )}
@@ -732,44 +853,46 @@ function Device() {
                 onClick={closeCreateWizard}
                 disabled={saving}
               >
-                Cancel
+                {createStep === 4 ? 'Done' : 'Cancel'}
               </button>
 
-              <div>
-                {createStep > 1 && (
-                  <button
-                    type="button"
-                    className="ghost-button"
-                    onClick={() => setCreateStep((step) => step - 1)}
-                    disabled={saving}
-                  >
-                    <ArrowLeft size={16} />
-                    Back
-                  </button>
-                )}
+              {createStep < 4 && (
+                <div>
+                  {createStep > 1 && (
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={() => setCreateStep((step) => step - 1)}
+                      disabled={saving}
+                    >
+                      <ArrowLeft size={16} />
+                      Back
+                    </button>
+                  )}
 
-                {createStep < 3 ? (
-                  <button
-                    type="button"
-                    className="primary-button modal-next-button"
-                    onClick={() => setCreateStep((step) => step + 1)}
-                    disabled={saving}
-                  >
-                    Next
-                    <ArrowRight size={16} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="primary-button modal-next-button"
-                    onClick={handleConfirmCreateDevice}
-                    disabled={saving}
-                  >
-                    {saving ? 'Creating...' : 'Confirm Create'}
-                    <CheckCircle2 size={16} />
-                  </button>
-                )}
-              </div>
+                  {createStep < 3 ? (
+                    <button
+                      type="button"
+                      className="primary-button modal-next-button"
+                      onClick={() => setCreateStep((step) => step + 1)}
+                      disabled={saving}
+                    >
+                      Next
+                      <ArrowRight size={16} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="primary-button modal-next-button"
+                      onClick={handleConfirmCreateDevice}
+                      disabled={saving}
+                    >
+                      {saving ? 'Creating...' : 'Confirm Create'}
+                      <CheckCircle2 size={16} />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -778,4 +901,4 @@ function Device() {
   )
 }
 
-export default Device
+export default Devices

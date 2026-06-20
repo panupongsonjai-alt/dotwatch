@@ -5206,3 +5206,86 @@ textarea:focus,
     min-height: auto;
   }
 }
+
+/* Create Device Wizard: Location Picker */
+.pro-device-details {
+  align-items: start;
+}
+
+.pro-location-card {
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.pro-location-card .location-picker,
+.pro-location-card .location-map {
+  margin-top: 12px;
+}
+
+.pro-location-card .location-map {
+  height: 240px;
+}
+
+.create-location-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.create-location-values span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .pro-location-card .location-map {
+    height: 220px;
+  }
+}
+
+.clean-device-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.clean-device-stats > div {
+  min-height: 100px;
+}
+
+.device-v2-header {
+  padding: 24px 28px;
+}
+
+.device-v2-header h2 {
+  font-size: 2rem;
+  margin-bottom: 4px;
+}
+
+.device-view-switch {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.device-view-switch button {
+  border: 0;
+  background: transparent;
+  padding: 10px 16px;
+  border-radius: 8px;
+}
+
+.device-view-switch button.active {
+  background: var(--primary);
+  color: white;
+}
