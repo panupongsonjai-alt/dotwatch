@@ -184,7 +184,6 @@ svg {
   margin-bottom: 20px;
 }
 
-.section-title h2,
 .chart-header h2,
 .realtime-graph-title h2,
 .realtime-graph-header h2,
@@ -2940,29 +2939,19 @@ textarea:focus,
 }
 
 .icon-button {
-  border: 1px solid var(--border);
+  width: 42px;
+  height: 42px;
+
+  border-radius: 14px;
+
   background: var(--panel);
-  color: var(--text);
+
+  border: 1px solid var(--border);
 }
 
 .icon-button:hover {
   transform: translateY(-1px);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-}
-
-.user-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #0f172a, #334155);
-  color: #ffffff;
-  border: 2px solid rgba(148, 163, 184, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  font-weight: 900;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.22);
 }
 
 .logout-button {
@@ -3237,6 +3226,7 @@ textarea:focus,
   justify-content: flex-start;
 }
 
+.section-title h2,
 .device-map-title h2,
 .device-map-header h2 {
   margin: 0;

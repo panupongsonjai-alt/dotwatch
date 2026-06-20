@@ -1,14 +1,7 @@
 import React from 'react'
 import { Moon, Sun, LogOut } from 'lucide-react'
 
-function Navbar({
-  user,
-  onLogout,
-  theme,
-  setTheme,
-  sidebarOpen,
-  setSidebarOpen,
-}) {
+function Navbar({ user, onLogout, theme, setTheme }) {
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark')
   }
@@ -28,7 +21,7 @@ function Navbar({
         </button>
 
         <div className="header-user">
-          <div className="user-avatar">
+          <div className="icon-button user-avatar">
             {displayName.charAt(0).toUpperCase()}
           </div>
         </div>
