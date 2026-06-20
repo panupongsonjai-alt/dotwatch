@@ -6,22 +6,14 @@ import {
   clearProfileActivities,
   getBrowserName,
   getOperatingSystem,
-  getProfileActivities,
   getProfileLanguage,
   getProfileNotifications,
-  getProfileRole,
-  getProfileTheme,
-  saveProfileLanguage,
   saveProfileNotifications,
-  saveProfileRole,
-  saveProfileTheme,
 } from '../utils/profileStorage'
 
 function Profile() {
   const user = auth.currentUser
 
-  const [role, setRole] = useState('Admin')
-  const [theme, setTheme] = useState('dark')
   const [language, setLanguage] = useState('th')
   const [notifications, setNotifications] = useState({
     emailAlerts: true,
@@ -40,7 +32,6 @@ function Profile() {
   const email = user?.email || '-'
   const uid = user?.uid || '-'
   const providerId = user?.providerData?.[0]?.providerId || 'password'
-
   const browserName = getBrowserName()
   const operatingSystem = getOperatingSystem()
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -60,30 +51,10 @@ function Profile() {
     'U'
 
   useEffect(() => {
-    setRole(getProfileRole())
-    setTheme(getProfileTheme())
     setLanguage(getProfileLanguage())
     setNotifications(getProfileNotifications())
     setActivities(addProfileActivity('เปิดหน้า Profile'))
   }, [])
-
-  function handleRoleChange(value) {
-    setRole(value)
-    saveProfileRole(value)
-    setActivities(addProfileActivity(`เปลี่ยนบทบาทผู้ใช้เป็น ${value}`))
-  }
-
-  function handleThemeChange(value) {
-    setTheme(value)
-    saveProfileTheme(value)
-    setActivities(addProfileActivity(`เปลี่ยน Theme เป็น ${value}`))
-  }
-
-  function handleLanguageChange(value) {
-    setLanguage(value)
-    saveProfileLanguage(value)
-    setActivities(addProfileActivity(`เปลี่ยนภาษาเป็น ${value}`))
-  }
 
   function handleNotificationChange(key) {
     const next = {
@@ -148,22 +119,23 @@ function Profile() {
 
   return (
     <div className="page">
-      <section className="panel">
-        <div className="section-title">
+      <section className="panel profile-shell">
+        <div className="section-title profile-main-title">
           <h2>Profile</h2>
-          <p>ข้อมูลบัญชี บทบาท ความปลอดภัย และการตั้งค่าส่วนตัว</p>
+          <p>จัดการข้อมูลบัญชี ความปลอดภัย และการตั้งค่าส่วนตัว</p>
         </div>
 
-        <div className="profile-dashboard">
-          <aside className="profile-preview-card">
+        {message && <div className="auth-success">{message}</div>}
+        {error && <div className="auth-error">{error}</div>}
+
+        <div className="profile-page-grid">
+          <aside className="profile-card">
             <div className="profile-avatar large">{firstLetter}</div>
 
             <h3>{displayName}</h3>
             <p>{email}</p>
 
             <div className="profile-meta">
-              <span className={`role-badge ${role.toLowerCase()}`}>{role}</span>
-
               <span
                 className={
                   user?.emailVerified
@@ -174,33 +146,16 @@ function Profile() {
                 {user?.emailVerified ? 'Email Verified' : 'Not Verified'}
               </span>
             </div>
-
-            <div className="profile-summary">
-              <div>
-                <strong>{role}</strong>
-                <span>Permission</span>
-              </div>
-
-              <div>
-                <strong>{providerId}</strong>
-                <span>Provider</span>
-              </div>
-
-              <div>
-                <strong>{user?.emailVerified ? 'Active' : 'Pending'}</strong>
-                <span>Status</span>
-              </div>
-            </div>
           </aside>
 
-          <div className="profile-content">
-            {message && <div className="auth-success">{message}</div>}
-            {error && <div className="auth-error">{error}</div>}
+          <div className="profile-main-grid">
+            <section className="profile-section account-card">
+              <div className="profile-card-title">
+                <span className="profile-title-icon">👤</span>
+                <h3>Account Information</h3>
+              </div>
 
-            <div className="profile-section">
-              <h3>Account Information</h3>
-
-              <div className="profile-info-grid">
+              <div className="profile-info-grid compact">
                 <label>
                   Display Name
                   <input value={displayName} disabled />
@@ -209,17 +164,6 @@ function Profile() {
                 <label>
                   Email
                   <input value={email} disabled />
-                </label>
-
-                <label>
-                  Role
-                  <select
-                    value={role}
-                    onChange={(e) => handleRoleChange(e.target.value)}
-                  >
-                    <option value="Admin">Admin</option>
-                    <option value="Operator">Operator</option>
-                  </select>
                 </label>
 
                 <label>
@@ -238,14 +182,6 @@ function Profile() {
                 <label>
                   Last Login
                   <input value={lastLoginAt} disabled />
-                </label>
-
-                <label>
-                  Project Name
-                  <input
-                    value={localStorage.getItem('projectName') || 'dotWatch'}
-                    disabled
-                  />
                 </label>
 
                 <label>
@@ -281,17 +217,14 @@ function Profile() {
                   <input value="All Devices" disabled />
                 </label>
               </div>
-            </div>
+            </section>
 
-            <div className="profile-section security-section">
-              <div className="security-title">
-                <div className="security-icon">🛡️</div>
+            <section className="profile-section security-section">
+              <div className="profile-card-title">
+                <span className="profile-title-icon">🛡️</span>
                 <div>
                   <h3>Security</h3>
-                  <p>
-                    จัดการรหัสผ่าน การยืนยันอีเมล
-                    และความปลอดภัยของบัญชีผู้ใช้งาน
-                  </p>
+                  <p>จัดการรหัสผ่าน การยืนยันอีเมล และความปลอดภัยของบัญชี</p>
                 </div>
               </div>
 
@@ -303,13 +236,27 @@ function Profile() {
                 </div>
 
                 <div className="security-check-list clean">
-                  <div className="security-check success">
-                    <span>✓</span>
+                  <div
+                    className={
+                      user?.emailVerified
+                        ? 'security-check success'
+                        : 'security-check warning'
+                    }
+                  >
+                    <span>{user?.emailVerified ? '✓' : '!'}</span>
                     <div>
-                      <strong>Email verified</strong>
-                      <p>อีเมลของคุณได้รับการยืนยันแล้ว</p>
+                      <strong>
+                        {user?.emailVerified
+                          ? 'Email verified'
+                          : 'Email not verified'}
+                      </strong>
+                      <p>
+                        {user?.emailVerified
+                          ? 'อีเมลของคุณได้รับการยืนยันแล้ว'
+                          : 'แนะนำให้ยืนยันอีเมลก่อนใช้งานจริง'}
+                      </p>
                     </div>
-                    <em>Secure</em>
+                    <em>{user?.emailVerified ? 'Secure' : 'Improve'}</em>
                   </div>
 
                   <div className="security-check success">
@@ -328,15 +275,6 @@ function Profile() {
                       <p>บัญชีของคุณใช้งานได้ปกติ</p>
                     </div>
                     <em>Secure</em>
-                  </div>
-
-                  <div className="security-check warning">
-                    <span>!</span>
-                    <div>
-                      <strong>Two-Factor Authentication not enabled</strong>
-                      <p>แนะนำให้เปิดใช้งาน 2FA เพื่อเพิ่มความปลอดภัย</p>
-                    </div>
-                    <em>Improve</em>
                   </div>
                 </div>
               </div>
@@ -414,133 +352,107 @@ function Profile() {
                   </div>
                 </div>
               </div>
+            </section>
 
-              <div className="two-factor-card clean">
-                <div>
-                  <h4>Two-Factor Authentication</h4>
-                  <p>เพิ่มความปลอดภัยให้บัญชีด้วยการยืนยันตัวตน 2 ขั้นตอน</p>
+            <div className="profile-three-grid">
+              <section className="profile-section">
+                <div className="profile-card-title">
+                  <span className="profile-title-icon">🔔</span>
+                  <h3>Notification Settings</h3>
                 </div>
 
-                <div className="two-factor-status">
-                  <span>Disabled</span>
-                  <button type="button" className="secondary-button" disabled>
-                    Enable 2FA
-                  </button>
+                <div className="profile-toggle-list">
+                  {Object.entries({
+                    emailAlerts: 'Email Alerts',
+                    offlineAlerts: 'Device Offline Alerts',
+                    criticalAlerts: 'Critical Alarm Alerts',
+                    weeklyReport: 'Weekly Report',
+                  }).map(([key, label]) => (
+                    <label key={key}>
+                      <span>{label}</span>
+                      <input
+                        type="checkbox"
+                        checked={notifications[key]}
+                        onChange={() => handleNotificationChange(key)}
+                      />
+                    </label>
+                  ))}
                 </div>
-              </div>
-            </div>
+              </section>
 
-            <div className="profile-section">
-              <h3>Notification Settings</h3>
+              <section className="profile-section">
+                <div className="profile-section-header">
+                  <div className="profile-card-title">
+                    <span className="profile-title-icon">🕘</span>
+                    <h3>Recent Activity</h3>
+                  </div>
 
-              <div className="profile-toggle-list">
-                {Object.entries({
-                  emailAlerts: 'Email Alerts',
-                  offlineAlerts: 'Device Offline Alerts',
-                  criticalAlerts: 'Critical Alarm Alerts',
-                  weeklyReport: 'Weekly Report',
-                }).map(([key, label]) => (
-                  <label key={key}>
-                    <span>{label}</span>
-                    <input
-                      type="checkbox"
-                      checked={notifications[key]}
-                      onChange={() => handleNotificationChange(key)}
-                    />
-                  </label>
-                ))}
-              </div>
-            </div>
+                  {activities.length > 0 && (
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={handleClearActivities}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
 
-            <div className="profile-section">
-              <h3>Preferences</h3>
-
-              <div className="profile-info-grid">
-                <label>
-                  Theme
-                  <select
-                    value={theme}
-                    onChange={(e) => handleThemeChange(e.target.value)}
-                  >
-                    <option value="dark">Dark</option>
-                    <option value="light">Light</option>
-                  </select>
-                </label>
-
-                <label>
-                  Language
-                  <select
-                    value={language}
-                    onChange={(e) => handleLanguageChange(e.target.value)}
-                  >
-                    <option value="th">Thai</option>
-                    <option value="en">English</option>
-                  </select>
-                </label>
-              </div>
-            </div>
-
-            <div className="profile-section">
-              <div className="profile-section-header">
-                <h3>Recent Activity</h3>
-
-                {activities.length > 0 && (
-                  <button
-                    type="button"
-                    className="text-button"
-                    onClick={handleClearActivities}
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-
-              <div className="activity-list">
-                {activities.length === 0 ? (
-                  <p className="profile-help-text">ยังไม่มีกิจกรรมล่าสุด</p>
-                ) : (
-                  activities.map((activity) => (
-                    <div className="activity-item" key={activity.id}>
-                      <span className="activity-dot" />
-                      <div>
-                        <strong>{activity.text}</strong>
-                        <small>
-                          {new Date(activity.time).toLocaleString('th-TH')}
-                        </small>
+                <div className="activity-list">
+                  {activities.length === 0 ? (
+                    <p className="profile-help-text">ยังไม่มีกิจกรรมล่าสุด</p>
+                  ) : (
+                    activities.map((activity) => (
+                      <div className="activity-item" key={activity.id}>
+                        <span className="activity-dot" />
+                        <div>
+                          <strong>{activity.text}</strong>
+                          <small>
+                            {new Date(activity.time).toLocaleString('th-TH')}
+                          </small>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
+                    ))
+                  )}
+                </div>
+              </section>
             </div>
 
-            <div className="profile-section">
-              <h3>System Information</h3>
+            <div className="profile-two-grid">
+              <section className="profile-section">
+                <div className="profile-card-title">
+                  <span className="profile-title-icon">ℹ️</span>
+                  <h3>System Information</h3>
+                </div>
 
-              <div className="profile-info-grid">
-                <label>
-                  User ID
-                  <input value={uid} disabled />
-                </label>
+                <div className="profile-info-grid one">
+                  <label>
+                    User ID
+                    <input value={uid} disabled />
+                  </label>
 
-                <label>
-                  Provider
-                  <input value={providerId} disabled />
-                </label>
-              </div>
-            </div>
+                  <label>
+                    Provider
+                    <input value={providerId} disabled />
+                  </label>
+                </div>
+              </section>
 
-            <div className="profile-section danger-zone">
-              <h3>Danger Zone</h3>
+              <section className="profile-section danger-zone">
+                <div className="profile-card-title">
+                  <span className="profile-title-icon danger">⚠️</span>
+                  <h3>Danger Zone</h3>
+                </div>
 
-              <p>
-                ส่วนนี้เตรียมไว้สำหรับอนาคต เช่น ลบบัญชี ลบอุปกรณ์ทั้งหมด
-                หรือลบประวัติการใช้งาน
-              </p>
+                <p>
+                  ส่วนนี้เตรียมไว้สำหรับการจัดการบัญชีขั้นสูง เช่น ลบบัญชี
+                  หรือล้างข้อมูลส่วนตัวในอนาคต
+                </p>
 
-              <button type="button" className="danger-button" disabled>
-                Delete Account
-              </button>
+                <button type="button" className="danger-button" disabled>
+                  Delete Account
+                </button>
+              </section>
             </div>
           </div>
         </div>
