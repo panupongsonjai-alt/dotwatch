@@ -16,16 +16,6 @@ function getStatusColor(status) {
   return '#ef4444'
 }
 
-function getVisibleDevicePositions(devices) {
-  return devices.map((device, index) => {
-    if (device.latitude != null && device.longitude != null) {
-      return [Number(device.latitude), Number(device.longitude)]
-    }
-
-    return getDevicePosition(device, index)
-  })
-}
-
 function createDeviceIcon(status) {
   const color = getStatusColor(status)
 
@@ -60,12 +50,6 @@ function getDevicePosition(device, index) {
   ]
 }
 
-function getRealDeviceLocations(devices) {
-  return devices
-    .filter((device) => device.latitude != null && device.longitude != null)
-    .map((device) => [Number(device.latitude), Number(device.longitude)])
-}
-
 function FitBounds({ devices }) {
   const map = useMap()
 
@@ -74,30 +58,16 @@ function FitBounds({ devices }) {
       .filter((device) => device.latitude != null && device.longitude != null)
       .map((device) => [Number(device.latitude), Number(device.longitude)])
 
-    // ไม่มีพิกัดเลย → แสดงประเทศไทย
     if (positions.length === 0) {
-      map.fitBounds(
-        [
-          [5.5, 97.0],
-          [20.5, 105.5],
-        ],
-        {
-          padding: [40, 40],
-          animate: true,
-        }
-      )
-
+      map.setView(DEFAULT_CENTER, 6)
       return
     }
 
-    // มีแค่ตัวเดียว
     if (positions.length === 1) {
       map.setView(positions[0], 15)
-
       return
     }
 
-    // หลายตัว → Fit ทั้งหมด
     map.fitBounds(positions, {
       padding: [60, 60],
       maxZoom: 15,
@@ -113,134 +83,166 @@ function DeviceMap({ devices = [] }) {
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedDeviceId, setSelectedDeviceId] = useState(null)
 
+  const onlineCount = devices.filter(
+    (device) => getStatus(device) === 'online'
+  ).length
+
+  const warningCount = devices.filter(
+    (device) => getStatus(device) === 'warning'
+  ).length
+
+  const offlineCount = devices.filter(
+    (device) => getStatus(device) === 'offline'
+  ).length
+
   const filteredDevices = useMemo(() => {
     return devices.filter((device) => {
-      const keyword =
-        `${device.name || ''} ${device.device_code || ''}`.toLowerCase()
+      const keyword = `${device.name || ''} ${device.device_code || ''} ${
+        device.deviceCode || ''
+      }`.toLowerCase()
 
       const status = getStatus(device)
 
-      return (
-        keyword.includes(search.toLowerCase()) &&
-        (statusFilter === 'all' || status === statusFilter)
-      )
+      const matchSearch = keyword.includes(search.toLowerCase())
+      const matchStatus = statusFilter === 'all' || status === statusFilter
+
+      return matchSearch && matchStatus
     })
   }, [devices, search, statusFilter])
+
+  const hasLocation = filteredDevices.some(
+    (device) => device.latitude != null && device.longitude != null
+  )
 
   return (
     <section className="device-map-card panel">
       <div className="device-map-header">
-        <div className="device-map-title-row">
+        <div className="device-map-title">
           <h2>Device Map</h2>
+        </div>
 
+        <div className="device-map-toolbar">
           <div className="status-map-legend">
             <span>
               <b className="online" />
-              Online
+              Online {onlineCount}
             </span>
 
             <span>
               <b className="warning" />
-              Warning
+              Warning {warningCount}
             </span>
 
             <span>
               <b className="offline" />
-              Offline
+              Offline {offlineCount}
             </span>
           </div>
-        </div>
 
-        <div className="device-status-tools">
-          <div className="device-status-search">
-            <Search size={16} />
+          <div className="device-status-tools">
+            <div className="device-status-search">
+              <Search size={16} />
 
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search device..."
-            />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search Device..."
+              />
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              <option value="all">All Status</option>
+              <option value="online">Online</option>
+              <option value="warning">Warning</option>
+              <option value="offline">Offline</option>
+            </select>
           </div>
-
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            <option value="all">All Status</option>
-            <option value="online">Online</option>
-            <option value="warning">Warning</option>
-            <option value="offline">Offline</option>
-          </select>
         </div>
       </div>
 
-      <div className="device-map-wrapper">
-        <MapContainer
-          center={DEFAULT_CENTER}
-          zoom={10}
-          scrollWheelZoom={true}
-          className="device-map"
-        >
-          <FitBounds devices={filteredDevices} />
+      {!hasLocation ? (
+        <div className="device-map-empty">
+          <div>
+            <strong>📍 No Device Location</strong>
+            <p>Add Latitude and Longitude to display devices on the map.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="device-map-wrapper">
+          <MapContainer
+            center={DEFAULT_CENTER}
+            zoom={10}
+            scrollWheelZoom
+            className="device-map"
+          >
+            <FitBounds devices={filteredDevices} />
 
-          <TileLayer
-            attribution="&copy; OpenStreetMap"
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+            <TileLayer
+              attribution="&copy; OpenStreetMap"
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
 
-          {filteredDevices.map((device, index) => {
-            const status = getStatus(device)
-            const position = getDevicePosition(device, index)
+            {filteredDevices.map((device, index) => {
+              const status = getStatus(device)
+              const position = getDevicePosition(device, index)
 
-            const deviceId = device.id || device.device_code
-            const isSelected = selectedDeviceId === deviceId
+              const deviceId = device.id || device.device_code || index
+              const isSelected = selectedDeviceId === deviceId
 
-            return (
-              <Marker
-                key={deviceId}
-                position={position}
-                icon={createDeviceIcon(status)}
-                eventHandlers={{
-                  click: () => {
-                    setSelectedDeviceId(isSelected ? null : deviceId)
-                  },
-                }}
-              >
-                {isSelected && (
-                  <Tooltip
-                    permanent
-                    direction="top"
-                    offset={[0, -12]}
-                    className="device-tooltip compact"
-                  >
-                    <div className="device-tooltip-row">
-                      <strong>
-                        {device.name || device.device_code || 'Unnamed Device'}
-                      </strong>
+              return (
+                <Marker
+                  key={deviceId}
+                  position={position}
+                  icon={createDeviceIcon(status)}
+                  eventHandlers={{
+                    click: () => {
+                      setSelectedDeviceId(isSelected ? null : deviceId)
+                    },
+                  }}
+                >
+                  {isSelected && (
+                    <Tooltip
+                      permanent
+                      direction="top"
+                      offset={[0, -12]}
+                      className="device-tooltip compact"
+                    >
+                      <div className="device-tooltip-row">
+                        <strong>
+                          {device.name ||
+                            device.device_code ||
+                            'Unnamed Device'}
+                        </strong>
 
-                      <span className={`status-text ${status}`}>{status}</span>
+                        <span className={`status-text ${status}`}>
+                          {status}
+                        </span>
 
-                      <span>
-                        Temp:{' '}
-                        {device.temperature != null
-                          ? `${Number(device.temperature).toFixed(1)}°C`
-                          : '--'}
-                      </span>
+                        <span>
+                          Temp:{' '}
+                          {device.temperature != null
+                            ? `${Number(device.temperature).toFixed(1)}°C`
+                            : '--'}
+                        </span>
 
-                      <span>
-                        Humidity:{' '}
-                        {device.humidity != null
-                          ? `${Number(device.humidity).toFixed(1)}%`
-                          : '--'}
-                      </span>
-                    </div>
-                  </Tooltip>
-                )}
-              </Marker>
-            )
-          })}
-        </MapContainer>
-      </div>
+                        <span>
+                          Humidity:{' '}
+                          {device.humidity != null
+                            ? `${Number(device.humidity).toFixed(1)}%`
+                            : '--'}
+                        </span>
+                      </div>
+                    </Tooltip>
+                  )}
+                </Marker>
+              )
+            })}
+          </MapContainer>
+        </div>
+      )}
     </section>
   )
 }

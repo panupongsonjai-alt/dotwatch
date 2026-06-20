@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { auth } from '../services/firebase'
-import DashboardDeviceCard from '../components/DashboardDeviceCard.jsx'
 import ChartWidget from '../components/ChartWidget.jsx'
 import AlarmPanel from '../components/AlarmPanel.jsx'
 import { getDevices, getAlarms } from '../services/api'
@@ -13,7 +12,6 @@ function Dashboard({ onOpenDevice }) {
   const [projectName, setProjectName] = useState('dotWatch')
   const [loading, setLoading] = useState(true)
   const [alarmCount, setAlarmCount] = useState(0)
-  const [selectedGroup, setSelectedGroup] = useState('All')
 
   const { addAlarm } = useAlarm()
 
@@ -112,35 +110,6 @@ function Dashboard({ onOpenDevice }) {
 
   const offlineCount = devices.length - onlineCount
 
-  const groups = [
-    'All',
-    ...new Set(devices.map((device) => device.group_name || 'Default')),
-  ]
-
-  const filteredDevices =
-    selectedGroup === 'All'
-      ? devices
-      : devices.filter(
-          (device) => (device.group_name || 'Default') === selectedGroup
-        )
-
-  const groupSummary = groups
-    .filter((group) => group !== 'All')
-    .map((group) => {
-      const groupDevices = devices.filter(
-        (device) => (device.group_name || 'Default') === group
-      )
-
-      return {
-        group,
-        total: groupDevices.length,
-        online: groupDevices.filter((device) => device.status === 'online')
-          .length,
-        offline: groupDevices.filter((device) => device.status !== 'online')
-          .length,
-      }
-    })
-
   const offlineDeviceList = devices
     .filter((device) => device.status !== 'online')
     .slice(0, 5)
@@ -204,28 +173,62 @@ function Dashboard({ onOpenDevice }) {
 
       <AlarmPanel />
 
+      <section className="panel">
+        <div className="section-title">
+          <h2>Devices Overview</h2>
+          <p>Temperature & Humidity ล่าสุดจากอุปกรณ์ทั้งหมด</p>
+        </div>
+
+        {loading ? (
+          <div className="empty-device">
+            <h3>กำลังโหลดข้อมูล</h3>
+            <p>กำลังดึงข้อมูล Device จาก Backend</p>
+          </div>
+        ) : devices.length === 0 ? (
+          <div className="empty-device">
+            <h3>ไม่พบ Device</h3>
+            <p>ยังไม่มี Device ในระบบ</p>
+          </div>
+        ) : (
+          <div className="overview-grid">
+            {devices.map((device) => (
+              <div
+                key={device.id}
+                className="overview-card"
+                onClick={() => onOpenDevice?.(device.id)}
+              >
+                <div className="overview-name">
+                  {device.name || device.device_code || 'Unnamed Device'}
+                </div>
+
+                <div className="overview-metric">
+                  🌡️
+                  <span>
+                    {device.temperature != null
+                      ? Number(device.temperature).toFixed(1)
+                      : '--'}
+                    °C
+                  </span>
+                </div>
+
+                <div className="overview-metric">
+                  💧
+                  <span>
+                    {device.humidity != null
+                      ? Number(device.humidity).toFixed(1)
+                      : '--'}
+                    %
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
 
       <ChartWidget />
-
-      <section className="panel">
-        <div className="section-title">
-          <h2>Group Summary</h2>
-          <p>ภาพรวมสถานะอุปกรณ์แยกตามกลุ่ม</p>
-        </div>
-
-        <div className="group-summary-grid">
-          {groupSummary.map((item) => (
-            <div key={item.group} className="group-summary-card">
-              <strong>{item.group}</strong>
-              <span>Total {item.total}</span>
-              <small>
-                Online {item.online} • Offline {item.offline}
-              </small>
-            </div>
-          ))}
-        </div>
-      </section>
 
       <section className="panel">
         <div className="section-title">
@@ -256,68 +259,6 @@ function Dashboard({ onOpenDevice }) {
                 </span>
               </div>
             ))}
-          </div>
-        )}
-      </section>
-
-      <section className="panel">
-        <div className="section-title">
-          <h2>Devices Overview</h2>
-          <p>ข้อมูลล่าสุดจาก TimescaleDB แบบ Realtime</p>
-        </div>
-
-        <div className="device-group-filter">
-          <span>Group</span>
-
-          <select
-            value={selectedGroup}
-            onChange={(event) => setSelectedGroup(event.target.value)}
-          >
-            {groups.map((group) => (
-              <option key={group} value={group}>
-                {group}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {loading ? (
-          <div className="empty-device">
-            <h3>กำลังโหลดข้อมูล</h3>
-            <p>กำลังดึงข้อมูล Device จาก Backend</p>
-          </div>
-        ) : filteredDevices.length === 0 ? (
-          <div className="empty-device">
-            <h3>ไม่พบ Device</h3>
-            <p>ยังไม่มี Device ในกลุ่มนี้</p>
-          </div>
-        ) : (
-          <div className="device-grid">
-            {filteredDevices.map((device) => {
-              const health = getDeviceHealth(device)
-
-              return (
-                <div
-                  key={device.id}
-                  className="clickable-device-card"
-                  onClick={() => onOpenDevice?.(device.id)}
-                >
-                  <DashboardDeviceCard
-                    device={{
-                      ...device,
-                      name: device.name,
-                      deviceId: device.device_code,
-                      status: device.status || 'offline',
-                      temperature: device.temperature,
-                      humidity: device.humidity,
-                      rssi: device.rssi,
-                      lastSeen: device.latest_time || device.last_seen_at,
-                    }}
-                    health={health}
-                  />
-                </div>
-              )
-            })}
           </div>
         )}
       </section>

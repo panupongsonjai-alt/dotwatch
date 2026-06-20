@@ -1,78 +1,78 @@
-import { useState } from "react";
+import { useState } from 'react'
 import {
   loginWithEmail,
   registerWithEmail,
   resetPassword,
-} from "../services/auth";
+} from '../services/auth'
 
 function Login() {
-  const [mode, setMode] = useState("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [mode, setMode] = useState('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
 
-  const isLogin = mode === "login";
-  const isRegister = mode === "register";
-  const isForgot = mode === "forgot";
+  const isLogin = mode === 'login'
+  const isRegister = mode === 'register'
+  const isForgot = mode === 'forgot'
 
   async function handleSubmit(e) {
-    e.preventDefault();
+    e.preventDefault()
 
     if (!email) {
-      setError("กรุณากรอกอีเมล");
-      return;
+      setError('กรุณากรอกอีเมล')
+      return
     }
 
     if (!isForgot && !password) {
-      setError("กรุณากรอกรหัสผ่าน");
-      return;
+      setError('กรุณากรอกรหัสผ่าน')
+      return
     }
 
     if (isRegister && password.length < 6) {
-      setError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
-      return;
+      setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร')
+      return
     }
 
     try {
-      setSubmitting(true);
-      setError("");
-      setMessage("");
+      setSubmitting(true)
+      setError('')
+      setMessage('')
 
       if (isLogin) {
-        await loginWithEmail(email.trim(), password);
+        await loginWithEmail(email.trim(), password)
       }
 
       if (isRegister) {
-        await registerWithEmail(email.trim(), password);
+        await registerWithEmail(email.trim(), password)
       }
 
       if (isForgot) {
-        await resetPassword(email.trim());
-        setMessage("ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว");
+        await resetPassword(email.trim())
+        setMessage('ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว')
       }
     } catch (err) {
-      console.error(err);
+      console.error(err)
 
-      if (err.code === "auth/invalid-credential") {
-        setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
-      } else if (err.code === "auth/email-already-in-use") {
-        setError("อีเมลนี้ถูกใช้งานแล้ว");
-      } else if (err.code === "auth/user-not-found") {
-        setError("ไม่พบบัญชีผู้ใช้นี้");
+      if (err.code === 'auth/invalid-credential') {
+        setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError('อีเมลนี้ถูกใช้งานแล้ว')
+      } else if (err.code === 'auth/user-not-found') {
+        setError('ไม่พบบัญชีผู้ใช้นี้')
       } else {
-        setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+        setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
       }
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
   }
 
   function changeMode(nextMode) {
-    setMode(nextMode);
-    setError("");
-    setMessage("");
+    setMode(nextMode)
+    setError('')
+    setMessage('')
   }
 
   return (
@@ -83,21 +83,20 @@ function Login() {
             <span className="brand-dot"></span>
             <div>
               <strong>dotWatch</strong>
-              <small>IoT Easy Monitoring</small>
             </div>
           </div>
         </div>
 
         <h1>
-          {isLogin && "Welcome back"}
-          {isRegister && "Create account"}
-          {isForgot && "Reset password"}
+          {isLogin && 'IoT Easy Monitoring'}
+          {isRegister && 'Create account'}
+          {isForgot && 'Reset password'}
         </h1>
 
         <p>
-          {isLogin && "Sign in to monitor your IoT devices."}
-          {isRegister && "Create an account to start using dotWatch."}
-          {isForgot && "Enter your email to receive a reset link."}
+          {isLogin && 'Sign in to monitor your IoT devices.'}
+          {isRegister && 'Create an account to start using dotWatch.'}
+          {isForgot && 'Enter your email to receive a reset link.'}
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -121,7 +120,7 @@ function Login() {
                 placeholder="Your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete={isLogin ? "current-password" : "new-password"}
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
                 required
               />
             </label>
@@ -135,10 +134,10 @@ function Login() {
             className="primary-button full"
             disabled={submitting}
           >
-            {submitting && "Processing..."}
-            {!submitting && isLogin && "Login"}
-            {!submitting && isRegister && "Create Account"}
-            {!submitting && isForgot && "Send Reset Link"}
+            {submitting && 'Processing...'}
+            {!submitting && isLogin && 'Login'}
+            {!submitting && isRegister && 'Create Account'}
+            {!submitting && isForgot && 'Send Reset Link'}
           </button>
         </form>
 
@@ -147,7 +146,7 @@ function Login() {
             type="button"
             className="ghost-button full"
             disabled={submitting}
-            onClick={() => changeMode("forgot")}
+            onClick={() => changeMode('forgot')}
           >
             Forgot password?
           </button>
@@ -157,9 +156,9 @@ function Login() {
           type="button"
           className="ghost-button full"
           disabled={submitting}
-          onClick={() => changeMode(isRegister ? "login" : "register")}
+          onClick={() => changeMode(isRegister ? 'login' : 'register')}
         >
-          {isRegister ? "Back to login" : "Create new account"}
+          {isRegister ? 'Back to login' : 'Create new account'}
         </button>
 
         {isForgot && (
@@ -167,14 +166,14 @@ function Login() {
             type="button"
             className="ghost-button full"
             disabled={submitting}
-            onClick={() => changeMode("login")}
+            onClick={() => changeMode('login')}
           >
             Back to login
           </button>
         )}
       </div>
     </div>
-  );
+  )
 }
 
-export default Login;
+export default Login
