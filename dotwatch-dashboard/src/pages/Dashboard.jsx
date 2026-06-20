@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { auth } from '../services/firebase'
-import ChartWidget from '../components/ChartWidget.jsx'
 import AlarmPanel from '../components/AlarmPanel.jsx'
 import { getDevices, getAlarms } from '../services/api'
 import { connectRealtime, disconnectRealtime } from '../services/realtime'
@@ -12,6 +11,11 @@ function Dashboard({ onOpenDevice }) {
   const [projectName, setProjectName] = useState('dotWatch')
   const [loading, setLoading] = useState(true)
   const [alarmCount, setAlarmCount] = useState(0)
+
+  const [dashboardDisplay, setDashboardDisplay] = useState({
+    showDeviceOverview: true,
+    showDeviceMap: true,
+  })
 
   const { addAlarm } = useAlarm()
 
@@ -41,42 +45,38 @@ function Dashboard({ onOpenDevice }) {
     }
   }
 
+  function loadDisplaySettings() {
+    setDashboardDisplay({
+      showDeviceOverview:
+        localStorage.getItem('showDeviceOverview') !== 'false',
+      showDeviceMap: localStorage.getItem('showDeviceMap') !== 'false',
+    })
+
+    setProjectName(localStorage.getItem('projectName') || 'dotWatch')
+  }
+
   function getDeviceHealth(device) {
     if (device.status === 'offline') {
-      return {
-        label: 'Critical',
-        className: 'critical',
-        reason: 'Device offline',
-      }
+      return { className: 'critical' }
     }
 
     if (device.status === 'warning') {
-      return {
-        label: 'Warning',
-        className: 'warning',
-        reason: 'No recent data',
-      }
+      return { className: 'warning' }
     }
 
     if (device.rssi != null && Number(device.rssi) < -85) {
-      return {
-        label: 'Warning',
-        className: 'warning',
-        reason: 'Weak signal',
-      }
+      return { className: 'warning' }
     }
 
-    return {
-      label: 'Healthy',
-      className: 'healthy',
-      reason: 'Normal',
-    }
+    return { className: 'healthy' }
   }
 
   useEffect(() => {
-    setProjectName(localStorage.getItem('projectName') || 'dotWatch')
+    loadDisplaySettings()
     loadDevices()
     loadAlarms()
+
+    window.addEventListener('dashboardSettingsChanged', loadDisplaySettings)
 
     const user = auth.currentUser
 
@@ -101,6 +101,10 @@ function Dashboard({ onOpenDevice }) {
 
     return () => {
       disconnectRealtime()
+      window.removeEventListener(
+        'dashboardSettingsChanged',
+        loadDisplaySettings
+      )
     }
   }, [addAlarm])
 
@@ -109,10 +113,6 @@ function Dashboard({ onOpenDevice }) {
   ).length
 
   const offlineCount = devices.length - onlineCount
-
-  const offlineDeviceList = devices
-    .filter((device) => device.status !== 'online')
-    .slice(0, 5)
 
   const healthSummary = devices.reduce(
     (summary, device) => {
@@ -173,58 +173,62 @@ function Dashboard({ onOpenDevice }) {
 
       <AlarmPanel />
 
-      <section className="panel">
-        <div className="section-title">
-          <h2>Devices Overview</h2>
-          <p>Temperature & Humidity ล่าสุดจากอุปกรณ์ทั้งหมด</p>
-        </div>
+      {dashboardDisplay.showDeviceOverview && (
+        <section className="panel">
+          <div className="section-title">
+            <h2>Devices Overview</h2>
+            <p>Temperature & Humidity ล่าสุดจากอุปกรณ์ทั้งหมด</p>
+          </div>
 
-        {loading ? (
-          <div className="empty-device">
-            <h3>กำลังโหลดข้อมูล</h3>
-            <p>กำลังดึงข้อมูล Device จาก Backend</p>
-          </div>
-        ) : devices.length === 0 ? (
-          <div className="empty-device">
-            <h3>ไม่พบ Device</h3>
-            <p>ยังไม่มี Device ในระบบ</p>
-          </div>
-        ) : (
-          <div className="overview-grid">
-            {devices.map((device) => (
-              <div
-                key={device.id}
-                className="overview-card compact"
-                onClick={() => onOpenDevice?.(device.id)}
-              >
-                <div className="overview-name">
-                  {device.name || device.device_code}
+          {loading ? (
+            <div className="empty-device">
+              <h3>กำลังโหลดข้อมูล</h3>
+              <p>กำลังดึงข้อมูล Device จาก Backend</p>
+            </div>
+          ) : devices.length === 0 ? (
+            <div className="empty-device">
+              <h3>ไม่พบ Device</h3>
+              <p>ยังไม่มี Device ในระบบ</p>
+            </div>
+          ) : (
+            <div className="overview-grid">
+              {devices.map((device) => (
+                <div
+                  key={device.id}
+                  className="overview-card compact"
+                  onClick={() => onOpenDevice?.(device.id)}
+                >
+                  <div className="overview-name">
+                    {device.name || device.device_code || 'Unnamed Device'}
+                  </div>
+
+                  <div className="overview-values">
+                    <span>
+                      🌡️{' '}
+                      {device.temperature != null
+                        ? Number(device.temperature).toFixed(1)
+                        : '--'}
+                      °C
+                    </span>
+
+                    <span>
+                      💧{' '}
+                      {device.humidity != null
+                        ? Number(device.humidity).toFixed(1)
+                        : '--'}
+                      %
+                    </span>
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
-                <div className="overview-values">
-                  <span>
-                    🌡️{' '}
-                    {device.temperature != null
-                      ? Number(device.temperature).toFixed(1)
-                      : '--'}
-                    °C
-                  </span>
-
-                  <span>
-                    💧{' '}
-                    {device.humidity != null
-                      ? Number(device.humidity).toFixed(1)
-                      : '--'}
-                    %
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
+      {dashboardDisplay.showDeviceMap && (
+        <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
+      )}
     </div>
   )
 }
