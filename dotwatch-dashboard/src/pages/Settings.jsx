@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react'
 
 function Settings() {
-  const [projectName, setProjectName] = useState('')
   const [refreshInterval, setRefreshInterval] = useState('5000')
 
   const [showDeviceOverview, setShowDeviceOverview] = useState(true)
   const [showDeviceMap, setShowDeviceMap] = useState(true)
 
   useEffect(() => {
-    setProjectName(localStorage.getItem('projectName') || 'dotWatch')
-
     setRefreshInterval(localStorage.getItem('refreshInterval') || '5000')
 
     setShowDeviceOverview(
@@ -20,8 +17,6 @@ function Settings() {
   }, [])
 
   const handleSave = () => {
-    localStorage.setItem('projectName', projectName)
-
     localStorage.setItem('refreshInterval', refreshInterval)
 
     localStorage.setItem('showDeviceOverview', String(showDeviceOverview))
@@ -43,17 +38,6 @@ function Settings() {
 
         <div className="settings-section">
           <h3>General</h3>
-
-          <div className="form-grid">
-            <label>
-              Project Name
-              <input
-                value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
-                placeholder="dotWatch"
-              />
-            </label>
-          </div>
         </div>
 
         <div className="settings-section">

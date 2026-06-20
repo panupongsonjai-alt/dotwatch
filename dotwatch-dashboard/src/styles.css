@@ -5421,3 +5421,56 @@ textarea:focus,
     justify-content: center;
   }
 }
+
+.device-alarm-rule-section {
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.alarm-rule-create-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 1fr auto;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.alarm-rule-create-row input,
+.alarm-rule-create-row select {
+  height: 40px;
+}
+
+.device-alarm-rule-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.device-alarm-rule-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.alarm-rule-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .alarm-rule-create-row {
+    grid-template-columns: 1fr;
+  }
+
+  .device-alarm-rule-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

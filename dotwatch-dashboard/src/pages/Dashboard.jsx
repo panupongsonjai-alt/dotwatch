@@ -8,7 +8,6 @@ import DeviceMap from '../components/DeviceMap'
 
 function Dashboard({ onOpenDevice }) {
   const [devices, setDevices] = useState([])
-  const [projectName, setProjectName] = useState('dotWatch')
   const [loading, setLoading] = useState(true)
   const [alarmCount, setAlarmCount] = useState(0)
 
@@ -51,8 +50,6 @@ function Dashboard({ onOpenDevice }) {
         localStorage.getItem('showDeviceOverview') !== 'false',
       showDeviceMap: localStorage.getItem('showDeviceMap') !== 'false',
     })
-
-    setProjectName(localStorage.getItem('projectName') || 'dotWatch')
   }
 
   function getDeviceHealth(device) {
@@ -130,11 +127,6 @@ function Dashboard({ onOpenDevice }) {
   return (
     <div className="page">
       <section className="summary-grid compact-summary-grid">
-        <div className="summary-card compact-summary-card">
-          <span>Project</span>
-          <strong>{projectName}</strong>
-        </div>
-
         <div className="summary-card compact-summary-card">
           <span>Total</span>
           <strong>{loading ? '...' : devices.length}</strong>

@@ -32,6 +32,13 @@ import {
   updateDeviceLocation,
 } from '../services/api'
 
+import {
+  getAlarmRules,
+  createAlarmRule,
+  updateAlarmRule,
+  deleteAlarmRule,
+} from '../services/api'
+
 function createDeviceCode() {
   return `DW-${Date.now()}`
 }
@@ -90,6 +97,13 @@ function Devices() {
     deviceCode: '',
     deviceSecret: '',
   })
+  const [alarmRules, setAlarmRules] = useState([])
+  const [newRule, setNewRule] = useState({
+    metric: 'temperature',
+    operator: '>',
+    threshold: 35,
+    severity: 'critical',
+  })
 
   async function loadDevices() {
     try {
@@ -106,6 +120,7 @@ function Devices() {
 
   useEffect(() => {
     loadDevices()
+    loadAlarmRules()
   }, [])
 
   const filteredDevices = devices
@@ -142,6 +157,48 @@ function Devices() {
     } catch (error) {
       console.error('Copy error:', error)
       alert('ไม่สามารถ Copy ได้')
+    }
+  }
+
+  function getDeviceAlarmRules(deviceId) {
+    return alarmRules.filter(
+      (rule) => Number(rule.device_id) === Number(deviceId)
+    )
+  }
+
+  async function handleCreateAlarmRule(deviceId) {
+    try {
+      setSaving(true)
+
+      await createAlarmRule({
+        device_id: deviceId,
+        metric: newRule.metric,
+        operator: newRule.operator,
+        threshold: Number(newRule.threshold),
+        severity: newRule.severity,
+      })
+
+      await loadAlarmRules()
+    } catch (error) {
+      console.error(error)
+      alert('เพิ่ม Alarm Rule ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDeleteAlarmRule(ruleId) {
+    if (!confirm('ต้องการลบ Alarm Rule นี้ใช่ไหม?')) return
+
+    try {
+      setSaving(true)
+      await deleteAlarmRule(ruleId)
+      await loadAlarmRules()
+    } catch (error) {
+      console.error(error)
+      alert('ลบ Alarm Rule ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -288,6 +345,15 @@ function Devices() {
       alert(error.message || 'บันทึกตำแหน่งไม่สำเร็จ')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function loadAlarmRules() {
+    try {
+      const data = await getAlarmRules()
+      setAlarmRules(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Load alarm rules error:', error)
     }
   }
 
