@@ -225,41 +225,6 @@ function Dashboard({ onOpenDevice }) {
       </section>
 
       <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
-
-      <ChartWidget />
-
-      <section className="panel">
-        <div className="section-title">
-          <h2>Top Offline Devices</h2>
-          <p>อุปกรณ์ที่ไม่ได้ส่งข้อมูลล่าสุด</p>
-        </div>
-
-        {offlineDeviceList.length === 0 ? (
-          <div className="empty-device">
-            <h3>ไม่มี Offline Device</h3>
-            <p>อุปกรณ์ทั้งหมดกำลังออนไลน์</p>
-          </div>
-        ) : (
-          <div className="offline-device-list">
-            {offlineDeviceList.map((device) => (
-              <div
-                key={device.id}
-                className="offline-device-item"
-                onClick={() => onOpenDevice?.(device.id)}
-              >
-                <div>
-                  <strong>{device.name || device.device_code}</strong>
-                  <small>{device.group_name || 'Default'}</small>
-                </div>
-
-                <span className={`status ${device.status || 'offline'}`}>
-                  {device.status || 'offline'}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   )
 }
