@@ -3,14 +3,10 @@
    Refactored: cleaned duplicates, unified themes, responsive UI
 ========================================================= */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Prompt:wght@400;500;600;700;800&display=swap');
+
 :root {
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  font-family: 'Inter', 'Prompt', system-ui, sans-serif;
 
   --bg: #eef3f8;
   --panel: #ffffff;
@@ -346,12 +342,18 @@ textarea:focus,
 }
 
 .login-brand {
-  margin-bottom: 24px;
+  margin-bottom: 18px;
   color: var(--text);
 }
 
 .login-card .brand {
-  margin-bottom: 0;
+  height: 58px;
+  padding: 10px 16px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
 }
 
 .login-card h1 {
@@ -1743,19 +1745,18 @@ textarea:focus,
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 900px) {
   .brand-dot {
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
+    flex-shrink: 0;
   }
 
-  .brand strong {
-    font-size: 15px;
-  }
-
-  .brand small {
-    font-size: 12px;
+  .login-card .brand strong {
+    font-size: 40px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
   }
 
   .main {

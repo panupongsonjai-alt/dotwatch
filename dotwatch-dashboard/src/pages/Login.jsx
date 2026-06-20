@@ -81,9 +81,8 @@ function Login() {
         <div className="login-brand">
           <div className="brand">
             <span className="brand-dot"></span>
-            <div>
-              <strong>dotWatch</strong>
-            </div>
+
+            <strong>dotWatch</strong>
           </div>
         </div>
 
