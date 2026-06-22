@@ -53,6 +53,7 @@ function getRuleDraftKey(metricKey) {
 
 export default function MetricConfigPanel({
   deviceId,
+  maxMetrics = 0,
   alarmRules = [],
   onCreateAlarm,
   onUpdateAlarm,
@@ -71,6 +72,9 @@ export default function MetricConfigPanel({
   const [newAlarmDrafts, setNewAlarmDrafts] = useState({})
   const [alarmEditDrafts, setAlarmEditDrafts] = useState({})
   const [alarmActionId, setAlarmActionId] = useState('')
+
+  const metricLimit = Number(maxMetrics) || 0
+  const canAddMetric = !metricLimit || draftMetrics.length < metricLimit
 
   useEffect(() => {
     const nextDrafts = {}
@@ -91,6 +95,11 @@ export default function MetricConfigPanel({
   }, [alarmRules])
 
   function addMetric() {
+    if (!canAddMetric) {
+      alert(`รุ่นนี้เพิ่มได้สูงสุด ${metricLimit} Metric`)
+      return
+    }
+
     setDraftMetrics((currentMetrics = []) =>
       reindexMetrics([
         ...currentMetrics,
@@ -124,7 +133,11 @@ export default function MetricConfigPanel({
   }
 
   async function handleSave() {
-    const success = await saveDraftMetrics(reindexMetrics(draftMetrics))
+    const limitedMetrics = metricLimit
+      ? draftMetrics.slice(0, metricLimit)
+      : draftMetrics
+
+    const success = await saveDraftMetrics(reindexMetrics(limitedMetrics))
 
     if (success !== false) {
       window.dispatchEvent(
@@ -244,14 +257,22 @@ export default function MetricConfigPanel({
       <div className="metric-config-header">
         <div>
           <h4>Metric Display</h4>
-          <p>ตั้งชื่อ หน่วย ไอคอน และ Alarm Rules ของแต่ละ Metric</p>
+          <p>
+            ตั้งชื่อ หน่วย ไอคอน และ Alarm Rules ของแต่ละ Metric
+            {metricLimit ? ` • รุ่นนี้รองรับสูงสุด ${metricLimit} Metric` : ''}
+          </p>
         </div>
 
         <button
           type="button"
           className="ghost-button metric-add-btn"
           onClick={addMetric}
-          disabled={loading || saving}
+          disabled={loading || saving || !canAddMetric}
+          title={
+            metricLimit
+              ? `รุ่นนี้เพิ่มได้สูงสุด ${metricLimit} Metric`
+              : 'Add Metric'
+          }
         >
           <Plus size={16} />
           Add Metric
@@ -314,6 +335,7 @@ export default function MetricConfigPanel({
 
                 <div className="metric-icon-field">
                   <span>Icon</span>
+
                   <div className="metric-icon-picker">
                     {METRIC_ICON_OPTIONS.map((icon) => (
                       <button
