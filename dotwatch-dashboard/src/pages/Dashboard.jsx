@@ -54,7 +54,7 @@ function Dashboard({ onOpenDevice }) {
       const nextDevices = Array.isArray(data) ? data : []
 
       setDevices(nextDevices)
-      await loadDeviceMetrics(nextDevices)
+      loadDeviceMetrics(nextDevices)
     } catch (error) {
       console.error('Load devices error:', error)
       setDevices([])
