@@ -7587,24 +7587,28 @@ textarea,
   color: var(--text);
   font-weight: 900;
 }
-
 .activity-list {
-  max-height: 320px;
+  height: 260px;
   overflow-y: auto;
-  padding-right: 6px;
+  padding-right: 8px;
+  margin-top: 14px;
 }
 
 .activity-list::-webkit-scrollbar {
   width: 6px;
 }
 
+.activity-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .activity-list::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4);
+  background: rgba(148, 163, 184, 0.45);
   border-radius: 999px;
 }
 
-.activity-list::-webkit-scrollbar-track {
-  background: transparent;
+.activity-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
 }
 
 .profile-save-row {
@@ -7632,4 +7636,25 @@ textarea,
 .primary-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.profile-section.app-card {
+  min-height: 0;
+}
+
+.profile-three-grid {
+  align-items: stretch;
+}
+
+.profile-three-grid .app-card {
+  min-height: 0;
+}
+
+.profile-three-grid .app-card {
+  height: 100%;
+}
+
+.activity-list {
+  max-height: 280px;
+  overflow-y: auto;
 }

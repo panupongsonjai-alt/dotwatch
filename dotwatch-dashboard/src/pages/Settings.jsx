@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react'
 
 function Settings() {
-  const [refreshInterval, setRefreshInterval] = useState('5000')
   const [showDeviceOverview, setShowDeviceOverview] = useState(true)
   const [showDeviceMap, setShowDeviceMap] = useState(true)
 
   useEffect(() => {
-    setRefreshInterval(localStorage.getItem('refreshInterval') || '5000')
     setShowDeviceOverview(
       localStorage.getItem('showDeviceOverview') !== 'false'
     )
@@ -14,7 +12,6 @@ function Settings() {
   }, [])
 
   function handleSave() {
-    localStorage.setItem('refreshInterval', refreshInterval)
     localStorage.setItem('showDeviceOverview', String(showDeviceOverview))
     localStorage.setItem('showDeviceMap', String(showDeviceMap))
     window.dispatchEvent(new Event('dashboardSettingsChanged'))
@@ -27,35 +24,13 @@ function Settings() {
         <div>
           <span className="page-eyebrow">System</span>
           <h2>Settings</h2>
-          <p>ตั้งค่าระบบ การรีเฟรชข้อมูล และการแสดงผล Dashboard</p>
+          <p>ตั้งค่าการแสดงผลและการทำงานของ Dashboard</p>
         </div>
 
         <div className="app-page-actions">
           <button type="button" className="primary-button" onClick={handleSave}>
             Save Settings
           </button>
-        </div>
-      </section>
-
-      <section className="app-card settings-panel">
-        <div className="app-section-title">
-          <h3>General</h3>
-          <p>กำหนดค่าการทำงานพื้นฐานของ Dashboard</p>
-        </div>
-
-        <div className="app-form-grid">
-          <label>
-            Refresh Interval
-            <select
-              value={refreshInterval}
-              onChange={(event) => setRefreshInterval(event.target.value)}
-            >
-              <option value="3000">3 seconds</option>
-              <option value="5000">5 seconds</option>
-              <option value="10000">10 seconds</option>
-              <option value="30000">30 seconds</option>
-            </select>
-          </label>
         </div>
       </section>
 
