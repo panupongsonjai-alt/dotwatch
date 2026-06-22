@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 
 import LocationPicker from '../components/LocationPicker.jsx'
+import MetricConfigPanel from '../components/MetricConfigPanel.jsx'
 import {
   getDevices,
   addDevice,
@@ -434,6 +435,23 @@ function Devices() {
     loadDeviceModels()
     loadDevices()
     loadAlarmRules()
+
+    function handleMetricConfigChanged() {
+      loadDevices()
+      loadAlarmRules()
+    }
+
+    window.addEventListener(
+      'dotwatchMetricConfigChanged',
+      handleMetricConfigChanged
+    )
+
+    return () => {
+      window.removeEventListener(
+        'dotwatchMetricConfigChanged',
+        handleMetricConfigChanged
+      )
+    }
   }, [])
 
   const filteredDevices = devices
@@ -917,6 +935,11 @@ function Devices() {
 
       writeMetricConfigs(next)
       window.dispatchEvent(new Event('metricDisplayConfigChanged'))
+      window.dispatchEvent(
+        new CustomEvent('dotwatchMetricConfigChanged', {
+          detail: { deviceId },
+        })
+      )
       return next
     })
 
@@ -1354,7 +1377,7 @@ function Devices() {
           </div>
         )}
 
-        {renderMetricDisplayConfig(device)}
+        <MetricConfigPanel deviceId={device.id} />
 
         {renderAlarmRules(device)}
 

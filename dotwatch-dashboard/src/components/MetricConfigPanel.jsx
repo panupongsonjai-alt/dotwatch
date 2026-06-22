@@ -56,8 +56,28 @@ export default function MetricConfigPanel({ deviceId }) {
     )
   }
 
+  async function handleReset() {
+    await resetMetrics()
+
+    window.dispatchEvent(
+      new CustomEvent('dotwatchMetricConfigChanged', {
+        detail: { deviceId },
+      })
+    )
+  }
+
   async function handleSave() {
-    await saveDraftMetrics(reindexMetrics(draftMetrics))
+    const success = await saveDraftMetrics(reindexMetrics(draftMetrics))
+
+    if (success !== false) {
+      window.dispatchEvent(
+        new CustomEvent('dotwatchMetricConfigChanged', {
+          detail: { deviceId },
+        })
+      )
+    }
+
+    return success
   }
 
   const previewMetrics = draftMetrics.filter(
@@ -175,7 +195,7 @@ export default function MetricConfigPanel({ deviceId }) {
         <button
           type="button"
           className="ghost-button"
-          onClick={resetMetrics}
+          onClick={handleReset}
           disabled={loading || saving}
         >
           <RotateCcw size={16} />
