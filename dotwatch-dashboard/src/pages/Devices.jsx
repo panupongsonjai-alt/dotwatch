@@ -868,10 +868,11 @@ function Devices() {
   }
 
   return (
-    <div className="page">
-      <section className="device-management-page clean-device-page device-v2-page">
-        <div className="device-management-header clean-device-header device-v2-header">
+    <div className="page app-page device-page">
+      <section className="device-management-page clean-device-page device-v2-page app-page-stack">
+        <div className="device-management-header clean-device-header device-v2-header app-page-header">
           <div>
+            <span className="page-eyebrow">Devices</span>
             <h2>Device Management</h2>
             <p>จัดการอุปกรณ์, Secret, Location และ Alarm Rules ของ dotWatch</p>
           </div>
@@ -902,7 +903,7 @@ function Devices() {
           </div>
         </div>
 
-        <div className="device-header-stats clean-device-stats">
+        <div className="device-header-stats clean-device-stats app-summary-grid">
           <div>
             <span>Total</span>
             <strong>{devices.length}</strong>
@@ -928,7 +929,7 @@ function Devices() {
           </div>
         </div>
 
-        <div className="device-control-card clean-device-toolbar device-v2-toolbar">
+        <div className="device-control-card clean-device-toolbar device-v2-toolbar app-toolbar">
           <div className="device-view-switch">
             <button
               type="button"
@@ -951,12 +952,12 @@ function Devices() {
         </div>
 
         {loading ? (
-          <div className="empty-device clean-empty-state">
+          <div className="empty-device clean-empty-state app-empty-state">
             <h3>กำลังโหลดข้อมูล</h3>
             <p>กำลังดึงข้อมูล Device จาก Backend</p>
           </div>
         ) : filteredDevices.length === 0 ? (
-          <div className="empty-device clean-empty-state">
+          <div className="empty-device clean-empty-state app-empty-state">
             <h3>ยังไม่มี Device</h3>
             <p>เพิ่มอุปกรณ์ใหม่เพื่อเริ่มใช้งาน dotWatch</p>
           </div>

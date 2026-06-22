@@ -118,18 +118,21 @@ function Profile() {
   }
 
   return (
-    <div className="page">
-      <section className="panel profile-shell">
-        <div className="section-title profile-main-title">
-          <h2>Profile</h2>
-          <p>จัดการข้อมูลบัญชี ความปลอดภัย และการตั้งค่าส่วนตัว</p>
+    <div className="page app-page profile-page">
+      <section className="profile-shell app-page-stack">
+        <div className="app-page-header profile-main-title">
+          <div>
+            <span className="page-eyebrow">Account</span>
+            <h2>Profile</h2>
+            <p>จัดการข้อมูลบัญชี ความปลอดภัย และการตั้งค่าส่วนตัว</p>
+          </div>
         </div>
 
         {message && <div className="auth-success">{message}</div>}
         {error && <div className="auth-error">{error}</div>}
 
         <div className="profile-page-grid">
-          <aside className="profile-card">
+          <aside className="profile-card app-card">
             <div className="profile-avatar large">{firstLetter}</div>
 
             <h3>{displayName}</h3>
@@ -149,7 +152,7 @@ function Profile() {
           </aside>
 
           <div className="profile-main-grid">
-            <section className="profile-section account-card">
+            <section className="profile-section app-card account-card">
               <div className="profile-card-title">
                 <span className="profile-title-icon">👤</span>
                 <h3>Account Information</h3>
@@ -219,7 +222,7 @@ function Profile() {
               </div>
             </section>
 
-            <section className="profile-section security-section">
+            <section className="profile-section app-card security-section">
               <div className="profile-card-title">
                 <span className="profile-title-icon">🛡️</span>
                 <div>
@@ -355,7 +358,7 @@ function Profile() {
             </section>
 
             <div className="profile-three-grid">
-              <section className="profile-section">
+              <section className="profile-section app-card">
                 <div className="profile-card-title">
                   <span className="profile-title-icon">🔔</span>
                   <h3>Notification Settings</h3>
@@ -380,8 +383,8 @@ function Profile() {
                 </div>
               </section>
 
-              <section className="profile-section">
-                <div className="profile-section-header">
+              <section className="profile-section app-card">
+                <div className="profile-section app-card-header">
                   <div className="profile-card-title">
                     <span className="profile-title-icon">🕘</span>
                     <h3>Recent Activity</h3>
@@ -419,7 +422,7 @@ function Profile() {
             </div>
 
             <div className="profile-two-grid">
-              <section className="profile-section">
+              <section className="profile-section app-card">
                 <div className="profile-card-title">
                   <span className="profile-title-icon">ℹ️</span>
                   <h3>System Information</h3>
@@ -438,7 +441,7 @@ function Profile() {
                 </div>
               </section>
 
-              <section className="profile-section danger-zone">
+              <section className="profile-section app-card danger-zone">
                 <div className="profile-card-title">
                   <span className="profile-title-icon danger">⚠️</span>
                   <h3>Danger Zone</h3>

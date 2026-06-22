@@ -125,39 +125,61 @@ function Dashboard({ onOpenDevice }) {
   )
 
   return (
-    <div className="page">
-      <section className="summary-grid compact-summary-grid">
-        <div className="summary-card compact-summary-card">
+    <div className="page app-page dashboard-page">
+      <section className="app-page-header">
+        <div>
+          <span className="page-eyebrow">Overview</span>
+          <h2>Dashboard</h2>
+          <p>ภาพรวมสถานะอุปกรณ์, Alarm และตำแหน่งล่าสุดของระบบ dotWatch</p>
+        </div>
+
+        <div className="app-page-actions">
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => {
+              loadDevices()
+              loadAlarms()
+            }}
+            disabled={loading}
+          >
+            Refresh
+          </button>
+        </div>
+      </section>
+
+      <section className="app-summary-grid compact-summary-grid">
+        <div className="app-summary-card compact-summary-card">
           <span>Total</span>
           <strong>{loading ? '...' : devices.length}</strong>
         </div>
 
-        <div className="summary-card compact-summary-card">
+        <div className="app-summary-card compact-summary-card">
           <span>Online</span>
           <strong>{loading ? '...' : onlineCount}</strong>
         </div>
 
-        <div className="summary-card compact-summary-card">
+        <div className="app-summary-card compact-summary-card">
           <span>Offline</span>
           <strong>{loading ? '...' : offlineCount}</strong>
         </div>
 
-        <div className="summary-card compact-summary-card alarm-summary-card">
+        <div className="app-summary-card compact-summary-card alarm-summary-card">
           <span>Alarm</span>
           <strong>{alarmCount}</strong>
         </div>
 
-        <div className="summary-card compact-summary-card">
+        <div className="app-summary-card compact-summary-card">
           <span>Healthy</span>
           <strong>{healthSummary.healthy}</strong>
         </div>
 
-        <div className="summary-card compact-summary-card">
+        <div className="app-summary-card compact-summary-card">
           <span>Warning</span>
           <strong>{healthSummary.warning}</strong>
         </div>
 
-        <div className="summary-card compact-summary-card">
+        <div className="app-summary-card compact-summary-card">
           <span>Critical</span>
           <strong>{healthSummary.critical}</strong>
         </div>
@@ -166,19 +188,19 @@ function Dashboard({ onOpenDevice }) {
       <AlarmPanel />
 
       {dashboardDisplay.showDeviceOverview && (
-        <section className="panel">
-          <div className="section-title">
+        <section className="app-card">
+          <div className="app-section-title">
             <h2>Devices Overview</h2>
             <p>Temperature & Humidity ล่าสุดจากอุปกรณ์ทั้งหมด</p>
           </div>
 
           {loading ? (
-            <div className="empty-device">
+            <div className="app-empty-state">
               <h3>กำลังโหลดข้อมูล</h3>
               <p>กำลังดึงข้อมูล Device จาก Backend</p>
             </div>
           ) : devices.length === 0 ? (
-            <div className="empty-device">
+            <div className="app-empty-state">
               <h3>ไม่พบ Device</h3>
               <p>ยังไม่มี Device ในระบบ</p>
             </div>
