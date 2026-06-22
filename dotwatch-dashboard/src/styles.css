@@ -7917,3 +7917,28 @@ textarea,
     justify-items: start;
   }
 }
+
+.metric-alarm-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #dbe3ee;
+}
+
+.metric-alarm-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.metric-alarm-row {
+  display: grid;
+  grid-template-columns: 90px 120px 140px 80px;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.metric-alarm-row select,
+.metric-alarm-row input {
+  height: 36px;
+}

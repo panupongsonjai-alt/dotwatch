@@ -17,10 +17,10 @@ import {
   CheckCircle2,
   Copy,
   ShieldCheck,
+  ChevronDown,
 } from 'lucide-react'
 
 import LocationPicker from '../components/LocationPicker.jsx'
-import MetricConfigPanel from '../components/MetricConfigPanel.jsx'
 import {
   getDevices,
   addDevice,
@@ -33,7 +33,6 @@ import {
   updateAlarmRule,
   deleteAlarmRule,
 } from '../services/api'
-import { getDeviceMetrics } from '../services/metricDisplayApi'
 
 function createDeviceCode() {
   return `DW-${Date.now()}`
@@ -57,10 +56,6 @@ function getStatusLabel(status) {
   return 'Offline'
 }
 
-function getDeviceModelLabel(device) {
-  return device.model_name || device.modelName || 'dotWatch 2CH'
-}
-
 function getMetricValue(value, unit) {
   if (value == null || Number.isNaN(Number(value))) return `--${unit}`
   return `${Number(value).toFixed(1)}${unit}`
@@ -78,47 +73,10 @@ function getLastSeen(device) {
 }
 
 const defaultRuleForm = {
-  metric: 'metric_1',
+  metric: 'temperature',
   operator: '>',
   threshold: 35,
   severity: 'critical',
-}
-
-const DEFAULT_DEVICE_MODELS = [
-  {
-    id: 1,
-    model_key: 'dw_2ch',
-    model_name: 'dotWatch 2CH',
-    metric_count: 2,
-    description: 'ESP รุ่นอ่าน 2 ค่า',
-  },
-  {
-    id: 2,
-    model_key: 'dw_10ch',
-    model_name: 'dotWatch 10CH',
-    metric_count: 10,
-    description: 'ESP รุ่นอ่าน 10 ค่า',
-  },
-  {
-    id: 3,
-    model_key: 'custom',
-    model_name: 'Custom Device',
-    metric_count: 0,
-    description: 'กำหนด Metric เองในอนาคต',
-  },
-]
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
-
-async function getDeviceModels() {
-  const response = await fetch(`${API_URL}/api/device-models`)
-  const data = await response.json().catch(() => null)
-
-  if (!response.ok) {
-    throw new Error(data?.message || 'โหลด Device Model ไม่สำเร็จ')
-  }
-
-  return Array.isArray(data) ? data : []
 }
 
 const METRIC_PRESETS = [
@@ -256,25 +214,14 @@ function normalizeMetricConfig(config) {
     return DEFAULT_METRIC_CONFIG
   }
 
-  return config.map((metric, index) => {
-    const displayName =
-      metric.displayName ??
-      metric.metricName ??
-      metric.name ??
-      metric.label ??
-      ''
-
-    return {
-      id:
-        metric.id ||
-        `${metric.sourceKey || createMetricKey(displayName) || 'metric'}-${index}`,
-      sourceKey: metric.sourceKey || createMetricKey(displayName),
-      displayName,
-      unit: metric.unit ?? '',
-      icon: metric.icon || '📊',
-      enabled: metric.enabled !== false,
-    }
-  })
+  return config.map((metric, index) => ({
+    id: metric.id || `${metric.sourceKey || 'metric'}-${index}`,
+    sourceKey: metric.sourceKey || 'temperature',
+    displayName: metric.displayName ?? metric.label ?? metric.sourceKey ?? '',
+    unit: metric.unit ?? '',
+    icon: metric.icon || '📊',
+    enabled: metric.enabled !== false,
+  }))
 }
 
 function getPresetByKey(key) {
@@ -323,8 +270,6 @@ function getDeviceMetricValue(device, metric) {
 
 function Devices() {
   const [devices, setDevices] = useState([])
-  const [deviceModels, setDeviceModels] = useState(DEFAULT_DEVICE_MODELS)
-  const [metricsByDevice, setMetricsByDevice] = useState({})
   const [metricConfigs, setMetricConfigs] = useState(() => readMetricConfigs())
   const [metricDrafts, setMetricDrafts] = useState(() => readMetricConfigs())
   const [dirtyMetricDevices, setDirtyMetricDevices] = useState({})
@@ -346,74 +291,17 @@ function Devices() {
   const [createdDevice, setCreatedDevice] = useState(null)
   const [createForm, setCreateForm] = useState({
     name: '',
-    modelId: DEFAULT_DEVICE_MODELS[0].id,
     latitude: null,
     longitude: null,
     deviceCode: '',
     deviceSecret: '',
   })
 
-  async function loadDeviceModels() {
-    try {
-      const data = await getDeviceModels()
-      setDeviceModels(
-        Array.isArray(data) && data.length > 0 ? data : DEFAULT_DEVICE_MODELS
-      )
-    } catch (error) {
-      console.error('Load device models error:', error)
-      setDeviceModels(DEFAULT_DEVICE_MODELS)
-    }
-  }
-
-  async function loadMetricsForDevices(nextDevices = []) {
-    const entries = await Promise.all(
-      nextDevices.map(async (device) => {
-        try {
-          const data = await getDeviceMetrics(device.id)
-          const metrics = Array.isArray(data) ? data : data?.metrics || []
-
-          return [device.id, metrics]
-        } catch (error) {
-          console.error(`Load metrics error for device ${device.id}:`, error)
-          return [device.id, []]
-        }
-      })
-    )
-
-    setMetricsByDevice(Object.fromEntries(entries))
-  }
-
-  function getDeviceMetricRows(device) {
-    const metrics = metricsByDevice[device.id] || []
-
-    return metrics
-      .filter((metric) => metric.visible !== false)
-      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
-  }
-
-  function getDeviceMetricCount(device) {
-    const metrics = getDeviceMetricRows(device)
-
-    if (metrics.length > 0) return metrics.length
-    if (device.metric_count != null) return Number(device.metric_count) || 0
-
-    return 0
-  }
-
-  function getDeviceLocationText(device) {
-    if (device.latitude == null || device.longitude == null) return '-'
-
-    return `${Number(device.latitude).toFixed(5)}, ${Number(device.longitude).toFixed(5)}`
-  }
-
   async function loadDevices() {
     try {
       setLoading(true)
       const data = await getDevices()
-      const nextDevices = Array.isArray(data) ? data : []
-
-      setDevices(nextDevices)
-      await loadMetricsForDevices(nextDevices)
+      setDevices(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Load devices error:', error)
       alert('โหลดข้อมูล Device ไม่สำเร็จ')
@@ -432,26 +320,8 @@ function Devices() {
   }
 
   useEffect(() => {
-    loadDeviceModels()
     loadDevices()
     loadAlarmRules()
-
-    function handleMetricConfigChanged() {
-      loadDevices()
-      loadAlarmRules()
-    }
-
-    window.addEventListener(
-      'dotwatchMetricConfigChanged',
-      handleMetricConfigChanged
-    )
-
-    return () => {
-      window.removeEventListener(
-        'dotwatchMetricConfigChanged',
-        handleMetricConfigChanged
-      )
-    }
   }, [])
 
   const filteredDevices = devices
@@ -514,7 +384,6 @@ function Devices() {
         deviceCode: createForm.deviceCode,
         name,
         deviceSecret: createForm.deviceSecret,
-        modelId: Number(createForm.modelId) || 1,
       })
 
       if (createForm.latitude != null && createForm.longitude != null) {
@@ -536,10 +405,6 @@ function Devices() {
         name,
         deviceCode: created.device_code || createForm.deviceCode,
         deviceSecret: created.deviceSecret || createForm.deviceSecret,
-        modelName:
-          deviceModels.find(
-            (model) => Number(model.id) === Number(createForm.modelId)
-          )?.model_name || 'Unknown Model',
         latitude: createForm.latitude,
         longitude: createForm.longitude,
       })
@@ -654,19 +519,6 @@ function Devices() {
   }
 
   function getAlarmMetricOptions(deviceId) {
-    const metrics = metricsByDevice[deviceId] || []
-
-    if (metrics.length > 0) {
-      return metrics
-        .filter((metric) => metric.visible !== false)
-        .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
-        .map((metric) => ({
-          value: metric.metric_key,
-          label: metric.metric_name || metric.metric_key,
-          unit: metric.unit || '',
-        }))
-    }
-
     return getDeviceMetricConfig(deviceId)
       .filter((metric) => metric.enabled && metric.sourceKey)
       .map((metric) => ({
@@ -826,9 +678,12 @@ function Devices() {
       if (metric.id !== metricId) return metric
 
       if (key === 'metricName') {
+        const nextName = value
+
         return {
           ...metric,
-          displayName: value,
+          sourceKey: createMetricKey(nextName),
+          displayName: nextName,
         }
       }
 
@@ -881,7 +736,7 @@ function Devices() {
     )
   }
 
-  function resetMetricsByDevice(deviceId) {
+  function resetDeviceMetrics(deviceId) {
     const ok = confirm('ต้องการ Reset การแสดงผล Metric กลับค่าเริ่มต้นใช่ไหม?')
     if (!ok) return
 
@@ -935,11 +790,6 @@ function Devices() {
 
       writeMetricConfigs(next)
       window.dispatchEvent(new Event('metricDisplayConfigChanged'))
-      window.dispatchEvent(
-        new CustomEvent('dotwatchMetricConfigChanged', {
-          detail: { deviceId },
-        })
-      )
       return next
     })
 
@@ -1096,7 +946,7 @@ function Devices() {
             type="button"
             className="ghost-button"
             disabled={saving}
-            onClick={() => resetMetricsByDevice(device.id)}
+            onClick={() => resetDeviceMetrics(device.id)}
           >
             Reset Default
           </button>
@@ -1219,11 +1069,8 @@ function Devices() {
                           }))
                         }
                       >
-                        {getAlarmMetricOptions(device.id).map((metric) => (
-                          <option key={metric.value} value={metric.value}>
-                            {metric.label}
-                          </option>
-                        ))}
+                        <option value="temperature">Temperature</option>
+                        <option value="humidity">Humidity</option>
                       </select>
 
                       <select
@@ -1329,6 +1176,75 @@ function Devices() {
     )
   }
 
+  async function handleCreateMetricAlarm(deviceId, metricKey, draft) {
+    if (!metricKey) {
+      alert('ไม่พบ Metric Key')
+      return
+    }
+
+    if (draft.threshold === '' || Number.isNaN(Number(draft.threshold))) {
+      alert('กรุณากรอก Threshold ให้ถูกต้อง')
+      return
+    }
+
+    const existingRules = alarmRules.filter(
+      (rule) =>
+        Number(rule.device_id) === Number(deviceId) &&
+        String(rule.metric) === String(metricKey)
+    )
+
+    if (existingRules.length >= 2) {
+      alert('แต่ละ Metric ตั้ง Alarm Rule ได้สูงสุด 2 รายการ')
+      return
+    }
+
+    try {
+      setSaving(true)
+
+      await createAlarmRule({
+        device_id: deviceId,
+        metric: metricKey,
+        operator: draft.operator || '>',
+        threshold: Number(draft.threshold),
+        severity: draft.severity || 'warning',
+      })
+
+      await loadAlarmRules()
+    } catch (error) {
+      console.error('Create metric alarm rule error:', error)
+      alert(error.message || 'เพิ่ม Alarm Rule ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleUpdateMetricAlarm(ruleId, nextRule) {
+    if (nextRule.threshold === '' || Number.isNaN(Number(nextRule.threshold))) {
+      alert('กรุณากรอก Threshold ให้ถูกต้อง')
+      return
+    }
+
+    try {
+      setSaving(true)
+
+      await updateAlarmRule(ruleId, {
+        device_id: nextRule.device_id,
+        metric: nextRule.metric,
+        operator: nextRule.operator || '>',
+        threshold: Number(nextRule.threshold),
+        severity: nextRule.severity || 'warning',
+        is_active: nextRule.is_active,
+      })
+
+      await loadAlarmRules()
+    } catch (error) {
+      console.error('Update metric alarm rule error:', error)
+      alert(error.message || 'แก้ไข Alarm Rule ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   function renderManagePanel(device) {
     const isEditing = editingDeviceId === device.id
 
@@ -1377,9 +1293,15 @@ function Devices() {
           </div>
         )}
 
-        <MetricConfigPanel deviceId={device.id} />
-
-        {renderAlarmRules(device)}
+        <MetricConfigPanel
+          deviceId={device.id}
+          alarmRules={getDeviceAlarmRules(device.id)}
+          onCreateAlarm={(metricKey, draft) =>
+            handleCreateMetricAlarm(device.id, metricKey, draft)
+          }
+          onUpdateAlarm={handleUpdateMetricAlarm}
+          onDeleteAlarm={handleDeleteAlarmRule}
+        />
 
         <div className="device-location-section compact clean-location-card">
           <div className="device-location-header">
@@ -1450,73 +1372,28 @@ function Devices() {
 
   function renderTableView() {
     return (
-      <div className="device-v2-table-wrap full-device-table-wrap">
-        <table className="device-v2-table full-device-table">
+      <div className="device-v2-table-wrap">
+        <table className="device-v2-table">
           <thead>
             <tr>
               <th>Device</th>
-              <th>Model</th>
-              <th>Metric Count</th>
-              <th>Metric Preview</th>
               <th>Status</th>
+              <th>Metrics</th>
               <th>Last Seen</th>
-              <th>Location</th>
-              <th>Actions</th>
+              <th />
             </tr>
           </thead>
 
           <tbody>
             {filteredDevices.map((device) => {
               const status = getStatus(device)
-              const metrics = getDeviceMetricRows(device)
-              const metricCount = getDeviceMetricCount(device)
 
               return (
                 <React.Fragment key={device.id}>
                   <tr>
                     <td>
-                      <div className="device-table-main-cell">
-                        <strong>{device.name || device.device_code}</strong>
-                        <small>{device.device_code}</small>
-                      </div>
-                    </td>
-
-                    <td>
-                      <div className="device-table-model-cell">
-                        <strong>{getDeviceModelLabel(device)}</strong>
-                        <small>
-                          {device.model_key || device.modelKey || '-'}
-                        </small>
-                      </div>
-                    </td>
-
-                    <td>
-                      <span className="metric-count-badge">
-                        {metricCount} Metrics
-                      </span>
-                    </td>
-
-                    <td>
-                      <div className="table-metric-stack metric-preview-stack">
-                        {metrics.length > 0 ? (
-                          metrics.slice(0, 4).map((metric) => (
-                            <span key={metric.id || metric.metric_key}>
-                              <b>{metric.metric_name || metric.metric_key}</b>
-                              {metric.unit ? ` (${metric.unit})` : ''}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="muted-text">
-                            No metrics configured
-                          </span>
-                        )}
-
-                        {metrics.length > 4 && (
-                          <span className="muted-text">
-                            +{metrics.length - 4} more
-                          </span>
-                        )}
-                      </div>
+                      <strong>{device.name || device.device_code}</strong>
+                      <span>{device.device_code}</span>
                     </td>
 
                     <td>
@@ -1525,34 +1402,39 @@ function Devices() {
                       </span>
                     </td>
 
+                    <td>
+                      <div className="table-metric-stack">
+                        {getDeviceMetricConfig(device.id)
+                          .filter((metric) => metric.enabled)
+                          .slice(0, 3)
+                          .map((metric) => (
+                            <span key={metric.id}>
+                              <b>{metric.displayName}</b>{' '}
+                              {getDeviceMetricValue(device, metric)}
+                            </span>
+                          ))}
+                      </div>
+                    </td>
                     <td>{getLastSeen(device)}</td>
 
                     <td>
-                      <span className="location-text">
-                        {getDeviceLocationText(device)}
-                      </span>
-                    </td>
-
-                    <td>
-                      <div className="table-actions">
-                        <button
-                          type="button"
-                          className="ghost-button table-manage-btn"
-                          onClick={() =>
-                            setExpandedDeviceId(
-                              expandedDeviceId === device.id ? null : device.id
-                            )
-                          }
-                        >
-                          {expandedDeviceId === device.id ? 'Close' : 'Manage'}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        className="ghost-button table-manage-btn"
+                        onClick={() =>
+                          setExpandedDeviceId(
+                            expandedDeviceId === device.id ? null : device.id
+                          )
+                        }
+                      >
+                        Manage
+                      </button>
                     </td>
                   </tr>
 
                   {expandedDeviceId === device.id && (
                     <tr className="device-table-expand-row">
-                      <td colSpan="8">{renderManagePanel(device)}</td>
+                      <td colSpan="5">{renderManagePanel(device)}</td>
                     </tr>
                   )}
                 </React.Fragment>
@@ -1705,26 +1587,6 @@ function Devices() {
                     </label>
 
                     <label>
-                      Device Model
-                      <select
-                        value={createForm.modelId}
-                        disabled={saving}
-                        onChange={(e) =>
-                          setCreateForm((prev) => ({
-                            ...prev,
-                            modelId: Number(e.target.value),
-                          }))
-                        }
-                      >
-                        {deviceModels.map((model) => (
-                          <option key={model.id} value={model.id}>
-                            {model.model_name} · {model.metric_count} Metrics
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label>
                       Device Code
                       <div className="copy-input">
                         <input value={createForm.deviceCode} disabled />
@@ -1805,16 +1667,6 @@ function Devices() {
                     </div>
 
                     <div className="confirm-row">
-                      <span>Model</span>
-                      <strong>
-                        {deviceModels.find(
-                          (model) =>
-                            Number(model.id) === Number(createForm.modelId)
-                        )?.model_name || 'Unknown Model'}
-                      </strong>
-                    </div>
-
-                    <div className="confirm-row">
                       <span>Device Code</span>
                       <strong>{createForm.deviceCode}</strong>
                     </div>
@@ -1876,13 +1728,6 @@ function Devices() {
                           />
                         </label>
                       )}
-
-                    {createdDevice.modelName && (
-                      <label>
-                        Device Model
-                        <input value={createdDevice.modelName} disabled />
-                      </label>
-                    )}
 
                     <label>
                       Device Secret
