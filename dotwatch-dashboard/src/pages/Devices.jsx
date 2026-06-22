@@ -81,8 +81,123 @@ const defaultRuleForm = {
   severity: 'critical',
 }
 
+const METRIC_PRESETS = [
+  {
+    key: 'temperature',
+    label: 'Temperature',
+    displayName: 'Temperature',
+    unit: '°C',
+    icon: '🌡️',
+  },
+  {
+    key: 'humidity',
+    label: 'Humidity',
+    displayName: 'Humidity',
+    unit: '%',
+    icon: '💧',
+  },
+  {
+    key: 'rssi',
+    label: 'WiFi Signal',
+    displayName: 'Signal',
+    unit: 'dBm',
+    icon: '📶',
+  },
+  {
+    key: 'voltage',
+    label: 'Voltage',
+    displayName: 'Voltage',
+    unit: 'V',
+    icon: '⚡',
+  },
+  {
+    key: 'current',
+    label: 'Current',
+    displayName: 'Current',
+    unit: 'A',
+    icon: '🔌',
+  },
+  {
+    key: 'power',
+    label: 'Power',
+    displayName: 'Power',
+    unit: 'W',
+    icon: '⚙️',
+  },
+]
+
+const DEFAULT_METRIC_CONFIG = [
+  {
+    id: 'temperature',
+    sourceKey: 'temperature',
+    displayName: 'Temperature',
+    unit: '°C',
+    icon: '🌡️',
+    enabled: true,
+  },
+  {
+    id: 'humidity',
+    sourceKey: 'humidity',
+    displayName: 'Humidity',
+    unit: '%',
+    icon: '💧',
+    enabled: true,
+  },
+]
+
+const DEVICE_METRIC_STORAGE_KEY = 'dotwatch_device_metric_config_v1'
+
+function readMetricConfigs() {
+  try {
+    const raw = localStorage.getItem(DEVICE_METRIC_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeMetricConfigs(configs) {
+  localStorage.setItem(DEVICE_METRIC_STORAGE_KEY, JSON.stringify(configs))
+}
+
+function normalizeMetricConfig(config) {
+  if (!Array.isArray(config) || config.length === 0) {
+    return DEFAULT_METRIC_CONFIG
+  }
+
+  return config.map((metric, index) => ({
+    id: metric.id || `${metric.sourceKey || 'metric'}-${index}`,
+    sourceKey: metric.sourceKey || 'temperature',
+    displayName:
+      metric.displayName || metric.label || metric.sourceKey || 'Metric',
+    unit: metric.unit ?? '',
+    icon: metric.icon || '📊',
+    enabled: metric.enabled !== false,
+  }))
+}
+
+function getPresetByKey(key) {
+  return METRIC_PRESETS.find((preset) => preset.key === key)
+}
+
+function getDeviceMetricValue(device, metric) {
+  const value = device?.[metric.sourceKey]
+
+  if (value == null || value === '' || Number.isNaN(Number(value))) {
+    return `--${metric.unit || ''}`
+  }
+
+  const numberValue = Number(value)
+  const fixedValue = Number.isInteger(numberValue)
+    ? String(numberValue)
+    : numberValue.toFixed(1)
+
+  return `${fixedValue}${metric.unit || ''}`
+}
+
 function Devices() {
   const [devices, setDevices] = useState([])
+  const [metricConfigs, setMetricConfigs] = useState(() => readMetricConfigs())
   const [viewMode, setViewMode] = useState('grid')
   const [expandedDeviceId, setExpandedDeviceId] = useState(null)
   const [editingDeviceId, setEditingDeviceId] = useState(null)
@@ -431,6 +546,236 @@ function Devices() {
     }
   }
 
+  function getDeviceMetricConfig(deviceId) {
+    return normalizeMetricConfig(metricConfigs[deviceId])
+  }
+
+  function saveDeviceMetricConfig(deviceId, nextConfig) {
+    const normalized = normalizeMetricConfig(nextConfig)
+
+    setMetricConfigs((prev) => {
+      const next = {
+        ...prev,
+        [deviceId]: normalized,
+      }
+
+      writeMetricConfigs(next)
+      return next
+    })
+  }
+
+  function updateDeviceMetric(deviceId, metricId, key, value) {
+    const currentConfig = getDeviceMetricConfig(deviceId)
+    const nextConfig = currentConfig.map((metric) => {
+      if (metric.id !== metricId) return metric
+
+      if (key === 'sourceKey') {
+        const preset = getPresetByKey(value)
+
+        return {
+          ...metric,
+          sourceKey: value,
+          displayName: preset?.displayName || metric.displayName,
+          unit: preset?.unit ?? metric.unit,
+          icon: preset?.icon || metric.icon,
+        }
+      }
+
+      return {
+        ...metric,
+        [key]: value,
+      }
+    })
+
+    saveDeviceMetricConfig(deviceId, nextConfig)
+  }
+
+  function addDeviceMetric(deviceId) {
+    const nextId = `metric-${Date.now()}`
+    const nextConfig = [
+      ...getDeviceMetricConfig(deviceId),
+      {
+        id: nextId,
+        sourceKey: 'temperature',
+        displayName: 'Custom Metric',
+        unit: '°C',
+        icon: '📊',
+        enabled: true,
+      },
+    ]
+
+    saveDeviceMetricConfig(deviceId, nextConfig)
+  }
+
+  function removeDeviceMetric(deviceId, metricId) {
+    const currentConfig = getDeviceMetricConfig(deviceId)
+
+    if (currentConfig.length <= 1) {
+      alert('ต้องมี Metric อย่างน้อย 1 รายการ')
+      return
+    }
+
+    saveDeviceMetricConfig(
+      deviceId,
+      currentConfig.filter((metric) => metric.id !== metricId)
+    )
+  }
+
+  function resetDeviceMetrics(deviceId) {
+    const ok = confirm('ต้องการ Reset การแสดงผล Metric กลับค่าเริ่มต้นใช่ไหม?')
+    if (!ok) return
+
+    saveDeviceMetricConfig(deviceId, DEFAULT_METRIC_CONFIG)
+  }
+
+  function renderMetricDisplayConfig(device) {
+    const config = getDeviceMetricConfig(device.id)
+
+    return (
+      <div className="device-metric-config-section">
+        <div className="device-location-header">
+          <strong>
+            <Cpu size={16} />
+            Metric Display Config
+          </strong>
+          <span>ตั้งชื่อและหน่วยที่ต้องการให้ Device นี้แสดงผลในทุกหน้า</span>
+        </div>
+
+        <div className="metric-config-help">
+          เลือก Field จากข้อมูลจริงของ Device หรือพิมพ์ชื่อและหน่วยเอง เช่น
+          Temperature / °C, Pressure / bar, Energy / kWh
+        </div>
+
+        <div className="metric-config-list">
+          {config.map((metric) => (
+            <div key={metric.id} className="metric-config-row">
+              <label>
+                Field
+                <select
+                  value={metric.sourceKey}
+                  disabled={saving}
+                  onChange={(e) =>
+                    updateDeviceMetric(
+                      device.id,
+                      metric.id,
+                      'sourceKey',
+                      e.target.value
+                    )
+                  }
+                >
+                  {METRIC_PRESETS.map((preset) => (
+                    <option key={preset.key} value={preset.key}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Display Name
+                <input
+                  value={metric.displayName}
+                  disabled={saving}
+                  placeholder="เช่น Temp Supply"
+                  onChange={(e) =>
+                    updateDeviceMetric(
+                      device.id,
+                      metric.id,
+                      'displayName',
+                      e.target.value
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                Unit
+                <input
+                  value={metric.unit}
+                  disabled={saving}
+                  placeholder="เช่น °C, %, kWh"
+                  onChange={(e) =>
+                    updateDeviceMetric(
+                      device.id,
+                      metric.id,
+                      'unit',
+                      e.target.value
+                    )
+                  }
+                />
+              </label>
+
+              <label>
+                Icon
+                <input
+                  value={metric.icon}
+                  disabled={saving}
+                  placeholder="📊"
+                  onChange={(e) =>
+                    updateDeviceMetric(
+                      device.id,
+                      metric.id,
+                      'icon',
+                      e.target.value
+                    )
+                  }
+                />
+              </label>
+
+              <label className="metric-config-toggle">
+                Show
+                <input
+                  type="checkbox"
+                  checked={metric.enabled}
+                  disabled={saving}
+                  onChange={(e) =>
+                    updateDeviceMetric(
+                      device.id,
+                      metric.id,
+                      'enabled',
+                      e.target.checked
+                    )
+                  }
+                />
+              </label>
+
+              <button
+                type="button"
+                className="delete-btn square"
+                disabled={saving}
+                onClick={() => removeDeviceMetric(device.id, metric.id)}
+                title="Remove Metric"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="metric-config-actions">
+          <button
+            type="button"
+            className="ghost-button"
+            disabled={saving}
+            onClick={() => addDeviceMetric(device.id)}
+          >
+            <Plus size={15} />
+            Add Metric
+          </button>
+
+          <button
+            type="button"
+            className="ghost-button"
+            disabled={saving}
+            onClick={() => resetDeviceMetrics(device.id)}
+          >
+            Reset Default
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   function renderAlarmRules(device) {
     const rules = getDeviceAlarmRules(device.id)
     const draft = getRuleDraft(device.id)
@@ -675,6 +1020,8 @@ function Devices() {
           </div>
         )}
 
+        {renderMetricDisplayConfig(device)}
+
         {renderAlarmRules(device)}
 
         <div className="device-location-section compact clean-location-card">
@@ -764,18 +1111,17 @@ function Devices() {
                 </span>
               </div>
 
-              <div className="device-v2-metrics">
-                <div>
-                  <span>🌡️</span>
-                  <strong>{getMetricValue(device.temperature, '°C')}</strong>
-                  <small>Temp</small>
-                </div>
-
-                <div>
-                  <span>💧</span>
-                  <strong>{getMetricValue(device.humidity, '%')}</strong>
-                  <small>Humidity</small>
-                </div>
+              <div className="device-v2-metrics dynamic-metrics">
+                {getDeviceMetricConfig(device.id)
+                  .filter((metric) => metric.enabled)
+                  .slice(0, 4)
+                  .map((metric) => (
+                    <div key={metric.id}>
+                      <span>{metric.icon}</span>
+                      <strong>{getDeviceMetricValue(device, metric)}</strong>
+                      <small>{metric.displayName}</small>
+                    </div>
+                  ))}
               </div>
 
               <div className="device-v2-meta-row">
@@ -809,8 +1155,7 @@ function Devices() {
             <tr>
               <th>Device</th>
               <th>Status</th>
-              <th>Temp</th>
-              <th>Humidity</th>
+              <th>Metrics</th>
               <th>Last Seen</th>
               <th />
             </tr>
@@ -834,8 +1179,19 @@ function Devices() {
                       </span>
                     </td>
 
-                    <td>{getMetricValue(device.temperature, '°C')}</td>
-                    <td>{getMetricValue(device.humidity, '%')}</td>
+                    <td>
+                      <div className="table-metric-stack">
+                        {getDeviceMetricConfig(device.id)
+                          .filter((metric) => metric.enabled)
+                          .slice(0, 3)
+                          .map((metric) => (
+                            <span key={metric.id}>
+                              <b>{metric.displayName}</b>{' '}
+                              {getDeviceMetricValue(device, metric)}
+                            </span>
+                          ))}
+                      </div>
+                    </td>
                     <td>{getLastSeen(device)}</td>
 
                     <td>
@@ -855,7 +1211,7 @@ function Devices() {
 
                   {expandedDeviceId === device.id && (
                     <tr className="device-table-expand-row">
-                      <td colSpan="6">{renderManagePanel(device)}</td>
+                      <td colSpan="5">{renderManagePanel(device)}</td>
                     </tr>
                   )}
                 </React.Fragment>
@@ -874,7 +1230,10 @@ function Devices() {
           <div>
             <span className="page-eyebrow">Devices</span>
             <h2>Device Management</h2>
-            <p>จัดการอุปกรณ์, Secret, Location และ Alarm Rules ของ dotWatch</p>
+            <p>
+              จัดการอุปกรณ์, Metric Display, Secret, Location และ Alarm Rules
+              ของ dotWatch
+            </p>
           </div>
 
           <div className="device-v2-header-actions">

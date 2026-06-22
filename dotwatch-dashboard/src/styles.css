@@ -7018,3 +7018,487 @@ textarea,
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   dotWatch Unified Alarm Pages
+   Add this to the end of styles.css or styles_unified_complete.css
+========================================================= */
+
+.unified-page {
+  display: grid;
+  gap: 18px;
+}
+
+.unified-page-header,
+.unified-card,
+.unified-feedback-card,
+.unified-stat-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.unified-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 24px;
+}
+
+.unified-page-header h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.unified-page-header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.unified-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.unified-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.unified-stat-grid.five {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.unified-stat-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 96px;
+  padding: 18px;
+  border-radius: 20px;
+}
+
+.unified-stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), #06b6d4);
+}
+
+.unified-stat-card span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.unified-stat-card strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.unified-stat-card.online strong {
+  color: var(--success);
+}
+
+.unified-stat-card.warning strong {
+  color: var(--warning);
+}
+
+.unified-stat-card.critical strong {
+  color: var(--danger);
+}
+
+.unified-stat-card.muted strong {
+  color: var(--muted);
+}
+
+.unified-card,
+.unified-feedback-card {
+  padding: 20px;
+  border-radius: 22px;
+}
+
+.unified-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.unified-card-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.unified-card-header p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.unified-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.unified-toolbar.compact {
+  justify-content: flex-end;
+}
+
+.unified-search-box {
+  width: 280px;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--input);
+  border: 1px solid var(--border);
+}
+
+.unified-search-box input {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  box-shadow: none;
+}
+
+.unified-search-box input:focus {
+  box-shadow: none;
+}
+
+.unified-toolbar select,
+.unified-rule-form select,
+.unified-rule-form input {
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--input);
+  color: var(--text);
+  padding: 0 12px;
+  outline: none;
+}
+
+.unified-rule-form {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.8fr 0.9fr 0.9fr auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.unified-rule-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.unified-table-wrap {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
+.unified-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+}
+
+.unified-table th {
+  padding: 14px 16px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.unified-table td {
+  padding: 15px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.unified-table td strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.unified-table td span:not(.status-pill) {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.unified-table tr.active-row td {
+  background: rgba(239, 68, 68, 0.035);
+}
+
+.status-pill {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.status-pill.online {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+}
+
+.status-pill.warning {
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+}
+
+.status-pill.critical {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+}
+
+.status-pill.muted {
+  color: var(--muted);
+  background: rgba(100, 116, 139, 0.12);
+  border: 1px solid rgba(100, 116, 139, 0.18);
+}
+
+.unified-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.unified-loading,
+.unified-empty-state {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border-radius: 18px;
+  background: var(--panel-2);
+  color: var(--muted);
+}
+
+.unified-empty-state h3 {
+  margin: 0;
+  color: var(--text);
+}
+
+.unified-empty-state p {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+@media (max-width: 1200px) {
+  .unified-stat-grid.five {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .unified-rule-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .unified-page-header,
+  .unified-card-header.with-actions {
+    flex-direction: column;
+  }
+
+  .unified-stat-grid,
+  .unified-stat-grid.five {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .unified-toolbar,
+  .unified-toolbar.compact {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .unified-search-box,
+  .unified-toolbar select {
+    width: 100%;
+  }
+
+  .unified-rule-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .unified-page-header,
+  .unified-card {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .unified-page-header h1 {
+    font-size: 24px;
+  }
+
+  .unified-stat-grid,
+  .unified-stat-grid.five {
+    grid-template-columns: 1fr;
+  }
+}
+/* =========================================================
+   Device Metric Display Config
+   ใช้คู่กับ Devices_metric_display.jsx
+========================================================= */
+
+.device-metric-config-section {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel);
+}
+
+.metric-config-help {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.metric-config-list {
+  display: grid;
+  gap: 10px;
+}
+
+.metric-config-row {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 0.75fr 0.65fr 74px 42px;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg);
+}
+
+.metric-config-row label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.metric-config-row input,
+.metric-config-row select {
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--input, var(--panel));
+  color: var(--text);
+  padding: 0 12px;
+  outline: none;
+}
+
+.metric-config-toggle {
+  justify-items: center;
+}
+
+.metric-config-toggle input {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  accent-color: var(--primary);
+}
+
+.metric-config-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dynamic-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.table-metric-stack {
+  display: grid;
+  gap: 5px;
+}
+
+.table-metric-stack span {
+  margin: 0 !important;
+  color: var(--text) !important;
+  font-size: 13px !important;
+}
+
+.table-metric-stack b {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+@media (max-width: 1100px) {
+  .metric-config-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-config-toggle,
+  .metric-config-row .square {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .metric-config-row {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-config-actions {
+    flex-direction: column;
+  }
+
+  .metric-config-actions button {
+    width: 100%;
+  }
+}
