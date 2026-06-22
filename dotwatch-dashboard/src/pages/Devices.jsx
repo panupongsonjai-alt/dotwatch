@@ -77,10 +77,47 @@ function getLastSeen(device) {
 }
 
 const defaultRuleForm = {
-  metric: 'temperature',
+  metric: 'metric_1',
   operator: '>',
   threshold: 35,
   severity: 'critical',
+}
+
+const DEFAULT_DEVICE_MODELS = [
+  {
+    id: 1,
+    model_key: 'dw_2ch',
+    model_name: 'dotWatch 2CH',
+    metric_count: 2,
+    description: 'ESP รุ่นอ่าน 2 ค่า',
+  },
+  {
+    id: 2,
+    model_key: 'dw_10ch',
+    model_name: 'dotWatch 10CH',
+    metric_count: 10,
+    description: 'ESP รุ่นอ่าน 10 ค่า',
+  },
+  {
+    id: 3,
+    model_key: 'custom',
+    model_name: 'Custom Device',
+    metric_count: 0,
+    description: 'กำหนด Metric เองในอนาคต',
+  },
+]
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+
+async function getDeviceModels() {
+  const response = await fetch(`${API_URL}/api/device-models`)
+  const data = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    throw new Error(data?.message || 'โหลด Device Model ไม่สำเร็จ')
+  }
+
+  return Array.isArray(data) ? data : []
 }
 
 const METRIC_PRESETS = [
@@ -285,6 +322,7 @@ function getDeviceMetricValue(device, metric) {
 
 function Devices() {
   const [devices, setDevices] = useState([])
+  const [deviceModels, setDeviceModels] = useState(DEFAULT_DEVICE_MODELS)
   const [metricsByDevice, setMetricsByDevice] = useState({})
   const [metricConfigs, setMetricConfigs] = useState(() => readMetricConfigs())
   const [metricDrafts, setMetricDrafts] = useState(() => readMetricConfigs())
@@ -307,12 +345,24 @@ function Devices() {
   const [createdDevice, setCreatedDevice] = useState(null)
   const [createForm, setCreateForm] = useState({
     name: '',
-    modelId: 1,
+    modelId: DEFAULT_DEVICE_MODELS[0].id,
     latitude: null,
     longitude: null,
     deviceCode: '',
     deviceSecret: '',
   })
+
+  async function loadDeviceModels() {
+    try {
+      const data = await getDeviceModels()
+      setDeviceModels(
+        Array.isArray(data) && data.length > 0 ? data : DEFAULT_DEVICE_MODELS
+      )
+    } catch (error) {
+      console.error('Load device models error:', error)
+      setDeviceModels(DEFAULT_DEVICE_MODELS)
+    }
+  }
 
   async function loadMetricsForDevices(nextDevices = []) {
     const entries = await Promise.all(
@@ -381,6 +431,7 @@ function Devices() {
   }
 
   useEffect(() => {
+    loadDeviceModels()
     loadDevices()
     loadAlarmRules()
   }, [])
@@ -467,6 +518,10 @@ function Devices() {
         name,
         deviceCode: created.device_code || createForm.deviceCode,
         deviceSecret: created.deviceSecret || createForm.deviceSecret,
+        modelName:
+          deviceModels.find(
+            (model) => Number(model.id) === Number(createForm.modelId)
+          )?.model_name || 'Unknown Model',
         latitude: createForm.latitude,
         longitude: createForm.longitude,
       })
@@ -1627,6 +1682,26 @@ function Devices() {
                     </label>
 
                     <label>
+                      Device Model
+                      <select
+                        value={createForm.modelId}
+                        disabled={saving}
+                        onChange={(e) =>
+                          setCreateForm((prev) => ({
+                            ...prev,
+                            modelId: Number(e.target.value),
+                          }))
+                        }
+                      >
+                        {deviceModels.map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.model_name} · {model.metric_count} Metrics
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
                       Device Code
                       <div className="copy-input">
                         <input value={createForm.deviceCode} disabled />
@@ -1707,6 +1782,16 @@ function Devices() {
                     </div>
 
                     <div className="confirm-row">
+                      <span>Model</span>
+                      <strong>
+                        {deviceModels.find(
+                          (model) =>
+                            Number(model.id) === Number(createForm.modelId)
+                        )?.model_name || 'Unknown Model'}
+                      </strong>
+                    </div>
+
+                    <div className="confirm-row">
                       <span>Device Code</span>
                       <strong>{createForm.deviceCode}</strong>
                     </div>
@@ -1768,6 +1853,13 @@ function Devices() {
                           />
                         </label>
                       )}
+
+                    {createdDevice.modelName && (
+                      <label>
+                        Device Model
+                        <input value={createdDevice.modelName} disabled />
+                      </label>
+                    )}
 
                     <label>
                       Device Secret
