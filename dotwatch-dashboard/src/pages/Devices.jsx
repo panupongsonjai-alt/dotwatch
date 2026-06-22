@@ -32,6 +32,7 @@ import {
   updateAlarmRule,
   deleteAlarmRule,
 } from '../services/api'
+import { getDeviceMetrics } from '../services/metricDisplayApi'
 
 function createDeviceCode() {
   return `DW-${Date.now()}`
@@ -53,6 +54,10 @@ function getStatusLabel(status) {
   if (status === 'online') return 'Online'
   if (status === 'warning') return 'Warning'
   return 'Offline'
+}
+
+function getDeviceModelLabel(device) {
+  return device.model_name || device.modelName || 'dotWatch 2CH'
 }
 
 function getMetricValue(value, unit) {
@@ -280,6 +285,7 @@ function getDeviceMetricValue(device, metric) {
 
 function Devices() {
   const [devices, setDevices] = useState([])
+  const [metricsByDevice, setMetricsByDevice] = useState({})
   const [metricConfigs, setMetricConfigs] = useState(() => readMetricConfigs())
   const [metricDrafts, setMetricDrafts] = useState(() => readMetricConfigs())
   const [dirtyMetricDevices, setDirtyMetricDevices] = useState({})
@@ -301,6 +307,7 @@ function Devices() {
   const [createdDevice, setCreatedDevice] = useState(null)
   const [createForm, setCreateForm] = useState({
     name: '',
+    modelId: 1,
     latitude: null,
     longitude: null,
     deviceCode: '',
@@ -322,11 +329,11 @@ function Devices() {
       })
     )
 
-    setDeviceMetrics(Object.fromEntries(entries))
+    setMetricsByDevice(Object.fromEntries(entries))
   }
 
   function getDeviceMetricRows(device) {
-    const metrics = deviceMetrics[device.id] || []
+    const metrics = metricsByDevice[device.id] || []
 
     return metrics
       .filter((metric) => metric.visible !== false)
@@ -438,6 +445,7 @@ function Devices() {
         deviceCode: createForm.deviceCode,
         name,
         deviceSecret: createForm.deviceSecret,
+        modelId: Number(createForm.modelId) || 1,
       })
 
       if (createForm.latitude != null && createForm.longitude != null) {
@@ -573,6 +581,19 @@ function Devices() {
   }
 
   function getAlarmMetricOptions(deviceId) {
+    const metrics = metricsByDevice[deviceId] || []
+
+    if (metrics.length > 0) {
+      return metrics
+        .filter((metric) => metric.visible !== false)
+        .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+        .map((metric) => ({
+          value: metric.metric_key,
+          label: metric.metric_name || metric.metric_key,
+          unit: metric.unit || '',
+        }))
+    }
+
     return getDeviceMetricConfig(deviceId)
       .filter((metric) => metric.enabled && metric.sourceKey)
       .map((metric) => ({
@@ -787,7 +808,7 @@ function Devices() {
     )
   }
 
-  function resetDeviceMetrics(deviceId) {
+  function resetMetricsByDevice(deviceId) {
     const ok = confirm('ต้องการ Reset การแสดงผล Metric กลับค่าเริ่มต้นใช่ไหม?')
     if (!ok) return
 
@@ -997,7 +1018,7 @@ function Devices() {
             type="button"
             className="ghost-button"
             disabled={saving}
-            onClick={() => resetDeviceMetrics(device.id)}
+            onClick={() => resetMetricsByDevice(device.id)}
           >
             Reset Default
           </button>

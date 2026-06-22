@@ -7719,3 +7719,33 @@ textarea,
   background: rgba(148, 163, 184, 0.45);
   border-radius: 999px;
 }
+
+.device-cell,
+.model-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.device-cell small,
+.model-cell small {
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+.metric-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
