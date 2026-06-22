@@ -9,7 +9,6 @@ import Login from './pages/Login'
 import Profile from './pages/Profile'
 import Alarms from './pages/Alarms.jsx'
 import AlarmToast from './components/AlarmToast.jsx'
-import AlarmRules from './pages/AlarmRules.jsx'
 import DeviceDetail from './pages/DeviceDetail.jsx'
 import Sidebar from './components/Sidebar'
 import Navbar from './components/Navbar'
@@ -86,8 +85,6 @@ function App() {
         {page === 'devices' && <Devices />}
 
         {page === 'alarms' && <Alarms />}
-
-        {page === 'alarm-rules' && <AlarmRules />}
 
         {page === 'device-detail' && (
           <DeviceDetail deviceId={selectedDeviceId} onBack={backToDashboard} />

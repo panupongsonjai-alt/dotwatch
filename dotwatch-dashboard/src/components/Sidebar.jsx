@@ -7,7 +7,6 @@ function Sidebar({ page, setPage, sidebarOpen, setSidebarOpen }) {
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'devices', label: 'Devices', icon: '📡' },
     { id: 'alarms', label: 'Alarms', icon: '🚨' },
-    { id: 'alarm-rules', label: 'Alarm Rules', icon: '📏' },
     { id: 'profile', label: 'Profile', icon: '👤' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
   ]
