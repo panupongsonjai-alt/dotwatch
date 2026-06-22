@@ -3743,10 +3743,12 @@ textarea:focus,
   gap: 18px;
 }
 
-.profile-two-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
+.profile-single-grid {
+  display: block;
+}
+
+.profile-single-grid .danger-zone {
+  max-width: 100%;
 }
 
 .profile-card,

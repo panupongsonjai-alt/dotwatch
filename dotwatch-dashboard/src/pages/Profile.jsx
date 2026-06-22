@@ -34,8 +34,6 @@ function Profile() {
   )
   const [savingProfile, setSavingProfile] = useState(false)
   const email = user?.email || '-'
-  const uid = user?.uid || '-'
-  const providerId = user?.providerData?.[0]?.providerId || 'password'
   const browserName = getBrowserName()
   const operatingSystem = getOperatingSystem()
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -426,26 +424,7 @@ function Profile() {
             </div>
           </section>
 
-          <div className="profile-two-grid">
-            <section className="profile-section app-card">
-              <div className="profile-card-title">
-                <span className="profile-title-icon">ℹ️</span>
-                <h3>System Information</h3>
-              </div>
-
-              <div className="profile-info-grid one">
-                <label>
-                  User ID
-                  <input value={uid} disabled />
-                </label>
-
-                <label>
-                  Provider
-                  <input value={providerId} disabled />
-                </label>
-              </div>
-            </section>
-
+          <div className="profile-single-grid">
             <section className="profile-section app-card danger-zone">
               <div className="profile-card-title">
                 <span className="profile-title-icon danger">⚠️</span>

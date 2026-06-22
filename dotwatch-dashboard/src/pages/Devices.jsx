@@ -33,6 +33,7 @@ import {
   updateAlarmRule,
   deleteAlarmRule,
 } from '../services/api'
+import MetricConfigPanel from '../components/MetricConfigPanel.jsx'
 
 function createDeviceCode() {
   return `DW-${Date.now()}`
