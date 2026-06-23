@@ -23,6 +23,8 @@ const wss = new WebSocketServer({ server })
 
 const clients = new Map()
 
+console.log('DATABASE_URL:', process.env.DATABASE_URL)
+
 wss.on('connection', (ws) => {
   ws.on('message', (message) => {
     try {

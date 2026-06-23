@@ -5,136 +5,98 @@ import {
   getAlarmRules,
   getAlarms,
   getDevices,
+  getDeviceMetrics,
   updateAlarmRule,
 } from '../services/api'
-import { getDeviceMetrics } from '../services/metricDisplayApi'
-import { formatMetricValue } from '../utils/metricDisplayConfig'
+import {
+  AlertTriangle,
+  Bell,
+  CheckCircle2,
+  RefreshCw,
+  Search,
+  Trash2,
+} from 'lucide-react'
 
-const TABS = [
-  { label: 'Alarm Events', value: 'events' },
-  { label: 'Alarm Rules', value: 'rules' },
-]
-
-const STATUS_FILTERS = [
-  { label: 'All Alarms', value: 'all' },
-  { label: 'Active', value: 'active' },
-  { label: 'Acknowledged', value: 'acknowledged' },
-]
-
-const SEVERITY_FILTERS = [
-  { label: 'All Severity', value: 'all' },
-  { label: 'Critical', value: 'critical' },
-  { label: 'Warning', value: 'warning' },
-]
-
-const RULE_FILTERS = [
-  { label: 'All Rules', value: 'all' },
-  { label: 'Active', value: 'active' },
-  { label: 'Disabled', value: 'disabled' },
-  { label: 'Critical', value: 'critical' },
-  { label: 'Warning', value: 'warning' },
-]
-
-function formatDateTime(value) {
+function formatDate(value) {
   if (!value) return '--'
 
-  return new Date(value).toLocaleString('th-TH', {
-    dateStyle: 'short',
-    timeStyle: 'medium',
-  })
+  try {
+    return new Date(value).toLocaleString('th-TH')
+  } catch {
+    return value
+  }
 }
 
-function getDeviceId(rule) {
-  return rule.device_id ?? rule.deviceId ?? rule.device?.id ?? ''
+function formatValue(value, unit = '') {
+  if (value == null || value === '' || Number.isNaN(Number(value))) {
+    return '--'
+  }
+
+  const numberValue = Number(value)
+  const displayValue = Number.isInteger(numberValue)
+    ? String(numberValue)
+    : numberValue.toFixed(1)
+
+  return `${displayValue}${unit ? ` ${unit}` : ''}`
 }
 
-function normalizeMetricList(data) {
-  const metrics = Array.isArray(data) ? data : data?.metrics || []
-
-  return metrics
-    .filter((metric) => metric && metric.visible !== false)
-    .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+function getSeverityLabel(severity) {
+  if (severity === 'critical') return 'Critical'
+  if (severity === 'warning') return 'Warning'
+  return severity || 'Unknown'
 }
 
-function StatCard({ label, value, tone = '' }) {
-  return (
-    <article className={`unified-stat-card ${tone}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </article>
-  )
+function getStatusLabel(status) {
+  if (status === 'active') return 'Active'
+  if (status === 'acknowledged') return 'Acknowledged'
+  return status || 'Unknown'
 }
 
 function Alarms() {
-  const [activeTab, setActiveTab] = useState('events')
   const [alarms, setAlarms] = useState([])
   const [rules, setRules] = useState([])
   const [devices, setDevices] = useState([])
   const [deviceMetrics, setDeviceMetrics] = useState({})
-
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [severityFilter, setSeverityFilter] = useState('all')
-  const [ruleFilter, setRuleFilter] = useState('all')
-  const [query, setQuery] = useState('')
-
-  const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState('')
-  const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
-
-  async function fetchMetricsForDevice(deviceId) {
-    if (!deviceId) return []
-
-    const data = await getDeviceMetrics(deviceId)
-    return normalizeMetricList(data)
-  }
 
   async function loadData() {
     try {
-      setError('')
       setLoading(true)
 
-      const [alarmsData, rulesData, devicesData] = await Promise.all([
+      const [alarmData, ruleData, deviceData] = await Promise.all([
         getAlarms(),
         getAlarmRules(),
         getDevices(),
       ])
 
-      const nextAlarms = Array.isArray(alarmsData) ? alarmsData : []
-      const nextRules = Array.isArray(rulesData) ? rulesData : []
-      const nextDevices = Array.isArray(devicesData) ? devicesData : []
+      const nextAlarms = Array.isArray(alarmData) ? alarmData : []
+      const nextRules = Array.isArray(ruleData) ? ruleData : []
+      const nextDevices = Array.isArray(deviceData) ? deviceData : []
 
       setAlarms(nextAlarms)
       setRules(nextRules)
       setDevices(nextDevices)
 
-      const deviceIds = [
-        ...new Set(
-          [
-            ...nextDevices.map((device) => device.id),
-            ...nextRules.map((rule) => getDeviceId(rule)),
-          ]
-            .filter(Boolean)
-            .map(String)
-        ),
-      ]
-
-      const entries = await Promise.all(
-        deviceIds.map(async (deviceId) => {
+      const metricEntries = await Promise.all(
+        nextDevices.map(async (device) => {
           try {
-            const metrics = await fetchMetricsForDevice(deviceId)
-            return [deviceId, metrics]
-          } catch (err) {
-            console.error(`Load metrics error for device ${deviceId}:`, err)
-            return [deviceId, []]
+            const metrics = await getDeviceMetrics(device.id)
+            return [device.id, Array.isArray(metrics) ? metrics : []]
+          } catch (error) {
+            console.error(`Load metrics error device ${device.id}:`, error)
+            return [device.id, []]
           }
         })
       )
 
-      setDeviceMetrics(Object.fromEntries(entries))
-    } catch (err) {
-      console.error(err)
-      setError('โหลดข้อมูล Alarm ไม่สำเร็จ')
+      setDeviceMetrics(Object.fromEntries(metricEntries))
+    } catch (error) {
+      console.error('Load alarms error:', error)
+      alert(error.message || 'โหลดข้อมูล Alarm ไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -142,482 +104,287 @@ function Alarms() {
 
   useEffect(() => {
     loadData()
-
-    const timer = setInterval(loadData, 10000)
-
-    return () => {
-      clearInterval(timer)
-    }
   }, [])
 
-  async function handleAcknowledge(id) {
-    try {
-      setActionLoading(String(id))
-      setError('')
-      setMessage('')
-
-      await acknowledgeAlarm(id)
-      await loadData()
-    } catch (err) {
-      console.error(err)
-      setError('Acknowledge Alarm ไม่สำเร็จ')
-    } finally {
-      setActionLoading('')
-    }
-  }
-
-  async function handleRuleToggle(rule) {
-    try {
-      setActionLoading(String(rule.id))
-      setError('')
-      setMessage('')
-
-      await updateAlarmRule(rule.id, {
-        device_id: getDeviceId(rule),
-        metric: rule.metric,
-        operator: rule.operator,
-        threshold: Number(rule.threshold),
-        severity: rule.severity,
-        is_active: !rule.is_active,
-      })
-
-      setMessage(
-        rule.is_active
-          ? 'ปิดใช้งาน Alarm Rule แล้ว'
-          : 'เปิดใช้งาน Alarm Rule แล้ว'
-      )
-      await loadData()
-    } catch (err) {
-      console.error(err)
-      setError(err.message || 'อัปเดต Alarm Rule ไม่สำเร็จ')
-    } finally {
-      setActionLoading('')
-    }
-  }
-
-  async function handleRuleDelete(id) {
-    const confirmed = window.confirm('ต้องการลบ Rule นี้ใช่ไหม?')
-    if (!confirmed) return
-
-    try {
-      setActionLoading(String(id))
-      setError('')
-      setMessage('')
-
-      await deleteAlarmRule(id)
-
-      setMessage('ลบ Alarm Rule สำเร็จแล้ว')
-      await loadData()
-    } catch (err) {
-      console.error(err)
-      setError(err.message || 'ลบ Alarm Rule ไม่สำเร็จ')
-    } finally {
-      setActionLoading('')
-    }
-  }
-
-  function getDeviceName(id) {
-    const device = devices.find((item) => String(item.id) === String(id))
-    return device?.name || device?.device_code || `Device #${id}`
-  }
-
-  function getMetricOptions(deviceId) {
-    if (!deviceId) return []
-    return deviceMetrics[String(deviceId)] || deviceMetrics[deviceId] || []
-  }
-
-  function getMetricMeta(deviceId, metricKey) {
-    const metric = getMetricOptions(deviceId).find(
-      (item) => item.metric_key === metricKey
-    )
+  function getMetricInfo(deviceId, metricKey) {
+    const metrics = deviceMetrics[deviceId] || []
+    const metric = metrics.find((item) => item.metric_key === metricKey)
 
     return {
-      label: metric?.metric_name || metricKey || 'Unknown Metric',
+      name: metric?.metric_name || metricKey || '--',
       unit: metric?.unit || '',
     }
   }
 
-  function getAlarmMetricMeta(alarm) {
-    const metric = getMetricMeta(alarm.device_id, alarm.metric)
-
-    return {
-      displayName: metric.label || alarm.metric || 'Unknown Metric',
-      unit: metric.unit || '',
+  async function handleAcknowledge(alarmId) {
+    try {
+      setSaving(true)
+      await acknowledgeAlarm(alarmId)
+      await loadData()
+    } catch (error) {
+      console.error('Acknowledge alarm error:', error)
+      alert(error.message || 'Acknowledge ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
     }
   }
 
-  const alarmStats = useMemo(() => {
-    const active = alarms.filter((alarm) => alarm.status === 'active').length
-    const acknowledged = alarms.filter(
-      (alarm) => alarm.status === 'acknowledged'
-    ).length
-    const critical = alarms.filter(
-      (alarm) =>
-        alarm.status === 'active' &&
-        alarm.severity?.toLowerCase() === 'critical'
-    ).length
-    const warning = alarms.filter(
-      (alarm) =>
-        alarm.status === 'active' && alarm.severity?.toLowerCase() === 'warning'
-    ).length
+  async function handleToggleRule(rule) {
+    try {
+      setSaving(true)
 
-    return {
-      total: alarms.length,
-      active,
-      critical,
-      warning,
-      acknowledged,
+      await updateAlarmRule(rule.id, {
+        device_id: rule.device_id,
+        metric: rule.metric,
+        operator: rule.operator,
+        threshold: rule.threshold,
+        severity: rule.severity,
+        is_active: !rule.is_active,
+      })
+
+      await loadData()
+    } catch (error) {
+      console.error('Toggle rule error:', error)
+      alert(error.message || 'แก้ไขสถานะ Rule ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
     }
+  }
+
+  async function handleDeleteRule(ruleId) {
+    const ok = confirm('ต้องการลบ Alarm Rule นี้ใช่ไหม?')
+    if (!ok) return
+
+    try {
+      setSaving(true)
+      await deleteAlarmRule(ruleId)
+      await loadData()
+    } catch (error) {
+      console.error('Delete rule error:', error)
+      alert(error.message || 'ลบ Alarm Rule ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const summary = useMemo(() => {
+    return alarms.reduce(
+      (acc, alarm) => {
+        acc.total += 1
+
+        if (alarm.status === 'active') acc.active += 1
+        if (alarm.status === 'acknowledged') acc.acknowledged += 1
+        if (alarm.severity === 'critical') acc.critical += 1
+        if (alarm.severity === 'warning') acc.warning += 1
+
+        return acc
+      },
+      {
+        total: 0,
+        active: 0,
+        acknowledged: 0,
+        critical: 0,
+        warning: 0,
+      }
+    )
   }, [alarms])
 
-  const ruleStats = useMemo(() => {
-    const active = rules.filter((rule) => rule.is_active).length
-    const critical = rules.filter((rule) => rule.severity === 'critical').length
-    const warning = rules.filter((rule) => rule.severity === 'warning').length
-    const protectedDevices = new Set(
-      rules.map((rule) => String(getDeviceId(rule))).filter(Boolean)
-    ).size
-
-    return {
-      total: rules.length,
-      active,
-      critical,
-      warning,
-      protectedDevices,
-    }
-  }, [rules])
-
   const filteredAlarms = useMemo(() => {
-    const search = query.trim().toLowerCase()
+    const keyword = search.trim().toLowerCase()
 
-    return alarms
-      .filter((alarm) => {
-        if (statusFilter === 'all') return true
-        return alarm.status === statusFilter
-      })
-      .filter((alarm) => {
-        if (severityFilter === 'all') return true
-        return alarm.severity?.toLowerCase() === severityFilter
-      })
-      .filter((alarm) => {
-        if (!search || activeTab !== 'events') return true
-        const haystack = [
-          alarm.device_name,
-          alarm.device_code,
-          alarm.device_id,
-          alarm.metric,
-          alarm.value,
-          alarm.operator,
-          alarm.threshold,
-          alarm.severity,
-          alarm.status,
-        ]
-          .join(' ')
-          .toLowerCase()
+    return alarms.filter((alarm) => {
+      const metricInfo = getMetricInfo(alarm.device_id, alarm.metric)
 
-        return haystack.includes(search)
-      })
-      .sort((a, b) => new Date(b.triggered_at) - new Date(a.triggered_at))
-  }, [alarms, statusFilter, severityFilter, query, activeTab])
+      const text = [
+        alarm.device_name,
+        alarm.device_code,
+        alarm.metric,
+        metricInfo.name,
+        alarm.severity,
+        alarm.status,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
 
-  const filteredRules = useMemo(() => {
-    const search = query.trim().toLowerCase()
+      const matchSearch = !keyword || text.includes(keyword)
+      const matchStatus =
+        statusFilter === 'all' || alarm.status === statusFilter
+      const matchSeverity =
+        severityFilter === 'all' || alarm.severity === severityFilter
 
-    return rules
-      .filter((rule) => {
-        const isActive = Boolean(rule.is_active)
-        if (ruleFilter === 'active') return isActive
-        if (ruleFilter === 'disabled') return !isActive
-        if (ruleFilter === 'critical') return rule.severity === 'critical'
-        if (ruleFilter === 'warning') return rule.severity === 'warning'
-        return true
-      })
-      .filter((rule) => {
-        if (!search || activeTab !== 'rules') return true
-
-        const deviceId = getDeviceId(rule)
-        const deviceName = getDeviceName(deviceId).toLowerCase()
-        const metricMeta = getMetricMeta(deviceId, rule.metric)
-        const haystack = [
-          deviceName,
-          metricMeta.label,
-          rule.metric,
-          rule.operator,
-          rule.threshold,
-          rule.severity,
-          rule.is_active ? 'active' : 'disabled',
-        ]
-          .join(' ')
-          .toLowerCase()
-
-        return haystack.includes(search)
-      })
-  }, [rules, ruleFilter, query, devices, deviceMetrics, activeTab])
-
-  const currentStats = activeTab === 'events' ? alarmStats : ruleStats
+      return matchSearch && matchStatus && matchSeverity
+    })
+  }, [alarms, search, statusFilter, severityFilter, deviceMetrics])
 
   return (
-    <div className="unified-page alarms-page">
-      <header className="unified-page-header">
+    <div className="page app-page alarms-page">
+      <section className="app-page-header">
         <div>
-          <span className="page-eyebrow">Operation Center</span>
-          <h1>Alarm Center</h1>
-          <p>
-            ติดตาม Alarm Events และตรวจสอบ Alarm Rules ทั้งหมดในระบบจากหน้าเดียว
-          </p>
+          <span className="page-eyebrow">Alarm Center</span>
+          <h2>Alarms</h2>
+          <p>ติดตาม Alarm Events และ Alarm Rules ของอุปกรณ์ทั้งหมด</p>
         </div>
 
-        <div className="unified-header-actions">
-          <button type="button" className="ghost-button" onClick={loadData}>
-            Refresh
-          </button>
-        </div>
-      </header>
-
-      <section className="unified-stat-grid five">
-        {activeTab === 'events' ? (
-          <>
-            <StatCard label="Total Alarms" value={currentStats.total} />
-            <StatCard
-              label="Active"
-              value={currentStats.active}
-              tone="critical"
-            />
-            <StatCard
-              label="Critical"
-              value={currentStats.critical}
-              tone="critical"
-            />
-            <StatCard
-              label="Warning"
-              value={currentStats.warning}
-              tone="warning"
-            />
-            <StatCard
-              label="Acknowledged"
-              value={currentStats.acknowledged}
-              tone="muted"
-            />
-          </>
-        ) : (
-          <>
-            <StatCard label="Total Rules" value={currentStats.total} />
-            <StatCard
-              label="Active"
-              value={currentStats.active}
-              tone="online"
-            />
-            <StatCard
-              label="Critical"
-              value={currentStats.critical}
-              tone="critical"
-            />
-            <StatCard
-              label="Warning"
-              value={currentStats.warning}
-              tone="warning"
-            />
-            <StatCard
-              label="Protected Devices"
-              value={currentStats.protectedDevices}
-            />
-          </>
-        )}
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={loadData}
+          disabled={loading || saving}
+        >
+          <RefreshCw size={17} />
+          Refresh
+        </button>
       </section>
 
-      {(message || error) && (
-        <section className="unified-feedback-card">
-          {message && <div className="auth-success">{message}</div>}
-          {error && <div className="auth-error">{error}</div>}
-        </section>
-      )}
+      <section className="app-summary-grid compact-summary-grid">
+        <div className="app-summary-card compact-summary-card">
+          <span>Total</span>
+          <strong>{summary.total}</strong>
+        </div>
 
-      <section className="unified-card">
-        <div className="unified-card-header with-actions">
+        <div className="app-summary-card compact-summary-card alarm-summary-card">
+          <span>Active</span>
+          <strong>{summary.active}</strong>
+        </div>
+
+        <div className="app-summary-card compact-summary-card">
+          <span>Critical</span>
+          <strong>{summary.critical}</strong>
+        </div>
+
+        <div className="app-summary-card compact-summary-card">
+          <span>Warning</span>
+          <strong>{summary.warning}</strong>
+        </div>
+
+        <div className="app-summary-card compact-summary-card">
+          <span>Acknowledged</span>
+          <strong>{summary.acknowledged}</strong>
+        </div>
+      </section>
+
+      <section className="app-card">
+        <div className="app-section-title">
           <div>
-            <h2>{activeTab === 'events' ? 'Alarm Events' : 'Alarm Rules'}</h2>
-            <p>
-              {activeTab === 'events'
-                ? 'รายการ Alarm ล่าสุด ระบบจะ refresh อัตโนมัติทุก 10 วินาที'
-                : 'รายการกฎแจ้งเตือนที่ตั้งค่าไว้ โดยสร้างและแก้ไขจากหน้า Device แต่ละตัว'}
-            </p>
-          </div>
-
-          <div className="unified-toolbar compact">
-            <div className="device-view-switch">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.value}
-                  type="button"
-                  className={activeTab === tab.value ? 'active' : ''}
-                  onClick={() => {
-                    setActiveTab(tab.value)
-                    setQuery('')
-                  }}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="unified-search-box">
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={
-                  activeTab === 'events'
-                    ? 'Search alarm, device, metric...'
-                    : 'Search rule, device, metric...'
-                }
-              />
-            </div>
-
-            {activeTab === 'events' ? (
-              <>
-                <select
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
-                >
-                  {STATUS_FILTERS.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={severityFilter}
-                  onChange={(event) => setSeverityFilter(event.target.value)}
-                >
-                  {SEVERITY_FILTERS.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </>
-            ) : (
-              <select
-                value={ruleFilter}
-                onChange={(event) => setRuleFilter(event.target.value)}
-              >
-                {RULE_FILTERS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            )}
+            <h2>Alarm Events</h2>
+            <p>รายการแจ้งเตือนล่าสุดจาก Dynamic Metrics</p>
           </div>
         </div>
 
-        {loading && (
-          <div className="unified-loading">
-            {activeTab === 'events' ? 'Loading alarms...' : 'Loading rules...'}
-          </div>
-        )}
+        <div className="alarm-toolbar">
+          <label className="search-input">
+            <Search size={16} />
+            <input
+              value={search}
+              placeholder="Search device, metric, severity..."
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
 
-        {!loading && activeTab === 'events' && filteredAlarms.length === 0 && (
-          <div className="unified-empty-state">
-            <h3>No alarms found</h3>
-            <p>ยังไม่มี Alarm ในเงื่อนไขที่เลือก</p>
-          </div>
-        )}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="acknowledged">Acknowledged</option>
+          </select>
 
-        {!loading && activeTab === 'rules' && filteredRules.length === 0 && (
-          <div className="unified-empty-state">
-            <h3>No rules found</h3>
-            <p>ยังไม่มี Alarm Rule ในเงื่อนไขที่เลือก</p>
-          </div>
-        )}
+          <select
+            value={severityFilter}
+            onChange={(e) => setSeverityFilter(e.target.value)}
+          >
+            <option value="all">All Severity</option>
+            <option value="critical">Critical</option>
+            <option value="warning">Warning</option>
+          </select>
+        </div>
 
-        {!loading && activeTab === 'events' && filteredAlarms.length > 0 && (
-          <div className="unified-table-wrap">
-            <table className="unified-table alarms-table">
+        {loading ? (
+          <div className="app-empty-state">
+            <h3>กำลังโหลดข้อมูล</h3>
+            <p>กำลังดึงข้อมูล Alarm จาก Backend</p>
+          </div>
+        ) : filteredAlarms.length === 0 ? (
+          <div className="app-empty-state">
+            <Bell size={30} />
+            <h3>ยังไม่มี Alarm</h3>
+            <p>เมื่อมีค่าเกินเงื่อนไข ระบบจะแสดงรายการที่นี่</p>
+          </div>
+        ) : (
+          <div className="alarm-table-wrap">
+            <table className="device-v2-table alarm-table">
               <thead>
                 <tr>
-                  <th>Time</th>
                   <th>Device</th>
-                  <th>Alarm</th>
-                  <th>Current</th>
-                  <th>Threshold</th>
+                  <th>Metric</th>
+                  <th>Condition</th>
+                  <th>Value</th>
                   <th>Severity</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th>Triggered</th>
+                  <th />
                 </tr>
               </thead>
+
               <tbody>
                 {filteredAlarms.map((alarm) => {
-                  const severity = alarm.severity?.toLowerCase() || 'warning'
-                  const isActive = alarm.status === 'active'
-                  const metricMeta = getAlarmMetricMeta(alarm)
-                  const metricLabel = metricMeta.displayName
-                  const unit = metricMeta.unit
+                  const metricInfo = getMetricInfo(
+                    alarm.device_id,
+                    alarm.metric
+                  )
 
                   return (
-                    <tr key={alarm.id} className={isActive ? 'active-row' : ''}>
+                    <tr key={alarm.id}>
                       <td>
-                        <strong>{formatDateTime(alarm.triggered_at)}</strong>
+                        <strong>{alarm.device_name || 'Unnamed Device'}</strong>
                         <span>
-                          Ack: {formatDateTime(alarm.acknowledged_at)}
+                          {alarm.device_code || `ID ${alarm.device_id}`}
                         </span>
                       </td>
 
                       <td>
-                        <strong>{alarm.device_name || 'Unknown Device'}</strong>
-                        <span>
-                          {alarm.device_code || `Device #${alarm.device_id}`}
-                        </span>
+                        <strong>{alarm.metric_name || metricInfo.name}</strong>
+                        <span>{alarm.metric}</span>
                       </td>
 
                       <td>
-                        <strong>{metricLabel}</strong>
-                        <span>Metric abnormal detected</span>
-                      </td>
-
-                      <td>
-                        <strong>{formatMetricValue(alarm.value, unit)}</strong>
+                        {alarm.operator}{' '}
+                        {formatValue(alarm.threshold, metricInfo.unit)}
                       </td>
 
                       <td>
                         <strong>
-                          {alarm.operator}{' '}
-                          {formatMetricValue(alarm.threshold, unit)}
+                          {formatValue(alarm.value, metricInfo.unit)}
                         </strong>
                       </td>
 
                       <td>
-                        <span className={`status-pill ${severity}`}>
-                          {severity}
+                        <span className={`status ${alarm.severity}`}>
+                          {getSeverityLabel(alarm.severity)}
                         </span>
                       </td>
 
                       <td>
-                        <span
-                          className={
-                            isActive
-                              ? 'status-pill critical'
-                              : 'status-pill muted'
-                          }
-                        >
-                          {alarm.status}
+                        <span className={`status ${alarm.status}`}>
+                          {getStatusLabel(alarm.status)}
                         </span>
                       </td>
 
+                      <td>{formatDate(alarm.triggered_at)}</td>
+
                       <td>
-                        {isActive ? (
+                        {alarm.status === 'active' && (
                           <button
                             type="button"
-                            className="primary-button"
-                            disabled={actionLoading === String(alarm.id)}
+                            className="save-btn"
+                            disabled={saving}
                             onClick={() => handleAcknowledge(alarm.id)}
                           >
-                            {actionLoading === String(alarm.id)
-                              ? 'Processing...'
-                              : 'Acknowledge'}
+                            <CheckCircle2 size={15} />
+                            Ack
                           </button>
-                        ) : (
-                          <span className="status-pill muted">Done</span>
                         )}
                       </td>
                     </tr>
@@ -627,10 +394,25 @@ function Alarms() {
             </table>
           </div>
         )}
+      </section>
 
-        {!loading && activeTab === 'rules' && filteredRules.length > 0 && (
-          <div className="unified-table-wrap">
-            <table className="unified-table alarm-rules-table">
+      <section className="app-card">
+        <div className="app-section-title">
+          <div>
+            <h2>Alarm Rules</h2>
+            <p>Rule ทั้งหมดที่ตั้งไว้ในหน้า Device</p>
+          </div>
+        </div>
+
+        {rules.length === 0 ? (
+          <div className="app-empty-state">
+            <AlertTriangle size={30} />
+            <h3>ยังไม่มี Alarm Rule</h3>
+            <p>ไปที่หน้า Device → Manage เพื่อตั้ง Rule ให้แต่ละ Metric</p>
+          </div>
+        ) : (
+          <div className="alarm-table-wrap">
+            <table className="device-v2-table alarm-table">
               <thead>
                 <tr>
                   <th>Device</th>
@@ -638,70 +420,65 @@ function Alarms() {
                   <th>Condition</th>
                   <th>Severity</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th>Created</th>
+                  <th />
                 </tr>
               </thead>
+
               <tbody>
-                {filteredRules.map((rule) => {
-                  const severity = rule.severity || 'warning'
-                  const isActive = Boolean(rule.is_active)
-                  const deviceId = getDeviceId(rule)
-                  const metricMeta = getMetricMeta(deviceId, rule.metric)
+                {rules.map((rule) => {
+                  const metricInfo = getMetricInfo(rule.device_id, rule.metric)
 
                   return (
                     <tr key={rule.id}>
                       <td>
-                        <strong>{getDeviceName(deviceId)}</strong>
-                        <span>Rule #{rule.id}</span>
-                      </td>
-
-                      <td>{metricMeta.label}</td>
-
-                      <td>
-                        <strong>
-                          {metricMeta.label} {rule.operator}{' '}
-                          {formatMetricValue(rule.threshold, metricMeta.unit)}
-                        </strong>
-                      </td>
-
-                      <td>
-                        <span className={`status-pill ${severity}`}>
-                          {severity}
+                        <strong>{rule.device_name || 'Unnamed Device'}</strong>
+                        <span>
+                          {rule.device_code || `ID ${rule.device_id}`}
                         </span>
                       </td>
 
                       <td>
-                        <span
+                        <strong>{rule.metric_name || metricInfo.name}</strong>
+                        <span>{rule.metric}</span>
+                      </td>
+
+                      <td>
+                        {rule.operator}{' '}
+                        {formatValue(rule.threshold, metricInfo.unit)}
+                      </td>
+
+                      <td>
+                        <span className={`status ${rule.severity}`}>
+                          {getSeverityLabel(rule.severity)}
+                        </span>
+                      </td>
+
+                      <td>
+                        <button
+                          type="button"
                           className={
-                            isActive
-                              ? 'status-pill online'
-                              : 'status-pill muted'
+                            rule.is_active ? 'status online' : 'status offline'
                           }
+                          disabled={saving}
+                          onClick={() => handleToggleRule(rule)}
                         >
-                          {isActive ? 'Active' : 'Disabled'}
-                        </span>
+                          {rule.is_active ? 'Active' : 'Disabled'}
+                        </button>
                       </td>
 
-                      <td>
-                        <div className="unified-row-actions">
-                          <button
-                            type="button"
-                            className="ghost-button"
-                            disabled={actionLoading === String(rule.id)}
-                            onClick={() => handleRuleToggle(rule)}
-                          >
-                            {isActive ? 'Disable' : 'Enable'}
-                          </button>
+                      <td>{formatDate(rule.created_at)}</td>
 
-                          <button
-                            type="button"
-                            className="delete-btn"
-                            disabled={actionLoading === String(rule.id)}
-                            onClick={() => handleRuleDelete(rule.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
+                      <td>
+                        <button
+                          type="button"
+                          className="delete-btn"
+                          disabled={saving}
+                          onClick={() => handleDeleteRule(rule.id)}
+                        >
+                          <Trash2 size={15} />
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   )

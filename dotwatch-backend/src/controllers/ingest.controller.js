@@ -29,6 +29,12 @@ function normalizeMetrics(data) {
   return legacyMetrics
 }
 
+function normalizeFiniteMetrics(metrics) {
+  return Object.entries(metrics)
+    .filter(([, value]) => typeof value === 'number' && Number.isFinite(value))
+    .map(([metricKey, value]) => [metricKey, value])
+}
+
 export async function ingestReading(req, res) {
   const data = ingestSchema.parse(req.body)
   const device = req.device
@@ -44,42 +50,38 @@ export async function ingestReading(req, res) {
   }
 
   const metrics = normalizeMetrics(data)
-  console.log('METRICS:', metrics)
+  const values = normalizeFiniteMetrics(metrics)
 
-  if (!Object.keys(metrics).length) {
+  if (!values.length) {
     return res.status(400).json({
-      message: 'No metrics provided',
+      message: 'No valid metrics provided',
     })
   }
 
   const time = data.timestamp || new Date().toISOString()
 
-  await pool.query('BEGIN')
+  const client = await pool.connect()
 
   try {
-    const values = Object.entries(metrics).filter(
-      ([, value]) => typeof value === 'number' && Number.isFinite(value)
-    )
+    await client.query('BEGIN')
 
     for (const [metricKey, value] of values) {
-      console.log('INSERT:', metricKey, value)
-
-      await pool.query(
+      await client.query(
         `
-    INSERT INTO device_metric_readings (
-      time,
-      device_id,
-      metric_key,
-      value
-    )
-    VALUES ($1, $2, $3, $4)
-    `,
+        INSERT INTO device_metric_readings (
+          time,
+          device_id,
+          metric_key,
+          value
+        )
+        VALUES ($1, $2, $3, $4)
+        `,
         [time, device.id, metricKey, value]
       )
     }
 
     if (data.temperature != null && data.humidity != null) {
-      await pool.query(
+      await client.query(
         `
         INSERT INTO sensor_readings (
           time,
@@ -94,7 +96,7 @@ export async function ingestReading(req, res) {
       )
     }
 
-    const deviceResult = await pool.query(
+    const deviceResult = await client.query(
       `
       UPDATE devices d
       SET
@@ -113,14 +115,26 @@ export async function ingestReading(req, res) {
         d.name,
         d.status,
         d.last_seen_at,
+        d.last_ingest_at,
         d.firmware_version
       `,
       [device.id, data.firmwareVersion || null]
     )
 
-    await pool.query('COMMIT')
+    await client.query('COMMIT')
 
     const updatedDevice = deviceResult.rows[0]
+
+    const latestMetrics = Object.fromEntries(values)
+
+    const alerts = await checkAlarms({
+      userId: updatedDevice.user_id,
+      deviceId: updatedDevice.id,
+      reading: {
+        time,
+        ...latestMetrics,
+      },
+    })
 
     broadcastToUser(updatedDevice.firebase_uid, {
       type: 'reading',
@@ -132,18 +146,11 @@ export async function ingestReading(req, res) {
         name: updatedDevice.name,
         status: updatedDevice.status,
         last_seen_at: updatedDevice.last_seen_at,
+        last_ingest_at: updatedDevice.last_ingest_at,
         firmware_version: updatedDevice.firmware_version,
         latest_time: time,
-        metrics,
-      },
-    })
-
-    const alerts = await checkAlarms({
-      userId: updatedDevice.user_id,
-      deviceId: updatedDevice.id,
-      reading: {
-        time,
-        ...metrics,
+        latest_metrics: latestMetrics,
+        metrics: latestMetrics,
       },
     })
 
@@ -160,11 +167,15 @@ export async function ingestReading(req, res) {
         deviceId: updatedDevice.id,
         deviceCode: updatedDevice.device_code,
         time,
-        metrics,
+        latest_metrics: latestMetrics,
+        metrics: latestMetrics,
+        alerts,
       },
     })
   } catch (error) {
-    await pool.query('ROLLBACK')
+    await client.query('ROLLBACK')
     throw error
+  } finally {
+    client.release()
   }
 }

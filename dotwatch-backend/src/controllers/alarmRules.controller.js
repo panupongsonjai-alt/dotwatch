@@ -2,6 +2,11 @@ import { pool } from '../db/pool.js'
 
 export async function listAlarmRules(req, res) {
   const user = req.dbUser
+  if (!user?.id) {
+    return res.status(401).json({
+      message: 'User not loaded',
+    })
+  }
 
   const result = await pool.query(
     `
@@ -41,6 +46,12 @@ export async function listAlarmRules(req, res) {
 
 export async function createAlarmRule(req, res) {
   const user = req.dbUser
+
+  if (!user?.id) {
+    return res.status(401).json({
+      message: 'User not loaded',
+    })
+  }
 
   const { device_id, metric, metric_key, operator, threshold, severity } =
     req.body
@@ -135,6 +146,12 @@ export async function createAlarmRule(req, res) {
 
 export async function updateAlarmRule(req, res) {
   const user = req.dbUser
+  if (!user?.id) {
+    return res.status(401).json({
+      message: 'User not loaded',
+    })
+  }
+
   const { id } = req.params
 
   const {
@@ -245,6 +262,11 @@ export async function updateAlarmRule(req, res) {
 
 export async function deleteAlarmRule(req, res) {
   const user = req.dbUser
+  if (!user?.id) {
+    return res.status(401).json({
+      message: 'User not loaded',
+    })
+  }
   const { id } = req.params
 
   const result = await pool.query(

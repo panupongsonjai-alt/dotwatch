@@ -1,11 +1,15 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState } from 'react'
 
-const AlarmContext = createContext();
+const AlarmContext = createContext()
 
 export function AlarmProvider({ children }) {
-  const [alarms, setAlarms] = useState([]);
+  const [alarms, setAlarms] = useState([])
 
   function addAlarm(alarm) {
+    if (alarm.severity === 'critical') {
+      alert(`🚨 Critical Alarm\n\n${alarm.metric}\nValue: ${alarm.value}`)
+    }
+
     setAlarms((prev) =>
       [
         {
@@ -13,16 +17,16 @@ export function AlarmProvider({ children }) {
           ...alarm,
         },
         ...prev,
-      ].slice(0, 50),
-    );
+      ].slice(0, 50)
+    )
   }
 
   function clearAlarms() {
-    setAlarms([]);
+    setAlarms([])
   }
 
   function removeAlarm(id) {
-    setAlarms((prev) => prev.filter((alarm) => alarm.id !== id));
+    setAlarms((prev) => prev.filter((alarm) => alarm.id !== id))
   }
 
   function acknowledgeAlarmLocal(id) {
@@ -31,17 +35,17 @@ export function AlarmProvider({ children }) {
         alarm.id === id
           ? {
               ...alarm,
-              status: "acknowledged",
+              status: 'acknowledged',
               acknowledged_at: new Date().toISOString(),
             }
-          : alarm,
-      ),
-    );
+          : alarm
+      )
+    )
   }
 
   const activeAlarmCount = useMemo(() => {
-    return alarms.filter((alarm) => alarm.status !== "acknowledged").length;
-  }, [alarms]);
+    return alarms.filter((alarm) => alarm.status !== 'acknowledged').length
+  }, [alarms])
 
   return (
     <AlarmContext.Provider
@@ -56,9 +60,9 @@ export function AlarmProvider({ children }) {
     >
       {children}
     </AlarmContext.Provider>
-  );
+  )
 }
 
 export function useAlarm() {
-  return useContext(AlarmContext);
+  return useContext(AlarmContext)
 }

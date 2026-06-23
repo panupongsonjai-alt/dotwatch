@@ -19,11 +19,16 @@ router.get(
       `
       SELECT
         ar.*,
-        d.name AS device_name
+        d.name AS device_name,
+        dm.metric_name,
+        dm.unit
       FROM alarm_rules ar
       LEFT JOIN devices d
         ON d.id = ar.device_id
-      WHERE d.user_id = $1
+      LEFT JOIN device_metrics dm
+        ON dm.device_id = ar.device_id
+        AND dm.metric_key = ar.metric
+      WHERE ar.user_id = $1
       ORDER BY ar.id DESC
       `,
       [req.dbUser.id]
@@ -47,19 +52,33 @@ router.post(
       severity = 'warning',
     } = req.body
 
+    if (!device_id) {
+      return res.status(400).json({
+        message: 'Device is required',
+      })
+    }
+
+    if (!metric) {
+      return res.status(400).json({
+        message: 'Metric is required',
+      })
+    }
+
     const result = await pool.query(
       `
       INSERT INTO alarm_rules (
+        user_id,
         device_id,
         metric,
         operator,
         threshold,
-        severity
+        severity,
+        is_active
       )
-      VALUES ($1,$2,$3,$4,$5)
+      VALUES ($1,$2,$3,$4,$5,$6,true)
       RETURNING *
       `,
-      [device_id, metric, operator, threshold, severity]
+      [req.dbUser.id, device_id, metric, operator, Number(threshold), severity]
     )
 
     res.status(201).json(result.rows[0])
@@ -72,7 +91,7 @@ router.post(
 router.put(
   '/:id',
   asyncHandler(async (req, res) => {
-    const { metric, operator, threshold, severity, enabled } = req.body
+    const { metric, operator, threshold, severity, is_active } = req.body
 
     const result = await pool.query(
       `
@@ -82,11 +101,20 @@ router.put(
         operator = $2,
         threshold = $3,
         severity = $4,
-        enabled = $5
+        is_active = COALESCE($5, is_active)
       WHERE id = $6
+        AND user_id = $7
       RETURNING *
       `,
-      [metric, operator, threshold, severity, enabled, req.params.id]
+      [
+        metric,
+        operator,
+        Number(threshold),
+        severity,
+        is_active,
+        req.params.id,
+        req.dbUser.id,
+      ]
     )
 
     if (!result.rows.length) {
@@ -105,15 +133,25 @@ router.put(
 router.delete(
   '/:id',
   asyncHandler(async (req, res) => {
-    await pool.query(
+    const result = await pool.query(
       `
       DELETE FROM alarm_rules
       WHERE id = $1
+        AND user_id = $2
+      RETURNING id
       `,
-      [req.params.id]
+      [req.params.id, req.dbUser.id]
     )
 
-    res.json({ success: true })
+    if (!result.rows.length) {
+      return res.status(404).json({
+        message: 'Alarm rule not found',
+      })
+    }
+
+    res.json({
+      success: true,
+    })
   })
 )
 
