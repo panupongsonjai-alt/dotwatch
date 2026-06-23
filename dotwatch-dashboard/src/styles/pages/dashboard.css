@@ -1,6 +1,6 @@
 /* =========================================================
-   Dashboard Page
-   dotWatch Dashboard / Summary / Overview / Alarm Column
+   Dashboard Page V2
+   dotWatch Operations Center / KPI / Overview / Alarm Column
 ========================================================= */
 
 .dashboard-page {
@@ -8,10 +8,66 @@
   gap: 20px;
 }
 
+.dashboard-v2-page {
+  align-content: start;
+}
+
+.dashboard-hero-card {
+  align-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 96% 0%, rgba(37, 99, 235, 0.16), transparent 28%),
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 42%),
+    var(--panel);
+}
+
+.dashboard-hero-content h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: 32px;
+  line-height: 1.08;
+  font-weight: 950;
+  letter-spacing: -0.05em;
+}
+
+.dashboard-hero-content p {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dashboard-hero-meta {
+  min-width: 160px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  text-align: right;
+}
+
+.dashboard-hero-meta span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dashboard-hero-meta strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 900;
+}
+
 .summary-grid,
 .stats-grid,
 .app-summary-grid,
-.compact-summary-grid {
+.compact-summary-grid,
+.dashboard-kpi-grid {
   display: grid;
   gap: 12px;
 }
@@ -31,9 +87,15 @@
   gap: 12px;
 }
 
+.dashboard-kpi-grid,
+.app-summary-grid.dashboard-kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .summary-card,
 .stat-card,
-.compact-summary-card {
+.compact-summary-card,
+.dashboard-kpi-card {
   position: relative;
   overflow: hidden;
   min-height: 98px;
@@ -48,15 +110,17 @@
     border-color 0.18s ease;
 }
 
-.compact-summary-card {
-  min-height: 82px !important;
-  padding: 13px 15px !important;
-  border-radius: 16px;
+.compact-summary-card,
+.dashboard-kpi-card {
+  min-height: 94px !important;
+  padding: 16px !important;
+  border-radius: 18px;
 }
 
 .summary-card:hover,
 .stat-card:hover,
-.compact-summary-card:hover {
+.compact-summary-card:hover,
+.dashboard-kpi-card:hover {
   transform: translateY(-2px);
   border-color: rgba(37, 99, 235, 0.32);
   box-shadow: var(--shadow-lift, var(--shadow-hover));
@@ -64,7 +128,8 @@
 
 .summary-card::before,
 .stat-card::before,
-.compact-summary-card::before {
+.compact-summary-card::before,
+.dashboard-kpi-card::before {
   content: '';
   position: absolute;
   inset: 0 0 auto;
@@ -73,9 +138,22 @@
   opacity: 0.9;
 }
 
+.dashboard-kpi-card.online::before {
+  background: linear-gradient(90deg, var(--success), #86efac);
+}
+
+.dashboard-kpi-card.offline::before {
+  background: linear-gradient(90deg, var(--danger), #fca5a5);
+}
+
+.dashboard-kpi-card.alarm::before {
+  background: linear-gradient(90deg, var(--warning), #fde68a);
+}
+
 .summary-card span,
 .stat-card h3,
-.compact-summary-card span {
+.compact-summary-card span,
+.dashboard-kpi-card span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 900;
@@ -85,14 +163,27 @@
 
 .summary-card strong,
 .stat-card strong,
-.compact-summary-card strong {
+.compact-summary-card strong,
+.dashboard-kpi-card strong {
   display: block;
-  margin-top: 7px;
+  margin-top: 9px;
   color: var(--text);
-  font-size: 28px !important;
+  font-size: 32px !important;
   line-height: 1;
-  font-weight: 900;
-  letter-spacing: -0.05em;
+  font-weight: 950;
+  letter-spacing: -0.06em;
+}
+
+.dashboard-kpi-card.online strong {
+  color: var(--success);
+}
+
+.dashboard-kpi-card.offline strong {
+  color: var(--danger);
+}
+
+.dashboard-kpi-card.alarm strong {
+  color: var(--warning);
 }
 
 .dashboard-main-grid {
@@ -100,7 +191,7 @@
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: 18px;
   align-items: start;
-  margin-top: 20px;
+  margin-top: 0;
 }
 
 .dashboard-alarm-column {
@@ -108,40 +199,138 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: sticky;
+  top: 96px;
 }
 
-.devices-overview-panel {
+.devices-overview-panel,
+.dashboard-overview-panel {
   min-height: auto;
 }
 
-.overview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+.dashboard-section-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 14px;
 }
 
+.dashboard-section-title-row h2 {
+  margin: 0;
+}
+
+.device-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.overview-grid,
+.dashboard-device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
 .overview-card,
-.overview-card.compact {
+.overview-card.compact,
+.dashboard-device-card-v2 {
   transition:
     transform 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
 
-.overview-card.compact {
-  min-height: 140px;
-  padding: 14px 16px;
+.overview-card.compact,
+.dashboard-device-card-v2 {
+  min-height: 128px;
+  padding: 14px;
   border-radius: 18px;
   background: var(--panel-2);
   border: 1px solid var(--border);
   cursor: pointer;
+  color: var(--text);
+  text-align: left;
+}
+
+.dashboard-device-card-v2 {
+  width: 100%;
+  display: grid;
+  gap: 10px;
 }
 
 .overview-card:hover,
-.overview-card.compact:hover {
+.overview-card.compact:hover,
+.dashboard-device-card-v2:hover {
   transform: translateY(-3px);
-  border-color: var(--primary);
+  border-color: rgba(37, 99, 235, 0.45);
   box-shadow: var(--shadow-hover);
+}
+
+.dashboard-device-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.device-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--danger);
+  box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.12);
+}
+
+.device-status-dot.online {
+  background: var(--success);
+  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.12);
+}
+
+.device-status-dot.warning {
+  background: var(--warning);
+  box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.14);
+}
+
+.device-status-dot.critical,
+.device-status-dot.offline {
+  background: var(--danger);
+  box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.12);
+}
+
+.dashboard-device-title {
+  min-width: 0;
+}
+
+.dashboard-device-title strong {
+  display: block;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 950;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-device-title span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .overview-name {
@@ -154,31 +343,70 @@
   text-overflow: ellipsis;
 }
 
+.device-model-badge,
+.dashboard-model-badge {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .overview-values,
-.dynamic-overview-values {
+.dynamic-overview-values,
+.dashboard-metric-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 8px;
   flex-wrap: wrap;
   color: var(--text);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .overview-values span,
-.dynamic-overview-values span {
-  display: flex;
+.dynamic-overview-values span,
+.dashboard-metric-row span {
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   min-width: fit-content;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
 }
 
-.device-model-badge {
-  display: inline-flex;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 11px;
+.dashboard-metric-row b {
+  color: var(--text);
+  font-weight: 950;
+}
+
+.overview-last-update {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.dashboard-empty-state {
+  min-height: 220px;
+}
+
+.dashboard-map-section {
+  min-width: 0;
+}
+
+.dashboard-map-section .device-map-wrapper,
+.dashboard-map-section .device-map-empty,
+.dashboard-map-section .dashboard-map {
+  height: 340px;
 }
 
 @media (max-width: 1200px) {
@@ -187,8 +415,17 @@
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 
+  .dashboard-kpi-grid,
+  .app-summary-grid.dashboard-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .dashboard-main-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-alarm-column {
+    position: static;
   }
 }
 
@@ -198,12 +435,24 @@
   .app-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .dashboard-hero-card,
+  .dashboard-section-title-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard-hero-meta {
+    text-align: left;
+  }
 }
 
 @media (max-width: 560px) {
   .summary-grid,
   .stats-grid,
-  .app-summary-grid {
+  .app-summary-grid,
+  .dashboard-kpi-grid,
+  .app-summary-grid.dashboard-kpi-grid {
     grid-template-columns: 1fr;
   }
 
@@ -212,13 +461,30 @@
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
-  .compact-summary-card {
-    min-height: 78px !important;
+  .compact-summary-card,
+  .dashboard-kpi-card {
+    min-height: 84px !important;
   }
 
   .summary-card strong,
   .stat-card strong,
-  .compact-summary-card strong {
-    font-size: 22px !important;
+  .compact-summary-card strong,
+  .dashboard-kpi-card strong {
+    font-size: 26px !important;
+  }
+
+  .dashboard-hero-content h1 {
+    font-size: 25px;
+  }
+
+  .overview-grid,
+  .dashboard-device-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-map-section .device-map-wrapper,
+  .dashboard-map-section .device-map-empty,
+  .dashboard-map-section .dashboard-map {
+    height: 300px;
   }
 }

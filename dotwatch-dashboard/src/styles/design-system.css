@@ -1,0 +1,377 @@
+/* =========================================================
+   dotWatch Design System - Common UI Components
+   Phase 7
+========================================================= */
+
+.dw-page-header {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px;
+  border-radius: var(--radius-xl, 24px);
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 36%),
+    var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft, var(--shadow));
+}
+
+.dw-page-header::after {
+  content: '';
+  position: absolute;
+  right: -84px;
+  top: -84px;
+  width: 190px;
+  height: 190px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  pointer-events: none;
+}
+
+.dw-page-header-main,
+.dw-page-header-actions {
+  position: relative;
+  z-index: 1;
+}
+
+.dw-page-header-main h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: 30px;
+  line-height: 1.12;
+  font-weight: 950;
+  letter-spacing: -0.045em;
+}
+
+.dw-page-header-main p {
+  max-width: 720px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.dw-page-header-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.dw-page-header-actions,
+.dw-section-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dw-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.dw-section-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+.dw-section-header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.dw-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 30px;
+  gap: 7px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: capitalize;
+  border: 1px solid transparent;
+}
+
+.dw-status-badge.sm {
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.dw-status-badge.lg {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.dw-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.dw-status-badge.online,
+.dw-status-badge.healthy,
+.dw-status-badge.active {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.24);
+}
+
+.dw-status-badge.warning {
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.13);
+  border-color: rgba(245, 158, 11, 0.26);
+}
+
+.dw-status-badge.offline,
+.dw-status-badge.critical {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.dw-status-badge.acknowledged {
+  color: var(--info);
+  background: rgba(14, 165, 233, 0.12);
+  border-color: rgba(14, 165, 233, 0.24);
+}
+
+.dw-stat-card,
+.dw-metric-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-card, 18px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft, var(--shadow));
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.dw-stat-card:hover,
+.dw-metric-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.32);
+  box-shadow: var(--shadow-lift, var(--shadow-hover));
+}
+
+.dw-stat-card {
+  min-height: 96px;
+  padding: 18px;
+}
+
+.dw-stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), #06b6d4);
+}
+
+.dw-stat-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dw-stat-card strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.055em;
+}
+
+.dw-stat-card small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dw-stat-card.success strong {
+  color: var(--success);
+}
+
+.dw-stat-card.warning strong {
+  color: var(--warning);
+}
+
+.dw-stat-card.danger strong {
+  color: var(--danger);
+}
+
+.dw-metric-card {
+  min-height: 150px;
+  padding: 18px;
+  display: grid;
+  align-content: space-between;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 58%),
+    var(--panel-2);
+}
+
+.dw-metric-card::after {
+  content: '';
+  position: absolute;
+  right: -34px;
+  bottom: -34px;
+  width: 92px;
+  height: 92px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.dw-metric-card-top,
+.dw-metric-value-row,
+.dw-metric-card p {
+  position: relative;
+  z-index: 1;
+}
+
+.dw-metric-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dw-metric-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.dw-metric-card small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.dw-metric-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.dw-metric-value-row strong {
+  color: var(--text);
+  font-size: 40px;
+  line-height: 0.95;
+  font-weight: 950;
+  letter-spacing: -0.06em;
+}
+
+.dw-metric-value-row span {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.dw-metric-card p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.dw-empty-state {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 32px;
+  text-align: center;
+  border-radius: var(--radius-xl, 24px);
+  background: var(--panel);
+  border: 1px dashed var(--border);
+  color: var(--muted);
+}
+
+.dw-empty-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.12);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.dw-empty-state h3 {
+  margin: 8px 0 0;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.dw-empty-state p {
+  max-width: 420px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.dw-empty-action {
+  margin-top: 10px;
+}
+
+@media (max-width: 760px) {
+  .dw-page-header,
+  .dw-section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dw-page-header-actions,
+  .dw-section-actions {
+    justify-content: flex-start;
+  }
+
+  .dw-page-header-main h1 {
+    font-size: 24px;
+  }
+
+  .dw-metric-value-row strong {
+    font-size: 34px;
+  }
+}

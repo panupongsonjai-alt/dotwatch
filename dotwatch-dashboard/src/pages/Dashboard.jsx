@@ -24,14 +24,10 @@ function normalizeRealtimeDevice(reading = {}) {
     latest_metrics: latestMetrics,
     metrics: latestMetrics,
     temperature:
-      reading.temperature ??
-      latestMetrics.temperature ??
-      latestMetrics.metric_1,
-    humidity:
-      reading.humidity ?? latestMetrics.humidity ?? latestMetrics.metric_2,
+      reading.temperature ?? latestMetrics.temperature ?? latestMetrics.metric_1,
+    humidity: reading.humidity ?? latestMetrics.humidity ?? latestMetrics.metric_2,
     rssi: reading.rssi ?? latestMetrics.rssi,
-    latest_time:
-      reading.latest_time || reading.time || new Date().toISOString(),
+    latest_time: reading.latest_time || reading.time || new Date().toISOString(),
     status: reading.status || 'online',
   }
 }
@@ -42,6 +38,33 @@ function isSameDevice(device, reading) {
     String(device.id) === String(reading.device_id) ||
     String(device.device_code) === String(reading.device_code)
   )
+}
+
+function formatLastUpdate(value) {
+  if (!value) return 'No recent update'
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'No recent update'
+
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000))
+
+  if (diffSeconds < 10) return 'Just now'
+  if (diffSeconds < 60) return `${diffSeconds}s ago`
+
+  const diffMinutes = Math.floor(diffSeconds / 60)
+  if (diffMinutes < 60) return `${diffMinutes}m ago`
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+
+  return date.toLocaleString('th-TH')
+}
+
+function getStatusLabel(status) {
+  if (status === 'online') return 'Online'
+  if (status === 'warning') return 'Warning'
+  if (status === 'critical') return 'Critical'
+  return 'Offline'
 }
 
 function Dashboard({ onOpenDevice }) {
@@ -108,8 +131,7 @@ function Dashboard({ onOpenDevice }) {
 
   function loadDisplaySettings() {
     setDashboardDisplay({
-      showDeviceOverview:
-        localStorage.getItem('showDeviceOverview') !== 'false',
+      showDeviceOverview: localStorage.getItem('showDeviceOverview') !== 'false',
       showDeviceMap: localStorage.getItem('showDeviceMap') !== 'false',
     })
   }
@@ -121,18 +143,6 @@ function Dashboard({ onOpenDevice }) {
 
   function getDisplayValue(device, metric) {
     return formatMetricValue(getMetricValue(device, metric), metric.unit)
-  }
-
-  function getDeviceHealth(device) {
-    if (device.status === 'offline') {
-      return { className: 'critical' }
-    }
-
-    if (device.status === 'warning') {
-      return { className: 'warning' }
-    }
-
-    return { className: 'healthy' }
   }
 
   function updateRealtimeDevice(reading) {
@@ -194,9 +204,7 @@ function Dashboard({ onOpenDevice }) {
         }
 
         if (payload.type === 'alarm') {
-          const alarms = Array.isArray(payload.data)
-            ? payload.data
-            : [payload.data]
+          const alarms = Array.isArray(payload.data) ? payload.data : [payload.data]
 
           const validAlarms = alarms.filter(Boolean)
           validAlarms.forEach(addAlarm)
@@ -205,9 +213,7 @@ function Dashboard({ onOpenDevice }) {
 
         if (payload.type === 'alarm:sync') {
           const alarms = Array.isArray(payload.data) ? payload.data : []
-          setAlarmCount(
-            alarms.filter((alarm) => alarm.status === 'active').length
-          )
+          setAlarmCount(alarms.filter((alarm) => alarm.status === 'active').length)
         }
       })
     })
@@ -215,139 +221,132 @@ function Dashboard({ onOpenDevice }) {
     return () => {
       disconnectRealtime()
       unsubscribeAuth?.()
-      window.removeEventListener(
-        'dashboardSettingsChanged',
-        loadDisplaySettings
-      )
+      window.removeEventListener('dashboardSettingsChanged', loadDisplaySettings)
       window.removeEventListener('dotwatchMetricConfigChanged', loadDevices)
     }
   }, [addAlarm])
 
-  const onlineCount = devices.filter(
-    (device) => device.status === 'online'
-  ).length
+  const onlineCount = devices.filter((device) => device.status === 'online').length
   const offlineCount = devices.length - onlineCount
 
-  const healthSummary = devices.reduce(
-    (summary, device) => {
-      const health = getDeviceHealth(device)
-      summary[health.className] += 1
-      return summary
-    },
-    {
-      healthy: 0,
-      warning: 0,
-      critical: 0,
-    }
-  )
-
   return (
-    <div className="page app-page dashboard-page">
-      <section className="app-page-header">
-        <div>
-          <span className="page-eyebrow">Overview</span>
-          <h2>Dashboard</h2>
-          <p>ภาพรวมสถานะอุปกรณ์, Alarm และตำแหน่งล่าสุดของระบบ dotWatch</p>
+    <div className="page app-page dashboard-page dashboard-v2-page">
+      <section className="app-page-header dashboard-hero-card">
+        <div className="dashboard-hero-content">
+          <span className="page-eyebrow">Operations Center</span>
+          <h1>dotWatch Dashboard</h1>
+          <p>
+            {loading ? 'Loading devices' : `${onlineCount} Online • ${offlineCount} Offline • ${alarmCount} Active Alarm`}
+          </p>
+        </div>
+
+        <div className="dashboard-hero-meta">
+          <span>Last refresh</span>
+          <strong>{new Date().toLocaleTimeString('th-TH')}</strong>
         </div>
       </section>
 
-      <section className="app-summary-grid compact-summary-grid">
-        <div className="app-summary-card compact-summary-card">
-          <span>Total</span>
+      <section className="app-summary-grid dashboard-kpi-grid">
+        <div className="app-summary-card compact-summary-card dashboard-kpi-card">
+          <span>Total Devices</span>
           <strong>{loading ? '...' : devices.length}</strong>
         </div>
 
-        <div className="app-summary-card compact-summary-card">
+        <div className="app-summary-card compact-summary-card dashboard-kpi-card online">
           <span>Online</span>
           <strong>{loading ? '...' : onlineCount}</strong>
         </div>
 
-        <div className="app-summary-card compact-summary-card">
+        <div className="app-summary-card compact-summary-card dashboard-kpi-card offline">
           <span>Offline</span>
           <strong>{loading ? '...' : offlineCount}</strong>
         </div>
 
-        <div className="app-summary-card compact-summary-card alarm-summary-card">
-          <span>Alarm</span>
+        <div className="app-summary-card compact-summary-card dashboard-kpi-card alarm">
+          <span>Active Alarm</span>
           <strong>{alarmCount}</strong>
-        </div>
-
-        <div className="app-summary-card compact-summary-card">
-          <span>Warning</span>
-          <strong>{healthSummary.warning}</strong>
-        </div>
-
-        <div className="app-summary-card compact-summary-card">
-          <span>Critical</span>
-          <strong>{healthSummary.critical}</strong>
         </div>
       </section>
 
       <section className="dashboard-main-grid">
         {dashboardDisplay.showDeviceOverview && (
-          <section className="app-card">
-            <div className="app-section-title">
-              <h2>Devices Overview</h2>
-              <p>
-                Metric ล่าสุดจากอุปกรณ์ทั้งหมดตามชื่อและหน่วยที่ตั้งไว้ในหน้า
-                Device
-              </p>
+          <section className="app-card devices-overview-panel dashboard-overview-panel">
+            <div className="app-section-title dashboard-section-title-row">
+              <div>
+                <h2>Devices Overview</h2>
+                <p>Metric ล่าสุดจากอุปกรณ์ทั้งหมดตามชื่อและหน่วยที่ตั้งไว้ในหน้า Device</p>
+              </div>
+
+              <span className="device-count-badge">
+                {loading ? '...' : devices.length} Devices
+              </span>
             </div>
 
             {loading ? (
-              <div className="app-empty-state">
+              <div className="app-empty-state dashboard-empty-state">
                 <h3>กำลังโหลดข้อมูล</h3>
                 <p>กำลังดึงข้อมูล Device จาก Backend</p>
               </div>
             ) : devices.length === 0 ? (
-              <div className="app-empty-state">
+              <div className="app-empty-state dashboard-empty-state">
                 <h3>ไม่พบ Device</h3>
                 <p>ยังไม่มี Device ในระบบ</p>
               </div>
             ) : (
-              <div className="overview-grid">
+              <div className="overview-grid dashboard-device-grid">
                 {devices.map((device) => (
-                  <div
+                  <button
                     key={device.id}
-                    className="overview-card compact"
+                    type="button"
+                    className="overview-card compact dashboard-device-card-v2"
                     onClick={() => onOpenDevice?.(device.id)}
                   >
-                    <div className="overview-name">
-                      {device.name || device.device_code || 'Unnamed Device'}
+                    <div className="dashboard-device-card-head">
+                      <span className={`device-status-dot ${device.status || 'offline'}`} />
+                      <span className={`status-pill ${device.status || 'offline'}`}>
+                        {getStatusLabel(device.status)}
+                      </span>
+                    </div>
+
+                    <div className="dashboard-device-title">
+                      <strong>{device.name || device.device_code || 'Unnamed Device'}</strong>
+                      <span>{device.device_code || 'No device code'}</span>
                     </div>
 
                     {device.model_name && (
-                      <div className="device-model-badge">
+                      <div className="device-model-badge dashboard-model-badge">
                         {device.model_name}
                       </div>
                     )}
 
-                    <div className="overview-values dynamic-overview-values">
+                    <div className="overview-values dynamic-overview-values dashboard-metric-row">
                       {getDeviceVisibleMetrics(device).map((metric) => (
-                        <span
-                          key={metric.id || metric.metric_key}
-                          title={metric.metric_name}
-                        >
+                        <span key={metric.id || metric.metric_key} title={metric.metric_name}>
                           <MetricIcon name={metric.icon} size={14} />
-                          {metric.metric_name}:{' '}
-                          {getDisplayValue(device, metric)}
+                          <b>{getDisplayValue(device, metric)}</b>
                         </span>
                       ))}
                     </div>
-                  </div>
+
+                    <div className="overview-last-update">
+                      {formatLastUpdate(device.latest_time || device.last_ingest_at || device.last_seen_at)}
+                    </div>
+                  </button>
                 ))}
               </div>
             )}
-
-            <section className="dashboard-alarm-column">
-              <AlarmPanel />
-            </section>
           </section>
         )}
+
+        <aside className="dashboard-alarm-column">
+          <AlarmPanel />
+        </aside>
       </section>
 
       {dashboardDisplay.showDeviceMap && (
-        <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
+        <section className="dashboard-map-section">
+          <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
+        </section>
       )}
     </div>
   )
