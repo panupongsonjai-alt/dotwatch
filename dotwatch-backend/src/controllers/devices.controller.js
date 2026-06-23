@@ -14,6 +14,7 @@ export async function listDevices(req, res) {
       d.group_name,
       d.status,
       d.last_seen_at,
+      d.last_ingest_at,
       d.firmware_version,
       d.latitude,
       d.longitude,
@@ -22,13 +23,18 @@ export async function listDevices(req, res) {
       dm.model_key,
       dm.model_name,
       dm.metric_count,
+
       lr.temperature,
       lr.humidity,
       lr.rssi,
-      lr.time AS latest_time
+
+      COALESCE(lm.latest_time, lr.time) AS latest_time,
+      COALESCE(lm.latest_metrics, '{}'::jsonb) AS latest_metrics
+
     FROM devices d
     LEFT JOIN device_models dm
       ON dm.id = d.model_id
+
     LEFT JOIN LATERAL (
       SELECT time, temperature, humidity, rssi
       FROM sensor_readings
@@ -36,6 +42,22 @@ export async function listDevices(req, res) {
       ORDER BY time DESC
       LIMIT 1
     ) lr ON true
+
+    LEFT JOIN LATERAL (
+      SELECT
+        MAX(metric_latest.time) AS latest_time,
+        jsonb_object_agg(metric_latest.metric_key, metric_latest.value) AS latest_metrics
+      FROM (
+        SELECT DISTINCT ON (metric_key)
+          metric_key,
+          value,
+          time
+        FROM device_metric_readings
+        WHERE device_id = d.id
+        ORDER BY metric_key, time DESC
+      ) metric_latest
+    ) lm ON true
+
     WHERE d.user_id = $1
     ORDER BY d.created_at DESC
     `,
@@ -49,7 +71,6 @@ export async function createDevice(req, res) {
   const user = req.dbUser
 
   const name = req.body.name || 'New Device'
-
   const modelId = Number(req.body.modelId) || 1
 
   const deviceCode =
@@ -66,27 +87,45 @@ export async function createDevice(req, res) {
   try {
     await client.query('BEGIN')
 
+    const modelCheck = await client.query(
+      `
+      SELECT id
+      FROM device_models
+      WHERE id = $1
+        AND is_active = true
+      LIMIT 1
+      `,
+      [modelId]
+    )
+
+    if (!modelCheck.rows.length) {
+      await client.query('ROLLBACK')
+      return res.status(400).json({
+        message: 'Invalid device model',
+      })
+    }
+
     const deviceResult = await client.query(
       `
-        INSERT INTO devices (
-          user_id,
-          device_code,
-          name,
-          secret_hash,
-          model_id
-        )
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING
-          id,
-          device_code,
-          name,
-          model_id,
-          group_name,
-          latitude,
-          longitude,
-          map_url,
-          created_at
-        `,
+      INSERT INTO devices (
+        user_id,
+        device_code,
+        name,
+        secret_hash,
+        model_id
+      )
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING
+        id,
+        device_code,
+        name,
+        model_id,
+        group_name,
+        latitude,
+        longitude,
+        map_url,
+        created_at
+      `,
       [user.id, deviceCode, name, secretHash, modelId]
     )
 
@@ -113,10 +152,12 @@ export async function createDevice(req, res) {
         default_type,
         default_unit,
         default_icon,
-        TRUE,
+        true,
         sort_order
       FROM device_model_metrics
       WHERE model_id = $2
+      ORDER BY sort_order ASC
+      ON CONFLICT (device_id, metric_key) DO NOTHING
       `,
       [device.id, modelId]
     )
@@ -142,38 +183,59 @@ export async function getDevice(req, res) {
   const result = await pool.query(
     `
     SELECT
-  d.id,
-  d.device_code,
-  d.name,
-  d.group_name,
-  d.status,
-  d.last_seen_at,
-  d.last_ingest_at,
-  d.firmware_version,
-  d.latitude,
-  d.longitude,
-  d.map_url,
-  d.model_id,
-  dm.model_key,
-  dm.model_name,
-  dm.metric_count,
-  lr.temperature,
-  lr.humidity,
-  lr.rssi,
-  lr.time AS latest_time
-FROM devices d
-LEFT JOIN device_models dm
-  ON dm.id = d.model_id
-LEFT JOIN LATERAL (
-  SELECT time, temperature, humidity, rssi
-  FROM sensor_readings
-  WHERE device_id = d.id
-  ORDER BY time DESC
-  LIMIT 1
-) lr ON true
-WHERE d.id = $1
-  AND d.user_id = $2
-LIMIT 1
+      d.id,
+      d.device_code,
+      d.name,
+      d.group_name,
+      d.status,
+      d.last_seen_at,
+      d.last_ingest_at,
+      d.firmware_version,
+      d.latitude,
+      d.longitude,
+      d.map_url,
+      d.model_id,
+      dm.model_key,
+      dm.model_name,
+      dm.metric_count,
+
+      lr.temperature,
+      lr.humidity,
+      lr.rssi,
+
+      COALESCE(lm.latest_time, lr.time) AS latest_time,
+      COALESCE(lm.latest_metrics, '{}'::jsonb) AS latest_metrics
+
+    FROM devices d
+    LEFT JOIN device_models dm
+      ON dm.id = d.model_id
+
+    LEFT JOIN LATERAL (
+      SELECT time, temperature, humidity, rssi
+      FROM sensor_readings
+      WHERE device_id = d.id
+      ORDER BY time DESC
+      LIMIT 1
+    ) lr ON true
+
+    LEFT JOIN LATERAL (
+      SELECT
+        MAX(metric_latest.time) AS latest_time,
+        jsonb_object_agg(metric_latest.metric_key, metric_latest.value) AS latest_metrics
+      FROM (
+        SELECT DISTINCT ON (metric_key)
+          metric_key,
+          value,
+          time
+        FROM device_metric_readings
+        WHERE device_id = d.id
+        ORDER BY metric_key, time DESC
+      ) metric_latest
+    ) lm ON true
+
+    WHERE d.id = $1
+      AND d.user_id = $2
+    LIMIT 1
     `,
     [id, user.id]
   )
@@ -215,7 +277,8 @@ export async function updateDevice(req, res) {
       firmware_version,
       latitude,
       longitude,
-      map_url
+      map_url,
+      model_id
     `,
     [
       name ?? null,
@@ -295,6 +358,7 @@ export async function deleteDevice(req, res) {
 export async function getHistory(req, res) {
   const user = req.dbUser
   const { id } = req.params
+  const metricKey = req.query.metricKey || req.query.metric_key
 
   const deviceCheck = await pool.query(
     `
@@ -320,6 +384,29 @@ export async function getHistory(req, res) {
     : new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
   const toDate = req.query.to ? new Date(req.query.to) : now
+
+  if (metricKey) {
+    const result = await pool.query(
+      `
+      SELECT
+        time AS bucket_time,
+        metric_key,
+        value,
+        value AS avg_value,
+        value AS min_value,
+        value AS max_value
+      FROM device_metric_readings
+      WHERE device_id = $1
+        AND metric_key = $2
+        AND time BETWEEN $3 AND $4
+      ORDER BY time ASC
+      LIMIT 1000
+      `,
+      [id, metricKey, fromDate, toDate]
+    )
+
+    return res.json(result.rows)
+  }
 
   const diffDays =
     (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)

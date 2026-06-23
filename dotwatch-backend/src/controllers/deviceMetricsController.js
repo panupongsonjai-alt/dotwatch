@@ -1,30 +1,21 @@
 import { pool } from '../db/pool.js'
 
-const DEFAULT_METRICS = [
+const FALLBACK_METRICS = [
   {
-    metric_key: 'temperature',
-    metric_name: 'Temperature',
-    metric_type: 'temperature',
-    unit: '°C',
-    icon: 'Thermometer',
-    visible: true,
-    sort_order: 0,
-  },
-  {
-    metric_key: 'humidity',
-    metric_name: 'Humidity',
-    metric_type: 'humidity',
-    unit: '%',
-    icon: 'Droplets',
+    metric_key: 'metric_1',
+    metric_name: 'Name-01',
+    metric_type: 'custom',
+    unit: '',
+    icon: 'Activity',
     visible: true,
     sort_order: 1,
   },
   {
-    metric_key: 'rssi',
-    metric_name: 'Signal',
-    metric_type: 'signal',
-    unit: 'dBm',
-    icon: 'Wifi',
+    metric_key: 'metric_2',
+    metric_name: 'Name-02',
+    metric_type: 'custom',
+    unit: '',
+    icon: 'Activity',
     visible: true,
     sort_order: 2,
   },
@@ -67,35 +58,116 @@ function cleanMetric(metric, index) {
     visible: metric.visible !== false,
     sort_order: Number.isFinite(Number(metric.sort_order))
       ? Number(metric.sort_order)
-      : index,
+      : index + 1,
   }
 }
 
 async function ensureDeviceOwner(deviceId, userId) {
   if (!userId) {
     const result = await pool.query(
-      `SELECT id FROM devices WHERE id = $1 AND is_active = true`,
+      `
+      SELECT id
+      FROM devices
+      WHERE id = $1
+        AND is_active = true
+      `,
       [deviceId]
     )
+
     return result.rowCount > 0
   }
 
   const result = await pool.query(
-    `SELECT id FROM devices WHERE id = $1 AND user_id = $2 AND is_active = true`,
+    `
+    SELECT id
+    FROM devices
+    WHERE id = $1
+      AND user_id = $2
+      AND is_active = true
+    `,
     [deviceId, userId]
   )
 
   return result.rowCount > 0
 }
 
-async function insertDefaultMetrics(client, deviceId) {
-  for (const metric of DEFAULT_METRICS) {
+async function getDeviceModel(deviceId) {
+  const result = await pool.query(
+    `
+    SELECT
+      d.id AS device_id,
+      d.model_id,
+      dm.model_key,
+      dm.model_name,
+      dm.metric_count
+    FROM devices d
+    LEFT JOIN device_models dm
+      ON dm.id = d.model_id
+    WHERE d.id = $1
+    LIMIT 1
+    `,
+    [deviceId]
+  )
+
+  return result.rows[0] || null
+}
+
+async function insertModelMetrics(client, deviceId) {
+  const model = await getDeviceModel(deviceId)
+
+  if (model?.model_id) {
+    const result = await client.query(
+      `
+      INSERT INTO device_metrics (
+        device_id,
+        metric_key,
+        source_key,
+        metric_name,
+        metric_type,
+        unit,
+        icon,
+        visible,
+        sort_order
+      )
+      SELECT
+        $1,
+        metric_key,
+        metric_key,
+        default_name,
+        default_type,
+        default_unit,
+        default_icon,
+        true,
+        sort_order
+      FROM device_model_metrics
+      WHERE model_id = $2
+      ORDER BY sort_order ASC
+      ON CONFLICT (device_id, metric_key) DO NOTHING
+      RETURNING id
+      `,
+      [deviceId, model.model_id]
+    )
+
+    if (result.rowCount > 0) {
+      return
+    }
+  }
+
+  for (const metric of FALLBACK_METRICS) {
     await client.query(
       `
-      INSERT INTO device_metrics
-        (device_id, metric_key, metric_name, metric_type, unit, icon, visible, sort_order)
-      VALUES
-        ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO device_metrics (
+        device_id,
+        metric_key,
+        source_key,
+        metric_name,
+        metric_type,
+        unit,
+        icon,
+        visible,
+        sort_order
+      )
+      VALUES ($1, $2, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (device_id, metric_key) DO NOTHING
       `,
       [
@@ -119,6 +191,7 @@ async function getMetrics(deviceId) {
       id,
       device_id,
       metric_key,
+      source_key,
       metric_name,
       metric_type,
       unit,
@@ -145,21 +218,26 @@ export async function listDeviceMetrics(req, res) {
     const deviceId = Number(req.params.deviceId)
 
     if (!Number.isInteger(deviceId)) {
-      return res.status(400).json({ message: 'Invalid device id' })
+      return res.status(400).json({
+        message: 'Invalid device id',
+      })
     }
 
     const allowed = await ensureDeviceOwner(deviceId, userId)
 
     if (!allowed) {
-      return res.status(404).json({ message: 'Device not found' })
+      return res.status(404).json({
+        message: 'Device not found',
+      })
     }
 
     let metrics = await getMetrics(deviceId)
 
     if (metrics.length === 0) {
       await client.query('BEGIN')
-      await insertDefaultMetrics(client, deviceId)
+      await insertModelMetrics(client, deviceId)
       await client.query('COMMIT')
+
       metrics = await getMetrics(deviceId)
     }
 
@@ -167,7 +245,10 @@ export async function listDeviceMetrics(req, res) {
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {})
     console.error('listDeviceMetrics error:', error)
-    res.status(500).json({ message: 'Failed to load device metrics' })
+
+    res.status(500).json({
+      message: 'Failed to load device metrics',
+    })
   } finally {
     client.release()
   }
@@ -182,13 +263,17 @@ export async function saveDeviceMetrics(req, res) {
     const metrics = Array.isArray(req.body?.metrics) ? req.body.metrics : []
 
     if (!Number.isInteger(deviceId)) {
-      return res.status(400).json({ message: 'Invalid device id' })
+      return res.status(400).json({
+        message: 'Invalid device id',
+      })
     }
 
     const allowed = await ensureDeviceOwner(deviceId, userId)
 
     if (!allowed) {
-      return res.status(404).json({ message: 'Device not found' })
+      return res.status(404).json({
+        message: 'Device not found',
+      })
     }
 
     const cleaned = metrics.map(cleanMetric).filter(Boolean)
@@ -205,17 +290,30 @@ export async function saveDeviceMetrics(req, res) {
     }
 
     await client.query('BEGIN')
-    await client.query('DELETE FROM device_metrics WHERE device_id = $1', [
-      deviceId,
-    ])
+
+    await client.query(
+      `
+      DELETE FROM device_metrics
+      WHERE device_id = $1
+      `,
+      [deviceId]
+    )
 
     for (const metric of cleaned) {
       await client.query(
         `
-        INSERT INTO device_metrics
-          (device_id, metric_key, metric_name, metric_type, unit, icon, visible, sort_order)
-        VALUES
-          ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO device_metrics (
+          device_id,
+          metric_key,
+          source_key,
+          metric_name,
+          metric_type,
+          unit,
+          icon,
+          visible,
+          sort_order
+        )
+        VALUES ($1, $2, $2, $3, $4, $5, $6, $7, $8)
         `,
         [
           deviceId,
@@ -237,9 +335,10 @@ export async function saveDeviceMetrics(req, res) {
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {})
     console.error('saveDeviceMetrics error:', error)
-    res
-      .status(500)
-      .json({ message: error.message || 'Failed to save device metrics' })
+
+    res.status(500).json({
+      message: error.message || 'Failed to save device metrics',
+    })
   } finally {
     client.release()
   }
@@ -253,20 +352,31 @@ export async function resetDeviceMetrics(req, res) {
     const deviceId = Number(req.params.deviceId)
 
     if (!Number.isInteger(deviceId)) {
-      return res.status(400).json({ message: 'Invalid device id' })
+      return res.status(400).json({
+        message: 'Invalid device id',
+      })
     }
 
     const allowed = await ensureDeviceOwner(deviceId, userId)
 
     if (!allowed) {
-      return res.status(404).json({ message: 'Device not found' })
+      return res.status(404).json({
+        message: 'Device not found',
+      })
     }
 
     await client.query('BEGIN')
-    await client.query('DELETE FROM device_metrics WHERE device_id = $1', [
-      deviceId,
-    ])
-    await insertDefaultMetrics(client, deviceId)
+
+    await client.query(
+      `
+      DELETE FROM device_metrics
+      WHERE device_id = $1
+      `,
+      [deviceId]
+    )
+
+    await insertModelMetrics(client, deviceId)
+
     await client.query('COMMIT')
 
     const result = await getMetrics(deviceId)
@@ -274,7 +384,10 @@ export async function resetDeviceMetrics(req, res) {
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {})
     console.error('resetDeviceMetrics error:', error)
-    res.status(500).json({ message: 'Failed to reset device metrics' })
+
+    res.status(500).json({
+      message: 'Failed to reset device metrics',
+    })
   } finally {
     client.release()
   }
@@ -287,23 +400,36 @@ export async function deleteDeviceMetric(req, res) {
     const metricId = Number(req.params.metricId)
 
     if (!Number.isInteger(deviceId) || !Number.isInteger(metricId)) {
-      return res.status(400).json({ message: 'Invalid id' })
+      return res.status(400).json({
+        message: 'Invalid id',
+      })
     }
 
     const allowed = await ensureDeviceOwner(deviceId, userId)
 
     if (!allowed) {
-      return res.status(404).json({ message: 'Device not found' })
+      return res.status(404).json({
+        message: 'Device not found',
+      })
     }
 
     await pool.query(
-      `DELETE FROM device_metrics WHERE id = $1 AND device_id = $2`,
+      `
+      DELETE FROM device_metrics
+      WHERE id = $1
+        AND device_id = $2
+      `,
       [metricId, deviceId]
     )
 
-    res.json({ ok: true })
+    res.json({
+      ok: true,
+    })
   } catch (error) {
     console.error('deleteDeviceMetric error:', error)
-    res.status(500).json({ message: 'Failed to delete metric' })
+
+    res.status(500).json({
+      message: 'Failed to delete metric',
+    })
   }
 }

@@ -17,7 +17,6 @@ import {
   CheckCircle2,
   Copy,
   ShieldCheck,
-  ChevronDown,
 } from 'lucide-react'
 
 import LocationPicker from '../components/LocationPicker.jsx'
@@ -32,8 +31,32 @@ import {
   createAlarmRule,
   updateAlarmRule,
   deleteAlarmRule,
+  getDeviceMetrics,
+  saveDeviceMetrics as saveDeviceMetricsApi,
+  resetDeviceMetrics as resetDeviceMetricsApi,
 } from '../services/api'
 import MetricConfigPanel from '../components/MetricConfigPanel.jsx'
+
+const DEVICE_MODEL_OPTIONS = [
+  {
+    id: 1,
+    modelKey: 'dw_2ch',
+    name: 'DW2CH',
+    description: 'ESP32 / 2 Channels',
+  },
+  {
+    id: 2,
+    modelKey: 'dw_10ch',
+    name: 'DW10CH',
+    description: 'ESP32 / 10 Channels',
+  },
+  {
+    id: 3,
+    modelKey: 'dw_20ch',
+    name: 'DW20CH',
+    description: 'Raspberry Pi / 20 Channels',
+  },
+]
 
 function createDeviceCode() {
   return `DW-${Date.now()}`
@@ -57,11 +80,6 @@ function getStatusLabel(status) {
   return 'Offline'
 }
 
-function getMetricValue(value, unit) {
-  if (value == null || Number.isNaN(Number(value))) return `--${unit}`
-  return `${Number(value).toFixed(1)}${unit}`
-}
-
 function getLastSeen(device) {
   const value = device.latest_time || device.last_seen_at
   if (!value) return 'No data yet'
@@ -74,84 +92,11 @@ function getLastSeen(device) {
 }
 
 const defaultRuleForm = {
-  metric: 'temperature',
+  metric: 'metric_1',
   operator: '>',
   threshold: 35,
   severity: 'critical',
 }
-
-const METRIC_PRESETS = [
-  {
-    key: 'temperature',
-    label: 'Temperature',
-    displayName: 'Temperature',
-    unit: '°C',
-    icon: '🌡️',
-  },
-  {
-    key: 'humidity',
-    label: 'Humidity',
-    displayName: 'Humidity',
-    unit: '%',
-    icon: '💧',
-  },
-  {
-    key: 'rssi',
-    label: 'WiFi Signal',
-    displayName: 'Signal',
-    unit: 'dBm',
-    icon: '📶',
-  },
-  {
-    key: 'voltage',
-    label: 'Voltage',
-    displayName: 'Voltage',
-    unit: 'V',
-    icon: '⚡',
-  },
-  {
-    key: 'current',
-    label: 'Current',
-    displayName: 'Current',
-    unit: 'A',
-    icon: '🔌',
-  },
-  {
-    key: 'power',
-    label: 'Power',
-    displayName: 'Power',
-    unit: 'W',
-    icon: '⚙️',
-  },
-  {
-    key: 'energy',
-    label: 'Energy',
-    displayName: 'Energy',
-    unit: 'kWh',
-    icon: '🔋',
-  },
-  {
-    key: 'pressure',
-    label: 'Pressure',
-    displayName: 'Pressure',
-    unit: 'bar',
-    icon: '🧭',
-  },
-  {
-    key: 'supply_air',
-    label: 'Supply Air',
-    displayName: 'Supply Air',
-    unit: '°C',
-    icon: '🌬️',
-  },
-  {
-    key: 'return_air',
-    label: 'Return Air',
-    displayName: 'Return Air',
-    unit: '°C',
-    icon: '↩️',
-  },
-]
 
 const METRIC_ICON_OPTIONS = [
   '📊',
@@ -178,19 +123,19 @@ const METRIC_ICON_OPTIONS = [
 
 const DEFAULT_METRIC_CONFIG = [
   {
-    id: 'temperature',
-    sourceKey: 'temperature',
-    displayName: 'Temperature',
-    unit: '°C',
-    icon: '🌡️',
+    id: 'metric_1',
+    sourceKey: 'metric_1',
+    displayName: 'Name-01',
+    unit: '',
+    icon: '📊',
     enabled: true,
   },
   {
-    id: 'humidity',
-    sourceKey: 'humidity',
-    displayName: 'Humidity',
-    unit: '%',
-    icon: '💧',
+    id: 'metric_2',
+    sourceKey: 'metric_2',
+    displayName: 'Name-02',
+    unit: '',
+    icon: '📊',
     enabled: true,
   },
 ]
@@ -210,38 +155,6 @@ function writeMetricConfigs(configs) {
   localStorage.setItem(DEVICE_METRIC_STORAGE_KEY, JSON.stringify(configs))
 }
 
-function normalizeMetricConfig(config) {
-  if (!Array.isArray(config) || config.length === 0) {
-    return DEFAULT_METRIC_CONFIG
-  }
-
-  return config.map((metric, index) => ({
-    id: metric.id || `${metric.sourceKey || 'metric'}-${index}`,
-    sourceKey: metric.sourceKey || 'temperature',
-    displayName: metric.displayName ?? metric.label ?? metric.sourceKey ?? '',
-    unit: metric.unit ?? '',
-    icon: metric.icon || '📊',
-    enabled: metric.enabled !== false,
-  }))
-}
-
-function getPresetByKey(key) {
-  return METRIC_PRESETS.find((preset) => preset.key === key)
-}
-
-function getPresetByLabel(label) {
-  const normalized = String(label || '')
-    .trim()
-    .toLowerCase()
-
-  return METRIC_PRESETS.find(
-    (preset) =>
-      preset.label.toLowerCase() === normalized ||
-      preset.displayName.toLowerCase() === normalized ||
-      preset.key.toLowerCase() === normalized
-  )
-}
-
 function createMetricKey(name) {
   return String(name || '')
     .trim()
@@ -250,12 +163,49 @@ function createMetricKey(name) {
     .replace(/^_+|_+$/g, '')
 }
 
+function normalizeMetricConfig(config) {
+  if (!Array.isArray(config) || config.length === 0) {
+    return DEFAULT_METRIC_CONFIG
+  }
+
+  return config.map((metric, index) => {
+    const sourceKey =
+      metric.sourceKey ||
+      metric.source_key ||
+      metric.metric_key ||
+      `metric_${index + 1}`
+
+    return {
+      id: metric.id || sourceKey,
+      sourceKey,
+      displayName:
+        metric.displayName ||
+        metric.metric_name ||
+        metric.default_name ||
+        metric.label ||
+        sourceKey,
+      unit: metric.unit ?? metric.default_unit ?? '',
+      icon: metric.icon || metric.default_icon || '📊',
+      enabled: metric.enabled ?? metric.visible ?? true,
+      sortOrder: metric.sort_order ?? index + 1,
+    }
+  })
+}
+
 function getMetricInputValue(metric) {
   return metric.displayName ?? ''
 }
 
 function getDeviceMetricValue(device, metric) {
-  const value = device?.[metric.sourceKey]
+  const sourceKey = metric.sourceKey || metric.metric_key
+  const latestMetrics = device.latest_metrics || {}
+
+  let value = latestMetrics[sourceKey]
+
+  if (value == null) value = device?.[sourceKey]
+  if (value == null && sourceKey === 'metric_1') value = device.temperature
+  if (value == null && sourceKey === 'metric_2') value = device.humidity
+  if (value == null && sourceKey === 'rssi') value = device.rssi
 
   if (value == null || value === '' || Number.isNaN(Number(value))) {
     return `--${metric.unit || ''}`
@@ -292,17 +242,41 @@ function Devices() {
   const [createdDevice, setCreatedDevice] = useState(null)
   const [createForm, setCreateForm] = useState({
     name: '',
+    modelId: 1,
     latitude: null,
     longitude: null,
     deviceCode: '',
     deviceSecret: '',
   })
 
+  async function loadDeviceMetricConfigs(devicesList = []) {
+    const entries = await Promise.all(
+      devicesList.map(async (device) => {
+        try {
+          const data = await getDeviceMetrics(device.id)
+          return [device.id, normalizeMetricConfig(data)]
+        } catch (error) {
+          console.error(`Load metrics error for device ${device.id}:`, error)
+          return [device.id, normalizeMetricConfig(metricConfigs[device.id])]
+        }
+      })
+    )
+
+    const nextConfigs = Object.fromEntries(entries)
+
+    setMetricConfigs(nextConfigs)
+    setMetricDrafts(nextConfigs)
+    writeMetricConfigs(nextConfigs)
+  }
+
   async function loadDevices() {
     try {
       setLoading(true)
       const data = await getDevices()
-      setDevices(Array.isArray(data) ? data : [])
+      const nextDevices = Array.isArray(data) ? data : []
+
+      setDevices(nextDevices)
+      await loadDeviceMetricConfigs(nextDevices)
     } catch (error) {
       console.error('Load devices error:', error)
       alert('โหลดข้อมูล Device ไม่สำเร็จ')
@@ -326,7 +300,6 @@ function Devices() {
   }, [])
 
   const filteredDevices = devices
-
   const onlineCount = devices.filter((d) => getStatus(d) === 'online').length
   const warningCount = devices.filter((d) => getStatus(d) === 'warning').length
   const offlineCount = devices.length - onlineCount - warningCount
@@ -334,6 +307,7 @@ function Devices() {
   function openCreateWizard() {
     setCreateForm({
       name: '',
+      modelId: 1,
       latitude: null,
       longitude: null,
       deviceCode: createDeviceCode(),
@@ -375,16 +349,26 @@ function Devices() {
     return matchedDevice?.id || null
   }
 
+  function getSelectedCreateModel() {
+    return (
+      DEVICE_MODEL_OPTIONS.find(
+        (model) => Number(model.id) === Number(createForm.modelId)
+      ) || DEVICE_MODEL_OPTIONS[0]
+    )
+  }
+
   async function handleConfirmCreateDevice() {
     try {
       setSaving(true)
 
       const name = createForm.name.trim() || `dotWatch ${devices.length + 1}`
+      const selectedModel = getSelectedCreateModel()
 
       const created = await addDevice({
         deviceCode: createForm.deviceCode,
         name,
         deviceSecret: createForm.deviceSecret,
+        modelId: Number(createForm.modelId),
       })
 
       if (createForm.latitude != null && createForm.longitude != null) {
@@ -404,6 +388,8 @@ function Devices() {
 
       setCreatedDevice({
         name,
+        modelId: Number(createForm.modelId),
+        modelName: selectedModel.name,
         deviceCode: created.device_code || createForm.deviceCode,
         deviceSecret: created.deviceSecret || createForm.deviceSecret,
         latitude: createForm.latitude,
@@ -519,6 +505,16 @@ function Devices() {
     return ruleDrafts[deviceId] || defaultRuleForm
   }
 
+  function getDeviceMetricConfig(deviceId) {
+    return normalizeMetricConfig(metricConfigs[deviceId])
+  }
+
+  function getDeviceMetricDraftConfig(deviceId) {
+    return normalizeMetricConfig(
+      metricDrafts[deviceId] || metricConfigs[deviceId]
+    )
+  }
+
   function getAlarmMetricOptions(deviceId) {
     return getDeviceMetricConfig(deviceId)
       .filter((metric) => metric.enabled && metric.sourceKey)
@@ -583,7 +579,7 @@ function Devices() {
   function startEditAlarmRule(rule) {
     setEditingRuleId(rule.id)
     setEditingRuleDraft({
-      metric: rule.metric || 'temperature',
+      metric: rule.metric || 'metric_1',
       operator: rule.operator || '>',
       threshold: rule.threshold ?? 35,
       severity: rule.severity || 'critical',
@@ -640,16 +636,6 @@ function Devices() {
     }
   }
 
-  function getDeviceMetricConfig(deviceId) {
-    return normalizeMetricConfig(metricConfigs[deviceId])
-  }
-
-  function getDeviceMetricDraftConfig(deviceId) {
-    return normalizeMetricConfig(
-      metricDrafts[deviceId] || metricConfigs[deviceId]
-    )
-  }
-
   function markMetricDirty(deviceId, message = '') {
     setDirtyMetricDevices((prev) => ({
       ...prev,
@@ -679,12 +665,9 @@ function Devices() {
       if (metric.id !== metricId) return metric
 
       if (key === 'metricName') {
-        const nextName = value
-
         return {
           ...metric,
-          sourceKey: createMetricKey(nextName),
-          displayName: nextName,
+          displayName: value,
         }
       }
 
@@ -701,14 +684,115 @@ function Devices() {
     )
   }
 
+  async function handleSaveDeviceMetrics(deviceId) {
+    const draftConfig = getDeviceMetricDraftConfig(deviceId)
+    const enabledWithoutName = draftConfig.some(
+      (metric) => metric.enabled && !String(metric.displayName || '').trim()
+    )
+
+    if (enabledWithoutName) {
+      alert('กรุณากรอก Metric Name ของรายการที่เปิด Show ก่อนบันทึก')
+      return
+    }
+
+    const normalized = draftConfig.map((metric, index) => ({
+      ...metric,
+      displayName: String(metric.displayName || '').trim(),
+      unit: String(metric.unit || '').trim(),
+      sourceKey: metric.sourceKey || `metric_${index + 1}`,
+    }))
+
+    const payload = normalized.map((metric, index) => ({
+      metric_key: metric.sourceKey,
+      metric_name: metric.displayName,
+      metric_type: 'custom',
+      unit: metric.unit,
+      icon: metric.icon,
+      visible: metric.enabled,
+      sort_order: index + 1,
+    }))
+
+    try {
+      setSaving(true)
+      await saveDeviceMetricsApi(deviceId, payload)
+
+      setMetricConfigs((prev) => {
+        const next = {
+          ...prev,
+          [deviceId]: normalized,
+        }
+
+        writeMetricConfigs(next)
+        window.dispatchEvent(new Event('dotwatchMetricConfigChanged'))
+        return next
+      })
+
+      setMetricDrafts((prev) => ({
+        ...prev,
+        [deviceId]: normalized,
+      }))
+
+      setDirtyMetricDevices((prev) => ({
+        ...prev,
+        [deviceId]: false,
+      }))
+
+      setMetricMessages((prev) => ({
+        ...prev,
+        [deviceId]: 'บันทึกแล้ว และหน้าอื่นจะใช้ชื่อ/หน่วยนี้ทันที',
+      }))
+    } catch (error) {
+      console.error('Save metrics error:', error)
+      alert(error.message || 'บันทึก Metric ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function resetDeviceMetrics(deviceId) {
+    const ok = confirm('ต้องการ Reset การแสดงผล Metric กลับค่าเริ่มต้นใช่ไหม?')
+    if (!ok) return
+
+    try {
+      setSaving(true)
+      const data = await resetDeviceMetricsApi(deviceId)
+      const normalized = normalizeMetricConfig(data)
+
+      setMetricConfigs((prev) => ({
+        ...prev,
+        [deviceId]: normalized,
+      }))
+
+      setMetricDrafts((prev) => ({
+        ...prev,
+        [deviceId]: normalized,
+      }))
+
+      setDirtyMetricDevices((prev) => ({
+        ...prev,
+        [deviceId]: false,
+      }))
+
+      setMetricMessages((prev) => ({
+        ...prev,
+        [deviceId]: 'Reset ค่าเริ่มต้นสำเร็จ',
+      }))
+    } catch (error) {
+      console.error('Reset metrics error:', error)
+      alert(error.message || 'Reset Metric ไม่สำเร็จ')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   function addDeviceMetric(deviceId) {
-    const nextId = `metric-${Date.now()}`
+    const nextIndex = getDeviceMetricDraftConfig(deviceId).length + 1
     const nextConfig = [
       ...getDeviceMetricDraftConfig(deviceId),
       {
-        id: nextId,
-        sourceKey: '',
-        displayName: '',
+        id: `metric_${nextIndex}`,
+        sourceKey: `metric_${nextIndex}`,
+        displayName: `Name-${String(nextIndex).padStart(2, '0')}`,
         unit: '',
         icon: '📊',
         enabled: true,
@@ -737,17 +821,6 @@ function Devices() {
     )
   }
 
-  function resetDeviceMetrics(deviceId) {
-    const ok = confirm('ต้องการ Reset การแสดงผล Metric กลับค่าเริ่มต้นใช่ไหม?')
-    if (!ok) return
-
-    updateDeviceMetricDraft(
-      deviceId,
-      DEFAULT_METRIC_CONFIG,
-      'Reset ค่าเริ่มต้นแล้ว กรุณากด Save Display'
-    )
-  }
-
   function cancelDeviceMetricChanges(deviceId) {
     setMetricDrafts((prev) => ({
       ...prev,
@@ -765,51 +838,6 @@ function Devices() {
     }))
   }
 
-  function handleSaveDeviceMetrics(deviceId) {
-    const draftConfig = getDeviceMetricDraftConfig(deviceId)
-    const enabledWithoutName = draftConfig.some(
-      (metric) => metric.enabled && !String(metric.displayName || '').trim()
-    )
-
-    if (enabledWithoutName) {
-      alert('กรุณากรอก Metric Name ของรายการที่เปิด Show ก่อนบันทึก')
-      return
-    }
-
-    const normalized = draftConfig.map((metric) => ({
-      ...metric,
-      displayName: String(metric.displayName || '').trim(),
-      unit: String(metric.unit || '').trim(),
-      sourceKey: createMetricKey(metric.displayName),
-    }))
-
-    setMetricConfigs((prev) => {
-      const next = {
-        ...prev,
-        [deviceId]: normalized,
-      }
-
-      writeMetricConfigs(next)
-      window.dispatchEvent(new Event('metricDisplayConfigChanged'))
-      return next
-    })
-
-    setMetricDrafts((prev) => ({
-      ...prev,
-      [deviceId]: normalized,
-    }))
-
-    setDirtyMetricDevices((prev) => ({
-      ...prev,
-      [deviceId]: false,
-    }))
-
-    setMetricMessages((prev) => ({
-      ...prev,
-      [deviceId]: 'บันทึกแล้ว และหน้าอื่นจะใช้ชื่อ/หน่วยนี้ทันที',
-    }))
-  }
-
   function renderMetricDisplayConfig(device) {
     const config = getDeviceMetricDraftConfig(device.id)
     const hasUnsavedChanges = Boolean(dirtyMetricDevices[device.id])
@@ -823,12 +851,6 @@ function Devices() {
             Metric Display Config
           </strong>
           <span>ตั้งชื่อและหน่วยที่ต้องการให้ Device นี้แสดงผลในทุกหน้า</span>
-        </div>
-
-        <div className="metric-config-help">
-          พิมพ์ชื่อ Metric และ Unit ได้เอง เช่น Supply Air / °C, Energy / kWh
-          แล้วเลือก Icon ที่ต้องการแสดงผล จากนั้นกด Save Display เพื่อให้
-          Dashboard, Alarm Rules และ Alarm Center ใช้ค่าที่ตั้งไว้
         </div>
 
         {metricMessage && (
@@ -1070,8 +1092,11 @@ function Devices() {
                           }))
                         }
                       >
-                        <option value="temperature">Temperature</option>
-                        <option value="humidity">Humidity</option>
+                        {getAlarmMetricOptions(device.id).map((metric) => (
+                          <option key={metric.value} value={metric.value}>
+                            {metric.label}
+                          </option>
+                        ))}
                       </select>
 
                       <select
@@ -1188,17 +1213,6 @@ function Devices() {
       return
     }
 
-    const existingRules = alarmRules.filter(
-      (rule) =>
-        Number(rule.device_id) === Number(deviceId) &&
-        String(rule.metric) === String(metricKey)
-    )
-
-    if (existingRules.length >= 2) {
-      alert('แต่ละ Metric ตั้ง Alarm Rule ได้สูงสุด 2 รายการ')
-      return
-    }
-
     try {
       setSaving(true)
 
@@ -1304,6 +1318,8 @@ function Devices() {
           onDeleteAlarm={handleDeleteAlarmRule}
         />
 
+        {renderMetricDisplayConfig(device)}
+
         <div className="device-location-section compact clean-location-card">
           <div className="device-location-header">
             <strong>
@@ -1378,6 +1394,7 @@ function Devices() {
           <thead>
             <tr>
               <th>Device</th>
+              <th>Model</th>
               <th>Status</th>
               <th>Metrics</th>
               <th>Last Seen</th>
@@ -1395,6 +1412,12 @@ function Devices() {
                     <td>
                       <strong>{device.name || device.device_code}</strong>
                       <span>{device.device_code}</span>
+                    </td>
+
+                    <td>
+                      <span className="device-model-badge">
+                        {device.model_name || 'DW2CH'}
+                      </span>
                     </td>
 
                     <td>
@@ -1416,6 +1439,7 @@ function Devices() {
                           ))}
                       </div>
                     </td>
+
                     <td>{getLastSeen(device)}</td>
 
                     <td>
@@ -1435,7 +1459,7 @@ function Devices() {
 
                   {expandedDeviceId === device.id && (
                     <tr className="device-table-expand-row">
-                      <td colSpan="5">{renderManagePanel(device)}</td>
+                      <td colSpan="6">{renderManagePanel(device)}</td>
                     </tr>
                   )}
                 </React.Fragment>
@@ -1588,6 +1612,26 @@ function Devices() {
                     </label>
 
                     <label>
+                      Device Model
+                      <select
+                        value={createForm.modelId}
+                        disabled={saving}
+                        onChange={(e) =>
+                          setCreateForm((prev) => ({
+                            ...prev,
+                            modelId: Number(e.target.value),
+                          }))
+                        }
+                      >
+                        {DEVICE_MODEL_OPTIONS.map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name} - {model.description}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
                       Device Code
                       <div className="copy-input">
                         <input value={createForm.deviceCode} disabled />
@@ -1668,6 +1712,11 @@ function Devices() {
                     </div>
 
                     <div className="confirm-row">
+                      <span>Model</span>
+                      <strong>{getSelectedCreateModel().name}</strong>
+                    </div>
+
+                    <div className="confirm-row">
                       <span>Device Code</span>
                       <strong>{createForm.deviceCode}</strong>
                     </div>
@@ -1704,6 +1753,16 @@ function Devices() {
                   </p>
 
                   <div className="secret-result-box">
+                    <label>
+                      Device Name
+                      <input value={createdDevice.name} disabled />
+                    </label>
+
+                    <label>
+                      Device Model
+                      <input value={createdDevice.modelName} disabled />
+                    </label>
+
                     <label>
                       Device Code
                       <div className="copy-input">
