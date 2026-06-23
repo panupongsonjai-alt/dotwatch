@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { auth } from '../services/firebase'
 import AlarmPanel from '../components/AlarmPanel.jsx'
 import { getDevices, getAlarms } from '../services/api'
@@ -14,6 +14,7 @@ import {
   normalizeMetrics,
 } from '../utils/metricDisplayConfig'
 import { MetricIcon } from '../utils/metricIcons.jsx'
+import { EmptyState, PageHeader, StatCard } from '../components/common'
 
 function normalizeRealtimeDevice(reading = {}) {
   const latestMetrics = reading.latest_metrics || reading.metrics || {}
@@ -24,10 +25,14 @@ function normalizeRealtimeDevice(reading = {}) {
     latest_metrics: latestMetrics,
     metrics: latestMetrics,
     temperature:
-      reading.temperature ?? latestMetrics.temperature ?? latestMetrics.metric_1,
-    humidity: reading.humidity ?? latestMetrics.humidity ?? latestMetrics.metric_2,
+      reading.temperature ??
+      latestMetrics.temperature ??
+      latestMetrics.metric_1,
+    humidity:
+      reading.humidity ?? latestMetrics.humidity ?? latestMetrics.metric_2,
     rssi: reading.rssi ?? latestMetrics.rssi,
-    latest_time: reading.latest_time || reading.time || new Date().toISOString(),
+    latest_time:
+      reading.latest_time || reading.time || new Date().toISOString(),
     status: reading.status || 'online',
   }
 }
@@ -40,15 +45,15 @@ function isSameDevice(device, reading) {
   )
 }
 
-function formatLastUpdate(value) {
-  if (!value) return 'No recent update'
+function formatRelativeTime(value) {
+  if (!value) return '--'
 
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'No recent update'
+  const diffSeconds = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(value).getTime()) / 1000)
+  )
 
-  const diffSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000))
-
-  if (diffSeconds < 10) return 'Just now'
+  if (diffSeconds < 10) return 'just now'
   if (diffSeconds < 60) return `${diffSeconds}s ago`
 
   const diffMinutes = Math.floor(diffSeconds / 60)
@@ -57,14 +62,7 @@ function formatLastUpdate(value) {
   const diffHours = Math.floor(diffMinutes / 60)
   if (diffHours < 24) return `${diffHours}h ago`
 
-  return date.toLocaleString('th-TH')
-}
-
-function getStatusLabel(status) {
-  if (status === 'online') return 'Online'
-  if (status === 'warning') return 'Warning'
-  if (status === 'critical') return 'Critical'
-  return 'Offline'
+  return new Date(value).toLocaleDateString('th-TH')
 }
 
 function Dashboard({ onOpenDevice }) {
@@ -72,7 +70,6 @@ function Dashboard({ onOpenDevice }) {
   const [metricConfigs, setMetricConfigs] = useState({})
   const [loading, setLoading] = useState(true)
   const [alarmCount, setAlarmCount] = useState(0)
-
   const [dashboardDisplay, setDashboardDisplay] = useState({
     showDeviceOverview: true,
     showDeviceMap: true,
@@ -131,7 +128,8 @@ function Dashboard({ onOpenDevice }) {
 
   function loadDisplaySettings() {
     setDashboardDisplay({
-      showDeviceOverview: localStorage.getItem('showDeviceOverview') !== 'false',
+      showDeviceOverview:
+        localStorage.getItem('showDeviceOverview') !== 'false',
       showDeviceMap: localStorage.getItem('showDeviceMap') !== 'false',
     })
   }
@@ -187,8 +185,6 @@ function Dashboard({ onOpenDevice }) {
       if (!user) return
 
       connectRealtime(user.uid, (payload) => {
-        console.log('Realtime payload:', payload)
-
         if (payload.type === 'reading' || payload.type === 'device:update') {
           const reading = payload.data || payload.device
           if (reading) updateRealtimeDevice(reading)
@@ -204,7 +200,9 @@ function Dashboard({ onOpenDevice }) {
         }
 
         if (payload.type === 'alarm') {
-          const alarms = Array.isArray(payload.data) ? payload.data : [payload.data]
+          const alarms = Array.isArray(payload.data)
+            ? payload.data
+            : [payload.data]
 
           const validAlarms = alarms.filter(Boolean)
           validAlarms.forEach(addAlarm)
@@ -213,7 +211,9 @@ function Dashboard({ onOpenDevice }) {
 
         if (payload.type === 'alarm:sync') {
           const alarms = Array.isArray(payload.data) ? payload.data : []
-          setAlarmCount(alarms.filter((alarm) => alarm.status === 'active').length)
+          setAlarmCount(
+            alarms.filter((alarm) => alarm.status === 'active').length
+          )
         }
       })
     })
@@ -221,77 +221,76 @@ function Dashboard({ onOpenDevice }) {
     return () => {
       disconnectRealtime()
       unsubscribeAuth?.()
-      window.removeEventListener('dashboardSettingsChanged', loadDisplaySettings)
+      window.removeEventListener(
+        'dashboardSettingsChanged',
+        loadDisplaySettings
+      )
       window.removeEventListener('dotwatchMetricConfigChanged', loadDevices)
     }
   }, [addAlarm])
 
-  const onlineCount = devices.filter((device) => device.status === 'online').length
+  const onlineCount = devices.filter(
+    (device) => device.status === 'online'
+  ).length
   const offlineCount = devices.length - onlineCount
+
+  const latestUpdatedAt = useMemo(() => {
+    const times = devices
+      .map((device) => device.latest_time || device.last_ingest_at)
+      .filter(Boolean)
+      .map((value) => new Date(value).getTime())
+      .filter(Number.isFinite)
+
+    if (!times.length) return null
+
+    return new Date(Math.max(...times)).toISOString()
+  }, [devices])
 
   return (
     <div className="page app-page dashboard-page dashboard-v2-page">
-      <section className="app-page-header dashboard-hero-card">
-        <div className="dashboard-hero-content">
-          <span className="page-eyebrow">Operations Center</span>
-          <h1>dotWatch Dashboard</h1>
-          <p>
-            {loading ? 'Loading devices' : `${onlineCount} Online • ${offlineCount} Offline • ${alarmCount} Active Alarm`}
-          </p>
-        </div>
+      <PageHeader
+        eyebrow="Operations Center"
+        title="dotWatch Dashboard"
+        description={`${onlineCount} Online • ${offlineCount} Offline • ${alarmCount} Active Alarm`}
+        actions={
+          <div className="dashboard-live-chip">
+            <span />
+            Last update {formatRelativeTime(latestUpdatedAt)}
+          </div>
+        }
+      />
 
-        <div className="dashboard-hero-meta">
-          <span>Last refresh</span>
-          <strong>{new Date().toLocaleTimeString('th-TH')}</strong>
-        </div>
-      </section>
-
-      <section className="app-summary-grid dashboard-kpi-grid">
-        <div className="app-summary-card compact-summary-card dashboard-kpi-card">
-          <span>Total Devices</span>
-          <strong>{loading ? '...' : devices.length}</strong>
-        </div>
-
-        <div className="app-summary-card compact-summary-card dashboard-kpi-card online">
-          <span>Online</span>
-          <strong>{loading ? '...' : onlineCount}</strong>
-        </div>
-
-        <div className="app-summary-card compact-summary-card dashboard-kpi-card offline">
-          <span>Offline</span>
-          <strong>{loading ? '...' : offlineCount}</strong>
-        </div>
-
-        <div className="app-summary-card compact-summary-card dashboard-kpi-card alarm">
-          <span>Active Alarm</span>
-          <strong>{alarmCount}</strong>
-        </div>
+      <section className="dashboard-kpi-grid">
+        <StatCard label="Total Devices" value={loading ? '...' : devices.length} />
+        <StatCard label="Online" value={loading ? '...' : onlineCount} tone="success" />
+        <StatCard label="Offline" value={loading ? '...' : offlineCount} tone="danger" />
+        <StatCard label="Active Alarm" value={alarmCount} tone={alarmCount > 0 ? 'danger' : 'success'} />
       </section>
 
       <section className="dashboard-main-grid">
         {dashboardDisplay.showDeviceOverview && (
-          <section className="app-card devices-overview-panel dashboard-overview-panel">
+          <section className="app-card devices-overview-panel dashboard-devices-card">
             <div className="app-section-title dashboard-section-title-row">
               <div>
                 <h2>Devices Overview</h2>
-                <p>Metric ล่าสุดจากอุปกรณ์ทั้งหมดตามชื่อและหน่วยที่ตั้งไว้ในหน้า Device</p>
+                <p>ค่าล่าสุดจากอุปกรณ์ทั้งหมดตาม Metric Config</p>
               </div>
 
               <span className="device-count-badge">
-                {loading ? '...' : devices.length} Devices
+                {devices.length} Devices
               </span>
             </div>
 
             {loading ? (
-              <div className="app-empty-state dashboard-empty-state">
-                <h3>กำลังโหลดข้อมูล</h3>
-                <p>กำลังดึงข้อมูล Device จาก Backend</p>
-              </div>
+              <EmptyState
+                title="กำลังโหลดข้อมูล"
+                description="กำลังดึงข้อมูล Device จาก Backend"
+              />
             ) : devices.length === 0 ? (
-              <div className="app-empty-state dashboard-empty-state">
-                <h3>ไม่พบ Device</h3>
-                <p>ยังไม่มี Device ในระบบ</p>
-              </div>
+              <EmptyState
+                title="ไม่พบ Device"
+                description="ยังไม่มี Device ในระบบ"
+              />
             ) : (
               <div className="overview-grid dashboard-device-grid">
                 {devices.map((device) => (
@@ -301,27 +300,28 @@ function Dashboard({ onOpenDevice }) {
                     className="overview-card compact dashboard-device-card-v2"
                     onClick={() => onOpenDevice?.(device.id)}
                   >
-                    <div className="dashboard-device-card-head">
+                    <div className="dashboard-device-topline">
                       <span className={`device-status-dot ${device.status || 'offline'}`} />
-                      <span className={`status-pill ${device.status || 'offline'}`}>
-                        {getStatusLabel(device.status)}
+                      <span className="dashboard-device-status">
+                        {device.status || 'offline'}
                       </span>
+                      {device.model_name && (
+                        <span className="device-model-badge">
+                          {device.model_name}
+                        </span>
+                      )}
                     </div>
 
-                    <div className="dashboard-device-title">
-                      <strong>{device.name || device.device_code || 'Unnamed Device'}</strong>
-                      <span>{device.device_code || 'No device code'}</span>
+                    <div className="overview-name dashboard-device-name">
+                      {device.name || device.device_code || 'Unnamed Device'}
                     </div>
 
-                    {device.model_name && (
-                      <div className="device-model-badge dashboard-model-badge">
-                        {device.model_name}
-                      </div>
-                    )}
-
-                    <div className="overview-values dynamic-overview-values dashboard-metric-row">
+                    <div className="overview-values dynamic-overview-values dashboard-device-values">
                       {getDeviceVisibleMetrics(device).map((metric) => (
-                        <span key={metric.id || metric.metric_key} title={metric.metric_name}>
+                        <span
+                          key={metric.id || metric.metric_key}
+                          title={metric.metric_name}
+                        >
                           <MetricIcon name={metric.icon} size={14} />
                           <b>{getDisplayValue(device, metric)}</b>
                         </span>
@@ -329,7 +329,7 @@ function Dashboard({ onOpenDevice }) {
                     </div>
 
                     <div className="overview-last-update">
-                      {formatLastUpdate(device.latest_time || device.last_ingest_at || device.last_seen_at)}
+                      Updated {formatRelativeTime(device.latest_time || device.last_ingest_at)}
                     </div>
                   </button>
                 ))}
@@ -344,7 +344,7 @@ function Dashboard({ onOpenDevice }) {
       </section>
 
       {dashboardDisplay.showDeviceMap && (
-        <section className="dashboard-map-section">
+        <section className="app-card dashboard-map-card-v2">
           <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
         </section>
       )}

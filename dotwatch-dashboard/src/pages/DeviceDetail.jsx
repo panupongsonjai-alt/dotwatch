@@ -4,17 +4,14 @@ import { getDevice, getDeviceMetrics } from '../services/api'
 import ChartWidget from '../components/ChartWidget.jsx'
 import { auth } from '../services/firebase'
 import { connectRealtime } from '../services/realtime'
-
-function formatValue(value, unit = '') {
-  if (value == null || value === '' || Number.isNaN(Number(value))) return '--'
-
-  const numberValue = Number(value)
-  const displayValue = Number.isInteger(numberValue)
-    ? String(numberValue)
-    : numberValue.toFixed(1)
-
-  return `${displayValue}${unit ? ` ${unit}` : ''}`
-}
+import {
+  EmptyState,
+  MetricCard,
+  PageHeader,
+  SectionHeader,
+  StatCard,
+  StatusBadge,
+} from '../components/common'
 
 function formatDate(value) {
   if (!value) return '--'
@@ -26,10 +23,18 @@ function formatDate(value) {
   }
 }
 
-function getStatusClass(status) {
-  if (status === 'online') return 'status-online'
-  if (status === 'warning') return 'status-warning'
-  return 'status-offline'
+function formatShortTime(value) {
+  if (!value) return '--'
+
+  try {
+    return new Date(value).toLocaleTimeString('th-TH', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  } catch {
+    return '--'
+  }
 }
 
 function getStatusLabel(status) {
@@ -85,13 +90,18 @@ function getMetricIcon(metric) {
   return '●'
 }
 
-function splitMetricValue(value) {
-  if (value == null || value === '' || Number.isNaN(Number(value))) {
-    return '--'
-  }
+function formatMetricNumber(value) {
+  if (value == null || value === '' || Number.isNaN(Number(value))) return '--'
 
   const numberValue = Number(value)
   return Number.isInteger(numberValue) ? String(numberValue) : numberValue.toFixed(1)
+}
+
+function getDeviceHealthLabel(status) {
+  if (status === 'online') return 'Healthy'
+  if (status === 'warning') return 'Warning'
+  if (status === 'critical') return 'Critical'
+  return 'Offline'
 }
 
 function DeviceDetail({ deviceId, onBack }) {
@@ -190,90 +200,96 @@ function DeviceDetail({ deviceId, onBack }) {
 
   if (loading) {
     return (
-      <div className="page app-page device-detail-page">
-        <div className="panel app-card device-detail-loading">กำลังโหลด Device...</div>
+      <div className="page app-page device-detail-page device-detail-ds">
+        <EmptyState title="กำลังโหลด Device" description="กำลังดึงข้อมูลล่าสุดจาก Backend" />
       </div>
     )
   }
 
   if (!device) {
     return (
-      <div className="page app-page device-detail-page">
-        <div className="panel app-card device-detail-empty">
-          <button className="secondary-button" onClick={onBack}>← Back</button>
-          <p>ไม่พบ Device</p>
-        </div>
+      <div className="page app-page device-detail-page device-detail-ds">
+        <EmptyState
+          title="ไม่พบ Device"
+          description="Device นี้อาจถูกลบ หรือคุณไม่มีสิทธิ์เข้าถึง"
+          action={
+            <button className="secondary-button" onClick={onBack}>
+              ← Back
+            </button>
+          }
+        />
       </div>
     )
   }
 
   return (
-    <div className="page app-page device-detail-page device-detail-v2">
-      <section className="device-hero-card">
-        <div className="device-hero-main">
-          <div>
-            <span className="page-eyebrow">Device Detail</span>
-            <h2>{device.name || 'Unnamed Device'}</h2>
-            <p>
-              {device.device_code}
-              {device.model_name ? ` • ${device.model_name}` : ''}
-            </p>
+    <div className="page app-page device-detail-page device-detail-ds">
+      <PageHeader
+        eyebrow="Device Detail"
+        title={device.name || 'Unnamed Device'}
+        description={`${device.device_code || '--'}${device.model_name ? ` • ${device.model_name}` : ''}`}
+        meta={
+          <div className="device-detail-header-meta">
+            <span>Latest Reading: {formatShortTime(device.latest_time)}</span>
+            <span>Last Seen: {formatShortTime(device.last_seen_at)}</span>
+            <span>{metricSummary.active}/{metricSummary.total} Active Metrics</span>
           </div>
+        }
+        actions={
+          <div className="device-detail-header-actions">
+            <StatusBadge
+              status={device.status || 'offline'}
+              label={getStatusLabel(device.status)}
+            />
+            <button className="secondary-button" onClick={onBack}>
+              ← Back
+            </button>
+          </div>
+        }
+      />
 
-          <span className={`device-hero-status ${getStatusClass(device.status)}`}>
-            <span className="status-dot" />
-            {getStatusLabel(device.status)}
-          </span>
-        </div>
-
-        <div className="device-hero-meta">
-          <div>
-            <span>Latest Reading</span>
-            <strong>{formatDate(device.latest_time)}</strong>
-          </div>
-          <div>
-            <span>Last Seen</span>
-            <strong>{formatDate(device.last_seen_at)}</strong>
-          </div>
-          <div>
-            <span>Live Metrics</span>
-            <strong>{metricSummary.active}/{metricSummary.total}</strong>
-          </div>
-          <button className="secondary-button" onClick={onBack}>← Back</button>
-        </div>
+      <section className="device-detail-stat-grid">
+        <StatCard
+          label="Status"
+          value={getDeviceHealthLabel(device.status)}
+          hint={device.status || 'offline'}
+          tone={device.status === 'online' ? 'success' : device.status === 'warning' ? 'warning' : 'danger'}
+        />
+        <StatCard label="Model" value={device.model_name || '--'} hint="Device model" />
+        <StatCard label="Metrics" value={metricSummary.total} hint={`${metricSummary.active} active`} />
+        <StatCard label="Firmware" value={device.firmware_version || '--'} hint="Current version" />
       </section>
 
-      <section className="panel app-card device-live-panel">
-        <div className="app-section-title device-section-title-row">
-          <div>
-            <h3>Live Metrics</h3>
-            <p>ค่าล่าสุดจาก Device ตาม Metric Config</p>
-          </div>
-          <span className="device-live-count">
-            {metricSummary.active} active • {metricSummary.empty} empty
-          </span>
-        </div>
+      <section className="panel app-card device-live-panel-ds">
+        <SectionHeader
+          title="Live Metrics"
+          description="ค่าล่าสุดจาก Device ตาม Metric Config"
+          actions={
+            <span className="device-live-count-ds">
+              {metricSummary.active} active • {metricSummary.empty} empty
+            </span>
+          }
+        />
 
         {visibleMetrics.length === 0 ? (
-          <div className="app-empty-state">
-            <h3>ยังไม่มี Metric</h3>
-            <p>ไปที่หน้า Device เพื่อกำหนด Metric Display ก่อน</p>
-          </div>
+          <EmptyState
+            title="ยังไม่มี Metric"
+            description="ไปที่หน้า Device เพื่อกำหนด Metric Display ก่อน"
+          />
         ) : (
-          <div className="device-metrics-grid device-metrics-hero-grid">
+          <div className="device-metrics-ds-grid">
             {visibleMetrics.map((metric) => {
               const value = getMetricValue(metric)
 
               return (
-                <div key={metric.metric_key} className="metric-card metric-hero-card">
-                  <div className="metric-hero-icon">{getMetricIcon(metric)}</div>
-                  <div className="metric-hero-value-row">
-                    <strong>{splitMetricValue(value)}</strong>
-                    {metric.unit ? <em>{metric.unit}</em> : null}
-                  </div>
-                  <span>{metric.metric_name || metric.metric_key}</span>
-                  <small>{metric.metric_key}</small>
-                </div>
+                <MetricCard
+                  key={metric.metric_key}
+                  name={metric.metric_name || metric.metric_key}
+                  value={formatMetricNumber(value)}
+                  unit={metric.unit}
+                  icon={getMetricIcon(metric)}
+                  metricKey={metric.metric_key}
+                />
               )
             })}
           </div>
@@ -282,19 +298,19 @@ function DeviceDetail({ deviceId, onBack }) {
 
       <ChartWidget defaultDeviceId={deviceId} />
 
-      <section className="panel app-card device-info-panel-v2">
-        <div className="device-info-toggle-row">
-          <div>
-            <h3>Device Information</h3>
-            <p>รายละเอียดอุปกรณ์และตำแหน่งติดตั้ง</p>
-          </div>
-          <button className="secondary-button" onClick={() => setShowInfo((prev) => !prev)}>
-            {showInfo ? 'Hide' : 'Show'} Info
-          </button>
-        </div>
+      <section className="panel app-card device-info-panel-ds">
+        <SectionHeader
+          title="Device Information"
+          description="รายละเอียดอุปกรณ์และตำแหน่งติดตั้ง"
+          actions={
+            <button className="secondary-button" onClick={() => setShowInfo((prev) => !prev)}>
+              {showInfo ? 'Hide' : 'Show'} Info
+            </button>
+          }
+        />
 
         {showInfo ? (
-          <div className="device-info-grid device-info-grid-v2">
+          <div className="device-info-grid-ds">
             <div>
               <label>Device Code</label>
               <p>{device.device_code}</p>
@@ -320,12 +336,12 @@ function DeviceDetail({ deviceId, onBack }) {
               <p>{device.longitude != null ? Number(device.longitude).toFixed(6) : '--'}</p>
             </div>
             <div>
-              <label>Last Ingest</label>
-              <p>{formatDate(device.last_ingest_at)}</p>
+              <label>Latest Reading</label>
+              <p>{formatDate(device.latest_time)}</p>
             </div>
             <div>
-              <label>Health</label>
-              <p>{device.status === 'online' ? 'Healthy' : 'Offline'}</p>
+              <label>Last Ingest</label>
+              <p>{formatDate(device.last_ingest_at)}</p>
             </div>
           </div>
         ) : null}

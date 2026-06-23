@@ -12,12 +12,17 @@ import {
   AlertTriangle,
   Bell,
   CheckCircle2,
-  CircleAlert,
   RefreshCw,
   Search,
-  ShieldAlert,
   Trash2,
 } from 'lucide-react'
+import {
+  EmptyState,
+  PageHeader,
+  SectionHeader,
+  StatCard,
+  StatusBadge,
+} from '../components/common'
 
 function formatDate(value) {
   if (!value) return '--'
@@ -29,21 +34,10 @@ function formatDate(value) {
   }
 }
 
-function formatRelativeTime(value) {
-  if (!value) return '--'
-
-  const date = new Date(value)
-  const diffSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000))
-
-  if (diffSeconds < 60) return `${diffSeconds}s ago`
-  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}m ago`
-  if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}h ago`
-
-  return `${Math.floor(diffSeconds / 86400)}d ago`
-}
-
 function formatValue(value, unit = '') {
-  if (value == null || value === '' || Number.isNaN(Number(value))) return '--'
+  if (value == null || value === '' || Number.isNaN(Number(value))) {
+    return '--'
+  }
 
   const numberValue = Number(value)
   const displayValue = Number.isInteger(numberValue)
@@ -65,9 +59,86 @@ function getStatusLabel(status) {
   return status || 'Unknown'
 }
 
-function getSeverityIcon(severity) {
-  if (severity === 'critical') return <ShieldAlert size={18} />
-  return <AlertTriangle size={18} />
+function getRelativeTime(value) {
+  if (!value) return '--'
+
+  const time = new Date(value).getTime()
+  if (!Number.isFinite(time)) return '--'
+
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - time) / 1000))
+
+  if (diffSeconds < 60) return `${diffSeconds}s ago`
+  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}m ago`
+  if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}h ago`
+  return `${Math.floor(diffSeconds / 86400)}d ago`
+}
+
+function getAlarmTone(alarm) {
+  if (alarm?.severity === 'critical') return 'danger'
+  if (alarm?.severity === 'warning') return 'warning'
+  return 'default'
+}
+
+function AlarmPriorityCard({ alarm, metricInfo, saving, onAcknowledge }) {
+  if (!alarm) {
+    return (
+      <section className="dw-card alarm-focus-card empty">
+        <div className="alarm-focus-icon healthy">
+          <CheckCircle2 size={28} />
+        </div>
+        <div>
+          <span className="page-eyebrow">Priority</span>
+          <h2>No Active Alarm</h2>
+          <p>ระบบยังไม่มี Alarm ที่ต้องดำเนินการตอนนี้</p>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className={`dw-card alarm-focus-card ${alarm.severity}`}>
+      <div className="alarm-focus-icon">
+        <AlertTriangle size={28} />
+      </div>
+
+      <div className="alarm-focus-main">
+        <div className="alarm-focus-topline">
+          <span className="page-eyebrow">Priority Alarm</span>
+          <StatusBadge
+            status={alarm.severity}
+            label={getSeverityLabel(alarm.severity)}
+          />
+        </div>
+
+        <h2>{alarm.device_name || 'Unnamed Device'}</h2>
+        <p>
+          {alarm.metric_name || metricInfo.name} {alarm.operator}{' '}
+          {formatValue(alarm.threshold, metricInfo.unit)}
+        </p>
+
+        <div className="alarm-focus-meta">
+          <span>
+            Current:{' '}
+            <strong>{formatValue(alarm.value, metricInfo.unit)}</strong>
+          </span>
+          <span>{getRelativeTime(alarm.triggered_at)}</span>
+          <span>{alarm.device_code || `ID ${alarm.device_id}`}</span>
+        </div>
+      </div>
+
+      {alarm.status === 'active' && (
+        <button
+          type="button"
+          className="primary-button"
+          disabled={saving}
+          onClick={() => onAcknowledge(alarm.id)}
+        >
+          <CheckCircle2 size={16} />
+          Acknowledge
+        </button>
+      )}
+    </section>
+  )
 }
 
 function Alarms() {
@@ -78,7 +149,7 @@ function Alarms() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('active')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [severityFilter, setSeverityFilter] = useState('all')
 
   async function loadData() {
@@ -211,8 +282,15 @@ function Alarms() {
     return alarms.filter((alarm) => alarm.status === 'active')
   }, [alarms])
 
-  const criticalAlarms = useMemo(() => {
-    return activeAlarms.filter((alarm) => alarm.severity === 'critical')
+  const priorityAlarm = useMemo(() => {
+    return [...activeAlarms].sort((a, b) => {
+      const severityA = a.severity === 'critical' ? 0 : 1
+      const severityB = b.severity === 'critical' ? 0 : 1
+
+      if (severityA !== severityB) return severityA - severityB
+
+      return new Date(b.triggered_at || 0) - new Date(a.triggered_at || 0)
+    })[0]
   }, [activeAlarms])
 
   const filteredAlarms = useMemo(() => {
@@ -234,7 +312,8 @@ function Alarms() {
         .toLowerCase()
 
       const matchSearch = !keyword || text.includes(keyword)
-      const matchStatus = statusFilter === 'all' || alarm.status === statusFilter
+      const matchStatus =
+        statusFilter === 'all' || alarm.status === statusFilter
       const matchSeverity =
         severityFilter === 'all' || alarm.severity === severityFilter
 
@@ -242,340 +321,236 @@ function Alarms() {
     })
   }, [alarms, search, statusFilter, severityFilter, deviceMetrics])
 
-  const latestCritical = criticalAlarms[0]
+  const activeRuleCount = rules.filter((rule) => rule.is_active).length
 
   return (
-    <div className="page app-page alarms-page alarm-center-page">
-      <section className="alarm-center-hero">
-        <div>
-          <span className="page-eyebrow">Alarm Center</span>
-          <h1>Operations Alarm Center</h1>
-          <p>
-            ตรวจสอบ Alarm Events, Active Alarm และ Alarm Rules ของอุปกรณ์ทั้งหมด
-          </p>
+    <div className="page app-page alarms-page alarms-center-page">
+      <PageHeader
+        eyebrow="Alarm Center"
+        title="Alarm Operations"
+        description="ติดตาม Alarm Events, Priority Alarm และ Rule ทั้งหมดของอุปกรณ์ dotWatch"
+        meta={`${summary.active} Active • ${summary.critical} Critical • ${activeRuleCount}/${rules.length} Rules Active`}
+        actions={
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={loadData}
+            disabled={loading || saving}
+          >
+            <RefreshCw size={17} />
+            Refresh
+          </button>
+        }
+      />
+
+      <section className="dw-stat-grid alarms-stat-grid">
+        <StatCard label="Active" value={summary.active} tone="danger" />
+        <StatCard label="Critical" value={summary.critical} tone="danger" />
+        <StatCard label="Warning" value={summary.warning} tone="warning" />
+        <StatCard label="Rules" value={rules.length} hint={`${activeRuleCount} active`} />
+      </section>
+
+      <AlarmPriorityCard
+        alarm={priorityAlarm}
+        metricInfo={
+          priorityAlarm
+            ? getMetricInfo(priorityAlarm.device_id, priorityAlarm.metric)
+            : { name: '--', unit: '' }
+        }
+        saving={saving}
+        onAcknowledge={handleAcknowledge}
+      />
+
+      <section className="dw-card alarms-events-card">
+        <SectionHeader
+          title="Alarm Events"
+          description="รายการแจ้งเตือนล่าสุดจาก Dynamic Metrics"
+          actions={
+            <div className="alarm-mini-summary">
+              <span>{filteredAlarms.length} shown</span>
+            </div>
+          }
+        />
+
+        <div className="alarm-toolbar clean">
+          <label className="search-input alarm-search-input">
+            <Search size={16} />
+            <input
+              value={search}
+              placeholder="Search device, metric, severity..."
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="acknowledged">Acknowledged</option>
+          </select>
+
+          <select
+            value={severityFilter}
+            onChange={(e) => setSeverityFilter(e.target.value)}
+          >
+            <option value="all">All Severity</option>
+            <option value="critical">Critical</option>
+            <option value="warning">Warning</option>
+          </select>
         </div>
 
-        <button
-          type="button"
-          className="ghost-button"
-          onClick={loadData}
-          disabled={loading || saving}
-        >
-          <RefreshCw size={17} />
-          Refresh
-        </button>
-      </section>
+        {loading ? (
+          <EmptyState
+            title="กำลังโหลดข้อมูล"
+            description="กำลังดึงข้อมูล Alarm จาก Backend"
+          />
+        ) : filteredAlarms.length === 0 ? (
+          <EmptyState
+            title="ยังไม่มี Alarm"
+            description="เมื่อมีค่าเกินเงื่อนไข ระบบจะแสดงรายการที่นี่"
+          />
+        ) : (
+          <div className="alarm-event-list">
+            {filteredAlarms.map((alarm) => {
+              const metricInfo = getMetricInfo(alarm.device_id, alarm.metric)
 
-      <section className="alarm-summary-grid">
-        <article className="alarm-summary-card active">
-          <span>Active Alarms</span>
-          <strong>{summary.active}</strong>
-          <small>ต้องตรวจสอบ</small>
-        </article>
+              return (
+                <article
+                  key={alarm.id}
+                  className={`alarm-event-card ${getAlarmTone(alarm)}`}
+                >
+                  <div className="alarm-event-main">
+                    <div className="alarm-event-icon">
+                      <AlertTriangle size={18} />
+                    </div>
 
-        <article className="alarm-summary-card critical">
-          <span>Critical</span>
-          <strong>{summary.critical}</strong>
-          <small>ระดับรุนแรง</small>
-        </article>
-
-        <article className="alarm-summary-card warning">
-          <span>Warning</span>
-          <strong>{summary.warning}</strong>
-          <small>ควรติดตาม</small>
-        </article>
-
-        <article className="alarm-summary-card rules">
-          <span>Alarm Rules</span>
-          <strong>{rules.length}</strong>
-          <small>{rules.filter((rule) => rule.is_active).length} Active</small>
-        </article>
-      </section>
-
-      <section className="alarm-center-grid">
-        <div className="alarm-center-main">
-          <section className="app-card alarm-panel-card">
-            <div className="alarm-panel-header">
-              <div>
-                <h2>Active Alarms</h2>
-                <p>รายการแจ้งเตือนที่ยังไม่ได้ Acknowledge</p>
-              </div>
-              <span className="status active">{activeAlarms.length} Active</span>
-            </div>
-
-            {loading ? (
-              <div className="app-empty-state compact">
-                <h3>กำลังโหลดข้อมูล</h3>
-                <p>กำลังดึงข้อมูล Alarm จาก Backend</p>
-              </div>
-            ) : activeAlarms.length === 0 ? (
-              <div className="alarm-clear-state">
-                <CheckCircle2 size={34} />
-                <h3>No Active Alarm</h3>
-                <p>ตอนนี้ยังไม่มี Alarm ที่ต้องดำเนินการ</p>
-              </div>
-            ) : (
-              <div className="active-alarm-list">
-                {activeAlarms.slice(0, 8).map((alarm) => {
-                  const metricInfo = getMetricInfo(alarm.device_id, alarm.metric)
-
-                  return (
-                    <article
-                      key={alarm.id}
-                      className={`active-alarm-card ${alarm.severity || 'warning'}`}
-                    >
-                      <div className="active-alarm-icon">
-                        {getSeverityIcon(alarm.severity)}
+                    <div>
+                      <div className="alarm-event-title-row">
+                        <h3>{alarm.device_name || 'Unnamed Device'}</h3>
+                        <StatusBadge
+                          status={alarm.severity}
+                          label={getSeverityLabel(alarm.severity)}
+                          size="sm"
+                        />
                       </div>
 
-                      <div className="active-alarm-content">
-                        <div className="active-alarm-topline">
-                          <strong>{alarm.device_name || 'Unnamed Device'}</strong>
-                          <span className={`status ${alarm.severity}`}>
-                            {getSeverityLabel(alarm.severity)}
-                          </span>
-                        </div>
+                      <p>
+                        {alarm.metric_name || metricInfo.name} {alarm.operator}{' '}
+                        {formatValue(alarm.threshold, metricInfo.unit)}
+                      </p>
 
-                        <p>
-                          {alarm.metric_name || metricInfo.name}{' '}
-                          {alarm.operator}{' '}
-                          {formatValue(alarm.threshold, metricInfo.unit)}
-                        </p>
-
-                        <div className="active-alarm-meta">
-                          <span>
-                            Current:{' '}
-                            <b>{formatValue(alarm.value, metricInfo.unit)}</b>
-                          </span>
-                          <span>{formatRelativeTime(alarm.triggered_at)}</span>
-                        </div>
+                      <div className="alarm-event-meta">
+                        <span>{alarm.device_code || `ID ${alarm.device_id}`}</span>
+                        <span>
+                          Current:{' '}
+                          {formatValue(alarm.value, metricInfo.unit)}
+                        </span>
+                        <span>{formatDate(alarm.triggered_at)}</span>
                       </div>
+                    </div>
+                  </div>
 
+                  <div className="alarm-event-actions">
+                    <StatusBadge
+                      status={alarm.status}
+                      label={getStatusLabel(alarm.status)}
+                      size="sm"
+                    />
+
+                    {alarm.status === 'active' && (
                       <button
                         type="button"
-                        className="save-btn alarm-ack-btn"
+                        className="save-btn"
                         disabled={saving}
                         onClick={() => handleAcknowledge(alarm.id)}
                       >
                         <CheckCircle2 size={15} />
                         Ack
                       </button>
-                    </article>
-                  )
-                })}
-              </div>
-            )}
-          </section>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </section>
 
-          <section className="app-card alarm-panel-card">
-            <div className="alarm-panel-header with-toolbar">
-              <div>
-                <h2>Alarm Events</h2>
-                <p>ประวัติ Alarm ล่าสุดจาก Dynamic Metrics</p>
-              </div>
+      <section className="dw-card alarm-rules-card">
+        <SectionHeader
+          title="Alarm Rules"
+          description="Rule ทั้งหมดที่ตั้งไว้ในหน้า Device"
+          actions={
+            <div className="alarm-mini-summary">
+              <span>{activeRuleCount} active</span>
             </div>
+          }
+        />
 
-            <div className="alarm-toolbar clean">
-              <label className="search-input">
-                <Search size={16} />
-                <input
-                  value={search}
-                  placeholder="Search device, metric, severity..."
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </label>
+        {rules.length === 0 ? (
+          <EmptyState
+            title="ยังไม่มี Alarm Rule"
+            description="ไปที่หน้า Device → Manage เพื่อตั้ง Rule ให้แต่ละ Metric"
+          />
+        ) : (
+          <div className="alarm-rule-list-clean">
+            {rules.map((rule) => {
+              const metricInfo = getMetricInfo(rule.device_id, rule.metric)
 
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="acknowledged">Acknowledged</option>
-              </select>
+              return (
+                <article key={rule.id} className="alarm-rule-card-clean">
+                  <div className="alarm-rule-main-clean">
+                    <div>
+                      <h3>{rule.device_name || 'Unnamed Device'}</h3>
+                      <p>{rule.device_code || `ID ${rule.device_id}`}</p>
+                    </div>
 
-              <select
-                value={severityFilter}
-                onChange={(e) => setSeverityFilter(e.target.value)}
-              >
-                <option value="all">All Severity</option>
-                <option value="critical">Critical</option>
-                <option value="warning">Warning</option>
-              </select>
-            </div>
+                    <div>
+                      <strong>{rule.metric_name || metricInfo.name}</strong>
+                      <span>{rule.metric}</span>
+                    </div>
 
-            {filteredAlarms.length === 0 ? (
-              <div className="app-empty-state">
-                <Bell size={30} />
-                <h3>ยังไม่มี Alarm</h3>
-                <p>เมื่อมีค่าเกินเงื่อนไข ระบบจะแสดงรายการที่นี่</p>
-              </div>
-            ) : (
-              <div className="alarm-table-wrap">
-                <table className="device-v2-table alarm-table alarm-center-table">
-                  <thead>
-                    <tr>
-                      <th>Device</th>
-                      <th>Metric</th>
-                      <th>Condition</th>
-                      <th>Value</th>
-                      <th>Severity</th>
-                      <th>Status</th>
-                      <th>Triggered</th>
-                      <th />
-                    </tr>
-                  </thead>
+                    <div>
+                      <strong>
+                        {rule.operator} {formatValue(rule.threshold, metricInfo.unit)}
+                      </strong>
+                      <span>Condition</span>
+                    </div>
+                  </div>
 
-                  <tbody>
-                    {filteredAlarms.map((alarm) => {
-                      const metricInfo = getMetricInfo(alarm.device_id, alarm.metric)
+                  <div className="alarm-rule-actions-clean">
+                    <StatusBadge
+                      status={rule.severity}
+                      label={getSeverityLabel(rule.severity)}
+                      size="sm"
+                    />
 
-                      return (
-                        <tr key={alarm.id}>
-                          <td>
-                            <strong>{alarm.device_name || 'Unnamed Device'}</strong>
-                            <span>{alarm.device_code || `ID ${alarm.device_id}`}</span>
-                          </td>
+                    <button
+                      type="button"
+                      className={rule.is_active ? 'save-btn' : 'secondary-button'}
+                      disabled={saving}
+                      onClick={() => handleToggleRule(rule)}
+                    >
+                      {rule.is_active ? 'Active' : 'Disabled'}
+                    </button>
 
-                          <td>
-                            <strong>{alarm.metric_name || metricInfo.name}</strong>
-                            <span>{alarm.metric}</span>
-                          </td>
-
-                          <td>
-                            {alarm.operator}{' '}
-                            {formatValue(alarm.threshold, metricInfo.unit)}
-                          </td>
-
-                          <td>
-                            <strong>{formatValue(alarm.value, metricInfo.unit)}</strong>
-                          </td>
-
-                          <td>
-                            <span className={`status ${alarm.severity}`}>
-                              {getSeverityLabel(alarm.severity)}
-                            </span>
-                          </td>
-
-                          <td>
-                            <span className={`status ${alarm.status}`}>
-                              {getStatusLabel(alarm.status)}
-                            </span>
-                          </td>
-
-                          <td>{formatDate(alarm.triggered_at)}</td>
-
-                          <td>
-                            {alarm.status === 'active' && (
-                              <button
-                                type="button"
-                                className="save-btn"
-                                disabled={saving}
-                                onClick={() => handleAcknowledge(alarm.id)}
-                              >
-                                <CheckCircle2 size={15} />
-                                Ack
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        </div>
-
-        <aside className="alarm-center-side">
-          <section className="app-card critical-focus-card">
-            <div className="critical-focus-icon">
-              <CircleAlert size={22} />
-            </div>
-
-            <span>Critical Focus</span>
-
-            {latestCritical ? (
-              <>
-                <h3>{latestCritical.device_name || 'Unnamed Device'}</h3>
-                <p>
-                  {latestCritical.metric_name || latestCritical.metric}{' '}
-                  {latestCritical.operator}{' '}
-                  {formatValue(latestCritical.threshold, getMetricInfo(latestCritical.device_id, latestCritical.metric).unit)}
-                </p>
-                <strong>
-                  {formatValue(
-                    latestCritical.value,
-                    getMetricInfo(latestCritical.device_id, latestCritical.metric).unit
-                  )}
-                </strong>
-                <small>{formatRelativeTime(latestCritical.triggered_at)}</small>
-              </>
-            ) : (
-              <>
-                <h3>No Critical Alarm</h3>
-                <p>ยังไม่มี Critical Alarm ที่ต้องรีบจัดการ</p>
-              </>
-            )}
-          </section>
-
-          <section className="app-card alarm-rules-card">
-            <div className="alarm-panel-header compact">
-              <div>
-                <h2>Alarm Rules</h2>
-                <p>Rule ทั้งหมดที่ตั้งไว้</p>
-              </div>
-            </div>
-
-            {rules.length === 0 ? (
-              <div className="app-empty-state compact">
-                <AlertTriangle size={30} />
-                <h3>ยังไม่มี Rule</h3>
-                <p>ไปที่หน้า Device เพื่อกำหนด Rule</p>
-              </div>
-            ) : (
-              <div className="alarm-rule-list-clean">
-                {rules.slice(0, 10).map((rule) => {
-                  const metricInfo = getMetricInfo(rule.device_id, rule.metric)
-
-                  return (
-                    <article key={rule.id} className="alarm-rule-card-clean">
-                      <div>
-                        <strong>{rule.device_name || 'Unnamed Device'}</strong>
-                        <span>
-                          {rule.metric_name || metricInfo.name} {rule.operator}{' '}
-                          {formatValue(rule.threshold, metricInfo.unit)}
-                        </span>
-                      </div>
-
-                      <div className="alarm-rule-card-actions">
-                        <button
-                          type="button"
-                          className={rule.is_active ? 'status online' : 'status offline'}
-                          disabled={saving}
-                          onClick={() => handleToggleRule(rule)}
-                        >
-                          {rule.is_active ? 'Active' : 'Off'}
-                        </button>
-
-                        <button
-                          type="button"
-                          className="delete-btn square"
-                          disabled={saving}
-                          onClick={() => handleDeleteRule(rule.id)}
-                          title="Delete rule"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </article>
-                  )
-                })}
-              </div>
-            )}
-          </section>
-        </aside>
+                    <button
+                      type="button"
+                      className="delete-btn"
+                      disabled={saving}
+                      onClick={() => handleDeleteRule(rule.id)}
+                    >
+                      <Trash2 size={15} />
+                      Delete
+                    </button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
       </section>
     </div>
   )
