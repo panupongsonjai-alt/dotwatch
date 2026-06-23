@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Cpu, Wifi, WifiOff } from 'lucide-react'
 
 import CreateDeviceWizard from '../components/devices/CreateDeviceWizard.jsx'
 import DeviceList from '../components/devices/DeviceList.jsx'
 import SelectedDevicePanel from '../components/devices/SelectedDevicePanel.jsx'
+import { PageHeader, StatCard } from '../components/common'
 import { getStatus } from '../components/devices/deviceUtils.jsx'
 import {
   addDevice,
@@ -413,41 +413,28 @@ function Devices() {
 
   return (
     <div className="page app-page device-page device-v2-page">
-      <section className="app-page-header device-v2-header">
-        <div>
-          <span className="page-eyebrow">Devices</span>
-          <h2>Device Management</h2>
-          <p>
-            จัดการอุปกรณ์, Metric Display, Location, Secret และ Alarm Rules ของ
-            dotWatch
-          </p>
-        </div>
-      </section>
+      <PageHeader
+        eyebrow="Devices"
+        title="Device Operations Center"
+        description="จัดการอุปกรณ์, Metric Display, Location, Secret และ Alarm Rules ของ dotWatch"
+        meta={`${devices.length} Devices • ${onlineCount} Online • ${offlineCount} Offline`}
+        actions={
+          <button
+            type="button"
+            className="primary-button"
+            onClick={openCreateWizard}
+            disabled={saving}
+          >
+            Create Device
+          </button>
+        }
+      />
 
-      <section className="device-header-stats clean-device-stats app-summary-grid">
-        <div>
-          <span>Total</span>
-          <strong>{devices.length}</strong>
-          <Cpu size={18} />
-        </div>
-
-        <div className="online">
-          <span>Online</span>
-          <strong>{onlineCount}</strong>
-          <Wifi size={18} />
-        </div>
-
-        <div className="warning">
-          <span>Warning</span>
-          <strong>{warningCount}</strong>
-          <AlertTriangle size={18} />
-        </div>
-
-        <div className="offline">
-          <span>Offline</span>
-          <strong>{offlineCount}</strong>
-          <WifiOff size={18} />
-        </div>
+      <section className="devices-ops-stat-grid">
+        <StatCard label="Total Devices" value={devices.length} hint="Registered" />
+        <StatCard label="Online" value={onlineCount} hint="Active now" tone="success" />
+        <StatCard label="Warning" value={warningCount} hint="Needs attention" tone="warning" />
+        <StatCard label="Offline" value={offlineCount} hint="No recent data" tone="danger" />
       </section>
 
       <section className="devices-v2-shell">
