@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { sendEmailVerification, sendPasswordResetEmail } from 'firebase/auth'
+import React, { useEffect, useMemo, useState } from 'react'
+import { sendEmailVerification, sendPasswordResetEmail, updateProfile } from 'firebase/auth'
 import { auth } from '../services/firebase'
 import {
   addProfileActivity,
@@ -10,7 +10,7 @@ import {
   getProfileNotifications,
   saveProfileNotifications,
 } from '../utils/profileStorage'
-import { updateProfile } from 'firebase/auth'
+import { EmptyState, PageHeader, SectionHeader, StatCard, StatusBadge } from '../components/common'
 
 function Profile() {
   const user = auth.currentUser
@@ -28,16 +28,18 @@ function Profile() {
   const [error, setError] = useState('')
   const [sendingReset, setSendingReset] = useState(false)
   const [sendingVerify, setSendingVerify] = useState(false)
-
   const [displayName, setDisplayName] = useState(
     user?.displayName || 'dotWatch User'
   )
   const [savingProfile, setSavingProfile] = useState(false)
+
   const email = user?.email || '-'
   const browserName = getBrowserName()
   const operatingSystem = getOperatingSystem()
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const securityScore = user?.emailVerified ? '85%' : '65%'
+  const firstLetter =
+    displayName?.charAt(0).toUpperCase() || email?.charAt(0).toUpperCase() || 'U'
 
   const createdAt = user?.metadata?.creationTime
     ? new Date(user.metadata.creationTime).toLocaleString('th-TH')
@@ -47,10 +49,15 @@ function Profile() {
     ? new Date(user.metadata.lastSignInTime).toLocaleString('th-TH')
     : '-'
 
-  const firstLetter =
-    displayName?.charAt(0).toUpperCase() ||
-    email?.charAt(0).toUpperCase() ||
-    'U'
+  const notificationItems = useMemo(
+    () => [
+      ['emailAlerts', 'Email Alerts', 'ส่งอีเมลเมื่อมีเหตุการณ์สำคัญ'],
+      ['offlineAlerts', 'Device Offline Alerts', 'แจ้งเตือนเมื่ออุปกรณ์ Offline'],
+      ['criticalAlerts', 'Critical Alarm Alerts', 'แจ้งเตือน Alarm ระดับ Critical'],
+      ['weeklyReport', 'Weekly Report', 'ส่งสรุปรายงานรายสัปดาห์'],
+    ],
+    []
+  )
 
   useEffect(() => {
     setLanguage(getProfileLanguage())
@@ -79,9 +86,7 @@ function Profile() {
       setSendingReset(true)
       setMessage('')
       setError('')
-
       await sendPasswordResetEmail(auth, user.email)
-
       setMessage('ส่งอีเมลสำหรับเปลี่ยนรหัสผ่านเรียบร้อย')
       setActivities(addProfileActivity('ส่งอีเมลเปลี่ยนรหัสผ่าน'))
     } catch (err) {
@@ -102,9 +107,7 @@ function Profile() {
       setSendingVerify(true)
       setMessage('')
       setError('')
-
       await sendEmailVerification(user)
-
       setMessage('ส่งอีเมลยืนยันตัวตนเรียบร้อย กรุณาตรวจสอบกล่องอีเมล')
       setActivities(addProfileActivity('ส่งอีเมลยืนยันตัวตน'))
     } catch (err) {
@@ -122,16 +125,9 @@ function Profile() {
       setSavingProfile(true)
       setMessage('')
       setError('')
-
-      await updateProfile(user, {
-        displayName,
-      })
-
+      await updateProfile(user, { displayName })
       setMessage('บันทึกข้อมูลโปรไฟล์เรียบร้อย')
-
-      setActivities(
-        addProfileActivity(`เปลี่ยน Display Name เป็น "${displayName}"`)
-      )
+      setActivities(addProfileActivity(`เปลี่ยน Display Name เป็น "${displayName}"`))
     } catch (err) {
       console.error(err)
       setError('ไม่สามารถบันทึกข้อมูลได้')
@@ -145,181 +141,101 @@ function Profile() {
   }
 
   return (
-    <div className="page app-page profile-page">
-      <section className="profile-shell app-page-stack">
-        <div className="app-page-header profile-main-title">
-          <div>
-            <span className="page-eyebrow">Account</span>
-            <h2>Profile</h2>
-            <p>จัดการข้อมูลบัญชี ความปลอดภัย และการตั้งค่าส่วนตัว</p>
+    <div className="page app-page profile-page profile-v3-page">
+      <PageHeader
+        eyebrow="Account Center"
+        title="Profile"
+        description="จัดการข้อมูลบัญชี ความปลอดภัย การแจ้งเตือน และ Session ปัจจุบัน"
+        meta={
+          <>
+            <span>{user?.emailVerified ? 'Verified account' : 'Email verification required'}</span>
+            <span>{timezone}</span>
+          </>
+        }
+        actions={
+          <button
+            type="button"
+            className="primary-button"
+            onClick={handleSaveProfile}
+            disabled={savingProfile}
+          >
+            {savingProfile ? 'Saving...' : 'Save Profile'}
+          </button>
+        }
+      />
+
+      {message && <div className="auth-success">{message}</div>}
+      {error && <div className="auth-error">{error}</div>}
+
+      <section className="profile-v3-hero app-card">
+        <div className="profile-v3-avatar">{firstLetter}</div>
+        <div className="profile-v3-identity">
+          <span className="page-eyebrow">Signed in as</span>
+          <h2>{displayName || 'dotWatch User'}</h2>
+          <p>{email}</p>
+          <div className="profile-v3-badges">
+            <StatusBadge status={user?.emailVerified ? 'online' : 'warning'} label={user?.emailVerified ? 'Email Verified' : 'Not Verified'} />
+            <StatusBadge status="muted" label={language === 'th' ? 'Thai' : 'English'} />
           </div>
         </div>
+      </section>
 
-        {message && <div className="auth-success">{message}</div>}
-        {error && <div className="auth-error">{error}</div>}
+      <section className="profile-v3-stat-grid">
+        <StatCard label="Security Score" value={securityScore} hint={user?.emailVerified ? 'Good' : 'Needs review'} tone={user?.emailVerified ? 'success' : 'warning'} />
+        <StatCard label="Email Status" value={user?.emailVerified ? 'Verified' : 'Pending'} hint="Account verification" tone={user?.emailVerified ? 'success' : 'warning'} />
+        <StatCard label="Browser" value={browserName} hint={operatingSystem} />
+        <StatCard label="Timezone" value={timezone} hint="Current session" />
+      </section>
 
-        <div className="profile-main-grid">
-          <section className="profile-section app-card account-card">
-            <div className="profile-card-title">
-              <span className="profile-title-icon">👤</span>
-              <h3>Account Information</h3>
-            </div>
-
-            <div className="profile-info-grid compact">
+      <section className="profile-v3-layout">
+        <div className="profile-v3-main">
+          <section className="app-card">
+            <SectionHeader title="Account Information" description="ข้อมูลหลักของบัญชี dotWatch" />
+            <div className="profile-info-grid compact profile-v3-form-grid">
               <label>
                 Display Name
-                <input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Display Name"
-                />
+                <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Display Name" />
               </label>
-
               <label>
                 Email
                 <input value={email} disabled />
               </label>
-
-              <label>
-                Email Status
-                <input
-                  value={user?.emailVerified ? 'Verified' : 'Not Verified'}
-                  disabled
-                />
-              </label>
-
               <label>
                 Account Created
                 <input value={createdAt} disabled />
               </label>
-
               <label>
                 Last Login
                 <input value={lastLoginAt} disabled />
               </label>
-
               <label>
                 Organization
-                <input
-                  value={
-                    localStorage.getItem('organization') || 'Personal Account'
-                  }
-                  disabled
-                />
+                <input value={localStorage.getItem('organization') || 'Personal Account'} disabled />
               </label>
-
-              <label>
-                Timezone
-                <input value={timezone} disabled />
-              </label>
-
               <label>
                 Device Access
                 <input value="All Devices" disabled />
               </label>
             </div>
-
-            <div className="profile-save-row">
-              <button
-                type="button"
-                className="primary-button"
-                onClick={handleSaveProfile}
-                disabled={savingProfile}
-              >
-                {savingProfile ? 'Saving...' : 'Save Profile'}
-              </button>
-            </div>
           </section>
 
-          <section className="profile-section app-card security-section">
-            <div className="profile-card-title">
-              <span className="profile-title-icon">🛡️</span>
-              <div>
-                <h3>Security</h3>
-                <p>จัดการรหัสผ่าน การยืนยันอีเมล และความปลอดภัยของบัญชี</p>
-              </div>
-            </div>
-
-            <div className="security-score-card clean">
-              <div className="security-score-main clean">
-                <strong>{securityScore}</strong>
-                <span>Security Score</span>
-                <small>{user?.emailVerified ? 'Good' : 'Needs Review'}</small>
-              </div>
-
-              <div className="security-check-list clean">
-                <div
-                  className={
-                    user?.emailVerified
-                      ? 'security-check success'
-                      : 'security-check warning'
-                  }
-                >
-                  <span>{user?.emailVerified ? '✓' : '!'}</span>
-                  <div>
-                    <strong>
-                      {user?.emailVerified
-                        ? 'Email verified'
-                        : 'Email not verified'}
-                    </strong>
-                    <p>
-                      {user?.emailVerified
-                        ? 'อีเมลของคุณได้รับการยืนยันแล้ว'
-                        : 'แนะนำให้ยืนยันอีเมลก่อนใช้งานจริง'}
-                    </p>
-                  </div>
-                  <em>{user?.emailVerified ? 'Secure' : 'Improve'}</em>
-                </div>
-
-                <div className="security-check success">
-                  <span>✓</span>
-                  <div>
-                    <strong>Password reset available</strong>
-                    <p>คุณสามารถรีเซ็ตรหัสผ่านได้</p>
-                  </div>
-                  <em>Secure</em>
-                </div>
-
-                <div className="security-check success">
-                  <span>✓</span>
-                  <div>
-                    <strong>Account active</strong>
-                    <p>บัญชีของคุณใช้งานได้ปกติ</p>
-                  </div>
-                  <em>Secure</em>
-                </div>
-              </div>
-            </div>
-
-            <div className="security-action-grid">
-              <button
-                type="button"
-                className="security-action primary"
-                onClick={handleResetPassword}
-                disabled={sendingReset}
-              >
+          <section className="app-card">
+            <SectionHeader title="Security" description="จัดการรหัสผ่านและการยืนยันอีเมล" />
+            <div className="profile-v3-security-actions">
+              <button type="button" className="security-action primary" onClick={handleResetPassword} disabled={sendingReset}>
                 <span>✉️</span>
                 <div>
-                  <strong>
-                    {sendingReset ? 'Sending...' : 'Send Password Reset Email'}
-                  </strong>
+                  <strong>{sendingReset ? 'Sending...' : 'Password Reset Email'}</strong>
                   <small>ส่งอีเมลสำหรับเปลี่ยนรหัสผ่าน</small>
                 </div>
                 <b>›</b>
               </button>
 
               {!user?.emailVerified ? (
-                <button
-                  type="button"
-                  className="security-action"
-                  onClick={handleSendVerifyEmail}
-                  disabled={sendingVerify}
-                >
+                <button type="button" className="security-action" onClick={handleSendVerifyEmail} disabled={sendingVerify}>
                   <span>📧</span>
                   <div>
-                    <strong>
-                      {sendingVerify ? 'Sending...' : 'Send Email Verification'}
-                    </strong>
+                    <strong>{sendingVerify ? 'Sending...' : 'Verify Email'}</strong>
                     <small>ส่งอีเมลยืนยันตัวตน</small>
                   </div>
                   <b>›</b>
@@ -334,114 +250,60 @@ function Profile() {
                 </div>
               )}
             </div>
-
-            <div className="current-session-card clean">
-              <h4>Current Session</h4>
-
-              <div className="session-grid clean">
-                <div>
-                  <span>Browser</span>
-                  <strong>{browserName}</strong>
-                </div>
-
-                <div>
-                  <span>Operating System</span>
-                  <strong>{operatingSystem}</strong>
-                </div>
-
-                <div>
-                  <span>Timezone</span>
-                  <strong>{timezone}</strong>
-                </div>
-
-                <div>
-                  <span>Language</span>
-                  <strong>{language === 'th' ? 'Thai' : 'English'}</strong>
-                </div>
-              </div>
-            </div>
           </section>
 
-          <section className="profile-section app-card">
-            <div className="profile-card-title">
-              <span className="profile-title-icon">🔔</span>
-              <h3>Notification Settings</h3>
-            </div>
-
-            <div className="profile-toggle-list">
-              {Object.entries({
-                emailAlerts: 'Email Alerts',
-                offlineAlerts: 'Device Offline Alerts',
-                criticalAlerts: 'Critical Alarm Alerts',
-                weeklyReport: 'Weekly Report',
-              }).map(([key, label]) => (
+          <section className="app-card">
+            <SectionHeader title="Notification Settings" description="เลือกประเภทการแจ้งเตือนที่ต้องการรับ" />
+            <div className="profile-toggle-list profile-v3-toggle-list">
+              {notificationItems.map(([key, label, description]) => (
                 <label key={key}>
-                  <span>{label}</span>
-                  <input
-                    type="checkbox"
-                    checked={notifications[key]}
-                    onChange={() => handleNotificationChange(key)}
-                  />
+                  <div>
+                    <strong>{label}</strong>
+                    <span>{description}</span>
+                  </div>
+                  <input type="checkbox" checked={notifications[key]} onChange={() => handleNotificationChange(key)} />
                 </label>
               ))}
             </div>
           </section>
+        </div>
 
-          <section className="profile-section app-card">
+        <aside className="profile-v3-side">
+          <section className="app-card">
+            <SectionHeader title="Current Session" description="ข้อมูล Session ล่าสุด" />
+            <div className="session-grid clean profile-v3-session-grid">
+              <div><span>Browser</span><strong>{browserName}</strong></div>
+              <div><span>Operating System</span><strong>{operatingSystem}</strong></div>
+              <div><span>Timezone</span><strong>{timezone}</strong></div>
+              <div><span>Language</span><strong>{language === 'th' ? 'Thai' : 'English'}</strong></div>
+            </div>
+          </section>
+
+          <section className="app-card">
             <div className="profile-section-header">
-              <div className="profile-card-title">
-                <span className="profile-title-icon">🕘</span>
-                <h3>Recent Activity</h3>
-              </div>
-
+              <SectionHeader title="Recent Activity" description="กิจกรรมล่าสุดของบัญชี" />
               {activities.length > 0 && (
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={handleClearActivities}
-                >
-                  Clear
-                </button>
+                <button type="button" className="text-button" onClick={handleClearActivities}>Clear</button>
               )}
             </div>
 
-            <div className="activity-list">
-              {activities.length === 0 ? (
-                <p className="profile-help-text">ยังไม่มีกิจกรรมล่าสุด</p>
-              ) : (
-                activities.map((activity) => (
+            {activities.length === 0 ? (
+              <EmptyState title="ยังไม่มีกิจกรรมล่าสุด" description="กิจกรรมสำคัญจะแสดงที่นี่" />
+            ) : (
+              <div className="activity-list profile-v3-activity-list">
+                {activities.map((activity) => (
                   <div className="activity-item" key={activity.id}>
                     <span className="activity-dot" />
                     <div>
                       <strong>{activity.text}</strong>
-                      <small>
-                        {new Date(activity.time).toLocaleString('th-TH')}
-                      </small>
+                      <small>{new Date(activity.time).toLocaleString('th-TH')}</small>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </section>
-
-          <div className="profile-single-grid">
-            <section className="profile-section app-card danger-zone">
-              <div className="profile-card-title">
-                <span className="profile-title-icon danger">⚠️</span>
-                <h3>Danger Zone</h3>
+                ))}
               </div>
-
-              <p>
-                ส่วนนี้เตรียมไว้สำหรับการจัดการบัญชีขั้นสูง เช่น ลบบัญชี
-                หรือล้างข้อมูลส่วนตัวในอนาคต
-              </p>
-
-              <button type="button" className="danger-button" disabled>
-                Delete Account
-              </button>
-            </section>
-          </div>
-        </div>
+            )}
+          </section>
+        </aside>
       </section>
     </div>
   )

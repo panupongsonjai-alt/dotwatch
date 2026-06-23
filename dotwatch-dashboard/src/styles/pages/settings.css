@@ -1,0 +1,98 @@
+/* =========================================================
+   Settings Page V3 - Design System Consistency
+========================================================= */
+
+.settings-v3-page {
+  display: grid;
+  gap: 20px;
+}
+
+.settings-v3-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-v3-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+  align-items: start;
+}
+
+.settings-v3-toggle-list.app-toggle-list {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-v3-toggle-list .app-toggle-item {
+  min-height: 82px;
+  padding: 18px;
+  border-radius: 20px;
+}
+
+.settings-v3-toggle-list .app-toggle-item div {
+  display: grid;
+  gap: 5px;
+}
+
+.settings-v3-toggle-list .app-toggle-item span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-v3-help-card {
+  position: sticky;
+  top: 96px;
+}
+
+.settings-v3-help-list {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-v3-help-list div {
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.settings-v3-help-list strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.settings-v3-help-list span {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+@media (max-width: 1100px) {
+  .settings-v3-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-v3-help-card {
+    position: static;
+  }
+}
+
+@media (max-width: 900px) {
+  .settings-v3-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .settings-v3-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}

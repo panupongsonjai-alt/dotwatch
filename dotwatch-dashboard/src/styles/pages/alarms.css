@@ -316,3 +316,42 @@
     width: 100%;
   }
 }
+
+
+/* =========================================================
+   Alarm Center V3 - Dashboard-like StatCards
+========================================================= */
+
+.alarms-page .dashboard-style-stat-grid,
+.alarms-center-page .dashboard-style-stat-grid,
+.alarms-stat-grid.dashboard-style-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.alarms-stat-grid .dw-stat-card {
+  min-height: 104px;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.alarms-stat-grid .dw-stat-card strong {
+  font-size: 30px;
+}
+
+@media (max-width: 900px) {
+  .alarms-page .dashboard-style-stat-grid,
+  .alarms-center-page .dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .alarms-page .dashboard-style-stat-grid,
+  .alarms-center-page .dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
