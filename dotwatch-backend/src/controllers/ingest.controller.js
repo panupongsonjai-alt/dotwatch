@@ -149,6 +149,14 @@ export async function ingestReading(req, res) {
         last_ingest_at: updatedDevice.last_ingest_at,
         firmware_version: updatedDevice.firmware_version,
         latest_time: time,
+        temperature:
+          data.temperature ??
+          latestMetrics.temperature ??
+          latestMetrics.metric_1,
+        humidity:
+          data.humidity ?? latestMetrics.humidity ?? latestMetrics.metric_2,
+        rssi: data.rssi ?? latestMetrics.rssi,
+        ...latestMetrics,
         latest_metrics: latestMetrics,
         metrics: latestMetrics,
       },

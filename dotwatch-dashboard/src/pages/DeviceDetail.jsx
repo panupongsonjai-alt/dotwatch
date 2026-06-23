@@ -33,6 +33,33 @@ function getStatusClass(status) {
   return 'status-offline'
 }
 
+function mergeRealtimeDevice(prev, reading) {
+  const realtimeMetrics = reading.latest_metrics || reading.metrics || {}
+
+  return {
+    ...prev,
+    ...reading,
+
+    // เอาค่า metric มาเก็บทั้งแบบ object และแบบ field ตรง
+    ...realtimeMetrics,
+
+    latest_metrics: {
+      ...(prev?.latest_metrics || {}),
+      ...realtimeMetrics,
+    },
+
+    metrics: {
+      ...(prev?.metrics || {}),
+      ...realtimeMetrics,
+    },
+
+    status: reading.status || 'online',
+    latest_time: reading.latest_time || reading.time || prev?.latest_time,
+    last_seen_at: reading.last_seen_at || prev?.last_seen_at,
+    last_ingest_at: reading.last_ingest_at || prev?.last_ingest_at,
+  }
+}
+
 function DeviceDetail({ deviceId, onBack }) {
   const [device, setDevice] = useState(null)
   const [metrics, setMetrics] = useState([])
@@ -70,8 +97,23 @@ function DeviceDetail({ deviceId, onBack }) {
 
   function getMetricValue(metric) {
     const latestMetrics = device?.latest_metrics || device?.metrics || {}
-    return latestMetrics[metric.metric_key]
+
+    if (latestMetrics[metric.metric_key] != null) {
+      return latestMetrics[metric.metric_key]
+    }
+
+    if (device?.[metric.metric_key] != null) {
+      return device[metric.metric_key]
+    }
+
+    return null
   }
+
+  useEffect(() => {
+    if (deviceId) {
+      loadDevice()
+    }
+  }, [deviceId])
 
   useEffect(() => {
     const user = auth.currentUser
@@ -79,33 +121,28 @@ function DeviceDetail({ deviceId, onBack }) {
     if (!user || !deviceId) return
 
     connectRealtime(user.uid, (payload) => {
-      if (payload.type !== 'reading') return
+      console.log('Device Detail realtime payload:', payload)
 
-      const reading = payload.data
+      if (payload.type !== 'reading' && payload.type !== 'device:update') {
+        return
+      }
 
-      if (String(reading.id) !== String(deviceId)) return
+      const reading = payload.data || payload.device
 
-      setDevice((prev) => ({
-        ...prev,
-        ...reading,
-        latest_metrics: {
-          ...(prev?.latest_metrics || {}),
-          ...(reading.latest_metrics || reading.metrics || {}),
-        },
-        status: reading.status || 'online',
-        latest_time: reading.latest_time,
-        last_seen_at: reading.last_seen_at,
-        last_ingest_at: reading.last_ingest_at,
-      }))
+      if (!reading) return
+
+      const sameDevice =
+        String(reading.id) === String(deviceId) ||
+        String(reading.device_id) === String(deviceId)
+
+      if (!sameDevice) return
+
+      setDevice((prev) => mergeRealtimeDevice(prev, reading))
     })
 
     return () => {
       disconnectRealtime()
     }
-  }, [deviceId])
-
-  useEffect(() => {
-    if (deviceId) loadDevice()
   }, [deviceId])
 
   const visibleMetrics = useMemo(() => {

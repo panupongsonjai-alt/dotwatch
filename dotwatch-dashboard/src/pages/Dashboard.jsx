@@ -15,6 +15,35 @@ import {
 } from '../utils/metricDisplayConfig'
 import { MetricIcon } from '../utils/metricIcons.jsx'
 
+function normalizeRealtimeDevice(reading = {}) {
+  const latestMetrics = reading.latest_metrics || reading.metrics || {}
+
+  return {
+    ...reading,
+    ...latestMetrics,
+    latest_metrics: latestMetrics,
+    metrics: latestMetrics,
+    temperature:
+      reading.temperature ??
+      latestMetrics.temperature ??
+      latestMetrics.metric_1,
+    humidity:
+      reading.humidity ?? latestMetrics.humidity ?? latestMetrics.metric_2,
+    rssi: reading.rssi ?? latestMetrics.rssi,
+    latest_time:
+      reading.latest_time || reading.time || new Date().toISOString(),
+    status: reading.status || 'online',
+  }
+}
+
+function isSameDevice(device, reading) {
+  return (
+    String(device.id) === String(reading.id) ||
+    String(device.id) === String(reading.device_id) ||
+    String(device.device_code) === String(reading.device_code)
+  )
+}
+
 function Dashboard({ onOpenDevice }) {
   const [devices, setDevices] = useState([])
   const [metricConfigs, setMetricConfigs] = useState({})
@@ -106,6 +135,34 @@ function Dashboard({ onOpenDevice }) {
     return { className: 'healthy' }
   }
 
+  function updateRealtimeDevice(reading) {
+    const realtimeDevice = normalizeRealtimeDevice(reading)
+
+    setDevices((prev) => {
+      const exists = prev.some((device) => isSameDevice(device, realtimeDevice))
+
+      if (!exists) {
+        loadDeviceMetrics([realtimeDevice])
+        return [realtimeDevice, ...prev]
+      }
+
+      return prev.map((device) => {
+        if (!isSameDevice(device, realtimeDevice)) return device
+
+        return {
+          ...device,
+          ...realtimeDevice,
+          id: device.id,
+          user_id: device.user_id || realtimeDevice.user_id,
+          model_id: device.model_id || realtimeDevice.model_id,
+          model_key: device.model_key || realtimeDevice.model_key,
+          model_name: device.model_name || realtimeDevice.model_name,
+          metric_count: device.metric_count || realtimeDevice.metric_count,
+        }
+      })
+    })
+  }
+
   useEffect(() => {
     loadDisplaySettings()
     loadDevices()
@@ -114,29 +171,50 @@ function Dashboard({ onOpenDevice }) {
     window.addEventListener('dashboardSettingsChanged', loadDisplaySettings)
     window.addEventListener('dotwatchMetricConfigChanged', loadDevices)
 
-    const user = auth.currentUser
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      disconnectRealtime()
 
-    if (user) {
+      if (!user) return
+
       connectRealtime(user.uid, (payload) => {
-        if (payload.type === 'reading') {
-          const reading = payload.data
+        console.log('Realtime payload:', payload)
+
+        if (payload.type === 'reading' || payload.type === 'device:update') {
+          const reading = payload.data || payload.device
+          if (reading) updateRealtimeDevice(reading)
+        }
+
+        if (payload.type === 'device:delete') {
+          const deletedDevice = payload.data || payload.device
+          if (!deletedDevice) return
 
           setDevices((prev) =>
-            prev.map((device) =>
-              device.id === reading.id ? { ...device, ...reading } : device
-            )
+            prev.filter((device) => !isSameDevice(device, deletedDevice))
           )
         }
 
         if (payload.type === 'alarm') {
-          payload.data.forEach(addAlarm)
-          setAlarmCount((count) => count + payload.data.length)
+          const alarms = Array.isArray(payload.data)
+            ? payload.data
+            : [payload.data]
+
+          const validAlarms = alarms.filter(Boolean)
+          validAlarms.forEach(addAlarm)
+          setAlarmCount((count) => count + validAlarms.length)
+        }
+
+        if (payload.type === 'alarm:sync') {
+          const alarms = Array.isArray(payload.data) ? payload.data : []
+          setAlarmCount(
+            alarms.filter((alarm) => alarm.status === 'active').length
+          )
         }
       })
-    }
+    })
 
     return () => {
       disconnectRealtime()
+      unsubscribeAuth?.()
       window.removeEventListener(
         'dashboardSettingsChanged',
         loadDisplaySettings
