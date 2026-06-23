@@ -1,7 +1,7 @@
-import { pool } from "../db/pool.js";
+import { pool } from '../db/pool.js'
 
 export async function listAlarms(req, res) {
-  const user = req.dbUser;
+  const user = req.dbUser
 
   const result = await pool.query(
     `
@@ -10,7 +10,12 @@ export async function listAlarms(req, res) {
       ae.device_id,
       d.device_code,
       d.name AS device_name,
+      d.model_id,
+      model.model_key,
+      model.model_name,
       ae.metric,
+      COALESCE(dm.metric_name, ae.metric) AS metric_name,
+      COALESCE(dm.unit, '') AS unit,
       ae.operator,
       ae.threshold,
       ae.value,
@@ -19,20 +24,26 @@ export async function listAlarms(req, res) {
       ae.triggered_at,
       ae.acknowledged_at
     FROM alarm_events ae
-    LEFT JOIN devices d ON d.id = ae.device_id
+    LEFT JOIN devices d
+      ON d.id = ae.device_id
+    LEFT JOIN device_models model
+      ON model.id = d.model_id
+    LEFT JOIN device_metrics dm
+      ON dm.device_id = ae.device_id
+      AND dm.metric_key = ae.metric
     WHERE ae.user_id = $1
     ORDER BY ae.triggered_at DESC
     LIMIT 100
     `,
-    [user.id],
-  );
+    [user.id]
+  )
 
-  res.json(result.rows);
+  res.json(result.rows)
 }
 
 export async function acknowledgeAlarm(req, res) {
-  const user = req.dbUser;
-  const { id } = req.params;
+  const user = req.dbUser
+  const { id } = req.params
 
   const result = await pool.query(
     `
@@ -44,14 +55,14 @@ export async function acknowledgeAlarm(req, res) {
       AND user_id = $2
     RETURNING *
     `,
-    [id, user.id],
-  );
+    [id, user.id]
+  )
 
   if (!result.rows.length) {
     return res.status(404).json({
-      message: "Alarm not found",
-    });
+      message: 'Alarm not found',
+    })
   }
 
-  res.json(result.rows[0]);
+  res.json(result.rows[0])
 }

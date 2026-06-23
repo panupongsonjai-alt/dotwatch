@@ -95,10 +95,11 @@ function Dashboard({ onOpenDevice }) {
   }
 
   function getDeviceHealth(device) {
-    if (device.status === 'offline') return { className: 'critical' }
-    if (device.status === 'warning') return { className: 'warning' }
+    if (device.status === 'offline') {
+      return { className: 'critical' }
+    }
 
-    if (device.rssi != null && Number(device.rssi) < -85) {
+    if (device.status === 'warning') {
       return { className: 'warning' }
     }
 

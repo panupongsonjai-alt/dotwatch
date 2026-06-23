@@ -1,39 +1,46 @@
-import { pool } from "../db/pool.js";
+import { pool } from '../db/pool.js'
 
 function compareValue(value, operator, threshold) {
-  if (operator === ">") return value > threshold;
-  if (operator === ">=") return value >= threshold;
-  if (operator === "<") return value < threshold;
-  if (operator === "<=") return value <= threshold;
-  if (operator === "=") return value === threshold;
-  return false;
+  if (operator === '>') return value > threshold
+  if (operator === '>=') return value >= threshold
+  if (operator === '<') return value < threshold
+  if (operator === '<=') return value <= threshold
+  if (operator === '=') return value === threshold
+  return false
 }
 
 export async function checkAlarms({ userId, deviceId, reading }) {
   const rulesResult = await pool.query(
     `
-    SELECT id, metric, operator, threshold, severity
-    FROM alarm_rules
-    WHERE user_id = $1
-      AND is_active = true
-      AND (device_id = $2 OR device_id IS NULL)
+    SELECT
+      ar.id,
+      ar.metric,
+      ar.operator,
+      ar.threshold,
+      ar.severity,
+      dm.metric_name,
+      dm.unit
+    FROM alarm_rules ar
+    LEFT JOIN device_metrics dm
+      ON dm.device_id = $2
+      AND dm.metric_key = ar.metric
+    WHERE ar.user_id = $1
+      AND ar.is_active = true
+      AND (ar.device_id = $2 OR ar.device_id IS NULL)
     `,
-    [userId, deviceId],
-  );
+    [userId, deviceId]
+  )
 
-  const alerts = [];
+  const alerts = []
 
   for (const rule of rulesResult.rows) {
-    const value = Number(reading[rule.metric]);
-    if (!Number.isFinite(value)) continue;
+    const value = Number(reading[rule.metric])
 
-    const triggered = compareValue(
-      value,
-      rule.operator,
-      Number(rule.threshold),
-    );
+    if (!Number.isFinite(value)) continue
 
-    if (!triggered) continue;
+    const triggered = compareValue(value, rule.operator, Number(rule.threshold))
+
+    if (!triggered) continue
 
     const eventResult = await pool.query(
       `
@@ -61,12 +68,16 @@ export async function checkAlarms({ userId, deviceId, reading }) {
         rule.threshold,
         value,
         rule.severity,
-        reading.time,
-      ],
-    );
+        reading.time || new Date().toISOString(),
+      ]
+    )
 
-    alerts.push(eventResult.rows[0]);
+    alerts.push({
+      ...eventResult.rows[0],
+      metric_name: rule.metric_name || rule.metric,
+      unit: rule.unit || '',
+    })
   }
 
-  return alerts;
+  return alerts
 }
