@@ -195,11 +195,6 @@ function Dashboard({ onOpenDevice }) {
         </div>
 
         <div className="app-summary-card compact-summary-card">
-          <span>Healthy</span>
-          <strong>{healthSummary.healthy}</strong>
-        </div>
-
-        <div className="app-summary-card compact-summary-card">
           <span>Warning</span>
           <strong>{healthSummary.warning}</strong>
         </div>
@@ -210,63 +205,68 @@ function Dashboard({ onOpenDevice }) {
         </div>
       </section>
 
-      <AlarmPanel />
-
-      {dashboardDisplay.showDeviceOverview && (
-        <section className="app-card">
-          <div className="app-section-title">
-            <h2>Devices Overview</h2>
-            <p>
-              Metric ล่าสุดจากอุปกรณ์ทั้งหมดตามชื่อและหน่วยที่ตั้งไว้ในหน้า
-              Device
-            </p>
-          </div>
-
-          {loading ? (
-            <div className="app-empty-state">
-              <h3>กำลังโหลดข้อมูล</h3>
-              <p>กำลังดึงข้อมูล Device จาก Backend</p>
+      <section className="dashboard-main-grid">
+        {dashboardDisplay.showDeviceOverview && (
+          <section className="app-card">
+            <div className="app-section-title">
+              <h2>Devices Overview</h2>
+              <p>
+                Metric ล่าสุดจากอุปกรณ์ทั้งหมดตามชื่อและหน่วยที่ตั้งไว้ในหน้า
+                Device
+              </p>
             </div>
-          ) : devices.length === 0 ? (
-            <div className="app-empty-state">
-              <h3>ไม่พบ Device</h3>
-              <p>ยังไม่มี Device ในระบบ</p>
-            </div>
-          ) : (
-            <div className="overview-grid">
-              {devices.map((device) => (
-                <div
-                  key={device.id}
-                  className="overview-card compact"
-                  onClick={() => onOpenDevice?.(device.id)}
-                >
-                  <div className="overview-name">
-                    {device.name || device.device_code || 'Unnamed Device'}
-                  </div>
 
-                  {device.model_name && (
-                    <div className="device-model-badge">
-                      {device.model_name}
+            {loading ? (
+              <div className="app-empty-state">
+                <h3>กำลังโหลดข้อมูล</h3>
+                <p>กำลังดึงข้อมูล Device จาก Backend</p>
+              </div>
+            ) : devices.length === 0 ? (
+              <div className="app-empty-state">
+                <h3>ไม่พบ Device</h3>
+                <p>ยังไม่มี Device ในระบบ</p>
+              </div>
+            ) : (
+              <div className="overview-grid">
+                {devices.map((device) => (
+                  <div
+                    key={device.id}
+                    className="overview-card compact"
+                    onClick={() => onOpenDevice?.(device.id)}
+                  >
+                    <div className="overview-name">
+                      {device.name || device.device_code || 'Unnamed Device'}
                     </div>
-                  )}
 
-                  <div className="overview-values dynamic-overview-values">
-                    {getDeviceVisibleMetrics(device).map((metric) => (
-                      <span
-                        key={metric.id || metric.metric_key}
-                        title={metric.metric_name}
-                      >
-                        <MetricIcon name={metric.icon} size={14} />
-                        {metric.metric_name}: {getDisplayValue(device, metric)}
-                      </span>
-                    ))}
+                    {device.model_name && (
+                      <div className="device-model-badge">
+                        {device.model_name}
+                      </div>
+                    )}
+
+                    <div className="overview-values dynamic-overview-values">
+                      {getDeviceVisibleMetrics(device).map((metric) => (
+                        <span
+                          key={metric.id || metric.metric_key}
+                          title={metric.metric_name}
+                        >
+                          <MetricIcon name={metric.icon} size={14} />
+                          {metric.metric_name}:{' '}
+                          {getDisplayValue(device, metric)}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+                ))}
+              </div>
+            )}
+
+            <section className="dashboard-alarm-column">
+              <AlarmPanel />
+            </section>
+          </section>
+        )}
+      </section>
 
       {dashboardDisplay.showDeviceMap && (
         <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
