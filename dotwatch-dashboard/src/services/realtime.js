@@ -1,5 +1,6 @@
 let socket = null
 let currentUserId = null
+const listeners = new Set()
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
@@ -8,15 +9,20 @@ function getWsUrl() {
 }
 
 export function connectRealtime(userId, onMessage) {
-  if (!userId) return null
+  if (!userId) return () => {}
 
-  if (
+  if (onMessage) listeners.add(onMessage)
+
+  const sameSocket =
     socket &&
     currentUserId === userId &&
     (socket.readyState === WebSocket.OPEN ||
       socket.readyState === WebSocket.CONNECTING)
-  ) {
-    return socket
+
+  if (sameSocket) {
+    return () => {
+      listeners.delete(onMessage)
+    }
   }
 
   disconnectRealtime()
@@ -25,13 +31,24 @@ export function connectRealtime(userId, onMessage) {
   socket = new WebSocket(getWsUrl())
 
   socket.onopen = () => {
-    socket.send(JSON.stringify({ type: 'subscribe', userId }))
     console.log('Realtime connected')
+
+    socket.send(
+      JSON.stringify({
+        type: 'subscribe',
+        userId,
+      })
+    )
   }
 
   socket.onmessage = (event) => {
     try {
-      onMessage?.(JSON.parse(event.data))
+      const payload = JSON.parse(event.data)
+      console.log('Realtime payload:', payload)
+
+      listeners.forEach((listener) => {
+        listener?.(payload)
+      })
     } catch (error) {
       console.error('Realtime parse error:', error)
     }
@@ -48,14 +65,17 @@ export function connectRealtime(userId, onMessage) {
     currentUserId = null
   }
 
-  return socket
+  return () => {
+    listeners.delete(onMessage)
+  }
 }
 
 export function disconnectRealtime() {
+  listeners.clear()
+
   if (!socket) return
 
   const closingSocket = socket
-
   socket = null
   currentUserId = null
 

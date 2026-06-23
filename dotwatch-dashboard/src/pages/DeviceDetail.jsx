@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import { onAuthStateChanged } from 'firebase/auth'
 import { getDevice, getDeviceMetrics } from '../services/api'
 import ChartWidget from '../components/ChartWidget.jsx'
 import { auth } from '../services/firebase'
-import { connectRealtime, disconnectRealtime } from '../services/realtime'
+import { connectRealtime } from '../services/realtime'
 
 function formatValue(value, unit = '') {
-  if (value == null || value === '' || Number.isNaN(Number(value))) {
-    return '--'
-  }
+  if (value == null || value === '' || Number.isNaN(Number(value))) return '--'
 
   const numberValue = Number(value)
   const displayValue = Number.isInteger(numberValue)
@@ -33,26 +32,29 @@ function getStatusClass(status) {
   return 'status-offline'
 }
 
+function getReadingId(reading) {
+  return reading?.id ?? reading?.device_id ?? reading?.deviceId
+}
+
+function getReadingMetrics(reading) {
+  return reading?.latest_metrics || reading?.metrics || {}
+}
+
 function mergeRealtimeDevice(prev, reading) {
-  const realtimeMetrics = reading.latest_metrics || reading.metrics || {}
+  const realtimeMetrics = getReadingMetrics(reading)
 
   return {
     ...prev,
     ...reading,
-
-    // เอาค่า metric มาเก็บทั้งแบบ object และแบบ field ตรง
     ...realtimeMetrics,
-
     latest_metrics: {
       ...(prev?.latest_metrics || {}),
       ...realtimeMetrics,
     },
-
     metrics: {
       ...(prev?.metrics || {}),
       ...realtimeMetrics,
     },
-
     status: reading.status || 'online',
     latest_time: reading.latest_time || reading.time || prev?.latest_time,
     last_seen_at: reading.last_seen_at || prev?.last_seen_at,
@@ -96,10 +98,15 @@ function DeviceDetail({ deviceId, onBack }) {
   }
 
   function getMetricValue(metric) {
-    const latestMetrics = device?.latest_metrics || device?.metrics || {}
+    const latestMetrics = device?.latest_metrics || {}
+    const metricValues = device?.metrics || {}
 
     if (latestMetrics[metric.metric_key] != null) {
       return latestMetrics[metric.metric_key]
+    }
+
+    if (metricValues[metric.metric_key] != null) {
+      return metricValues[metric.metric_key]
     }
 
     if (device?.[metric.metric_key] != null) {
@@ -116,32 +123,34 @@ function DeviceDetail({ deviceId, onBack }) {
   }, [deviceId])
 
   useEffect(() => {
-    const user = auth.currentUser
+    if (!deviceId) return undefined
 
-    if (!user || !deviceId) return
+    let unsubscribeRealtime = null
 
-    connectRealtime(user.uid, (payload) => {
-      console.log('Device Detail realtime payload:', payload)
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (!user) return
 
-      if (payload.type !== 'reading' && payload.type !== 'device:update') {
-        return
-      }
+      unsubscribeRealtime = connectRealtime(user.uid, (payload) => {
+        console.log('DeviceDetail realtime:', payload)
 
-      const reading = payload.data || payload.device
+        if (payload.type !== 'reading' && payload.type !== 'device:update') {
+          return
+        }
 
-      if (!reading) return
+        const reading = payload.data || payload.device
+        if (!reading) return
 
-      const sameDevice =
-        String(reading.id) === String(deviceId) ||
-        String(reading.device_id) === String(deviceId)
+        const readingId = getReadingId(reading)
 
-      if (!sameDevice) return
+        if (String(readingId) !== String(deviceId)) return
 
-      setDevice((prev) => mergeRealtimeDevice(prev, reading))
+        setDevice((prev) => mergeRealtimeDevice(prev, reading))
+      })
     })
 
     return () => {
-      disconnectRealtime()
+      unsubscribeAuth()
+      unsubscribeRealtime?.()
     }
   }, [deviceId])
 
