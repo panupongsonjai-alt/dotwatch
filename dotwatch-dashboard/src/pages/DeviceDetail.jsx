@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getDevice, getDeviceMetrics } from '../services/api'
 import ChartWidget from '../components/ChartWidget.jsx'
 import { auth } from '../services/firebase'
@@ -6,7 +6,7 @@ import { connectRealtime, disconnectRealtime } from '../services/realtime'
 
 function formatValue(value, unit = '') {
   if (value == null || value === '' || Number.isNaN(Number(value))) {
-    return `--${unit}`
+    return '--'
   }
 
   const numberValue = Number(value)
@@ -14,7 +14,23 @@ function formatValue(value, unit = '') {
     ? String(numberValue)
     : numberValue.toFixed(1)
 
-  return `${displayValue}${unit || ''}`
+  return `${displayValue}${unit ? ` ${unit}` : ''}`
+}
+
+function formatDate(value) {
+  if (!value) return '--'
+
+  try {
+    return new Date(value).toLocaleString('th-TH')
+  } catch {
+    return value
+  }
+}
+
+function getStatusClass(status) {
+  if (status === 'online') return 'status-online'
+  if (status === 'warning') return 'status-warning'
+  return 'status-offline'
 }
 
 function DeviceDetail({ deviceId, onBack }) {
@@ -32,9 +48,20 @@ function DeviceDetail({ deviceId, onBack }) {
       ])
 
       setDevice(deviceData)
-      setMetrics(Array.isArray(metricData) ? metricData : [])
+
+      const normalizedMetrics = Array.isArray(metricData)
+        ? metricData
+        : Array.isArray(metricData?.metrics)
+          ? metricData.metrics
+          : []
+
+      setMetrics(
+        normalizedMetrics
+          .filter((metric) => metric.visible !== false)
+          .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+      )
     } catch (error) {
-      console.error(error)
+      console.error('Load device detail error:', error)
       alert('โหลดข้อมูล Device ไม่สำเร็จ')
     } finally {
       setLoading(false)
@@ -42,7 +69,7 @@ function DeviceDetail({ deviceId, onBack }) {
   }
 
   function getMetricValue(metric) {
-    const latestMetrics = device?.latest_metrics || {}
+    const latestMetrics = device?.latest_metrics || device?.metrics || {}
     return latestMetrics[metric.metric_key]
   }
 
@@ -68,6 +95,7 @@ function DeviceDetail({ deviceId, onBack }) {
         status: reading.status || 'online',
         latest_time: reading.latest_time,
         last_seen_at: reading.last_seen_at,
+        last_ingest_at: reading.last_ingest_at,
       }))
     })
 
@@ -80,18 +108,34 @@ function DeviceDetail({ deviceId, onBack }) {
     if (deviceId) loadDevice()
   }, [deviceId])
 
+  const visibleMetrics = useMemo(() => {
+    return metrics.filter((metric) => metric.visible !== false)
+  }, [metrics])
+
+  const metricSummary = useMemo(() => {
+    const values = visibleMetrics
+      .map((metric) => getMetricValue(metric))
+      .filter((value) => value != null && Number.isFinite(Number(value)))
+
+    return {
+      total: visibleMetrics.length,
+      active: values.length,
+      empty: visibleMetrics.length - values.length,
+    }
+  }, [visibleMetrics, device])
+
   if (loading) {
     return (
-      <div className="page">
-        <div className="panel">กำลังโหลด Device...</div>
+      <div className="page app-page">
+        <div className="panel app-card">กำลังโหลด Device...</div>
       </div>
     )
   }
 
   if (!device) {
     return (
-      <div className="page">
-        <div className="panel">
+      <div className="page app-page">
+        <div className="panel app-card">
           <button className="secondary-button" onClick={onBack}>
             ← Back
           </button>
@@ -101,13 +145,12 @@ function DeviceDetail({ deviceId, onBack }) {
     )
   }
 
-  const visibleMetrics = metrics.filter((metric) => metric.visible !== false)
-
   return (
-    <div className="page">
-      <section className="panel">
-        <div className="section-title">
+    <div className="page app-page device-detail-page">
+      <section className="panel app-card">
+        <div className="section-title app-section-title">
           <div>
+            <span className="page-eyebrow">Device Detail</span>
             <h2>{device.name || 'Unnamed Device'}</h2>
             <p>
               {device.device_code}
@@ -123,11 +166,7 @@ function DeviceDetail({ deviceId, onBack }) {
         <div className="device-detail-grid">
           <div className="summary-card">
             <span>Status</span>
-            <strong
-              className={
-                device.status === 'online' ? 'status-online' : 'status-offline'
-              }
-            >
+            <strong className={getStatusClass(device.status)}>
               {device.status || 'offline'}
             </strong>
           </div>
@@ -135,6 +174,16 @@ function DeviceDetail({ deviceId, onBack }) {
           <div className="summary-card">
             <span>Model</span>
             <strong>{device.model_name || '--'}</strong>
+          </div>
+
+          <div className="summary-card">
+            <span>Metrics</span>
+            <strong>{metricSummary.total}</strong>
+          </div>
+
+          <div className="summary-card">
+            <span>Active Values</span>
+            <strong>{metricSummary.active}</strong>
           </div>
 
           <div className="summary-card">
@@ -150,35 +199,46 @@ function DeviceDetail({ deviceId, onBack }) {
           </div>
         </div>
 
-        <div className="device-detail-grid">
-          {visibleMetrics.map((metric) => (
-            <div key={metric.metric_key} className="summary-card">
-              <span>{metric.metric_name}</span>
-              <strong>
-                {formatValue(getMetricValue(metric), metric.unit)}
-              </strong>
-            </div>
-          ))}
-        </div>
-
         <div className="device-detail-info">
           <p>
-            <strong>Last Seen:</strong>{' '}
-            {device.last_seen_at
-              ? new Date(device.last_seen_at).toLocaleString('th-TH')
-              : '--'}
+            <strong>Last Seen:</strong> {formatDate(device.last_seen_at)}
           </p>
 
           <p>
-            <strong>Latest Reading:</strong>{' '}
-            {device.latest_time
-              ? new Date(device.latest_time).toLocaleString('th-TH')
-              : '--'}
+            <strong>Latest Reading:</strong> {formatDate(device.latest_time)}
           </p>
         </div>
       </section>
 
-      <section className="panel">
+      <section className="panel app-card">
+        <div className="app-section-title">
+          <div>
+            <h3>Live Metrics</h3>
+            <p>แสดงค่าล่าสุดตาม Metric Config ของ Device นี้</p>
+          </div>
+        </div>
+
+        {visibleMetrics.length === 0 ? (
+          <div className="app-empty-state">
+            <h3>ยังไม่มี Metric</h3>
+            <p>ไปที่หน้า Device เพื่อกำหนด Metric Display ก่อน</p>
+          </div>
+        ) : (
+          <div className="device-metrics-grid">
+            {visibleMetrics.map((metric) => (
+              <div key={metric.metric_key} className="metric-card">
+                <span>{metric.metric_name || metric.metric_key}</span>
+                <strong>
+                  {formatValue(getMetricValue(metric), metric.unit)}
+                </strong>
+                <small>{metric.metric_key}</small>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="panel app-card">
         <h3>Device Information</h3>
 
         <div className="device-info-grid">
@@ -198,21 +258,26 @@ function DeviceDetail({ deviceId, onBack }) {
           </div>
 
           <div>
-            <label>Last Seen</label>
+            <label>Latitude</label>
             <p>
-              {device.last_seen_at
-                ? new Date(device.last_seen_at).toLocaleString('th-TH')
+              {device.latitude != null
+                ? Number(device.latitude).toFixed(6)
                 : '--'}
             </p>
           </div>
 
           <div>
-            <label>Latest Reading</label>
+            <label>Longitude</label>
             <p>
-              {device.latest_time
-                ? new Date(device.latest_time).toLocaleString('th-TH')
+              {device.longitude != null
+                ? Number(device.longitude).toFixed(6)
                 : '--'}
             </p>
+          </div>
+
+          <div>
+            <label>Last Ingest</label>
+            <p>{formatDate(device.last_ingest_at)}</p>
           </div>
         </div>
       </section>
