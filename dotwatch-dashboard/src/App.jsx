@@ -433,7 +433,7 @@ function App() {
   }, [sidebarOpen])
 
   useEffect(() => {
-    document.title = document.title = 'dotWatch'
+    document.title = 'dotWatch'
   }, [currentPageMeta.title])
 
   useEffect(() => {
