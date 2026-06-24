@@ -2,24 +2,97 @@ let socket = null
 let currentUserId = null
 let reconnectTimer = null
 let reconnectAttempt = 0
+let heartbeatTimer = null
 let shouldReconnect = false
+let lastMessageAt = null
+let lastConnectedAt = null
+let lastDisconnectedAt = null
+let lastError = ''
 
 const listeners = new Set()
-
+const statusListeners = new Set()
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
-const WS_URL = import.meta.env.VITE_WS_URL
+const MAX_RECONNECT_DELAY = 15_000
+const HEARTBEAT_INTERVAL = 25_000
 
 function getWsUrl() {
-  if (WS_URL) return WS_URL
-
   return API_URL.replace(/^http:\/\//, 'ws://').replace(/^https:\/\//, 'wss://')
+}
+
+function getSocketState() {
+  if (!socket) return 'disconnected'
+  if (socket.readyState === WebSocket.CONNECTING) return 'connecting'
+  if (socket.readyState === WebSocket.OPEN) return 'connected'
+  if (socket.readyState === WebSocket.CLOSING) return 'closing'
+  if (socket.readyState === WebSocket.CLOSED) return 'disconnected'
+  return 'unknown'
+}
+
+function getStatusSnapshot() {
+  return {
+    state: getSocketState(),
+    connected: socket?.readyState === WebSocket.OPEN,
+    connecting: socket?.readyState === WebSocket.CONNECTING,
+    reconnecting: Boolean(reconnectTimer),
+    reconnectAttempt,
+    listenerCount: listeners.size,
+    userId: currentUserId,
+    wsUrl: getWsUrl(),
+    lastMessageAt,
+    lastConnectedAt,
+    lastDisconnectedAt,
+    lastError,
+  }
+}
+
+function notifyStatusListeners() {
+  const snapshot = getStatusSnapshot()
+
+  statusListeners.forEach((listener) => {
+    try {
+      listener?.(snapshot)
+    } catch (error) {
+      console.error('Realtime status listener error:', error)
+    }
+  })
+}
+
+function safeSend(payload) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) return false
+
+  try {
+    socket.send(JSON.stringify(payload))
+    return true
+  } catch (error) {
+    lastError = error.message || 'Realtime send error'
+    console.error('Realtime send error:', error)
+    notifyStatusListeners()
+    return false
+  }
 }
 
 function clearReconnectTimer() {
   if (!reconnectTimer) return
-
-  window.clearTimeout(reconnectTimer)
+  clearTimeout(reconnectTimer)
   reconnectTimer = null
+  notifyStatusListeners()
+}
+
+function stopHeartbeat() {
+  if (!heartbeatTimer) return
+  clearInterval(heartbeatTimer)
+  heartbeatTimer = null
+}
+
+function startHeartbeat() {
+  stopHeartbeat()
+
+  heartbeatTimer = setInterval(() => {
+    safeSend({
+      type: 'ping',
+      time: new Date().toISOString(),
+    })
+  }, HEARTBEAT_INTERVAL)
 }
 
 function notifyListeners(payload) {
@@ -32,144 +105,47 @@ function notifyListeners(payload) {
   })
 }
 
-function cleanupSocketHandlers(targetSocket) {
-  if (!targetSocket) return
-
-  targetSocket.onopen = null
-  targetSocket.onmessage = null
-  targetSocket.onerror = null
-  targetSocket.onclose = null
-}
-
-function getReconnectDelay() {
-  const baseDelay = 1000 * Math.max(1, reconnectAttempt)
-  return Math.min(30000, baseDelay)
-}
-
 function scheduleReconnect() {
-  if (!shouldReconnect || !currentUserId) return
+  if (!shouldReconnect || !currentUserId || listeners.size === 0) return
   if (reconnectTimer) return
 
+  const delay = Math.min(1000 * 2 ** reconnectAttempt, MAX_RECONNECT_DELAY)
   reconnectAttempt += 1
 
-  reconnectTimer = window.setTimeout(() => {
+  console.log(`Realtime reconnecting in ${delay}ms`)
+  notifyStatusListeners()
+
+  reconnectTimer = setTimeout(() => {
     reconnectTimer = null
-
-    if (!shouldReconnect || !currentUserId) return
-
     openSocket(currentUserId)
-  }, getReconnectDelay())
+  }, delay)
 }
 
-function openSocket(userId) {
-  if (!userId) return
-
-  const existingSocket = socket
-
-  if (
-    existingSocket &&
-    (existingSocket.readyState === WebSocket.OPEN ||
-      existingSocket.readyState === WebSocket.CONNECTING)
-  ) {
-    return
-  }
-
-  const nextSocket = new WebSocket(getWsUrl())
-
-  socket = nextSocket
-
-  nextSocket.onopen = () => {
-    if (socket !== nextSocket) return
-
-    reconnectAttempt = 0
-
-    console.log('Realtime connected')
-
-    nextSocket.send(
-      JSON.stringify({
-        type: 'subscribe',
-        userId,
-      })
-    )
-
-    notifyListeners({
-      type: 'realtime:connected',
-    })
-  }
-
-  nextSocket.onmessage = (event) => {
-    try {
-      const payload = JSON.parse(event.data)
-      console.log('Realtime payload:', payload)
-
-      notifyListeners(payload)
-    } catch (error) {
-      console.error('Realtime parse error:', error)
-    }
-  }
-
-  nextSocket.onerror = (error) => {
-    if (socket !== nextSocket) return
-
-    console.error('Realtime error:', error)
-
-    notifyListeners({
-      type: 'realtime:error',
-    })
-  }
-
-  nextSocket.onclose = () => {
-    if (socket === nextSocket) {
-      socket = null
-    }
-
-    cleanupSocketHandlers(nextSocket)
-
-    console.log('Realtime disconnected')
-
-    notifyListeners({
-      type: 'realtime:disconnected',
-    })
-
-    scheduleReconnect()
-  }
-}
-
-export function connectRealtime(userId, onMessage) {
-  if (!userId) return () => {}
-
-  if (onMessage) listeners.add(onMessage)
-
-  const nextUserId = String(userId)
-
-  if (currentUserId && currentUserId !== nextUserId) {
-    disconnectRealtime()
-  }
-
-  currentUserId = nextUserId
-  shouldReconnect = true
-
-  openSocket(currentUserId)
-
-  return () => {
-    if (onMessage) listeners.delete(onMessage)
-  }
-}
-
-export function disconnectRealtime() {
-  shouldReconnect = false
-  currentUserId = null
-  reconnectAttempt = 0
-
+function closeSocket({ keepListeners = true, allowReconnect = false } = {}) {
   clearReconnectTimer()
-  listeners.clear()
+  stopHeartbeat()
 
   const closingSocket = socket
   socket = null
 
-  if (!closingSocket) return
+  if (!keepListeners) {
+    listeners.clear()
+  }
 
-  cleanupSocketHandlers(closingSocket)
+  if (!allowReconnect) {
+    shouldReconnect = false
+    reconnectAttempt = 0
+  }
+
+  if (!closingSocket) {
+    notifyStatusListeners()
+    return
+  }
+
+  closingSocket.onopen = null
+  closingSocket.onmessage = null
+  closingSocket.onerror = null
+  closingSocket.onclose = null
 
   if (
     closingSocket.readyState === WebSocket.OPEN ||
@@ -177,25 +153,119 @@ export function disconnectRealtime() {
   ) {
     closingSocket.close()
   }
+
+  lastDisconnectedAt = new Date().toISOString()
+  notifyStatusListeners()
 }
 
-export function getRealtimeStatus() {
-  if (!socket) {
-    return {
-      connected: false,
-      readyState: 'CLOSED',
+function openSocket(userId) {
+  if (!userId) return
+
+  const sameSocket =
+    socket &&
+    currentUserId === String(userId) &&
+    (socket.readyState === WebSocket.OPEN ||
+      socket.readyState === WebSocket.CONNECTING)
+
+  if (sameSocket) return
+
+  closeSocket({ keepListeners: true, allowReconnect: true })
+
+  currentUserId = String(userId)
+  shouldReconnect = true
+  lastError = ''
+  socket = new WebSocket(getWsUrl())
+  notifyStatusListeners()
+
+  socket.onopen = () => {
+    reconnectAttempt = 0
+    lastConnectedAt = new Date().toISOString()
+    lastDisconnectedAt = null
+    lastError = ''
+    console.log('Realtime connected')
+
+    safeSend({
+      type: 'subscribe',
+      userId: currentUserId,
+    })
+
+    startHeartbeat()
+    notifyStatusListeners()
+  }
+
+  socket.onmessage = (event) => {
+    try {
+      const payload = JSON.parse(event.data)
+      lastMessageAt = new Date().toISOString()
+      notifyStatusListeners()
+      notifyListeners(payload)
+    } catch (error) {
+      lastError = error.message || 'Realtime parse error'
+      console.error('Realtime parse error:', error)
+      notifyStatusListeners()
     }
   }
 
-  const stateMap = {
-    [WebSocket.CONNECTING]: 'CONNECTING',
-    [WebSocket.OPEN]: 'OPEN',
-    [WebSocket.CLOSING]: 'CLOSING',
-    [WebSocket.CLOSED]: 'CLOSED',
+  socket.onerror = () => {
+    if (!socket || socket.readyState === WebSocket.CLOSED) return
+    lastError = 'Realtime socket error'
+    console.error('Realtime error')
+    notifyStatusListeners()
   }
 
-  return {
-    connected: socket.readyState === WebSocket.OPEN,
-    readyState: stateMap[socket.readyState] || String(socket.readyState),
+  socket.onclose = () => {
+    console.log('Realtime disconnected')
+    stopHeartbeat()
+    socket = null
+    lastDisconnectedAt = new Date().toISOString()
+    notifyStatusListeners()
+    scheduleReconnect()
+  }
+}
+
+export function connectRealtime(userId, onMessage) {
+  if (!userId) return () => {}
+
+  if (onMessage) {
+    listeners.add(onMessage)
+  }
+
+  currentUserId = String(userId)
+  shouldReconnect = true
+  openSocket(currentUserId)
+  notifyStatusListeners()
+
+  return () => {
+    if (onMessage) {
+      listeners.delete(onMessage)
+    }
+
+    if (listeners.size === 0) {
+      closeSocket({ keepListeners: false, allowReconnect: false })
+      currentUserId = null
+    }
+
+    notifyStatusListeners()
+  }
+}
+
+export function disconnectRealtime() {
+  closeSocket({ keepListeners: false, allowReconnect: false })
+  currentUserId = null
+  notifyStatusListeners()
+}
+
+export function getRealtimeStatus() {
+  return getStatusSnapshot()
+}
+
+export function subscribeRealtimeStatus(listener) {
+  if (!listener) return () => {}
+
+  statusListeners.add(listener)
+  listener(getStatusSnapshot())
+
+  return () => {
+    statusListeners.delete(listener)
   }
 }

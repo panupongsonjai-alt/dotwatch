@@ -1,6 +1,14 @@
 import { useMemo, useState } from 'react'
-import LoadingState from '../components/common/LoadingState'
-import StatusBadge from '../components/common/StatusBadge'
+
+function getValue(item, keys, fallback = '-') {
+  for (const key of keys) {
+    if (item?.[key] !== undefined && item?.[key] !== null && item?.[key] !== '') {
+      return item[key]
+    }
+  }
+
+  return fallback
+}
 
 function AdminDevices({ devices, loading }) {
   const [query, setQuery] = useState('')
@@ -8,16 +16,20 @@ function AdminDevices({ devices, loading }) {
 
   const filteredDevices = useMemo(() => {
     return devices.filter((device) => {
-      const matchedQuery = [
+      const searchableText = [
         device.name,
         device.deviceCode,
+        device.device_code,
         device.owner,
+        device.email,
         device.model,
+        device.model_name,
+        device.status,
       ]
         .join(' ')
         .toLowerCase()
-        .includes(query.toLowerCase())
 
+      const matchedQuery = searchableText.includes(query.toLowerCase())
       const matchedStatus =
         statusFilter === 'all' ? true : device.status === statusFilter
 
@@ -30,17 +42,21 @@ function AdminDevices({ devices, loading }) {
       <div className="page-header">
         <div>
           <p className="eyebrow">Fleet control</p>
-          <h2>Devices</h2>
+          <h1>Devices</h1>
+          <span>Monitor all devices across users from one admin view.</span>
         </div>
       </div>
 
-      <div className="admin-toolbar">
-        <input
-          type="search"
-          placeholder="Search device code, name, owner..."
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
+      <div className="toolbar-card">
+        <label className="search-box">
+          <span>⌕</span>
+          <input
+            type="search"
+            placeholder="Search device code, name, owner..."
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
 
         <select
           value={statusFilter}
@@ -54,43 +70,56 @@ function AdminDevices({ devices, loading }) {
         </select>
       </div>
 
-      <article className="admin-panel">
-        {loading ? (
-          <LoadingState title="Loading devices..." />
-        ) : (
-          <div className="table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Device</th>
-                  <th>Owner</th>
-                  <th>Model</th>
-                  <th>Status</th>
-                  <th>Last Seen</th>
-                  <th>Firmware</th>
-                </tr>
-              </thead>
+      <article className="table-card">
+        <div className="table-header">
+          <h2>All Devices</h2>
+          <span>{filteredDevices.length} records</span>
+        </div>
 
-              <tbody>
-                {filteredDevices.map((device) => (
+        <div className="responsive-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Device</th>
+                <th>Owner</th>
+                <th>Model</th>
+                <th>Status</th>
+                <th>Last Seen</th>
+                <th>Firmware</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="6">Loading devices...</td>
+                </tr>
+              ) : filteredDevices.length ? (
+                filteredDevices.map((device) => (
                   <tr key={device.id}>
                     <td>
-                      <strong>{device.name}</strong>
-                      <span>{device.deviceCode}</span>
+                      <strong>{getValue(device, ['name'], 'Unnamed device')}</strong>
+                      <span>{getValue(device, ['deviceCode', 'device_code'])}</span>
                     </td>
-                    <td>{device.owner}</td>
-                    <td>{device.model}</td>
+                    <td>{getValue(device, ['owner', 'email', 'user_email'])}</td>
+                    <td>{getValue(device, ['model', 'modelName', 'model_name'])}</td>
                     <td>
-                      <StatusBadge status={device.status} />
+                      <span className={`status-badge status-${device.status || 'offline'}`}>
+                        {device.status || 'offline'}
+                      </span>
                     </td>
-                    <td>{device.lastSeenAt}</td>
-                    <td>{device.firmwareVersion}</td>
+                    <td>{getValue(device, ['lastSeenAt', 'last_seen_at'])}</td>
+                    <td>{getValue(device, ['firmwareVersion', 'firmware_version'])}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6">No devices found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </article>
     </section>
   )

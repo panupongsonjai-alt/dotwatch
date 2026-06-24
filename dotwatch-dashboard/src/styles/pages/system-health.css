@@ -9,7 +9,7 @@
 
 .system-health-stat-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -190,5 +190,26 @@
   .system-health-status-icon {
     width: 52px;
     height: 52px;
+  }
+}
+
+
+/* =========================================================
+   Phase 34 - Realtime Health Visibility
+========================================================= */
+
+.realtime-health-card .system-health-status-card {
+  grid-template-columns: 52px minmax(0, 1fr);
+}
+
+.realtime-health-card .system-health-status-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+}
+
+@media (max-width: 640px) {
+  .realtime-health-card .system-health-status-card {
+    grid-template-columns: 1fr;
   }
 }

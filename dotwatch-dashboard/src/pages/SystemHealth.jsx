@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, CheckCircle2, Database, Globe2, RefreshCw, Server, Wifi, XCircle } from 'lucide-react'
+import { Activity, CheckCircle2, Database, Globe2, RefreshCw, Server, Wifi, WifiOff, XCircle } from 'lucide-react'
 import { PageHeader, SectionHeader, StatCard, StatusBadge } from '../components/common'
+import { getRealtimeStatus, subscribeRealtimeStatus } from '../services/realtime'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
@@ -36,6 +37,7 @@ function SystemHealth() {
   const [health, setHealth] = useState(null)
   const [error, setError] = useState('')
   const [checkedAt, setCheckedAt] = useState(null)
+  const [realtimeStatus, setRealtimeStatus] = useState(() => getRealtimeStatus())
 
   async function checkHealth() {
     try {
@@ -71,8 +73,17 @@ function SystemHealth() {
     checkHealth()
   }, [])
 
+  useEffect(() => {
+    return subscribeRealtimeStatus(setRealtimeStatus)
+  }, [])
+
   const browserStatus = navigator.onLine ? 'online' : 'offline'
   const backendStatus = health?.ok ? 'online' : 'offline'
+  const realtimeBadgeStatus = realtimeStatus.connected
+    ? 'online'
+    : realtimeStatus.connecting || realtimeStatus.reconnecting
+      ? 'warning'
+      : 'offline'
 
   const summaryCards = useMemo(
     () => [
@@ -81,6 +92,22 @@ function SystemHealth() {
         value: health?.ok ? 'Online' : 'Offline',
         hint: health?.service || error || 'Waiting for health check',
         tone: health?.ok ? 'success' : 'danger',
+      },
+      {
+        label: 'Realtime',
+        value: realtimeStatus.connected
+          ? 'Connected'
+          : realtimeStatus.connecting || realtimeStatus.reconnecting
+            ? 'Connecting'
+            : 'Offline',
+        hint: realtimeStatus.lastMessageAt
+          ? `Last message ${formatTime(realtimeStatus.lastMessageAt)}`
+          : 'Waiting for realtime payload',
+        tone: realtimeStatus.connected
+          ? 'success'
+          : realtimeStatus.connecting || realtimeStatus.reconnecting
+            ? 'warning'
+            : 'danger',
       },
       {
         label: 'Latency',
@@ -101,7 +128,7 @@ function SystemHealth() {
         tone: 'default',
       },
     ],
-    [health, error]
+    [health, error, realtimeStatus]
   )
 
   return (
@@ -113,6 +140,10 @@ function SystemHealth() {
         meta={
           <>
             <StatusBadge status={backendStatus} label={`Backend ${health?.ok ? 'Online' : 'Offline'}`} />
+            <StatusBadge
+              status={realtimeBadgeStatus}
+              label={`Realtime ${realtimeStatus.state}`}
+            />
             <StatusBadge status={browserStatus} label={`Browser ${navigator.onLine ? 'Online' : 'Offline'}`} />
           </>
         }
@@ -181,6 +212,57 @@ function SystemHealth() {
         </section>
 
         <aside className="system-health-side">
+          <section className="app-card system-health-card compact realtime-health-card">
+            <SectionHeader
+              title="Realtime WebSocket"
+              description="สถานะการเชื่อมต่อ Live Update ของ Dashboard และ Device Detail"
+            />
+
+            <div className={`system-health-status-card ${realtimeStatus.connected ? 'healthy' : 'offline'}`}>
+              <div className="system-health-status-icon">
+                {realtimeStatus.connected ? <Wifi size={26} /> : <WifiOff size={26} />}
+              </div>
+
+              <div>
+                <h3>
+                  {realtimeStatus.connected
+                    ? 'Realtime is connected'
+                    : realtimeStatus.connecting || realtimeStatus.reconnecting
+                      ? 'Realtime is reconnecting'
+                      : 'Realtime is offline'}
+                </h3>
+                <p>
+                  {realtimeStatus.connected
+                    ? `Subscribed as ${realtimeStatus.userId || '--'}`
+                    : realtimeStatus.lastError || 'No active realtime socket.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="system-health-mini-list">
+              <div>
+                <Activity size={18} />
+                <span>Socket State</span>
+                <strong>{realtimeStatus.state}</strong>
+              </div>
+              <div>
+                <Wifi size={18} />
+                <span>Listeners</span>
+                <strong>{realtimeStatus.listenerCount}</strong>
+              </div>
+              <div>
+                <RefreshCw size={18} />
+                <span>Reconnect Attempt</span>
+                <strong>{realtimeStatus.reconnectAttempt}</strong>
+              </div>
+              <div>
+                <Server size={18} />
+                <span>Last Message</span>
+                <strong>{formatTime(realtimeStatus.lastMessageAt)}</strong>
+              </div>
+            </div>
+          </section>
+
           <section className="app-card system-health-card compact">
             <SectionHeader title="Client" description="สถานะฝั่ง Browser และ Network" />
 

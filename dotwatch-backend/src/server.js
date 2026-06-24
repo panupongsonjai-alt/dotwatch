@@ -24,21 +24,12 @@ const wss = new WebSocketServer({ server })
 
 const clients = new Map()
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  env.corsOrigin,
-]
-  .filter(Boolean)
-  .flatMap((origin) =>
-    String(origin)
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean)
-  )
-
-console.log('DATABASE_URL:', process.env.DATABASE_URL)
-console.log('CORS_ORIGINS:', allowedOrigins)
+console.log('dotWatch backend starting:', {
+  nodeEnv: env.nodeEnv,
+  port: env.port,
+  corsOrigins: env.corsOrigins,
+  databaseConfigured: Boolean(env.databaseUrl),
+})
 
 function getSocketStateLabel(ws) {
   if (ws.readyState === ws.CONNECTING) return 'CONNECTING'
@@ -56,6 +47,29 @@ function getClientCountByUser(userId) {
   }
 
   return count
+}
+
+function getWebSocketSummary() {
+  const byUser = {}
+
+  for (const [ws, userId] of clients.entries()) {
+    byUser[userId] = (byUser[userId] || 0) + 1
+  }
+
+  return {
+    totalClients: clients.size,
+    connectedSockets: wss.clients.size,
+    byUser,
+  }
+}
+
+function requireDevelopment(req, res, next) {
+  if (env.isDevelopment) {
+    next()
+    return
+  }
+
+  res.status(404).json({ message: 'Not found' })
 }
 
 wss.on('connection', (ws, req) => {
@@ -157,7 +171,7 @@ export function broadcastToUser(userId, payload) {
     }
   }
 
-  if (matchedCount > 0 && sentCount > 0) {
+  if (sentCount > 0) {
     console.log('WS broadcast sent:', {
       userId: targetUserId,
       type: payload?.type,
@@ -197,14 +211,66 @@ app.set('broadcastToAll', broadcastToAll)
 const apiLimiter = rateLimit({
   windowMs: 60_000,
   limit: 600,
+  standardHeaders: true,
+  legacyHeaders: false,
 })
 
 const ingestLimiter = rateLimit({
   windowMs: 60_000,
   limit: 50_000,
+  standardHeaders: true,
+  legacyHeaders: false,
 })
 
-app.get('/debug/tables', async (req, res) => {
+app.use(helmet())
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true)
+        return
+      }
+
+      if (env.corsOrigins.includes(origin)) {
+        callback(null, true)
+        return
+      }
+
+      callback(new Error(`CORS blocked origin: ${origin}`))
+    },
+    credentials: true,
+  })
+)
+
+app.use(express.json({ limit: '128kb' }))
+
+app.get('/health', async (req, res) => {
+  const startedAt = Date.now()
+  let database = 'connected'
+
+  try {
+    await pool.query('SELECT 1')
+  } catch (error) {
+    database = 'error'
+    console.error('Health database check failed:', error.message)
+  }
+
+  const statusCode = database === 'connected' ? 200 : 503
+
+  res.status(statusCode).json({
+    ok: database === 'connected',
+    service: 'dotwatch-backend',
+    environment: env.nodeEnv,
+    database,
+    websocket: getWebSocketSummary(),
+    uptime: Math.round(process.uptime()),
+    latencyMs: Date.now() - startedAt,
+    timestamp: new Date().toISOString(),
+  })
+})
+
+app.get('/debug/tables', requireDevelopment, async (req, res) => {
   const result = await pool.query(`
     SELECT table_schema, table_name
     FROM information_schema.tables
@@ -215,7 +281,7 @@ app.get('/debug/tables', async (req, res) => {
   res.json(result.rows)
 })
 
-app.get('/debug/db', async (req, res) => {
+app.get('/debug/db', requireDevelopment, async (req, res) => {
   const result = await pool.query(`
     SELECT current_database(), current_user, inet_server_port()
   `)
@@ -223,7 +289,7 @@ app.get('/debug/db', async (req, res) => {
   res.json(result.rows[0])
 })
 
-app.get('/debug/ws', (req, res) => {
+app.get('/debug/ws', requireDevelopment, (req, res) => {
   const clientList = []
 
   for (const [ws, userId] of clients.entries()) {
@@ -238,33 +304,6 @@ app.get('/debug/ws', (req, res) => {
     totalClients: clients.size,
     clients: clientList,
   })
-})
-
-app.use(helmet())
-
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin) {
-        callback(null, true)
-        return
-      }
-
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true)
-        return
-      }
-
-      callback(new Error(`CORS blocked origin: ${origin}`))
-    },
-    credentials: true,
-  })
-)
-
-app.use(express.json({ limit: '128kb' }))
-
-app.get('/health', (req, res) => {
-  res.json({ ok: true, service: 'dotwatch-backend' })
 })
 
 app.use('/api/devices', apiLimiter, devicesRouter)

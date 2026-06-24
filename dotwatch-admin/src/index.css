@@ -597,3 +597,26 @@ tr:last-child td {
     width: 100%;
   }
 }
+
+
+.admin-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(225, 29, 72, 0.2);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 12px 14px;
+  color: var(--text);
+}
+
+.admin-notice button {
+  border: 0;
+  border-radius: 12px;
+  background: #f1f5f9;
+  padding: 8px 10px;
+  color: var(--text);
+  font-weight: 700;
+}
