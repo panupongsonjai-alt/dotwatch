@@ -82,7 +82,13 @@ function Sidebar({ page, setPage, sidebarOpen, setSidebarOpen }) {
                   key={item.id}
                   type="button"
                   className={`menu-item ${page === item.id ? 'active' : ''}`}
-                  onClick={() => setPage(item.id)}
+                  onClick={() => {
+                    setPage(item.id)
+
+                    if (window.innerWidth <= 900) {
+                      setSidebarOpen(false)
+                    }
+                  }}
                   title={item.label}
                 >
                   <span className="menu-icon">

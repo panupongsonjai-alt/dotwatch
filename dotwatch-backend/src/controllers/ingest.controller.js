@@ -136,6 +136,8 @@ export async function ingestReading(req, res) {
       },
     })
 
+    console.log('Broadcast UID:', updatedDevice.firebase_uid)
+
     broadcastToUser(updatedDevice.firebase_uid, {
       type: 'reading',
       data: {

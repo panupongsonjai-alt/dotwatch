@@ -15,6 +15,7 @@ import alarmRulesRouter from './routes/alarmRules.routes.js'
 import { demoRouter } from './routes/demo.routes.js'
 import deviceMetricsRoutes from './routes/deviceMetricsRoutes.js'
 import deviceModelsRoutes from './routes/deviceModelsRoutes.js'
+import { adminRouter } from './routes/admin.routes.js'
 import { pool } from './db/pool.js'
 
 const app = express()
@@ -23,10 +24,47 @@ const wss = new WebSocketServer({ server })
 
 const clients = new Map()
 
-console.log('DATABASE_URL:', process.env.DATABASE_URL)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  env.corsOrigin,
+]
+  .filter(Boolean)
+  .flatMap((origin) =>
+    String(origin)
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  )
 
-wss.on('connection', (ws) => {
-  console.log('Dashboard connected via WebSocket')
+console.log('DATABASE_URL:', process.env.DATABASE_URL)
+console.log('CORS_ORIGINS:', allowedOrigins)
+
+function getSocketStateLabel(ws) {
+  if (ws.readyState === ws.CONNECTING) return 'CONNECTING'
+  if (ws.readyState === ws.OPEN) return 'OPEN'
+  if (ws.readyState === ws.CLOSING) return 'CLOSING'
+  if (ws.readyState === ws.CLOSED) return 'CLOSED'
+  return String(ws.readyState)
+}
+
+function getClientCountByUser(userId) {
+  let count = 0
+
+  for (const [, clientUserId] of clients.entries()) {
+    if (clientUserId === String(userId)) count += 1
+  }
+
+  return count
+}
+
+wss.on('connection', (ws, req) => {
+  const ip =
+    req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown'
+
+  console.log('Dashboard connected via WebSocket:', ip)
+
+  ws.isAlive = true
 
   ws.send(
     JSON.stringify({
@@ -35,17 +73,40 @@ wss.on('connection', (ws) => {
     })
   )
 
+  ws.on('pong', () => {
+    ws.isAlive = true
+  })
+
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message)
 
       if (data.type === 'subscribe' && data.userId) {
-        clients.set(ws, String(data.userId))
+        const userId = String(data.userId)
+
+        clients.set(ws, userId)
+
+        console.log('WS subscribed:', {
+          userId,
+          clientsForUser: getClientCountByUser(userId),
+          totalClients: clients.size,
+        })
 
         ws.send(
           JSON.stringify({
             type: 'subscribed',
-            userId: String(data.userId),
+            userId,
+          })
+        )
+
+        return
+      }
+
+      if (data.type === 'ping') {
+        ws.send(
+          JSON.stringify({
+            type: 'pong',
+            time: new Date().toISOString(),
           })
         )
       }
@@ -56,33 +117,107 @@ wss.on('connection', (ws) => {
   })
 
   ws.on('close', () => {
+    const userId = clients.get(ws)
+
     clients.delete(ws)
+
+    console.log('WS closed:', {
+      userId,
+      totalClients: clients.size,
+    })
   })
 
   ws.on('error', (error) => {
-    console.error('WebSocket error:', error.message)
+    const userId = clients.get(ws)
+
+    console.error('WebSocket error:', {
+      userId,
+      message: error.message,
+    })
+
     clients.delete(ws)
   })
 })
 
 export function broadcastToUser(userId, payload) {
-  if (!userId) return
+  if (!userId) {
+    console.warn('Broadcast skipped: missing userId', {
+      type: payload?.type,
+    })
+    return 0
+  }
+
+  const targetUserId = String(userId)
+  let sentCount = 0
+  let matchedCount = 0
+
+  console.log('Broadcast attempt:', {
+    userId: targetUserId,
+    type: payload?.type,
+    connectedClients: clients.size,
+  })
 
   for (const [ws, clientUserId] of clients.entries()) {
-    if (clientUserId === String(userId) && ws.readyState === ws.OPEN) {
+    const socketState = getSocketStateLabel(ws)
+
+    console.log('Broadcast client check:', {
+      targetUserId,
+      clientUserId,
+      socketState,
+      payloadType: payload?.type,
+    })
+
+    if (clientUserId !== targetUserId) continue
+
+    matchedCount += 1
+
+    if (ws.readyState === ws.OPEN) {
       ws.send(JSON.stringify(payload))
+      sentCount += 1
+
+      console.log('Broadcast sent:', {
+        userId: targetUserId,
+        type: payload?.type,
+      })
     }
   }
+
+  if (matchedCount === 0) {
+    console.warn('Broadcast no subscribed client matched:', {
+      userId: targetUserId,
+      type: payload?.type,
+      connectedClients: clients.size,
+    })
+  }
+
+  if (matchedCount > 0 && sentCount === 0) {
+    console.warn('Broadcast matched client but socket not open:', {
+      userId: targetUserId,
+      type: payload?.type,
+      matchedCount,
+    })
+  }
+
+  return sentCount
 }
 
 export function broadcastToAll(payload) {
   const message = JSON.stringify(payload)
+  let sentCount = 0
 
   wss.clients.forEach((ws) => {
     if (ws.readyState === ws.OPEN) {
       ws.send(message)
+      sentCount += 1
     }
   })
+
+  console.log('Broadcast all:', {
+    type: payload?.type,
+    sentCount,
+  })
+
+  return sentCount
 }
 
 app.set('wss', wss)
@@ -118,8 +253,44 @@ app.get('/debug/db', async (req, res) => {
   res.json(result.rows[0])
 })
 
+app.get('/debug/ws', (req, res) => {
+  const clientList = []
+
+  for (const [ws, userId] of clients.entries()) {
+    clientList.push({
+      userId,
+      readyState: getSocketStateLabel(ws),
+      isAlive: Boolean(ws.isAlive),
+    })
+  }
+
+  res.json({
+    totalClients: clients.size,
+    clients: clientList,
+  })
+})
+
 app.use(helmet())
-app.use(cors({ origin: env.corsOrigin }))
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true)
+        return
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true)
+        return
+      }
+
+      callback(new Error(`CORS blocked origin: ${origin}`))
+    },
+    credentials: true,
+  })
+)
+
 app.use(express.json({ limit: '128kb' }))
 
 app.get('/health', (req, res) => {
@@ -131,8 +302,28 @@ app.use('/api/demo', apiLimiter, demoRouter)
 app.use('/api/ingest', ingestLimiter, ingestRouter)
 app.use('/api/alarms', apiLimiter, alarmsRouter)
 app.use('/api/alarm-rules', apiLimiter, alarmRulesRouter)
+app.use('/api/admin', apiLimiter, adminRouter)
 app.use('/api', deviceMetricsRoutes)
 app.use('/api', deviceModelsRoutes)
+
+setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) {
+      const userId = clients.get(ws)
+
+      console.warn('WS heartbeat terminate:', {
+        userId,
+      })
+
+      clients.delete(ws)
+      ws.terminate()
+      return
+    }
+
+    ws.isAlive = false
+    ws.ping()
+  })
+}, 30_000)
 
 setInterval(async () => {
   try {

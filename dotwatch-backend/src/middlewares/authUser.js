@@ -1,11 +1,33 @@
+import { admin, firebaseReady } from '../config/firebaseAdmin.js'
+
 export async function authUser(req, res, next) {
-  const devUser = {
-    uid: 'dev-user',
-    email: 'dev@example.com',
+  if (!firebaseReady) {
+    return res.status(500).json({
+      message: 'Firebase Admin not configured',
+    })
   }
 
-  req.firebaseUser = devUser
-  req.user = devUser
+  const authHeader = req.headers.authorization
 
-  return next()
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({
+      message: 'Missing token',
+    })
+  }
+
+  try {
+    const token = authHeader.replace('Bearer ', '')
+    const decoded = await admin.auth().verifyIdToken(token)
+
+    req.firebaseUser = decoded
+    req.user = decoded
+
+    next()
+  } catch (error) {
+    console.error('Firebase token error:', error.message)
+
+    return res.status(401).json({
+      message: 'Invalid token',
+    })
+  }
 }

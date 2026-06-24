@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { auth } from '../services/firebase'
 import AlarmPanel from '../components/AlarmPanel.jsx'
 import { getDevices, getAlarms } from '../services/api'
 import { getDeviceMetrics } from '../services/metricDisplayApi'
-import { connectRealtime, disconnectRealtime } from '../services/realtime'
+import { connectRealtime } from '../services/realtime'
 import { useAlarm } from '../context/AlarmContext'
-import DeviceMap from '../components/DeviceMap'
 import {
   DEFAULT_METRICS,
   formatMetricValue,
@@ -15,6 +14,8 @@ import {
 } from '../utils/metricDisplayConfig'
 import { MetricIcon } from '../utils/metricIcons.jsx'
 import { EmptyState, PageHeader, StatCard } from '../components/common'
+
+const DeviceMap = lazy(() => import('../components/DeviceMap'))
 
 function normalizeRealtimeDevice(reading = {}) {
   const latestMetrics = reading.latest_metrics || reading.metrics || {}
@@ -179,12 +180,15 @@ function Dashboard({ onOpenDevice }) {
     window.addEventListener('dashboardSettingsChanged', loadDisplaySettings)
     window.addEventListener('dotwatchMetricConfigChanged', loadDevices)
 
+    let unsubscribeRealtime = null
+
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
-      disconnectRealtime()
+      unsubscribeRealtime?.()
+      unsubscribeRealtime = null
 
       if (!user) return
 
-      connectRealtime(user.uid, (payload) => {
+      unsubscribeRealtime = connectRealtime(user.uid, (payload) => {
         if (payload.type === 'reading' || payload.type === 'device:update') {
           const reading = payload.data || payload.device
           if (reading) updateRealtimeDevice(reading)
@@ -219,7 +223,7 @@ function Dashboard({ onOpenDevice }) {
     })
 
     return () => {
-      disconnectRealtime()
+      unsubscribeRealtime?.()
       unsubscribeAuth?.()
       window.removeEventListener(
         'dashboardSettingsChanged',
@@ -345,7 +349,19 @@ function Dashboard({ onOpenDevice }) {
 
       {dashboardDisplay.showDeviceMap && (
         <section className="app-card dashboard-map-card-v2">
-          <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
+          <Suspense
+            fallback={
+              <div className="dashboard-map-loading">
+                <div className="dashboard-map-loading-icon" />
+                <div>
+                  <strong>Loading device map</strong>
+                  <p>กำลังโหลดแผนที่และตำแหน่งอุปกรณ์</p>
+                </div>
+              </div>
+            }
+          >
+            <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
+          </Suspense>
         </section>
       )}
     </div>

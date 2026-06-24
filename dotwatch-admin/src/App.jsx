@@ -1,121 +1,150 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useMemo, useState } from 'react'
+import AdminLayout from './components/layout/AdminLayout'
+import AuthGate from './components/auth/AuthGate'
+import AdminOverview from './pages/AdminOverview'
+import AdminUsers from './pages/AdminUsers'
+import AdminDevices from './pages/AdminDevices'
+import AdminSubscriptions from './pages/AdminSubscriptions'
+import AdminAuditLogs from './pages/AdminAuditLogs'
+import AdminSystem from './pages/AdminSystem'
+import AdminSettings from './pages/AdminSettings'
+import {
+  getAdminAuditLogs,
+  getAdminDevices,
+  getAdminMe,
+  getAdminUsers,
+  updateAdminUserStatus,
+} from './services/adminApi'
+
+const PAGE_COMPONENTS = {
+  overview: AdminOverview,
+  users: AdminUsers,
+  devices: AdminDevices,
+  subscriptions: AdminSubscriptions,
+  audit: AdminAuditLogs,
+  system: AdminSystem,
+  settings: AdminSettings,
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [activePage, setActivePage] = useState('overview')
+  const [adminUser, setAdminUser] = useState(null)
+  const [users, setUsers] = useState([])
+  const [devices, setDevices] = useState([])
+  const [auditLogs, setAuditLogs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [notice, setNotice] = useState('')
+
+  useEffect(() => {
+    if (!adminUser) return undefined
+
+    let active = true
+
+    async function loadAdminData() {
+      try {
+        setLoading(true)
+
+        const [nextUsers, nextDevices, nextAuditLogs] = await Promise.all([
+          getAdminUsers(),
+          getAdminDevices(),
+          getAdminAuditLogs(),
+        ])
+
+        if (!active) return
+
+        setUsers(nextUsers)
+        setDevices(nextDevices)
+        setAuditLogs(nextAuditLogs)
+      } catch (error) {
+        console.error(error)
+        setNotice(error.message || 'Failed to load admin data')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    loadAdminData()
+
+    return () => {
+      active = false
+    }
+  }, [adminUser])
+
+  const stats = useMemo(() => {
+    const totalUsers = users.length
+    const activeUsers = users.filter((user) => user.status === 'active').length
+    const suspendedUsers = users.filter(
+      (user) => user.status === 'suspended'
+    ).length
+    const totalDevices = devices.length
+    const onlineDevices = devices.filter(
+      (device) => device.status === 'online'
+    ).length
+    const offlineDevices = devices.filter(
+      (device) => device.status === 'offline'
+    ).length
+
+    return {
+      totalUsers,
+      activeUsers,
+      suspendedUsers,
+      totalDevices,
+      onlineDevices,
+      offlineDevices,
+    }
+  }, [devices, users])
+
+  async function handleUpdateUserStatus(userId, status) {
+    try {
+      const updatedUser = await updateAdminUserStatus(userId, status)
+
+      setUsers((currentUsers) =>
+        currentUsers.map((user) =>
+          user.id === userId
+            ? {
+                ...user,
+                ...updatedUser,
+              }
+            : user
+        )
+      )
+
+      setNotice(`User status changed to ${status}`)
+    } catch (error) {
+      console.error(error)
+      setNotice(error.message || 'Failed to update user status')
+    }
+  }
+
+  const ActivePage = PAGE_COMPONENTS[activePage] || AdminOverview
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <AuthGate onReady={setAdminUser} getAdminMe={getAdminMe}>
+      <AdminLayout
+        activePage={activePage}
+        adminUser={adminUser}
+        onNavigate={setActivePage}
+      >
+        {notice ? (
+          <div className="admin-notice">
+            <span>{notice}</span>
+            <button type="button" onClick={() => setNotice('')}>
+              Dismiss
+            </button>
+          </div>
+        ) : null}
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        <ActivePage
+          users={users}
+          devices={devices}
+          auditLogs={auditLogs}
+          stats={stats}
+          loading={loading}
+          adminUser={adminUser}
+          onUpdateUserStatus={handleUpdateUserStatus}
+        />
+      </AdminLayout>
+    </AuthGate>
   )
 }
 

@@ -1,48 +1,35 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { getDevice, getDeviceMetrics } from '../services/api'
-import ChartWidget from '../components/ChartWidget.jsx'
 import { auth } from '../services/firebase'
 import { connectRealtime } from '../services/realtime'
 import {
   EmptyState,
-  MetricCard,
   PageHeader,
-  SectionHeader,
   StatCard,
   StatusBadge,
 } from '../components/common'
+import {
+  formatDate,
+  formatMetricNumber,
+  formatShortTime,
+  getDeviceHealthLabel,
+  getMetricValueFromDevice,
+  getStatusLabel,
+} from '../components/device-detail/deviceDetailUtils'
 
-function formatDate(value) {
-  if (!value) return '--'
-
-  try {
-    return new Date(value).toLocaleString('th-TH')
-  } catch {
-    return value
-  }
-}
-
-function formatShortTime(value) {
-  if (!value) return '--'
-
-  try {
-    return new Date(value).toLocaleTimeString('th-TH', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
-  } catch {
-    return '--'
-  }
-}
-
-function getStatusLabel(status) {
-  if (status === 'online') return 'Online'
-  if (status === 'warning') return 'Warning'
-  if (status === 'critical') return 'Critical'
-  return 'Offline'
-}
+const DeviceOverviewTab = lazy(
+  () => import('../components/device-detail/DeviceOverviewTab.jsx')
+)
+const DeviceMetricsTab = lazy(
+  () => import('../components/device-detail/DeviceMetricsTab.jsx')
+)
+const DeviceTimelineTab = lazy(
+  () => import('../components/device-detail/DeviceTimelineTab.jsx')
+)
+const DeviceInformationTab = lazy(
+  () => import('../components/device-detail/DeviceInformationTab.jsx')
+)
 
 function getReadingId(reading) {
   return reading?.id ?? reading?.device_id ?? reading?.deviceId
@@ -81,8 +68,9 @@ function getAlarmDescription(alarm) {
   const parts = []
 
   if (value != null) parts.push(`Current value ${formatMetricNumber(value)}`)
-  if (operator || threshold !== '')
+  if (operator || threshold !== '') {
     parts.push(`Rule ${operator} ${threshold}`.trim())
+  }
 
   return parts.length > 0
     ? parts.join(' • ')
@@ -119,51 +107,6 @@ function mergeRealtimeDevice(prev, reading) {
     last_seen_at: reading.last_seen_at || prev?.last_seen_at,
     last_ingest_at: reading.last_ingest_at || prev?.last_ingest_at,
   }
-}
-
-function getMetricIcon(metric) {
-  const key = String(metric?.metric_key || '').toLowerCase()
-  const type = String(metric?.metric_type || '').toLowerCase()
-  const name = String(metric?.metric_name || '').toLowerCase()
-  const text = `${key} ${type} ${name}`
-
-  if (text.includes('temp')) return '🌡️'
-  if (text.includes('humid')) return '💧'
-  if (text.includes('volt')) return '⚡'
-  if (text.includes('power') || text.includes('watt')) return '🔌'
-  if (text.includes('pressure')) return '⏱️'
-  if (text.includes('rssi') || text.includes('signal')) return '📶'
-  if (text.includes('battery')) return '🔋'
-  return '●'
-}
-
-function formatMetricNumber(value) {
-  if (value == null || value === '' || Number.isNaN(Number(value))) return '--'
-
-  const numberValue = Number(value)
-  return Number.isInteger(numberValue)
-    ? String(numberValue)
-    : numberValue.toFixed(1)
-}
-
-function getDeviceHealthLabel(status) {
-  if (status === 'online') return 'Healthy'
-  if (status === 'warning') return 'Warning'
-  if (status === 'critical') return 'Critical'
-  return 'Offline'
-}
-
-function getMetricValueFromDevice(device, metric) {
-  const latestMetrics = device?.latest_metrics || {}
-  const metricValues = device?.metrics || {}
-
-  if (latestMetrics[metric.metric_key] != null)
-    return latestMetrics[metric.metric_key]
-  if (metricValues[metric.metric_key] != null)
-    return metricValues[metric.metric_key]
-  if (device?.[metric.metric_key] != null) return device[metric.metric_key]
-
-  return null
 }
 
 function buildTimeline(device, visibleMetrics, realtimeAlarms = []) {
@@ -253,48 +196,14 @@ function buildTimeline(device, visibleMetrics, realtimeAlarms = []) {
   )
 }
 
-function DeviceInfoGrid({ device }) {
+function TabLoading({ title = 'Loading section...' }) {
   return (
-    <div className="device-info-grid-ds">
-      <div>
-        <label>Device Code</label>
-        <p>{device.device_code}</p>
+    <section className="panel app-card device-detail-tab-panel">
+      <div className="app-empty-state">
+        <h3>{title}</h3>
+        <p>กำลังเตรียมข้อมูลสำหรับส่วนนี้</p>
       </div>
-      <div>
-        <label>Model</label>
-        <p>{device.model_name || '--'}</p>
-      </div>
-      <div>
-        <label>Group</label>
-        <p>{device.group_name || 'Default'}</p>
-      </div>
-      <div>
-        <label>Firmware</label>
-        <p>{device.firmware_version || '--'}</p>
-      </div>
-      <div>
-        <label>Latitude</label>
-        <p>
-          {device.latitude != null ? Number(device.latitude).toFixed(6) : '--'}
-        </p>
-      </div>
-      <div>
-        <label>Longitude</label>
-        <p>
-          {device.longitude != null
-            ? Number(device.longitude).toFixed(6)
-            : '--'}
-        </p>
-      </div>
-      <div>
-        <label>Latest Reading</label>
-        <p>{formatDate(device.latest_time)}</p>
-      </div>
-      <div>
-        <label>Last Ingest</label>
-        <p>{formatDate(device.last_ingest_at)}</p>
-      </div>
-    </div>
+    </section>
   )
 }
 
@@ -336,10 +245,6 @@ function DeviceDetail({ deviceId, onBack }) {
     }
   }
 
-  function getMetricValue(metric) {
-    return getMetricValueFromDevice(device, metric)
-  }
-
   useEffect(() => {
     if (deviceId) loadDevice()
   }, [deviceId])
@@ -379,8 +284,9 @@ function DeviceDetail({ deviceId, onBack }) {
           return
         }
 
-        if (payload.type !== 'reading' && payload.type !== 'device:update')
+        if (payload.type !== 'reading' && payload.type !== 'device:update') {
           return
+        }
 
         const reading = payload.data || payload.device
         if (!reading) return
@@ -404,7 +310,7 @@ function DeviceDetail({ deviceId, onBack }) {
 
   const metricSummary = useMemo(() => {
     const values = visibleMetrics
-      .map((metric) => getMetricValue(metric))
+      .map((metric) => getMetricValueFromDevice(device, metric))
       .filter((value) => value != null && Number.isFinite(Number(value)))
 
     return {
@@ -530,115 +436,25 @@ function DeviceDetail({ deviceId, onBack }) {
         ))}
       </nav>
 
-      {activeTab === 'overview' && (
-        <div className="device-detail-tab-panel">
-          <section
-            className={`device-health-banner-ds ${device.status || 'offline'}`}
-          >
-            <div className="device-health-dot-ds" />
-            <div>
-              <strong>{getDeviceHealthLabel(device.status)}</strong>
-              <p>
-                {device.status === 'online'
-                  ? 'Device is sending telemetry normally.'
-                  : 'No fresh telemetry has been received from this device.'}
-              </p>
-            </div>
-            <span>Last ingest: {formatShortTime(device.last_ingest_at)}</span>
-          </section>
+      <Suspense fallback={<TabLoading />}>
+        {activeTab === 'overview' && (
+          <DeviceOverviewTab device={device} deviceId={deviceId} />
+        )}
 
-          <section className="panel app-card device-overview-grid-card-ds">
-            <SectionHeader
-              title="Overview"
-              description="ภาพรวมสถานะและข้อมูลล่าสุดของ Device นี้"
-            />
-            <DeviceInfoGrid device={device} />
-          </section>
-
-          <ChartWidget defaultDeviceId={deviceId} />
-        </div>
-      )}
-
-      {activeTab === 'metrics' && (
-        <section className="panel app-card device-live-panel-ds device-detail-tab-panel">
-          <SectionHeader
-            title="Live Metrics"
-            description="ค่าล่าสุดจาก Device ตาม Metric Config"
-            actions={
-              <span className="device-live-count-ds">
-                {metricSummary.active} active • {metricSummary.empty} empty
-              </span>
-            }
+        {activeTab === 'metrics' && (
+          <DeviceMetricsTab
+            device={device}
+            visibleMetrics={visibleMetrics}
+            metricSummary={metricSummary}
           />
+        )}
 
-          {visibleMetrics.length === 0 ? (
-            <EmptyState
-              title="ยังไม่มี Metric"
-              description="ไปที่หน้า Device เพื่อกำหนด Metric Display ก่อน"
-            />
-          ) : (
-            <div className="device-metrics-ds-grid">
-              {visibleMetrics.map((metric) => {
-                const value = getMetricValue(metric)
+        {activeTab === 'timeline' && <DeviceTimelineTab timeline={timeline} />}
 
-                return (
-                  <MetricCard
-                    key={metric.metric_key}
-                    name={metric.metric_name || metric.metric_key}
-                    value={formatMetricNumber(value)}
-                    unit={metric.unit}
-                    icon={getMetricIcon(metric)}
-                    metricKey={metric.metric_key}
-                  />
-                )
-              })}
-            </div>
-          )}
-        </section>
-      )}
-
-      {activeTab === 'timeline' && (
-        <section className="panel app-card device-timeline-panel-ds device-detail-tab-panel">
-          <SectionHeader
-            title="Device Timeline"
-            description="เหตุการณ์ล่าสุดที่เกี่ยวข้องกับ Device นี้"
-            actions={
-              <span className="device-live-count-ds">
-                {timeline.length} events
-              </span>
-            }
-          />
-
-          <div className="device-timeline-list-ds">
-            {timeline.map((item) => (
-              <article
-                key={item.id}
-                className={`device-timeline-item-ds ${item.tone}`}
-              >
-                <div className="device-timeline-dot-ds" />
-                <div className="device-timeline-content-ds">
-                  <div className="device-timeline-title-row-ds">
-                    <h3>{item.title}</h3>
-                    <time>{formatShortTime(item.time)}</time>
-                  </div>
-                  <p>{item.description}</p>
-                  <small>{formatDate(item.time)}</small>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {activeTab === 'information' && (
-        <section className="panel app-card device-info-panel-ds device-detail-tab-panel">
-          <SectionHeader
-            title="Device Information"
-            description="รายละเอียดอุปกรณ์และตำแหน่งติดตั้ง"
-          />
-          <DeviceInfoGrid device={device} />
-        </section>
-      )}
+        {activeTab === 'information' && (
+          <DeviceInformationTab device={device} />
+        )}
+      </Suspense>
     </div>
   )
 }

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { auth } from '../services/firebase'
+import { connectRealtime } from '../services/realtime'
 import {
   acknowledgeAlarm,
   deleteAlarmRule,
@@ -53,6 +55,43 @@ function getStatusLabel(status) {
   return status || 'Unknown'
 }
 
+function normalizeAlarmPayload(payload) {
+  const data = payload?.data ?? payload?.alarm ?? payload?.alarms ?? []
+  return (Array.isArray(data) ? data : [data]).filter(Boolean)
+}
+
+function getAlarmKey(alarm) {
+  return String(
+    alarm.id ||
+      alarm.alarm_id ||
+      `${alarm.device_id || alarm.deviceId || alarm.device_code || 'device'}-${
+        alarm.metric || alarm.metric_key || 'metric'
+      }-${alarm.triggered_at || alarm.time || alarm.created_at || Date.now()}`
+  )
+}
+
+function mergeAlarmEvents(prev, nextAlarms) {
+  const unique = new Map()
+
+  ;[...nextAlarms, ...prev].forEach((alarm) => {
+    unique.set(getAlarmKey(alarm), alarm)
+  })
+
+  return Array.from(unique.values()).sort((a, b) => {
+    const aTime = new Date(a.triggered_at || a.time || a.created_at || 0).getTime()
+    const bTime = new Date(b.triggered_at || b.time || b.created_at || 0).getTime()
+    return bTime - aTime
+  })
+}
+
+function isSameRealtimeDevice(device, reading) {
+  return (
+    String(device.id) === String(reading.id) ||
+    String(device.id) === String(reading.device_id) ||
+    String(device.device_code) === String(reading.device_code)
+  )
+}
+
 function Alarms() {
   const [alarms, setAlarms] = useState([])
   const [rules, setRules] = useState([])
@@ -105,6 +144,47 @@ function Alarms() {
 
   useEffect(() => {
     loadData()
+
+    let unsubscribeRealtime = null
+
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      unsubscribeRealtime?.()
+      unsubscribeRealtime = null
+
+      if (!user) return
+
+      unsubscribeRealtime = connectRealtime(user.uid, (payload) => {
+        if (payload.type === 'alarm') {
+          const nextAlarms = normalizeAlarmPayload(payload)
+          if (nextAlarms.length > 0) {
+            setAlarms((prev) => mergeAlarmEvents(prev, nextAlarms))
+          }
+        }
+
+        if (payload.type === 'alarm:sync') {
+          const nextAlarms = Array.isArray(payload.data) ? payload.data : []
+          setAlarms(nextAlarms)
+        }
+
+        if (payload.type === 'device:update' || payload.type === 'reading') {
+          const reading = payload.data || payload.device
+          if (!reading) return
+
+          setDevices((prev) =>
+            prev.map((device) =>
+              isSameRealtimeDevice(device, reading)
+                ? { ...device, ...reading, id: device.id }
+                : device
+            )
+          )
+        }
+      })
+    })
+
+    return () => {
+      unsubscribeRealtime?.()
+      unsubscribeAuth?.()
+    }
   }, [])
 
   function getMetricInfo(deviceId, metricKey) {

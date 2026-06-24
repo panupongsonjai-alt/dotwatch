@@ -367,3 +367,63 @@
     height: 300px;
   }
 }
+
+/* =========================================================
+   Phase 30 - Lazy Device Map Loading State
+========================================================= */
+
+.dashboard-map-loading {
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  text-align: left;
+}
+
+.dashboard-map-loading-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 3px solid rgba(37, 99, 235, 0.16);
+  border-top-color: var(--primary);
+  animation: dashboard-map-spin 0.9s linear infinite;
+}
+
+.dashboard-map-loading strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.dashboard-map-loading p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+@keyframes dashboard-map-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+:root[data-reduce-motion='true'] .dashboard-map-loading-icon {
+  animation: none;
+}
+
+@media (max-width: 560px) {
+  .dashboard-map-loading {
+    min-height: 300px;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+  }
+}
