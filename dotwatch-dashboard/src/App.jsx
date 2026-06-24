@@ -55,7 +55,8 @@ const PAGE_META = {
   alarms: {
     section: 'Events',
     title: 'Alarm Center',
-    description: 'Track active alarms, rules, acknowledgement, and alarm history.',
+    description:
+      'Track active alarms, rules, acknowledgement, and alarm history.',
     icon: ShieldAlert,
   },
   notifications: {
@@ -73,7 +74,8 @@ const PAGE_META = {
   'system-health': {
     section: 'System',
     title: 'System Health',
-    description: 'Monitor backend connectivity, latency, and runtime diagnostics.',
+    description:
+      'Monitor backend connectivity, latency, and runtime diagnostics.',
     icon: HeartPulse,
   },
   profile: {
@@ -110,7 +112,12 @@ function applyUiPreferences() {
   root.setAttribute('data-compact-cards', compactCards ? 'true' : 'false')
 }
 
-function WorkspaceRouteBar({ page, onNavigate, onBackToDashboard, onOpenHelp }) {
+function WorkspaceRouteBar({
+  page,
+  onNavigate,
+  onBackToDashboard,
+  onOpenHelp,
+}) {
   const meta = PAGE_META[page] || PAGE_META.dashboard
   const Icon = meta.icon
 
@@ -140,7 +147,9 @@ function WorkspaceRouteBar({ page, onNavigate, onBackToDashboard, onOpenHelp }) 
         <button
           type="button"
           className="ghost-button workspace-command-button"
-          onClick={() => window.dispatchEvent(new CustomEvent('dotwatchOpenCommandPalette'))}
+          onClick={() =>
+            window.dispatchEvent(new CustomEvent('dotwatchOpenCommandPalette'))
+          }
           title="Open command palette"
         >
           <Command size={16} />
@@ -187,7 +196,6 @@ function WorkspaceRouteBar({ page, onNavigate, onBackToDashboard, onOpenHelp }) 
     </div>
   )
 }
-
 
 function CommandPalette({ open, page, onClose, onNavigate }) {
   const [query, setQuery] = useState('')
@@ -290,7 +298,9 @@ function CommandPalette({ open, page, onClose, onNavigate }) {
                     </small>
                   </span>
 
-                  {active && <span className="command-palette-current">Current</span>}
+                  {active && (
+                    <span className="command-palette-current">Current</span>
+                  )}
                 </button>
               )
             })
@@ -300,7 +310,6 @@ function CommandPalette({ open, page, onClose, onNavigate }) {
     </div>
   )
 }
-
 
 function WorkspaceHelp({ open, onClose, onNavigate }) {
   if (!open) return null
@@ -335,7 +344,10 @@ function WorkspaceHelp({ open, onClose, onNavigate }) {
           <div>
             <span className="page-eyebrow">Workspace Guide</span>
             <h2>dotWatch Quick Help</h2>
-            <p>Use these shortcuts and quick links to move around the platform faster.</p>
+            <p>
+              Use these shortcuts and quick links to move around the platform
+              faster.
+            </p>
           </div>
 
           <button type="button" className="icon-button" onClick={onClose}>
@@ -391,7 +403,10 @@ function App() {
     return saved ? JSON.parse(saved) : true
   })
 
-  const currentPageMeta = useMemo(() => PAGE_META[page] || PAGE_META.dashboard, [page])
+  const currentPageMeta = useMemo(
+    () => PAGE_META[page] || PAGE_META.dashboard,
+    [page]
+  )
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -405,7 +420,10 @@ function App() {
     window.addEventListener('storage', applyUiPreferences)
 
     return () => {
-      window.removeEventListener('dotwatchUiSettingsChanged', applyUiPreferences)
+      window.removeEventListener(
+        'dotwatchUiSettingsChanged',
+        applyUiPreferences
+      )
       window.removeEventListener('storage', applyUiPreferences)
     }
   }, [])
@@ -415,9 +433,8 @@ function App() {
   }, [sidebarOpen])
 
   useEffect(() => {
-    document.title = `${currentPageMeta.title} · dotWatch`
+    document.title = document.title = 'dotWatch'
   }, [currentPageMeta.title])
-
 
   useEffect(() => {
     function handleOpenCommandPalette() {
@@ -425,7 +442,8 @@ function App() {
     }
 
     function handleKeyDown(event) {
-      const isCommandShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k'
+      const isCommandShortcut =
+        (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k'
 
       if (isCommandShortcut) {
         event.preventDefault()
@@ -438,11 +456,17 @@ function App() {
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('dotwatchOpenCommandPalette', handleOpenCommandPalette)
+    window.addEventListener(
+      'dotwatchOpenCommandPalette',
+      handleOpenCommandPalette
+    )
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('dotwatchOpenCommandPalette', handleOpenCommandPalette)
+      window.removeEventListener(
+        'dotwatchOpenCommandPalette',
+        handleOpenCommandPalette
+      )
     }
   }, [])
 
