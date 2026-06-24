@@ -41,13 +41,16 @@ function cleanupSocketHandlers(targetSocket) {
   targetSocket.onclose = null
 }
 
+function getReconnectDelay() {
+  const baseDelay = 1000 * Math.max(1, reconnectAttempt)
+  return Math.min(30000, baseDelay)
+}
+
 function scheduleReconnect() {
   if (!shouldReconnect || !currentUserId) return
   if (reconnectTimer) return
 
   reconnectAttempt += 1
-
-  const delay = Math.min(30000, 1000 * reconnectAttempt)
 
   reconnectTimer = window.setTimeout(() => {
     reconnectTimer = null
@@ -55,7 +58,7 @@ function scheduleReconnect() {
     if (!shouldReconnect || !currentUserId) return
 
     openSocket(currentUserId)
-  }, delay)
+  }, getReconnectDelay())
 }
 
 function openSocket(userId) {
