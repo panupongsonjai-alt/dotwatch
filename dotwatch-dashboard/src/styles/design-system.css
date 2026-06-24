@@ -377,52 +377,99 @@
 }
 
 /* =========================================================
-   UX Polish Pack - Phase 17
+   Phase 20 - Theme Tokens / Accent / Density
 ========================================================= */
 
-.dw-stat-card.compact {
-  min-height: 78px;
-  padding: 14px 16px;
-  border-radius: 16px;
+:root[data-accent='blue'] {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
 }
 
-.dw-stat-card.compact strong {
-  margin-top: 6px;
+:root[data-accent='emerald'] {
+  --primary: #10b981;
+  --primary-hover: #059669;
+}
+
+:root[data-accent='cyan'] {
+  --primary: #06b6d4;
+  --primary-hover: #0891b2;
+}
+
+:root[data-accent='red'] {
+  --primary: #ef4444;
+  --primary-hover: #dc2626;
+}
+
+:root[data-density='compact'] .dw-page-header,
+:root[data-density='compact'] .app-card,
+:root[data-density='compact'] .panel,
+:root[data-density='compact'] .settings-panel {
+  padding: 18px;
+}
+
+:root[data-density='compact'] .dw-stat-card {
+  min-height: 78px;
+  padding: 14px 16px;
+}
+
+:root[data-density='compact'] .dw-stat-card strong {
   font-size: 25px;
 }
 
-.dw-stat-card.compact small {
-  margin-top: 6px;
+:root[data-reduce-motion='true'] *,
+:root[data-reduce-motion='true'] *::before,
+:root[data-reduce-motion='true'] *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
 }
 
-.dw-mobile-only {
-  display: none !important;
+
+/* =========================================================
+   Phase 21 - Global UI Preferences + Navigation Polish
+========================================================= */
+
+:root[data-compact-cards='true'] .dw-stat-card,
+:root[data-compact-cards='true'] .summary-card,
+:root[data-compact-cards='true'] .stat-card,
+:root[data-compact-cards='true'] .compact-summary-card {
+  min-height: 78px;
+  padding: 14px 16px;
 }
 
-@media (max-width: 640px) {
-  .dw-desktop-only {
-    display: none !important;
-  }
+:root[data-compact-cards='true'] .dw-stat-card strong,
+:root[data-compact-cards='true'] .summary-card strong,
+:root[data-compact-cards='true'] .stat-card strong,
+:root[data-compact-cards='true'] .compact-summary-card strong {
+  font-size: 25px !important;
+}
 
-  .dw-mobile-only {
-    display: grid !important;
-  }
+.menu-section {
+  display: grid;
+  gap: 7px;
+}
 
-  .dw-page-header {
-    padding: 18px;
-    border-radius: 22px;
-  }
+.menu-section + .menu-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
 
-  .dw-page-header-main h1 {
-    font-size: 24px;
-  }
+.menu-section-label {
+  padding: 0 14px 2px;
+  color: rgba(148, 163, 184, 0.72);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
 
-  .dw-stat-card {
-    min-height: 82px;
-    padding: 15px;
-  }
+.sidebar.collapsed .menu-section-label {
+  display: none;
+}
 
-  .dw-stat-card strong {
-    font-size: 26px;
-  }
+.sidebar.collapsed .menu-section + .menu-section {
+  margin-top: 10px;
+  padding-top: 10px;
 }

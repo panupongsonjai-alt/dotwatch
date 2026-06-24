@@ -6,7 +6,10 @@
 @import './styles/pages/dashboard.css';
 @import './styles/pages/devices.css';
 @import './styles/pages/device-detail.css';
-@import './styles/pages/alarms.css';
 @import './styles/pages/history.css';
+@import './styles/pages/alarms.css';
+@import './styles/pages/notifications.css';
 @import './styles/pages/profile.css';
 @import './styles/pages/settings.css';
+
+@import './styles/pages/system-health.css';
