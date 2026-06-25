@@ -8,7 +8,6 @@ import { useAlarm } from '../context/AlarmContext'
 import { EmptyState, PageHeader, StatCard } from '../components/common'
 import '../styles/dashboard.css'
 import '../styles/page-system.css'
-import ChartWidget from '../components/ChartWidget.jsx'
 const DeviceMap = lazy(() => import('../components/DeviceMap'))
 
 function normalizeRealtimeDevice(reading = {}) {
@@ -202,28 +201,22 @@ function getDeviceMetricCards(devices = [], limit = Infinity) {
       const latestMetrics = device.latest_metrics || device.metrics || {}
       const configuredMetrics = getConfiguredMetrics(device)
 
-      if (configuredMetrics.length > 0) {
-        const configuredCards = configuredMetrics
-          .map((metricConfig) => {
-            const metricKey =
-              metricConfig.metric_key ||
-              metricConfig.source_key ||
-              metricConfig.key
+      if (!configuredMetrics.length) return []
 
-            const value = latestMetrics[metricKey]
+      return configuredMetrics
+        .map((metricConfig) => {
+          const metricKey =
+            metricConfig.metric_key ||
+            metricConfig.source_key ||
+            metricConfig.key
 
-            if (value == null || !Number.isFinite(Number(value))) return null
+          if (!metricKey) return null
 
-            return buildMetricCard(device, metricKey, value, metricConfig)
-          })
-          .filter(Boolean)
+          const value = latestMetrics[metricKey]
 
-        if (configuredCards.length > 0) return configuredCards
-      }
-
-      return getLatestMetricEntries(device).map(([metricKey, value]) =>
-        buildMetricCard(device, metricKey, value)
-      )
+          return buildMetricCard(device, metricKey, value, metricConfig)
+        })
+        .filter(Boolean)
     })
     .sort((a, b) => {
       const deviceA = String(a.deviceName || '')
@@ -409,30 +402,11 @@ function Dashboard({ onOpenDevice }) {
     [devices]
   )
 
-  const latestUpdatedAt = useMemo(() => {
-    const times = devices
-      .map((device) => device.latest_time || device.last_ingest_at)
-      .filter(Boolean)
-      .map((value) => new Date(value).getTime())
-      .filter(Number.isFinite)
-
-    if (!times.length) return null
-
-    return new Date(Math.max(...times)).toISOString()
-  }, [devices])
-
   return (
     <div className="page app-page dashboard-page dashboard-v2-page">
       <PageHeader
         eyebrow="Operations Center"
         title="dotWatch Dashboard"
-        description={`${healthyCount} Healthy • ${warningHealthCount} Warning • ${criticalHealthCount} Critical • ${offlineCount} Offline`}
-        actions={
-          <div className="dashboard-live-chip">
-            <span />
-            Last update {formatRelativeTime(latestUpdatedAt)}
-          </div>
-        }
       />
 
       <section className="dw-page-stat-grid dashboard-kpi-grid dashboard-health-kpi-grid">
@@ -471,7 +445,7 @@ function Dashboard({ onOpenDevice }) {
           <div>
             <h2>Data Overview</h2>
             <p>
-              แสดงค่าล่าสุดของทุก Device และใช้ Metric Display เมื่อมีการตั้งค่า
+              แสดงเฉพาะ Metric ที่เปิด Visible ไว้ใน Metric Display
             </p>
           </div>
 
@@ -487,8 +461,8 @@ function Dashboard({ onOpenDevice }) {
           />
         ) : dataOverviewMetrics.length === 0 ? (
           <EmptyState
-            title="ยังไม่มีข้อมูลจาก Device"
-            description="รอ Device ส่งข้อมูล latest_metrics หรือ temperature / humidity เข้าระบบ"
+            title="ยังไม่มี Metric ที่ตั้งค่าให้แสดง"
+            description="ตรวจสอบ Metric Display ว่าเปิด Visible แล้ว และ Backend ส่ง metric_configs มาครบ"
           />
         ) : (
           <div className="live-metrics-overview-grid">
@@ -601,10 +575,6 @@ function Dashboard({ onOpenDevice }) {
       <section className="dashboard-alerts-under-map">
         <LatestActiveAlarms limit={6} />
         <AlarmPanel />
-      </section>
-
-      <section className="dashboard-history-analytics-section">
-        <ChartWidget />
       </section>
     </div>
   )

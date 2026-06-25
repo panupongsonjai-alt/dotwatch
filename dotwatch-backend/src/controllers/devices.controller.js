@@ -61,22 +61,26 @@ export async function listDevices(req, res) {
 
     LEFT JOIN LATERAL (
       SELECT
-        jsonb_agg(
-          jsonb_build_object(
-            'id', dm_cfg.id,
-            'metric_key', dm_cfg.metric_key,
-            'source_key', dm_cfg.source_key,
-            'metric_name', dm_cfg.metric_name,
-            'metric_type', dm_cfg.metric_type,
-            'unit', dm_cfg.unit,
-            'icon', dm_cfg.icon,
-            'visible', dm_cfg.visible,
-            'sort_order', dm_cfg.sort_order
-          )
-          ORDER BY dm_cfg.sort_order ASC, dm_cfg.metric_key ASC
+        COALESCE(
+          jsonb_agg(
+            jsonb_build_object(
+              'id', dm_cfg.id,
+              'metric_key', dm_cfg.metric_key,
+              'source_key', dm_cfg.source_key,
+              'metric_name', dm_cfg.metric_name,
+              'metric_type', dm_cfg.metric_type,
+              'unit', dm_cfg.unit,
+              'icon', dm_cfg.icon,
+              'visible', dm_cfg.visible,
+              'sort_order', dm_cfg.sort_order
+            )
+            ORDER BY dm_cfg.sort_order ASC, dm_cfg.metric_key ASC
+          ),
+          '[]'::jsonb
         ) AS metric_configs
       FROM device_metrics dm_cfg
       WHERE dm_cfg.device_id = d.id
+        AND dm_cfg.visible = true
     ) metric_config ON true
 
     WHERE d.user_id = $1
@@ -257,22 +261,26 @@ export async function getDevice(req, res) {
 
     LEFT JOIN LATERAL (
       SELECT
-        jsonb_agg(
-          jsonb_build_object(
-            'id', dm_cfg.id,
-            'metric_key', dm_cfg.metric_key,
-            'source_key', dm_cfg.source_key,
-            'metric_name', dm_cfg.metric_name,
-            'metric_type', dm_cfg.metric_type,
-            'unit', dm_cfg.unit,
-            'icon', dm_cfg.icon,
-            'visible', dm_cfg.visible,
-            'sort_order', dm_cfg.sort_order
-          )
-          ORDER BY dm_cfg.sort_order ASC, dm_cfg.metric_key ASC
+        COALESCE(
+          jsonb_agg(
+            jsonb_build_object(
+              'id', dm_cfg.id,
+              'metric_key', dm_cfg.metric_key,
+              'source_key', dm_cfg.source_key,
+              'metric_name', dm_cfg.metric_name,
+              'metric_type', dm_cfg.metric_type,
+              'unit', dm_cfg.unit,
+              'icon', dm_cfg.icon,
+              'visible', dm_cfg.visible,
+              'sort_order', dm_cfg.sort_order
+            )
+            ORDER BY dm_cfg.sort_order ASC, dm_cfg.metric_key ASC
+          ),
+          '[]'::jsonb
         ) AS metric_configs
       FROM device_metrics dm_cfg
       WHERE dm_cfg.device_id = d.id
+        AND dm_cfg.visible = true
     ) metric_config ON true
 
     WHERE d.id = $1
@@ -400,7 +408,67 @@ export async function deleteDevice(req, res) {
 export async function getHistory(req, res) {
   const user = req.dbUser
   const { id } = req.params
-  const metricKey = req.query.metricKey || req.query.metric_key
+  const metricKey =
+    req.query.metricKey ||
+    req.query.metric_key ||
+    req.query.metric ||
+    req.query.key
+
+  function isDateOnly(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))
+  }
+
+  function getBangkokDayRange(dateValue) {
+    return {
+      fromDate: new Date(`${dateValue}T00:00:00.000+07:00`),
+      toDate: new Date(`${dateValue}T23:59:59.999+07:00`),
+    }
+  }
+
+  function parseHistoryRange(query = {}) {
+    const now = new Date()
+    const dateValue = query.date || query.day
+
+    if (isDateOnly(dateValue)) {
+      return getBangkokDayRange(dateValue)
+    }
+
+    const fromValue = query.from || query.start
+    const toValue = query.to || query.end
+
+    if (
+      isDateOnly(fromValue) &&
+      (!toValue || String(toValue) === String(fromValue))
+    ) {
+      return getBangkokDayRange(fromValue)
+    }
+
+    let fromDate
+    let toDate
+
+    if (isDateOnly(fromValue)) {
+      fromDate = new Date(`${fromValue}T00:00:00.000+07:00`)
+    } else if (fromValue) {
+      fromDate = new Date(fromValue)
+    } else {
+      fromDate = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    }
+
+    if (isDateOnly(toValue)) {
+      toDate = new Date(`${toValue}T23:59:59.999+07:00`)
+    } else if (toValue) {
+      toDate = new Date(toValue)
+    } else if (isDateOnly(fromValue)) {
+      toDate = new Date(`${fromValue}T23:59:59.999+07:00`)
+    } else {
+      toDate = now
+    }
+
+    return {
+      fromDate,
+      toDate,
+    }
+  }
 
   const deviceCheck = await pool.query(
     `
@@ -419,23 +487,17 @@ export async function getHistory(req, res) {
     })
   }
 
-  const now = new Date()
-
-  const fromDate = req.query.from
-    ? new Date(req.query.from)
-    : new Date(now.getTime() - 24 * 60 * 60 * 1000)
-
-  const toDate = req.query.to ? new Date(req.query.to) : now
+  const { fromDate, toDate } = parseHistoryRange(req.query)
 
   if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
     return res.status(400).json({
-      message: 'Invalid date range',
+      message: 'Invalid history date range',
     })
   }
 
   if (fromDate > toDate) {
     return res.status(400).json({
-      message: 'Invalid date range: from must be before to',
+      message: 'Invalid history date range: from must be before to',
     })
   }
 
@@ -447,6 +509,7 @@ export async function getHistory(req, res) {
       const result = await pool.query(
         `
         SELECT
+          time,
           time AS bucket_time,
           metric_key,
           value,
@@ -459,7 +522,7 @@ export async function getHistory(req, res) {
           AND metric_key = $2
           AND time BETWEEN $3 AND $4
         ORDER BY time ASC
-        LIMIT 3000
+        LIMIT 5000
         `,
         [id, metricKey, fromDate, toDate]
       )
@@ -473,8 +536,10 @@ export async function getHistory(req, res) {
     const result = await pool.query(
       `
       SELECT
+        bucket_time AS time,
         bucket_time,
         metric_key,
+        AVG(value)::double precision AS value,
         AVG(value)::double precision AS avg_value,
         MIN(value)::double precision AS min_value,
         MAX(value)::double precision AS max_value,
@@ -504,6 +569,7 @@ export async function getHistory(req, res) {
   const result = await pool.query(
     `
     SELECT
+      latest.time,
       latest.time AS bucket_time,
       latest.metric_key,
       latest.value,

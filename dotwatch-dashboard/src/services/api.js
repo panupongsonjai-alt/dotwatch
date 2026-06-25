@@ -121,6 +121,22 @@ export function getDeviceHistory(deviceId, from, to, metricKey) {
   return getHistory(deviceId, from, to, metricKey)
 }
 
+
+export function getHistoryByDate(deviceId, date, metricKey) {
+  const params = new URLSearchParams()
+
+  if (date) params.set('date', date)
+  if (metricKey) params.set('metricKey', metricKey)
+
+  const query = params.toString()
+
+  return apiFetch(`/api/devices/${deviceId}/history${query ? `?${query}` : ''}`)
+}
+
+export function getDeviceHistoryByDate(deviceId, date, metricKey) {
+  return getHistoryByDate(deviceId, date, metricKey)
+}
+
 export function getDeviceMetrics(deviceId) {
   return apiFetch(`/api/devices/${deviceId}/metrics`)
 }
@@ -142,6 +158,13 @@ export function getAlarms() {
   return apiFetch('/api/alarms')
 }
 
+export function acknowledgeAlarm(id) {
+  return apiFetch(`/api/alarms/${id}/acknowledge`, {
+    method: 'POST',
+  })
+}
+
+
 export function getActiveAlarms(limit = 50) {
   const params = new URLSearchParams()
 
@@ -154,12 +177,6 @@ export function getActiveAlarms(limit = 50) {
 
 export function getAlarmSummary() {
   return apiFetch('/api/alarms/summary')
-}
-
-export function acknowledgeAlarm(id) {
-  return apiFetch(`/api/alarms/${id}/acknowledge`, {
-    method: 'POST',
-  })
 }
 
 export function getAlarmRules() {

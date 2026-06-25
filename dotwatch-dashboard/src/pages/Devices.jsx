@@ -19,7 +19,6 @@ import {
 } from '../services/api'
 import '../styles/devices.css'
 import '../styles/page-system.css'
-
 const DEVICE_MODEL_OPTIONS = [
   {
     id: 1,
@@ -419,17 +418,6 @@ function Devices() {
         eyebrow="Devices"
         title="Device Operations Center"
         description="จัดการอุปกรณ์, Metric Display, Location, Secret และ Alarm Rules ของ dotWatch"
-        meta={`${devices.length} Devices • ${onlineCount} Online • ${offlineCount} Offline`}
-        actions={
-          <button
-            type="button"
-            className="primary-button"
-            onClick={openCreateWizard}
-            disabled={saving}
-          >
-            Create Device
-          </button>
-        }
       />
 
       <section className="dw-page-stat-grid devices-ops-stat-grid">
