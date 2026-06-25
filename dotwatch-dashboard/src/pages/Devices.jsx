@@ -418,16 +418,6 @@ function Devices() {
         title="Device Operations Center"
         description="จัดการอุปกรณ์, Metric Display, Location, Secret และ Alarm Rules ของ dotWatch"
         meta={`${devices.length} Devices • ${onlineCount} Online • ${offlineCount} Offline`}
-        actions={
-          <button
-            type="button"
-            className="primary-button"
-            onClick={openCreateWizard}
-            disabled={saving}
-          >
-            Create Device
-          </button>
-        }
       />
 
       <section className="devices-ops-stat-grid">

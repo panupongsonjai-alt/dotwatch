@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   BellRing,
   Edit3,
@@ -75,338 +75,237 @@ function DeviceAlarmRulesPanel({
     [draftMetrics]
   )
 
-  const [alarmDraft, setAlarmDraft] = useState({
-    metric: '',
-    operator: '>',
-    threshold: '',
-    severity: 'warning',
-  })
+  const rulesByMetricAndSeverity = useMemo(() => {
+    return alarmRules.reduce((collection, rule) => {
+      const metricKey = rule.metric || rule.metric_key
+      const severity = rule.severity || 'warning'
 
-  const [editingRuleId, setEditingRuleId] = useState(null)
-  const [editingRule, setEditingRule] = useState(null)
+      if (!metricKey) return collection
 
-  const defaultMetricKey =
-    alarmDraft.metric || visibleMetrics[0]?.metric_key || ''
+      if (!collection[metricKey]) {
+        collection[metricKey] = {}
+      }
 
-  async function handleCreateAlarm() {
-    const metricKey = alarmDraft.metric || visibleMetrics[0]?.metric_key
+      collection[metricKey][severity] = rule
+      return collection
+    }, {})
+  }, [alarmRules])
 
-    if (!metricKey) {
-      alert('กรุณาเพิ่ม Metric ก่อนตั้ง Alarm')
-      return
+  const [alarmDrafts, setAlarmDrafts] = useState({})
+
+  useEffect(() => {
+    setAlarmDrafts((currentDrafts) => {
+      const nextDrafts = {}
+
+      visibleMetrics.forEach((metric) => {
+        const metricKey = metric.metric_key
+        const metricRules = rulesByMetricAndSeverity[metricKey] || {}
+
+        nextDrafts[metricKey] = {}
+
+        SEVERITIES.forEach((severity) => {
+          const existingRule = metricRules[severity]
+          const currentDraft = currentDrafts?.[metricKey]?.[severity]
+
+          nextDrafts[metricKey][severity] = {
+            id: existingRule?.id || null,
+            metric: metricKey,
+            operator:
+              currentDraft?.operator ||
+              existingRule?.operator ||
+              (severity === 'critical' ? '>' : '>='),
+            threshold: currentDraft?.threshold ?? existingRule?.threshold ?? '',
+            severity,
+            is_active:
+              currentDraft?.is_active ??
+              (existingRule ? existingRule.is_active !== false : true),
+          }
+        })
+      })
+
+      return nextDrafts
+    })
+  }, [rulesByMetricAndSeverity, visibleMetrics])
+
+  function updateAlarmDraft(metricKey, severity, key, value) {
+    setAlarmDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [metricKey]: {
+        ...currentDrafts[metricKey],
+        [severity]: {
+          ...currentDrafts[metricKey]?.[severity],
+          metric: metricKey,
+          severity,
+          [key]: value,
+        },
+      },
+    }))
+  }
+
+  async function saveMetricAlarmGroup(metricKey) {
+    for (const severity of SEVERITIES) {
+      await saveMetricSeverityRule(metricKey, severity)
     }
+  }
 
-    if (
-      alarmDraft.threshold === '' ||
-      Number.isNaN(Number(alarmDraft.threshold))
-    ) {
+  async function saveMetricSeverityRule(metricKey, severity) {
+    const draft = alarmDrafts?.[metricKey]?.[severity]
+
+    if (!draft) return
+
+    if (draft.threshold === '' || Number.isNaN(Number(draft.threshold))) {
       alert('กรุณากรอก Threshold ให้ถูกต้อง')
       return
     }
 
-    await onCreateMetricAlarm?.(deviceId, metricKey, {
+    const payload = {
       metric: metricKey,
-      operator: alarmDraft.operator || '>',
-      threshold: Number(alarmDraft.threshold),
-      severity: alarmDraft.severity || 'warning',
-      is_active: true,
-    })
+      operator: draft.operator || '>',
+      threshold: Number(draft.threshold),
+      severity,
+      is_active: draft.is_active !== false,
+    }
 
-    setAlarmDraft({
-      metric: metricKey,
-      operator: '>',
-      threshold: '',
-      severity: 'warning',
-    })
-  }
-
-  function startEditRule(rule) {
-    setEditingRuleId(rule.id)
-    setEditingRule({
-      ...rule,
-      threshold: rule.threshold ?? '',
-      is_active: rule.is_active !== false,
-    })
-  }
-
-  async function saveEditRule() {
-    if (!editingRule) return
-
-    if (
-      editingRule.threshold === '' ||
-      Number.isNaN(Number(editingRule.threshold))
-    ) {
-      alert('กรุณากรอก Threshold ให้ถูกต้อง')
+    if (draft.id) {
+      await onUpdateMetricAlarm?.(draft.id, {
+        ...payload,
+        id: draft.id,
+      })
       return
     }
 
-    await onUpdateMetricAlarm?.(editingRule.id, {
-      ...editingRule,
-      threshold: Number(editingRule.threshold),
-      is_active: editingRule.is_active !== false,
-    })
-
-    setEditingRuleId(null)
-    setEditingRule(null)
+    await onCreateMetricAlarm?.(deviceId, metricKey, payload)
   }
 
-  return (
-    <div className="alarm-rules-panel-v2 devices-v3-alarm-rules-panel">
-      <div className="alarm-rule-create-row alarm-rule-create-row-v2">
-        <select
-          value={defaultMetricKey}
-          onChange={(event) =>
-            setAlarmDraft((current) => ({
-              ...current,
-              metric: event.target.value,
-            }))
-          }
-          disabled={saving || loadingMetrics || visibleMetrics.length === 0}
-        >
-          {visibleMetrics.map((metric) => (
-            <option key={metric.metric_key} value={metric.metric_key}>
-              {metric.metric_name || metric.metric_key}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={alarmDraft.operator}
-          onChange={(event) =>
-            setAlarmDraft((current) => ({
-              ...current,
-              operator: event.target.value,
-            }))
-          }
-          disabled={saving || loadingMetrics}
-        >
-          {OPERATORS.map((operator) => (
-            <option key={operator} value={operator}>
-              {operator}
-            </option>
-          ))}
-        </select>
-
-        <input
-          type="number"
-          value={alarmDraft.threshold}
-          placeholder="Threshold"
-          onChange={(event) =>
-            setAlarmDraft((current) => ({
-              ...current,
-              threshold: event.target.value,
-            }))
-          }
-          disabled={saving || loadingMetrics}
-        />
-
-        <select
-          value={alarmDraft.severity}
-          onChange={(event) =>
-            setAlarmDraft((current) => ({
-              ...current,
-              severity: event.target.value,
-            }))
-          }
-          disabled={saving || loadingMetrics}
-        >
-          {SEVERITIES.map((severity) => (
-            <option key={severity} value={severity}>
-              {severity === 'critical' ? 'Critical' : 'Warning'}
-            </option>
-          ))}
-        </select>
-
-        <button
-          type="button"
-          className="save-btn"
-          onClick={handleCreateAlarm}
-          disabled={saving || loadingMetrics || visibleMetrics.length === 0}
-        >
-          Add Rule
-        </button>
+  if (loadingMetrics) {
+    return (
+      <div className="alarm-rules-panel-v2 devices-v3-alarm-rules-panel">
+        <div className="app-empty-state">
+          <h3>กำลังโหลด Metric</h3>
+          <p>กำลังเตรียมรายการ Metric สำหรับตั้ง Alarm</p>
+        </div>
       </div>
+    )
+  }
 
-      {visibleMetrics.length === 0 && (
+  if (visibleMetrics.length === 0) {
+    return (
+      <div className="alarm-rules-panel-v2 devices-v3-alarm-rules-panel">
         <div className="alarm-rule-empty">
           ยังไม่มี Metric สำหรับตั้ง Alarm กรุณาเพิ่ม Metric ในแท็บ Metrics ก่อน
         </div>
-      )}
+      </div>
+    )
+  }
 
-      {alarmRules.length === 0 ? (
-        <div className="alarm-rule-empty">
-          ยังไม่มี Alarm Rule สำหรับ Device นี้
-        </div>
-      ) : (
-        <div className="device-alarm-rule-list device-alarm-rule-list-v2">
-          {alarmRules.map((rule) => {
-            const isEditing = editingRuleId === rule.id
-            const metricUnit = getMetricUnit(draftMetrics, rule.metric, rule)
+  return (
+    <div className="alarm-rules-panel-v2 devices-v3-alarm-rules-panel metric-alarm-panel">
+      <div className="alarm-rule-empty metric-alarm-note">
+        ตั้งค่า Alarm ต่อ Metric ได้ 2 ระดับ: Warning และ Critical
+      </div>
 
-            if (isEditing && editingRule) {
-              return (
-                <div
-                  key={rule.id}
-                  className="device-alarm-rule-item alarm-rule-edit-row-v2"
-                >
-                  <select
-                    value={editingRule.metric}
-                    onChange={(event) =>
-                      setEditingRule((current) => ({
-                        ...current,
-                        metric: event.target.value,
-                      }))
-                    }
-                    disabled={saving || loadingMetrics}
-                  >
-                    {visibleMetrics.map((metric) => (
-                      <option key={metric.metric_key} value={metric.metric_key}>
-                        {metric.metric_name || metric.metric_key}
-                      </option>
-                    ))}
-                  </select>
+      <div className="metric-alarm-rule-grid">
+        {visibleMetrics.map((metric) => {
+          const metricKey = metric.metric_key
+          const metricName = metric.metric_name || metric.metric_key
+          const metricUnit = metric.unit || ''
+          const metricDrafts = alarmDrafts?.[metricKey] || {}
 
-                  <select
-                    value={editingRule.operator || '>'}
-                    onChange={(event) =>
-                      setEditingRule((current) => ({
-                        ...current,
-                        operator: event.target.value,
-                      }))
-                    }
-                    disabled={saving}
-                  >
-                    {OPERATORS.map((operator) => (
-                      <option key={operator} value={operator}>
-                        {operator}
-                      </option>
-                    ))}
-                  </select>
-
-                  <input
-                    type="number"
-                    value={editingRule.threshold}
-                    onChange={(event) =>
-                      setEditingRule((current) => ({
-                        ...current,
-                        threshold: event.target.value,
-                      }))
-                    }
-                    disabled={saving}
-                  />
-
-                  <select
-                    value={editingRule.severity || 'warning'}
-                    onChange={(event) =>
-                      setEditingRule((current) => ({
-                        ...current,
-                        severity: event.target.value,
-                      }))
-                    }
-                    disabled={saving}
-                  >
-                    {SEVERITIES.map((severity) => (
-                      <option key={severity} value={severity}>
-                        {severity === 'critical' ? 'Critical' : 'Warning'}
-                      </option>
-                    ))}
-                  </select>
-
-                  <label className="metric-visible-toggle">
-                    <input
-                      type="checkbox"
-                      checked={editingRule.is_active !== false}
-                      onChange={(event) =>
-                        setEditingRule((current) => ({
-                          ...current,
-                          is_active: event.target.checked,
-                        }))
-                      }
-                      disabled={saving}
-                    />
-                    Active
-                  </label>
-
-                  <div className="alarm-rule-actions">
-                    <button
-                      type="button"
-                      className="save-btn"
-                      onClick={saveEditRule}
-                      disabled={saving}
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      className="ghost-button"
-                      disabled={saving}
-                      onClick={() => {
-                        setEditingRuleId(null)
-                        setEditingRule(null)
-                      }}
-                    >
-                      <X size={15} />
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )
-            }
-
-            return (
-              <div
-                key={rule.id}
-                className="device-alarm-rule-item device-alarm-rule-item-v2"
-              >
-                <div className="alarm-rule-summary-v2">
-                  <strong>
-                    {getMetricLabel(draftMetrics, rule.metric, rule)}{' '}
-                    {rule.operator}{' '}
-                    {formatThreshold(rule.threshold, metricUnit)}
-                  </strong>
-                  <span>{rule.metric}</span>
-                </div>
-
-                <span className={`status ${rule.severity || 'warning'}`}>
-                  {rule.severity || 'warning'}
-                </span>
-
-                <span
-                  className={
-                    rule.is_active !== false
-                      ? 'status online'
-                      : 'status offline'
-                  }
-                >
-                  {rule.is_active !== false ? 'Active' : 'Disabled'}
-                </span>
-
-                <div className="alarm-rule-actions">
-                  <button
-                    type="button"
-                    className="ghost-button"
-                    disabled={saving}
-                    onClick={() => startEditRule(rule)}
-                  >
-                    <Edit3 size={15} />
-                    Edit
-                  </button>
-
-                  <button
-                    type="button"
-                    className="delete-btn"
-                    disabled={saving}
-                    onClick={() => onDeleteAlarmRule?.(rule.id)}
-                  >
-                    <Trash2 size={15} />
-                    Delete
-                  </button>
-                </div>
+          return (
+            <section
+              key={metricKey}
+              className="devices-v3-rule-card metric-alarm-card"
+            >
+              <div className="alarm-rule-summary-v2 metric-alarm-card-header">
+                <strong>{metricName}</strong>
+                <span>{metricKey}</span>
               </div>
-            )
-          })}
-        </div>
-      )}
+
+              <div className="metric-alarm-rule-list">
+                {SEVERITIES.map((severity) => {
+                  const draft = metricDrafts[severity] || {
+                    operator: severity === 'critical' ? '>' : '>=',
+                    threshold: '',
+                    is_active: true,
+                  }
+                  return (
+                    <div
+                      key={`${metricKey}-${severity}`}
+                      className="device-alarm-rule-item alarm-rule-edit-row-v2 metric-alarm-rule-row"
+                    >
+                      <span className={`status ${severity}`}>
+                        {severity === 'critical' ? 'Critical' : 'Warning'}
+                      </span>
+
+                      <select
+                        value={draft.operator || '>'}
+                        onChange={(event) =>
+                          updateAlarmDraft(
+                            metricKey,
+                            severity,
+                            'operator',
+                            event.target.value
+                          )
+                        }
+                        disabled={saving}
+                      >
+                        {OPERATORS.map((operator) => (
+                          <option key={operator} value={operator}>
+                            {operator}
+                          </option>
+                        ))}
+                      </select>
+
+                      <input
+                        type="number"
+                        value={draft.threshold}
+                        placeholder={`Threshold${metricUnit ? ` (${metricUnit})` : ''}`}
+                        onChange={(event) =>
+                          updateAlarmDraft(
+                            metricKey,
+                            severity,
+                            'threshold',
+                            event.target.value
+                          )
+                        }
+                        disabled={saving}
+                      />
+
+                      <label className="metric-visible-toggle">
+                        <input
+                          type="checkbox"
+                          checked={draft.is_active !== false}
+                          onChange={(event) =>
+                            updateAlarmDraft(
+                              metricKey,
+                              severity,
+                              'is_active',
+                              event.target.checked
+                            )
+                          }
+                          disabled={saving}
+                        />
+                        Active
+                      </label>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="metric-alarm-card-actions">
+                <button
+                  type="button"
+                  className="save-btn metric-alarm-save-btn"
+                  disabled={saving}
+                  onClick={() => saveMetricAlarmGroup(metricKey)}
+                >
+                  Save
+                </button>
+              </div>
+            </section>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -429,10 +328,6 @@ function SelectedDevicePanel({
   onDeleteAlarmRule,
 }) {
   const [activeTab, setActiveTab] = useState('overview')
-
-  const activeRuleCount = useMemo(() => {
-    return selectedRules.filter((rule) => rule.is_active !== false).length
-  }, [selectedRules])
 
   if (!selectedDevice) {
     return (
@@ -572,12 +467,7 @@ function SelectedDevicePanel({
         aria-label="Device sections"
       >
         {DETAIL_TABS.map((tab) => {
-          const badge =
-            tab.key === 'alarms'
-              ? selectedRules.length
-              : tab.key === 'overview'
-                ? getStatusLabel(status)
-                : null
+          const badge = tab.key === 'overview' ? getStatusLabel(status) : null
 
           return (
             <button
@@ -664,8 +554,8 @@ function SelectedDevicePanel({
       {activeTab === 'alarms' && (
         <div className="devices-v3-tab-panel">
           <SectionHeader
-            title={`Alarm Rules (${selectedRules.length})`}
-            description={`${activeRuleCount} active rules for this device`}
+            title="Alarm Rules"
+            description="Configure Warning and Critical thresholds for each metric"
           />
 
           <DeviceAlarmRulesPanel
