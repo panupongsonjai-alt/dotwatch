@@ -6,6 +6,7 @@ import { getDevices, getActiveAlarms, getAlarmSummary } from '../services/api'
 import { connectRealtime } from '../services/realtime'
 import { useAlarm } from '../context/AlarmContext'
 import { EmptyState, PageHeader, StatCard } from '../components/common'
+import '../styles/dashboard.css'
 
 const DeviceMap = lazy(() => import('../components/DeviceMap'))
 
@@ -68,6 +69,119 @@ function getHealthStatus(device = {}) {
   if (status === 'warning') return 'warning'
 
   return 'offline'
+}
+
+
+function getMetricIndex(metricKey = '') {
+  return Number(String(metricKey).replace(/[^0-9]/g, '')) || 0
+}
+
+function getMetricMeta(device = {}, metricKey = '') {
+  const metricLists = [
+    device.metric_configs,
+    device.metricConfigs,
+    device.device_metrics,
+    device.deviceMetrics,
+    device.metrics_config,
+    device.metricsConfig,
+  ].filter(Array.isArray)
+
+  for (const metricList of metricLists) {
+    const match = metricList.find(
+      (metric) =>
+        metric.metric_key === metricKey ||
+        metric.key === metricKey ||
+        metric.source_key === metricKey
+    )
+
+    if (match) {
+      return {
+        name:
+          match.metric_name ||
+          match.name ||
+          match.label ||
+          match.metric_key ||
+          metricKey,
+        unit: match.unit || '',
+        visible: match.visible !== false,
+      }
+    }
+  }
+
+  const index = getMetricIndex(metricKey)
+
+  return {
+    name: index > 0 ? `Metric ${index}` : String(metricKey || 'Metric'),
+    unit: '',
+    visible: true,
+  }
+}
+
+function formatMetricValue(value) {
+  if (value == null || value === '') return '--'
+
+  const numberValue = Number(value)
+
+  if (!Number.isFinite(numberValue)) return String(value)
+
+  if (Math.abs(numberValue) >= 1000) {
+    return numberValue.toLocaleString('en-US', {
+      maximumFractionDigits: 0,
+    })
+  }
+
+  return Number.isInteger(numberValue)
+    ? String(numberValue)
+    : numberValue.toFixed(2)
+}
+
+function getMetricInitial(metricKey = '') {
+  const index = getMetricIndex(metricKey)
+
+  if (index > 0) {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    return alphabet[(index - 1) % alphabet.length]
+  }
+
+  return 'M'
+}
+
+function getDeviceMetricCards(devices = [], limit = 40) {
+  return devices
+    .flatMap((device) => {
+      const latestMetrics = device.latest_metrics || device.metrics || {}
+
+      return Object.entries(latestMetrics)
+        .filter(([, value]) => value != null && Number.isFinite(Number(value)))
+        .map(([metricKey, value]) => {
+          const meta = getMetricMeta(device, metricKey)
+
+          return {
+            id: `${device.id}-${metricKey}`,
+            deviceId: device.id,
+            deviceName: device.name || device.device_code || 'Unnamed Device',
+            deviceCode: device.device_code,
+            metricKey,
+            metricName: meta.name,
+            unit: meta.unit,
+            visible: meta.visible,
+            value: formatMetricValue(value),
+            latestTime: device.latest_time || device.last_ingest_at,
+            healthStatus: getHealthStatus(device),
+            initial: getMetricInitial(metricKey),
+          }
+        })
+    })
+    .filter((metric) => metric.visible !== false)
+    .sort((a, b) => {
+      const deviceA = String(a.deviceName || '')
+      const deviceB = String(b.deviceName || '')
+
+      if (deviceA !== deviceB) return deviceA.localeCompare(deviceB)
+
+      return getMetricIndex(a.metricKey) - getMetricIndex(b.metricKey)
+    })
+    .slice(0, limit)
 }
 
 function Dashboard({ onOpenDevice }) {
@@ -237,6 +351,11 @@ function Dashboard({ onOpenDevice }) {
   ).length
 
 
+  const dataOverviewMetrics = useMemo(
+    () => getDeviceMetricCards(devices, 40),
+    [devices]
+  )
+
   const latestUpdatedAt = useMemo(() => {
     const times = devices
       .map((device) => device.latest_time || device.last_ingest_at)
@@ -289,6 +408,76 @@ function Dashboard({ onOpenDevice }) {
           hint="No recent data"
           tone={offlineCount > 0 ? 'danger' : 'success'}
         />
+      </section>
+
+      <section className="app-card dashboard-data-overview-card live-metrics-overview-card">
+        <div className="app-section-title dashboard-section-title-row live-metrics-overview-header">
+          <div>
+            <h2>Data Overview</h2>
+            <p>ค่าส่าสุดจาก Device ทั้งหมด แยกเป็น Card ละค่า</p>
+          </div>
+
+          <span className="device-count-badge live-metrics-count-badge">
+            {dataOverviewMetrics.length} Metrics
+          </span>
+        </div>
+
+        {loading ? (
+          <EmptyState
+            title="กำลังโหลดข้อมูล"
+            description="กำลังดึงค่าล่าสุดจาก Device"
+          />
+        ) : dataOverviewMetrics.length === 0 ? (
+          <EmptyState
+            title="ยังไม่มีข้อมูล Metric"
+            description="รอ Device ส่งข้อมูลเข้าระบบ"
+          />
+        ) : (
+          <div className="live-metrics-overview-grid">
+            {dataOverviewMetrics.map((metric) => (
+              <button
+                key={metric.id}
+                type="button"
+                className={`live-metric-overview-card ${metric.healthStatus}`}
+                onClick={() => onOpenDevice?.(metric.deviceId)}
+              >
+                <span className="live-metric-bg-shape" />
+
+                <div className="live-metric-overview-top">
+                  <span className="live-metric-dot">
+                    <i />
+                  </span>
+
+                  <span className="live-metric-key">
+                    {metric.metricKey}
+                  </span>
+                </div>
+
+                <div className="live-metric-overview-title">
+                  <span>ME</span>
+                  <strong>{metric.metricName}</strong>
+                </div>
+
+                <div className="live-metric-overview-state">
+                  {metric.healthStatus}
+                </div>
+
+                <div className="live-metric-overview-value">
+                  <strong>{metric.value}</strong>
+                  <span>{metric.unit || metric.initial}</span>
+                </div>
+
+                <div className="live-metric-overview-device">
+                  {metric.deviceName}
+                </div>
+
+                <div className="live-metric-overview-time">
+                  {formatRelativeTime(metric.latestTime)}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="dashboard-main-grid">
