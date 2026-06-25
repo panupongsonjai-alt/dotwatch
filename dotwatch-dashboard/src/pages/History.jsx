@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts'
 import { Download } from 'lucide-react'
+import { PageHeader } from '../components/common'
 
 import {
   getDevices,
@@ -858,15 +859,11 @@ function History() {
 
   return (
     <div className="page app-page history-page-v2">
-      <section className="history-hero-card">
-        <div>
-          <p className="section-eyebrow">Data Center</p>
-          <h1>History Analytics</h1>
-          <span>
-            ตรวจสอบข้อมูลย้อนหลังตาม Device, วันที่ และ Metric พร้อมกราฟ ตาราง และ Export CSV
-          </span>
-        </div>
-      </section>
+      <PageHeader
+        eyebrow="Data Center"
+        title="History Analytics"
+        description="ตรวจสอบข้อมูลย้อนหลังตาม Device, วันที่ และ Metric พร้อมกราฟ ตาราง และ Export CSV"
+      />
 
       <section className="history-stat-grid">
         <HistoryStatCard

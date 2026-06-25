@@ -739,3 +739,13 @@
     min-width: 880px;
   }
 }
+
+/* =========================================================
+   History Header - Shared PageHeader Alignment
+========================================================= */
+
+.history-page-v2 > .dw-page-header,
+.history-page-v2 > .page-header,
+.history-page-v2 > .app-page-header {
+  margin-bottom: 18px;
+}
