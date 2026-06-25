@@ -59,7 +59,6 @@ function formatRelativeTime(value) {
   return new Date(value).toLocaleDateString('th-TH')
 }
 
-
 function getHealthStatus(device = {}) {
   if (device.health_status) return device.health_status
 
@@ -70,7 +69,6 @@ function getHealthStatus(device = {}) {
 
   return 'offline'
 }
-
 
 function getMetricIndex(metricKey = '') {
   return Number(String(metricKey).replace(/[^0-9]/g, '')) || 0
@@ -96,7 +94,10 @@ function getConfiguredMetrics(device = {}) {
 
       if (orderA !== orderB) return orderA - orderB
 
-      return getMetricIndex(a.metric_key || a.key) - getMetricIndex(b.metric_key || b.key)
+      return (
+        getMetricIndex(a.metric_key || a.key) -
+        getMetricIndex(b.metric_key || b.key)
+      )
     })
 }
 
@@ -129,45 +130,99 @@ function getMetricInitial(metricKey = '') {
   return 'M'
 }
 
+function getFallbackMetricName(metricKey = '') {
+  const key = String(metricKey || '')
+
+  if (key === 'temperature') return 'Temperature'
+  if (key === 'humidity') return 'Humidity'
+  if (key === 'rssi') return 'Signal'
+
+  const index = getMetricIndex(key)
+
+  return index > 0 ? `Metric ${index}` : key
+}
+
+function getFallbackMetricUnit(metricKey = '') {
+  const key = String(metricKey || '').toLowerCase()
+
+  if (key === 'temperature') return '°C'
+  if (key === 'humidity') return '%'
+  if (key === 'rssi') return 'dBm'
+
+  return ''
+}
+
+function getLatestMetricEntries(device = {}) {
+  const latestMetrics = {
+    ...(device.latest_metrics || device.metrics || {}),
+  }
+
+  if (device.temperature != null && latestMetrics.temperature == null) {
+    latestMetrics.temperature = device.temperature
+  }
+
+  if (device.humidity != null && latestMetrics.humidity == null) {
+    latestMetrics.humidity = device.humidity
+  }
+
+  if (device.rssi != null && latestMetrics.rssi == null) {
+    latestMetrics.rssi = device.rssi
+  }
+
+  return Object.entries(latestMetrics)
+    .filter(([, value]) => value != null && Number.isFinite(Number(value)))
+    .sort(([keyA], [keyB]) => getMetricIndex(keyA) - getMetricIndex(keyB))
+}
+
+function buildMetricCard(device, metricKey, value, metricConfig = null) {
+  return {
+    id: `${device.id}-${metricKey}`,
+    deviceId: device.id,
+    deviceName: device.name || device.device_code || 'Unnamed Device',
+    deviceCode: device.device_code,
+    metricKey,
+    metricName:
+      metricConfig?.metric_name ||
+      metricConfig?.name ||
+      metricConfig?.label ||
+      getFallbackMetricName(metricKey),
+    unit: metricConfig?.unit || getFallbackMetricUnit(metricKey),
+    value: formatMetricValue(value),
+    latestTime: device.latest_time || device.last_ingest_at,
+    healthStatus: getHealthStatus(device),
+    initial: getMetricInitial(metricKey),
+    sortOrder: Number(metricConfig?.sort_order ?? 9999),
+  }
+}
+
 function getDeviceMetricCards(devices = [], limit = Infinity) {
   return devices
     .flatMap((device) => {
       const latestMetrics = device.latest_metrics || device.metrics || {}
       const configuredMetrics = getConfiguredMetrics(device)
 
-      if (!configuredMetrics.length) return []
+      if (configuredMetrics.length > 0) {
+        const configuredCards = configuredMetrics
+          .map((metricConfig) => {
+            const metricKey =
+              metricConfig.metric_key ||
+              metricConfig.source_key ||
+              metricConfig.key
 
-      return configuredMetrics
-        .map((metricConfig) => {
-          const metricKey =
-            metricConfig.metric_key ||
-            metricConfig.source_key ||
-            metricConfig.key
+            const value = latestMetrics[metricKey]
 
-          const value = latestMetrics[metricKey]
+            if (value == null || !Number.isFinite(Number(value))) return null
 
-          if (value == null || !Number.isFinite(Number(value))) return null
+            return buildMetricCard(device, metricKey, value, metricConfig)
+          })
+          .filter(Boolean)
 
-          return {
-            id: `${device.id}-${metricKey}`,
-            deviceId: device.id,
-            deviceName: device.name || device.device_code || 'Unnamed Device',
-            deviceCode: device.device_code,
-            metricKey,
-            metricName:
-              metricConfig.metric_name ||
-              metricConfig.name ||
-              metricConfig.label ||
-              `Metric ${getMetricIndex(metricKey) || ''}`.trim(),
-            unit: metricConfig.unit || '',
-            value: formatMetricValue(value),
-            latestTime: device.latest_time || device.last_ingest_at,
-            healthStatus: getHealthStatus(device),
-            initial: getMetricInitial(metricKey),
-            sortOrder: Number(metricConfig.sort_order ?? 9999),
-          }
-        })
-        .filter(Boolean)
+        if (configuredCards.length > 0) return configuredCards
+      }
+
+      return getLatestMetricEntries(device).map(([metricKey, value]) =>
+        buildMetricCard(device, metricKey, value)
+      )
     })
     .sort((a, b) => {
       const deviceA = String(a.deviceName || '')
@@ -348,7 +403,6 @@ function Dashboard({ onOpenDevice }) {
     (device) => getHealthStatus(device) === 'critical'
   ).length
 
-
   const dataOverviewMetrics = useMemo(
     () => getDeviceMetricCards(devices),
     [devices]
@@ -381,7 +435,10 @@ function Dashboard({ onOpenDevice }) {
       />
 
       <section className="dashboard-kpi-grid dashboard-health-kpi-grid">
-        <StatCard label="Total Devices" value={loading ? '...' : devices.length} />
+        <StatCard
+          label="Total Devices"
+          value={loading ? '...' : devices.length}
+        />
         <StatCard
           label="Healthy"
           value={loading ? '...' : healthyCount}
@@ -412,7 +469,9 @@ function Dashboard({ onOpenDevice }) {
         <div className="app-section-title dashboard-section-title-row live-metrics-overview-header">
           <div>
             <h2>Data Overview</h2>
-            <p>แสดงค่าของทุก Device เฉพาะ Metric ที่เปิด Visible ไว้</p>
+            <p>
+              แสดงค่าล่าสุดของทุก Device และใช้ Metric Display เมื่อมีการตั้งค่า
+            </p>
           </div>
 
           <span className="device-count-badge live-metrics-count-badge">
@@ -427,8 +486,8 @@ function Dashboard({ onOpenDevice }) {
           />
         ) : dataOverviewMetrics.length === 0 ? (
           <EmptyState
-            title="ยังไม่มี Metric ที่ตั้งค่าให้แสดง"
-            description="ตรวจสอบ Metric Display ว่าเปิด Visible แล้ว และรอ Device ส่งข้อมูล"
+            title="ยังไม่มีข้อมูลจาก Device"
+            description="รอ Device ส่งข้อมูล latest_metrics หรือ temperature / humidity เข้าระบบ"
           />
         ) : (
           <div className="live-metrics-overview-grid">
@@ -439,24 +498,10 @@ function Dashboard({ onOpenDevice }) {
               >
                 <span className="live-metric-bg-shape" />
 
-                <div className="live-metric-overview-top">
-                  <span className="live-metric-dot">
-                    <i />
-                  </span>
-
-                  {metric.unit && (
-                    <span className="live-metric-key">
-                      {metric.unit}
-                    </span>
-                  )}
-                </div>
+                <div className="live-metric-overview-top"></div>
 
                 <div className="live-metric-overview-title">
                   <strong>{metric.metricName}</strong>
-                </div>
-
-                <div className="live-metric-overview-state">
-                  {metric.healthStatus}
                 </div>
 
                 <div className="live-metric-overview-value">
@@ -466,10 +511,6 @@ function Dashboard({ onOpenDevice }) {
 
                 <div className="live-metric-overview-device">
                   {metric.deviceName}
-                </div>
-
-                <div className="live-metric-overview-time">
-                  {formatRelativeTime(metric.latestTime)}
                 </div>
               </article>
             ))}
@@ -511,7 +552,9 @@ function Dashboard({ onOpenDevice }) {
                     onClick={() => onOpenDevice?.(device.id)}
                   >
                     <div className="dashboard-device-topline">
-                      <span className={`device-status-dot ${device.status || 'offline'}`} />
+                      <span
+                        className={`device-status-dot ${device.status || 'offline'}`}
+                      />
                       <span className="dashboard-device-status">
                         {device.status || 'offline'}
                       </span>
@@ -526,9 +569,11 @@ function Dashboard({ onOpenDevice }) {
                       {device.name || device.device_code || 'Unnamed Device'}
                     </div>
 
-
                     <div className="overview-last-update">
-                      Updated {formatRelativeTime(device.latest_time || device.last_ingest_at)}
+                      Updated{' '}
+                      {formatRelativeTime(
+                        device.latest_time || device.last_ingest_at
+                      )}
                     </div>
                   </button>
                 ))}
