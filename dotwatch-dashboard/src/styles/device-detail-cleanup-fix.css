@@ -1,0 +1,62 @@
+/* =========================================================
+   Device Detail Cleanup Fix
+   dotWatch Dashboard
+========================================================= */
+
+/*
+  ใช้คู่กับ SelectedDevicePanel.jsx ที่เอา Healthy banner ออกแล้ว
+
+  จุดประสงค์:
+  1. ซ่อน History Analytics ถ้ามี component history ถูก embed อยู่ใน Device Detail
+  2. ซ่อนแถบ Healthy fallback ถ้ายังมีไฟล์เก่าหรือ cache
+  3. ลดขนาด font ของ Firmware stat card
+*/
+
+.devices-v3-detail-card .history-page-v2,
+.devices-v3-detail-card .history-page,
+.device-detail-page .history-page-v2,
+.device-detail-page .history-page,
+.device-detail-v2-page .history-page-v2,
+.device-detail-v2-page .history-page,
+.device-detail-page-v2 .history-page-v2,
+.device-detail-page-v2 .history-page {
+  display: none !important;
+}
+
+.devices-v3-detail-card > .devices-v3-health-banner {
+  display: none !important;
+}
+
+.devices-v3-detail-card {
+  gap: 16px !important;
+}
+
+.devices-v3-selected-header {
+  margin-top: 0 !important;
+}
+
+/* Firmware card is the 3rd card in the overview stat row:
+   Status / Model / Firmware / Last Seen */
+.devices-v3-overview-grid > :nth-child(3) strong,
+.devices-v3-overview-grid > :nth-child(3) .dw-stat-card strong,
+.devices-v3-overview-grid > :nth-child(3) .stat-card strong {
+  font-size: clamp(18px, 1.65vw, 24px) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.035em !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.devices-v3-overview-grid > :nth-child(3) span,
+.devices-v3-overview-grid > :nth-child(3) small,
+.devices-v3-overview-grid > :nth-child(3) p {
+  font-size: 11px !important;
+}
+
+@media (max-width: 560px) {
+  .devices-v3-overview-grid > :nth-child(3) strong,
+  .devices-v3-overview-grid > :nth-child(3) .dw-stat-card strong,
+  .devices-v3-overview-grid > :nth-child(3) .stat-card strong {
+    font-size: 20px !important;
+  }
+}

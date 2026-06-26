@@ -1622,3 +1622,169 @@
   cursor: not-allowed;
   opacity: 0.55;
 }
+
+/* =========================================================
+   Device Detail Cleanup Fix V2
+   dotWatch Dashboard
+
+   Fixes:
+   - Hide Healthy telemetry banner in Device Detail
+   - Hide embedded History Analytics in Device Detail
+   - Reduce Firmware stat font size
+========================================================= */
+
+/* ---------------------------------------------------------
+   1) Hide Healthy / telemetry status banner inside Device Detail
+   Covers both old and new component class names.
+--------------------------------------------------------- */
+
+.devices-v3-health-banner,
+.device-detail-health-banner,
+.device-detail-status-banner,
+.device-health-banner,
+.device-status-banner,
+.device-health-strip,
+.device-status-strip,
+.device-telemetry-status,
+.device-detail-telemetry-status,
+.detail-health-banner,
+.detail-status-banner,
+[class*='device-detail'] [class*='health-banner'],
+[class*='device-detail'] [class*='status-banner'],
+[class*='device-detail'] [class*='telemetry-status'],
+[class*='device-detail'] [class*='health-strip'],
+[class*='device-detail'] [class*='status-strip'],
+[class*='selected-device'] [class*='health-banner'],
+[class*='selected-device'] [class*='status-banner'],
+[class*='selected-device'] [class*='telemetry-status'] {
+  display: none !important;
+}
+
+/* Extra guard for the green banner shown under tabs with Last ingest chip */
+.device-page [class*='health']:has([class*='ingest']),
+.device-page [class*='status']:has([class*='ingest']),
+.device-page [class*='telemetry']:has([class*='ingest']),
+.devices-v2-config [class*='health']:has([class*='ingest']),
+.devices-v2-config [class*='status']:has([class*='ingest']),
+.devices-v2-config [class*='telemetry']:has([class*='ingest']),
+.devices-v3-detail-card [class*='health']:has([class*='ingest']),
+.devices-v3-detail-card [class*='status']:has([class*='ingest']),
+.devices-v3-detail-card [class*='telemetry']:has([class*='ingest']) {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   2) Hide embedded History Analytics only inside Device Detail
+   Does not affect the main History page.
+--------------------------------------------------------- */
+
+.device-page .devices-v2-config .history-page,
+.device-page .devices-v2-config .history-page-v2,
+.device-page .devices-v2-config [class*='history-analytics'],
+.device-page .devices-v2-config [class*='history-card'],
+.device-page .devices-v2-config [class*='history-panel'],
+.device-page .devices-v2-config [class*='device-history'],
+.device-page .devices-v2-config [class*='analytics-card'],
+.devices-v3-detail-card .history-page,
+.devices-v3-detail-card .history-page-v2,
+.devices-v3-detail-card [class*='history-analytics'],
+.devices-v3-detail-card [class*='history-card'],
+.devices-v3-detail-card [class*='history-panel'],
+.devices-v3-detail-card [class*='device-history'],
+.devices-v3-detail-card [class*='analytics-card'],
+[class*='device-detail'] .history-page,
+[class*='device-detail'] .history-page-v2,
+[class*='device-detail'] [class*='history-analytics'],
+[class*='device-detail'] [class*='history-card'],
+[class*='device-detail'] [class*='history-panel'],
+[class*='device-detail'] [class*='device-history'],
+[class*='device-detail'] [class*='analytics-card'] {
+  display: none !important;
+}
+
+/* Extra guard for card that contains history filters/selects */
+.device-page .devices-v2-config section:has(.history-filter-grid),
+.device-page .devices-v2-config article:has(.history-filter-grid),
+.device-page .devices-v2-config div:has(> .history-filter-grid),
+.devices-v3-detail-card section:has(.history-filter-grid),
+.devices-v3-detail-card article:has(.history-filter-grid),
+.devices-v3-detail-card div:has(> .history-filter-grid),
+[class*='device-detail'] section:has(.history-filter-grid),
+[class*='device-detail'] article:has(.history-filter-grid),
+[class*='device-detail'] div:has(> .history-filter-grid) {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   3) Firmware stat card font size
+   Screenshot layout: Firmware is 5th card.
+   Older layout: Firmware is 3rd card.
+--------------------------------------------------------- */
+
+.devices-v3-overview-grid > :nth-child(3) strong,
+.devices-v3-overview-grid > :nth-child(5) strong,
+.device-detail-stat-grid > :nth-child(5) strong,
+.device-detail-state-grid > :nth-child(5) strong,
+.device-detail-stats-grid > :nth-child(5) strong,
+.device-detail-status-grid > :nth-child(5) strong,
+.device-detail-summary-grid > :nth-child(5) strong,
+.device-detail-kpi-grid > :nth-child(5) strong,
+.device-detail-overview-grid > :nth-child(5) strong,
+.device-detail-metrics-summary > :nth-child(5) strong,
+.device-page .dw-page-stat-grid > :nth-child(5) strong,
+[class*='device-detail'] [class*='stat-grid'] > :nth-child(5) strong,
+[class*='device-detail'] [class*='state-grid'] > :nth-child(5) strong,
+[class*='device-detail'] [class*='summary-grid'] > :nth-child(5) strong,
+[class*='device-detail'] [class*='overview-grid'] > :nth-child(5) strong {
+  font-size: clamp(18px, 1.55vw, 23px) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.035em !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+/* Firmware card label/hint should also be slightly smaller */
+.devices-v3-overview-grid > :nth-child(3) span,
+.devices-v3-overview-grid > :nth-child(3) small,
+.devices-v3-overview-grid > :nth-child(3) p,
+.devices-v3-overview-grid > :nth-child(5) span,
+.devices-v3-overview-grid > :nth-child(5) small,
+.devices-v3-overview-grid > :nth-child(5) p,
+.device-detail-stat-grid > :nth-child(5) span,
+.device-detail-stat-grid > :nth-child(5) small,
+.device-detail-stat-grid > :nth-child(5) p,
+.device-page .dw-page-stat-grid > :nth-child(5) span,
+.device-page .dw-page-stat-grid > :nth-child(5) small,
+.device-page .dw-page-stat-grid > :nth-child(5) p,
+[class*='device-detail'] [class*='stat-grid'] > :nth-child(5) span,
+[class*='device-detail'] [class*='stat-grid'] > :nth-child(5) small,
+[class*='device-detail'] [class*='stat-grid'] > :nth-child(5) p,
+[class*='device-detail'] [class*='overview-grid'] > :nth-child(5) span,
+[class*='device-detail'] [class*='overview-grid'] > :nth-child(5) small,
+[class*='device-detail'] [class*='overview-grid'] > :nth-child(5) p {
+  font-size: 11px !important;
+}
+
+/* Remove extra vertical gap left after hidden banner/history */
+.devices-v3-detail-card,
+.device-page .devices-v2-config,
+[class*='device-detail'] {
+  gap: 16px;
+}
+
+.devices-v3-selected-header,
+[class*='device-detail'] [class*='selected-header'] {
+  margin-top: 0 !important;
+}
+
+@media (max-width: 560px) {
+  .devices-v3-overview-grid > :nth-child(3) strong,
+  .devices-v3-overview-grid > :nth-child(5) strong,
+  .device-detail-stat-grid > :nth-child(5) strong,
+  .device-page .dw-page-stat-grid > :nth-child(5) strong,
+  [class*='device-detail'] [class*='stat-grid'] > :nth-child(5) strong,
+  [class*='device-detail'] [class*='overview-grid'] > :nth-child(5) strong {
+    font-size: 20px !important;
+  }
+}
+

@@ -13,4 +13,7 @@
 @import './styles/pages/profile.css';
 @import './styles/pages/settings.css';
 @import './styles/pages/system-health.css';
+@import './styles/design-layout-unify.css';
 @import './styles/history-stat-spacing-fix.css';
+@import './styles/device-detail-stat-row-fix.css';
+@import './styles/device-detail-cleanup-fix-v2.css';

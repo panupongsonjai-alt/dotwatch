@@ -1,18 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  BellRing,
   Edit3,
   KeyRound,
   MapPin,
   Save,
-  ShieldCheck,
   Trash2,
   X,
 } from 'lucide-react'
 import LocationPicker from '../LocationPicker.jsx'
 import MetricConfigPanel from '../MetricConfigPanel.jsx'
 import { useDeviceMetrics } from '../../hooks/useDeviceMetrics'
-import { EmptyState, SectionHeader, StatCard, StatusBadge } from '../common'
+import { EmptyState, SectionHeader, StatCard } from '../common'
 import {
   formatDate,
   getDeviceDisplayName,
@@ -30,11 +28,6 @@ const DETAIL_TABS = [
   { key: 'security', label: 'Security' },
 ]
 
-function getHealthTone(status) {
-  if (status === 'online') return 'healthy'
-  if (status === 'warning') return 'warning'
-  return 'offline'
-}
 
 const OPERATORS = ['>', '>=', '<', '<=', '=']
 const SEVERITIES = ['warning', 'critical']
@@ -142,12 +135,6 @@ function DeviceAlarmRulesPanel({
     }))
   }
 
-  async function saveMetricAlarmGroup(metricKey) {
-    for (const severity of SEVERITIES) {
-      await saveMetricSeverityRule(metricKey, severity)
-    }
-  }
-
   async function saveMetricSeverityRule(metricKey, severity) {
     const draft = alarmDrafts?.[metricKey]?.[severity]
 
@@ -201,7 +188,7 @@ function DeviceAlarmRulesPanel({
   return (
     <div className="alarm-rules-panel-v2 devices-v3-alarm-rules-panel metric-alarm-panel">
       <div className="alarm-rule-empty metric-alarm-note">
-        ตั้งค่า Alarm ต่อ Metric ได้ 2 ระดับ: Warning และ Critical
+        ตั้งค่าได้ 2 Alarm Rule ต่อ 1 Metric: Warning และ Critical
       </div>
 
       <div className="metric-alarm-rule-grid">
@@ -287,20 +274,22 @@ function DeviceAlarmRulesPanel({
                         />
                         Active
                       </label>
+
+                      <div className="alarm-rule-actions">
+                        <button
+                          type="button"
+                          className="save-btn"
+                          disabled={saving}
+                          onClick={() =>
+                            saveMetricSeverityRule(metricKey, severity)
+                          }
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
                   )
                 })}
-              </div>
-
-              <div className="metric-alarm-card-actions">
-                <button
-                  type="button"
-                  className="save-btn metric-alarm-save-btn"
-                  disabled={saving}
-                  onClick={() => saveMetricAlarmGroup(metricKey)}
-                >
-                  Save
-                </button>
               </div>
             </section>
           )
@@ -342,33 +331,9 @@ function SelectedDevicePanel({
 
   const isEditing = editingDeviceId === selectedDevice.id
   const status = getStatus(selectedDevice)
-  const healthTone = getHealthTone(status)
 
   return (
     <section className="app-card devices-v3-detail-card">
-      <div className={`devices-v3-health-banner ${healthTone}`}>
-        <div className="devices-v3-health-icon">
-          {status === 'online' ? (
-            <ShieldCheck size={22} />
-          ) : (
-            <BellRing size={22} />
-          )}
-        </div>
-
-        <div>
-          <strong>
-            {status === 'online'
-              ? 'Device Healthy'
-              : status === 'warning'
-                ? 'Device Warning'
-                : 'Device Offline'}
-          </strong>
-          <p>Last data received {getLastSeen(selectedDevice)}</p>
-        </div>
-
-        <StatusBadge status={status} label={getStatusLabel(status)} />
-      </div>
-
       <div className="devices-v2-selected-header devices-v3-selected-header">
         <div className="devices-v2-selected-title">
           <span className="page-eyebrow">Selected Device</span>

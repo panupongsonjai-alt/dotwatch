@@ -12,29 +12,6 @@
   gap: 20px;
 }
 
-.dashboard-live-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 38px;
-  padding: 0 12px;
-  border-radius: 999px;
-  color: var(--muted);
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  font-size: 12px;
-  font-weight: 900;
-  white-space: nowrap;
-}
-
-.dashboard-live-chip span {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--success);
-  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.12);
-}
-
 .dashboard-kpi-grid,
 .summary-grid,
 .stats-grid,
@@ -426,4 +403,297 @@
     flex-direction: column;
     text-align: center;
   }
+}
+
+/* =========================================================
+   Dashboard Layout - Full Width Device Overview
+========================================================= */
+
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: 1fr !important;
+  gap: 18px;
+  align-items: start;
+}
+
+.dashboard-devices-card,
+.devices-overview-panel {
+  width: 100%;
+}
+
+.dashboard-alerts-under-map {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.dashboard-alerts-under-map > * {
+  min-width: 0;
+}
+
+.dashboard-alerts-under-map .dashboard-alarm-column,
+.dashboard-alarm-column {
+  position: static;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-alerts-under-map {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   Dashboard Data Overview - Live Metrics Card Design
+========================================================= */
+
+.dashboard-data-overview-card,
+.live-metrics-overview-card {
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.live-metrics-overview-header {
+  margin-bottom: 4px;
+}
+
+.live-metrics-count-badge {
+  min-height: 34px;
+  padding: 0 13px;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.24);
+}
+
+.live-metrics-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.live-metric-overview-card {
+  position: relative;
+  min-height: 150px;
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  padding: 18px;
+  border-radius: 19px;
+  overflow: hidden;
+  color: var(--text);
+  text-align: left;
+  background:
+    radial-gradient(circle at 94% 96%, rgba(37, 99, 235, 0.22) 0, rgba(37, 99, 235, 0.22) 23%, transparent 24%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.9));
+  border: 1px solid rgba(59, 130, 246, 0.26);
+  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.22);
+}
+
+:root[data-theme='light'] .live-metric-overview-card {
+  background:
+    radial-gradient(circle at 94% 96%, rgba(37, 99, 235, 0.12) 0, rgba(37, 99, 235, 0.12) 23%, transparent 24%),
+    linear-gradient(145deg, #ffffff, #f8fafc);
+}
+
+.live-metric-overview-card.warning {
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.live-metric-overview-card.critical {
+  border-color: rgba(239, 68, 68, 0.32);
+}
+
+.live-metric-overview-card.offline {
+  border-color: rgba(100, 116, 139, 0.28);
+  opacity: 0.86;
+}
+
+.live-metric-bg-shape {
+  position: absolute;
+  right: -28px;
+  bottom: -30px;
+  width: 108px;
+  height: 108px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.16);
+  pointer-events: none;
+}
+
+.live-metric-overview-title,
+.live-metric-overview-value,
+.live-metric-overview-device {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.live-metric-overview-title strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.1;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-metric-overview-value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.live-metric-overview-value strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: clamp(34px, 4vw, 46px);
+  line-height: 0.95;
+  font-weight: 950;
+  letter-spacing: -0.08em;
+  text-shadow: 0 2px 0 rgba(37, 99, 235, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-metric-overview-value span {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.live-metric-overview-device {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 850;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   Dashboard Alerts - Full Width Under Map
+========================================================= */
+
+.dashboard-alerts-under-map {
+  display: grid;
+  grid-template-columns: 1fr !important;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.dashboard-alerts-under-map > * {
+  width: 100%;
+  min-width: 0;
+}
+
+.dashboard-alerts-under-map .dashboard-alarm-column,
+.dashboard-alarm-column {
+  position: static;
+}
+
+/* =========================================================
+   Device Map - Permanent Device Name Labels
+========================================================= */
+
+.device-map-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--panel-2);
+}
+
+.dashboard-map {
+  width: 100%;
+  min-height: 320px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--panel-2);
+}
+
+.device-map-empty {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 20px;
+  background: var(--panel-2);
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  text-align: center;
+}
+
+.device-map-empty strong {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.device-map-empty p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.device-map-marker-shell {
+  border: 0;
+  background: transparent;
+}
+
+.device-map-marker-dot {
+  width: 18px;
+  height: 18px;
+  display: block;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 255, 255, 0.96);
+}
+
+.leaflet-tooltip.device-map-label {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.22);
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+}
+
+.leaflet-tooltip.device-map-label::before {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .dashboard-map,
+  .device-map-empty {
+    min-height: 300px;
+  }
+}
+
+/* =========================================================
+   Device Map - Non-clickable status markers
+   Dashboard markers are display-only. Device names stay visible,
+   but marker dots no longer behave like links/buttons.
+========================================================= */
+
+.device-map-wrapper .leaflet-marker-icon,
+.device-map-marker-shell,
+.device-map-marker-shell *,
+.device-map-marker-dot,
+.leaflet-tooltip.device-map-label {
+  cursor: default !important;
+}
+
+.device-map-marker-shell,
+.device-map-marker-shell *,
+.device-map-marker-dot {
+  pointer-events: none !important;
 }

@@ -567,7 +567,7 @@ function Dashboard({ onOpenDevice }) {
               </div>
             }
           >
-            <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
+            <DeviceMap devices={devices} />
           </Suspense>
         </section>
       )}

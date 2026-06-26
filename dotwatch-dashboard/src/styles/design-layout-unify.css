@@ -1,11 +1,8 @@
 /* =========================================================
    dotWatch Design Layout Unify Patch
-   Purpose: make Dashboard / Devices / History / Alarms /
-   Profile / Settings feel consistent without changing the
-   page-specific feature layouts.
+   Common visual alignment across pages
 ========================================================= */
 
-/* Page rhythm ------------------------------------------------ */
 .page.app-page {
   display: grid;
   gap: 20px;
@@ -28,7 +25,6 @@
   box-shadow: var(--shadow-soft, var(--shadow));
 }
 
-/* Shared KPI grids ------------------------------------------ */
 .dw-page-stat-grid,
 .dashboard-kpi-grid,
 .dashboard-health-kpi-grid,
@@ -44,131 +40,6 @@
   align-items: stretch;
 }
 
-/* Legacy/custom stat cards should look like StatCard ---------- */
-.history-stat-card,
-.summary-card,
-.stat-card,
-.compact-summary-card {
-  position: relative;
-  overflow: hidden;
-  min-height: 96px;
-  padding: 18px;
-  border-radius: var(--radius-card, 18px);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-soft, var(--shadow));
-}
-
-.history-stat-card::before,
-.summary-card::before,
-.stat-card::before,
-.compact-summary-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary), #06b6d4);
-}
-
-.history-stat-card span,
-.history-stat-card p,
-.summary-card span,
-.stat-card h3,
-.compact-summary-card span {
-  color: var(--muted);
-}
-
-.history-stat-card span,
-.summary-card span,
-.stat-card h3,
-.compact-summary-card span {
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.history-stat-card strong,
-.summary-card strong,
-.stat-card strong,
-.compact-summary-card strong {
-  display: block;
-  margin-top: 8px;
-  color: var(--text);
-  font-size: 30px;
-  line-height: 1;
-  font-weight: 950;
-  letter-spacing: -0.055em;
-}
-
-.history-stat-card p {
-  margin: 8px 0 0;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-/* Section headers ------------------------------------------- */
-.app-section-title,
-.history-section-title {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.app-section-title h2,
-.history-section-title h2 {
-  margin: 0;
-  color: var(--text);
-  font-size: 20px;
-  line-height: 1.2;
-  font-weight: 950;
-  letter-spacing: -0.03em;
-}
-
-.app-section-title p,
-.history-section-title p {
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.55;
-}
-
-/* Forms, filters, toolbars ---------------------------------- */
-.alarm-toolbar,
-.history-filter-grid,
-.history-table-actions,
-.profile-info-grid,
-.settings-v3-toggle-list,
-.settings-v3-option-grid {
-  gap: 12px;
-}
-
-.search-input,
-.history-filter-grid label,
-.history-table-actions label,
-.profile-info-grid label {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.search-input input,
-.history-filter-grid input,
-.history-filter-grid select,
-.history-table-actions select,
-.alarm-toolbar select,
-.profile-info-grid input,
-.profile-info-grid select {
-  min-height: 42px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: var(--panel-2);
-  color: var(--text);
-}
-
-/* Buttons ---------------------------------------------------- */
 .primary-button,
 .secondary-button,
 .ghost-button,
@@ -185,25 +56,6 @@
   font-weight: 900;
 }
 
-.history-export-btn,
-.save-btn {
-  color: #ffffff;
-  background: var(--primary);
-  border: 1px solid var(--primary);
-}
-
-.history-export-btn:hover,
-.save-btn:hover {
-  background: var(--primary-hover, var(--primary));
-}
-
-.delete-btn {
-  color: var(--danger);
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.24);
-}
-
-/* Status badges --------------------------------------------- */
 .status,
 .history-device-status {
   min-height: 26px;
@@ -245,14 +97,6 @@
   border-color: rgba(239, 68, 68, 0.25);
 }
 
-.status.acknowledged,
-.history-device-status.acknowledged {
-  color: var(--info);
-  background: rgba(14, 165, 233, 0.12);
-  border-color: rgba(14, 165, 233, 0.24);
-}
-
-/* Tables ----------------------------------------------------- */
 .alarm-table-wrap,
 .history-table-wrap {
   width: 100%;
@@ -294,7 +138,6 @@
   vertical-align: middle;
 }
 
-/* Empty / loading states ------------------------------------ */
 .app-empty-state,
 .history-empty-box {
   min-height: 180px;
@@ -310,24 +153,7 @@
   color: var(--muted);
 }
 
-.app-empty-state h3,
-.history-empty-box strong {
-  margin: 8px 0 0;
-  color: var(--text);
-  font-size: 17px;
-  font-weight: 950;
-}
-
-.app-empty-state p,
-.history-empty-box p {
-  max-width: 420px;
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.55;
-}
-
-/* Dashboard visual tone: use common panel surface ------------ */
+/* Keep Dashboard live cards closer to the shared design tone */
 .live-metric-overview-card {
   background:
     linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 58%),
@@ -340,7 +166,6 @@
   text-shadow: none;
 }
 
-/* Responsive ------------------------------------------------- */
 @media (max-width: 1100px) {
   .dw-page-stat-grid,
   .dashboard-kpi-grid,
@@ -355,24 +180,11 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 560px) {
   .page.app-page {
     gap: 16px;
   }
 
-  .app-section-title,
-  .history-section-title {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .history-table-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-}
-
-@media (max-width: 560px) {
   .dw-page-stat-grid,
   .dashboard-kpi-grid,
   .dashboard-health-kpi-grid,
@@ -383,13 +195,6 @@
   .settings-v3-stat-grid,
   .profile-v3-stat-grid {
     grid-template-columns: 1fr;
-  }
-
-  .history-stat-card strong,
-  .summary-card strong,
-  .stat-card strong,
-  .compact-summary-card strong {
-    font-size: 24px;
   }
 
   .primary-button,

@@ -1,0 +1,177 @@
+/* =========================================================
+   Device Detail - Stat / State Cards Single Row Fix
+   dotWatch Dashboard
+========================================================= */
+
+.device-detail-page,
+.device-detail-v2-page,
+.device-detail-page-v2,
+.page.device-detail-page,
+.page.device-detail-v2-page {
+  gap: 20px !important;
+}
+
+.device-detail-stat-grid,
+.device-detail-state-grid,
+.device-detail-stats-grid,
+.device-detail-status-grid,
+.device-detail-summary-grid,
+.device-detail-kpi-grid,
+.device-detail-health-grid,
+.device-detail-metrics-summary,
+.device-detail-overview-grid,
+.device-detail-page .dw-page-stat-grid,
+.device-detail-v2-page .dw-page-stat-grid,
+.device-detail-page-v2 .dw-page-stat-grid {
+  display: grid !important;
+  grid-template-columns: repeat(var(--device-detail-stat-count, 4), minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.device-detail-stat-grid:has(> :nth-child(5)),
+.device-detail-state-grid:has(> :nth-child(5)),
+.device-detail-stats-grid:has(> :nth-child(5)),
+.device-detail-status-grid:has(> :nth-child(5)),
+.device-detail-summary-grid:has(> :nth-child(5)),
+.device-detail-kpi-grid:has(> :nth-child(5)),
+.device-detail-health-grid:has(> :nth-child(5)),
+.device-detail-metrics-summary:has(> :nth-child(5)),
+.device-detail-overview-grid:has(> :nth-child(5)),
+.device-detail-page .dw-page-stat-grid:has(> :nth-child(5)),
+.device-detail-v2-page .dw-page-stat-grid:has(> :nth-child(5)),
+.device-detail-page-v2 .dw-page-stat-grid:has(> :nth-child(5)) {
+  --device-detail-stat-count: 5;
+}
+
+.device-detail-stat-grid:has(> :nth-child(6)),
+.device-detail-state-grid:has(> :nth-child(6)),
+.device-detail-stats-grid:has(> :nth-child(6)),
+.device-detail-status-grid:has(> :nth-child(6)),
+.device-detail-summary-grid:has(> :nth-child(6)),
+.device-detail-kpi-grid:has(> :nth-child(6)),
+.device-detail-health-grid:has(> :nth-child(6)),
+.device-detail-metrics-summary:has(> :nth-child(6)),
+.device-detail-overview-grid:has(> :nth-child(6)),
+.device-detail-page .dw-page-stat-grid:has(> :nth-child(6)),
+.device-detail-v2-page .dw-page-stat-grid:has(> :nth-child(6)),
+.device-detail-page-v2 .dw-page-stat-grid:has(> :nth-child(6)) {
+  --device-detail-stat-count: 6;
+}
+
+.device-detail-stat-grid > *,
+.device-detail-state-grid > *,
+.device-detail-stats-grid > *,
+.device-detail-status-grid > *,
+.device-detail-summary-grid > *,
+.device-detail-kpi-grid > *,
+.device-detail-health-grid > *,
+.device-detail-metrics-summary > *,
+.device-detail-overview-grid > *,
+.device-detail-page .dw-page-stat-grid > *,
+.device-detail-v2-page .dw-page-stat-grid > *,
+.device-detail-page-v2 .dw-page-stat-grid > * {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+.device-detail-page .dw-stat-card,
+.device-detail-v2-page .dw-stat-card,
+.device-detail-page-v2 .dw-stat-card,
+.device-detail-page .summary-card,
+.device-detail-v2-page .summary-card,
+.device-detail-page-v2 .summary-card,
+.device-detail-page .stat-card,
+.device-detail-v2-page .stat-card,
+.device-detail-page-v2 .stat-card {
+  min-height: 96px !important;
+  padding: 18px !important;
+  border-radius: var(--radius-card, 18px) !important;
+}
+
+.device-detail-page .dw-stat-card strong,
+.device-detail-v2-page .dw-stat-card strong,
+.device-detail-page-v2 .dw-stat-card strong,
+.device-detail-page .summary-card strong,
+.device-detail-v2-page .summary-card strong,
+.device-detail-page-v2 .summary-card strong,
+.device-detail-page .stat-card strong,
+.device-detail-v2-page .stat-card strong,
+.device-detail-page-v2 .stat-card strong {
+  font-size: 30px !important;
+  line-height: 1 !important;
+}
+
+@media (min-width: 901px) {
+  .device-detail-stat-grid,
+  .device-detail-state-grid,
+  .device-detail-stats-grid,
+  .device-detail-status-grid,
+  .device-detail-summary-grid,
+  .device-detail-kpi-grid,
+  .device-detail-health-grid,
+  .device-detail-metrics-summary,
+  .device-detail-overview-grid,
+  .device-detail-page .dw-page-stat-grid,
+  .device-detail-v2-page .dw-page-stat-grid,
+  .device-detail-page-v2 .dw-page-stat-grid {
+    grid-auto-flow: column !important;
+    grid-auto-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .device-detail-stat-grid,
+  .device-detail-state-grid,
+  .device-detail-stats-grid,
+  .device-detail-status-grid,
+  .device-detail-summary-grid,
+  .device-detail-kpi-grid,
+  .device-detail-health-grid,
+  .device-detail-metrics-summary,
+  .device-detail-overview-grid,
+  .device-detail-page .dw-page-stat-grid,
+  .device-detail-v2-page .dw-page-stat-grid,
+  .device-detail-page-v2 .dw-page-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .device-detail-page,
+  .device-detail-v2-page,
+  .device-detail-page-v2,
+  .page.device-detail-page,
+  .page.device-detail-v2-page {
+    gap: 16px !important;
+  }
+
+  .device-detail-stat-grid,
+  .device-detail-state-grid,
+  .device-detail-stats-grid,
+  .device-detail-status-grid,
+  .device-detail-summary-grid,
+  .device-detail-kpi-grid,
+  .device-detail-health-grid,
+  .device-detail-metrics-summary,
+  .device-detail-overview-grid,
+  .device-detail-page .dw-page-stat-grid,
+  .device-detail-v2-page .dw-page-stat-grid,
+  .device-detail-page-v2 .dw-page-stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .device-detail-page .dw-stat-card strong,
+  .device-detail-v2-page .dw-stat-card strong,
+  .device-detail-page-v2 .dw-stat-card strong,
+  .device-detail-page .summary-card strong,
+  .device-detail-v2-page .summary-card strong,
+  .device-detail-page-v2 .summary-card strong,
+  .device-detail-page .stat-card strong,
+  .device-detail-v2-page .stat-card strong,
+  .device-detail-page-v2 .stat-card strong {
+    font-size: 24px !important;
+  }
+}

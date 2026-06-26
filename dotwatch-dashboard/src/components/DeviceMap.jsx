@@ -94,7 +94,7 @@ function MapAutoFit({ positions }) {
   return null
 }
 
-function DeviceMap({ devices = [], onOpenDevice }) {
+function DeviceMap({ devices = [] }) {
   const visibleDevices = useMemo(() => {
     return Array.isArray(devices) ? devices : []
   }, [devices])
@@ -143,13 +143,7 @@ function DeviceMap({ devices = [], onOpenDevice }) {
               key={device.id || device.device_code}
               position={position}
               icon={createDeviceIcon(device)}
-              eventHandlers={{
-                click: () => {
-                  if (typeof onOpenDevice === 'function') {
-                    onOpenDevice(device)
-                  }
-                },
-              }}
+              interactive={false}
             >
               <Tooltip
                 permanent

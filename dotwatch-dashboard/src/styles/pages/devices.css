@@ -1624,184 +1624,167 @@
 }
 
 /* =========================================================
-   Device Alarm Rules - Compact Metric Cards
+   Device Detail Cleanup Fix V2
+   dotWatch Dashboard
+
+   Fixes:
+   - Hide Healthy telemetry banner in Device Detail
+   - Hide embedded History Analytics in Device Detail
+   - Reduce Firmware stat font size
 ========================================================= */
 
-.metric-alarm-panel {
-  display: grid;
-  gap: 14px;
+/* ---------------------------------------------------------
+   1) Hide Healthy / telemetry status banner inside Device Detail
+   Covers both old and new component class names.
+--------------------------------------------------------- */
+
+.devices-v3-health-banner,
+.device-detail-health-banner,
+.device-detail-status-banner,
+.device-health-banner,
+.device-status-banner,
+.device-health-strip,
+.device-status-strip,
+.device-telemetry-status,
+.device-detail-telemetry-status,
+.detail-health-banner,
+.detail-status-banner,
+[class*='device-detail'] [class*='health-banner'],
+[class*='device-detail'] [class*='status-banner'],
+[class*='device-detail'] [class*='telemetry-status'],
+[class*='device-detail'] [class*='health-strip'],
+[class*='device-detail'] [class*='status-strip'],
+[class*='selected-device'] [class*='health-banner'],
+[class*='selected-device'] [class*='status-banner'],
+[class*='selected-device'] [class*='telemetry-status'] {
+  display: none !important;
 }
 
-.metric-alarm-note {
-  margin: 0;
-  padding: 11px 13px;
-  border-radius: 14px;
-  background: rgba(37, 99, 235, 0.08);
-  border: 1px solid rgba(37, 99, 235, 0.16);
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 800;
+/* Extra guard for the green banner shown under tabs with Last ingest chip */
+.device-page [class*='health']:has([class*='ingest']),
+.device-page [class*='status']:has([class*='ingest']),
+.device-page [class*='telemetry']:has([class*='ingest']),
+.devices-v2-config [class*='health']:has([class*='ingest']),
+.devices-v2-config [class*='status']:has([class*='ingest']),
+.devices-v2-config [class*='telemetry']:has([class*='ingest']),
+.devices-v3-detail-card [class*='health']:has([class*='ingest']),
+.devices-v3-detail-card [class*='status']:has([class*='ingest']),
+.devices-v3-detail-card [class*='telemetry']:has([class*='ingest']) {
+  display: none !important;
 }
 
-.metric-alarm-rule-grid {
-  display: grid;
-  gap: 12px;
+/* ---------------------------------------------------------
+   2) Hide embedded History Analytics only inside Device Detail
+   Does not affect the main History page.
+--------------------------------------------------------- */
+
+.device-page .devices-v2-config .history-page,
+.device-page .devices-v2-config .history-page-v2,
+.device-page .devices-v2-config [class*='history-analytics'],
+.device-page .devices-v2-config [class*='history-card'],
+.device-page .devices-v2-config [class*='history-panel'],
+.device-page .devices-v2-config [class*='device-history'],
+.device-page .devices-v2-config [class*='analytics-card'],
+.devices-v3-detail-card .history-page,
+.devices-v3-detail-card .history-page-v2,
+.devices-v3-detail-card [class*='history-analytics'],
+.devices-v3-detail-card [class*='history-card'],
+.devices-v3-detail-card [class*='history-panel'],
+.devices-v3-detail-card [class*='device-history'],
+.devices-v3-detail-card [class*='analytics-card'],
+[class*='device-detail'] .history-page,
+[class*='device-detail'] .history-page-v2,
+[class*='device-detail'] [class*='history-analytics'],
+[class*='device-detail'] [class*='history-card'],
+[class*='device-detail'] [class*='history-panel'],
+[class*='device-detail'] [class*='device-history'],
+[class*='device-detail'] [class*='analytics-card'] {
+  display: none !important;
 }
 
-.devices-v3-rule-card.metric-alarm-card {
-  display: grid;
-  grid-template-columns: minmax(145px, 180px) minmax(0, 1fr) 112px;
-  gap: 14px;
-  align-items: center;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
+/* Extra guard for card that contains history filters/selects */
+.device-page .devices-v2-config section:has(.history-filter-grid),
+.device-page .devices-v2-config article:has(.history-filter-grid),
+.device-page .devices-v2-config div:has(> .history-filter-grid),
+.devices-v3-detail-card section:has(.history-filter-grid),
+.devices-v3-detail-card article:has(.history-filter-grid),
+.devices-v3-detail-card div:has(> .history-filter-grid),
+[class*='device-detail'] section:has(.history-filter-grid),
+[class*='device-detail'] article:has(.history-filter-grid),
+[class*='device-detail'] div:has(> .history-filter-grid) {
+  display: none !important;
 }
 
-.metric-alarm-card-header {
-  min-width: 0;
-  align-self: start;
-  padding-top: 8px;
+/* ---------------------------------------------------------
+   3) Firmware stat card font size
+   Screenshot layout: Firmware is 5th card.
+   Older layout: Firmware is 3rd card.
+--------------------------------------------------------- */
+
+.devices-v3-overview-grid > :nth-child(3) strong,
+.devices-v3-overview-grid > :nth-child(5) strong,
+.device-detail-stat-grid > :nth-child(5) strong,
+.device-detail-state-grid > :nth-child(5) strong,
+.device-detail-stats-grid > :nth-child(5) strong,
+.device-detail-status-grid > :nth-child(5) strong,
+.device-detail-summary-grid > :nth-child(5) strong,
+.device-detail-kpi-grid > :nth-child(5) strong,
+.device-detail-overview-grid > :nth-child(5) strong,
+.device-detail-metrics-summary > :nth-child(5) strong,
+.device-page .dw-page-stat-grid > :nth-child(5) strong,
+[class*='device-detail'] [class*='stat-grid'] > :nth-child(5) strong,
+[class*='device-detail'] [class*='state-grid'] > :nth-child(5) strong,
+[class*='device-detail'] [class*='summary-grid'] > :nth-child(5) strong,
+[class*='device-detail'] [class*='overview-grid'] > :nth-child(5) strong {
+  font-size: clamp(18px, 1.55vw, 23px) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.035em !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
 }
 
-.metric-alarm-card-header strong {
-  display: block;
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.25;
-  font-weight: 950;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Firmware card label/hint should also be slightly smaller */
+.devices-v3-overview-grid > :nth-child(3) span,
+.devices-v3-overview-grid > :nth-child(3) small,
+.devices-v3-overview-grid > :nth-child(3) p,
+.devices-v3-overview-grid > :nth-child(5) span,
+.devices-v3-overview-grid > :nth-child(5) small,
+.devices-v3-overview-grid > :nth-child(5) p,
+.device-detail-stat-grid > :nth-child(5) span,
+.device-detail-stat-grid > :nth-child(5) small,
+.device-detail-stat-grid > :nth-child(5) p,
+.device-page .dw-page-stat-grid > :nth-child(5) span,
+.device-page .dw-page-stat-grid > :nth-child(5) small,
+.device-page .dw-page-stat-grid > :nth-child(5) p,
+[class*='device-detail'] [class*='stat-grid'] > :nth-child(5) span,
+[class*='device-detail'] [class*='stat-grid'] > :nth-child(5) small,
+[class*='device-detail'] [class*='stat-grid'] > :nth-child(5) p,
+[class*='device-detail'] [class*='overview-grid'] > :nth-child(5) span,
+[class*='device-detail'] [class*='overview-grid'] > :nth-child(5) small,
+[class*='device-detail'] [class*='overview-grid'] > :nth-child(5) p {
+  font-size: 11px !important;
 }
 
-.metric-alarm-card-header span {
-  display: block;
-  margin-top: 5px;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.35;
-  font-weight: 800;
-  word-break: break-word;
+/* Remove extra vertical gap left after hidden banner/history */
+.devices-v3-detail-card,
+.device-page .devices-v2-config,
+[class*='device-detail'] {
+  gap: 16px;
 }
 
-.metric-alarm-rule-list {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-
-.metric-alarm-rule-row {
-  display: grid;
-  grid-template-columns: 104px 86px minmax(160px, 1fr) 96px;
-  gap: 10px;
-  align-items: center;
-  min-width: 0;
-  padding: 8px 10px;
-  border-radius: 14px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-}
-
-.metric-alarm-rule-row select,
-.metric-alarm-rule-row input {
-  width: 100%;
-  min-width: 0;
-  min-height: 38px;
-  border-radius: 12px;
-}
-
-.metric-alarm-rule-row .status {
-  width: 100%;
-  min-height: 34px;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 950;
-  white-space: nowrap;
-}
-
-.metric-alarm-rule-row .status.warning {
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.24);
-}
-
-.metric-alarm-rule-row .status.critical {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.24);
-}
-
-.metric-alarm-rule-row .metric-visible-toggle {
-  min-height: 38px;
-  justify-content: center;
-  margin: 0;
-  padding: 0 10px;
-  border-radius: 12px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  white-space: nowrap;
-}
-
-.metric-alarm-card-actions {
-  grid-column: auto;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.metric-alarm-save-btn {
-  width: 100%;
-  min-width: 96px;
-  min-height: 42px;
-  padding: 0 16px;
-  border-radius: 14px;
-  white-space: nowrap;
-}
-
-@media (max-width: 1180px) {
-  .devices-v3-rule-card.metric-alarm-card {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-  }
-
-  .metric-alarm-card-header {
-    padding-top: 0;
-  }
-
-  .metric-alarm-card-actions {
-    justify-content: stretch;
-  }
-
-  .metric-alarm-save-btn {
-    width: 100%;
-  }
-}
-
-@media (max-width: 820px) {
-  .metric-alarm-rule-row {
-    grid-template-columns: 104px 86px minmax(0, 1fr);
-  }
-
-  .metric-alarm-rule-row .metric-visible-toggle {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
-  }
+.devices-v3-selected-header,
+[class*='device-detail'] [class*='selected-header'] {
+  margin-top: 0 !important;
 }
 
 @media (max-width: 560px) {
-  .metric-alarm-rule-row {
-    grid-template-columns: 1fr;
-  }
-
-  .metric-alarm-rule-row .status,
-  .metric-alarm-rule-row input,
-  .metric-alarm-rule-row .metric-visible-toggle {
-    grid-column: 1;
+  .devices-v3-overview-grid > :nth-child(3) strong,
+  .devices-v3-overview-grid > :nth-child(5) strong,
+  .device-detail-stat-grid > :nth-child(5) strong,
+  .device-page .dw-page-stat-grid > :nth-child(5) strong,
+  [class*='device-detail'] [class*='stat-grid'] > :nth-child(5) strong,
+  [class*='device-detail'] [class*='overview-grid'] > :nth-child(5) strong {
+    font-size: 20px !important;
   }
 }
+
