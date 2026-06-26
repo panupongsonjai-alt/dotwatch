@@ -8,6 +8,11 @@ import {
   createReadingActivity,
 } from '../services/activity.service.js'
 
+const MAX_METRICS_PER_INGEST = 64
+const MAX_FUTURE_TIMESTAMP_MS = 5 * 60 * 1000
+const MAX_BACKDATE_TIMESTAMP_MS = 7 * 24 * 60 * 60 * 1000
+const METRIC_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_:-]{0,63}$/
+
 const ingestSchema = z.object({
   metrics: z.record(z.string(), z.number()).optional(),
 
@@ -18,6 +23,41 @@ const ingestSchema = z.object({
   firmwareVersion: z.string().max(50).optional(),
   timestamp: z.string().datetime().optional(),
 })
+
+function httpError(status, message) {
+  const error = new Error(message)
+  error.status = status
+  return error
+}
+
+function getIngestMinIntervalSeconds() {
+  const value = Number(env.ingestMinIntervalSeconds)
+
+  return Number.isFinite(value) && value > 0 ? value : 0
+}
+
+function normalizeTimestamp(value) {
+  if (!value) return new Date().toISOString()
+
+  const date = new Date(value)
+  const time = date.getTime()
+
+  if (Number.isNaN(time)) {
+    throw httpError(400, 'Invalid timestamp')
+  }
+
+  const now = Date.now()
+
+  if (time > now + MAX_FUTURE_TIMESTAMP_MS) {
+    throw httpError(400, 'Timestamp is too far in the future')
+  }
+
+  if (time < now - MAX_BACKDATE_TIMESTAMP_MS) {
+    throw httpError(400, 'Timestamp is too old')
+  }
+
+  return date.toISOString()
+}
 
 function normalizeMetrics(data) {
   if (data.metrics && Object.keys(data.metrics).length > 0) {
@@ -34,9 +74,31 @@ function normalizeMetrics(data) {
 }
 
 function normalizeFiniteMetrics(metrics) {
-  return Object.entries(metrics)
-    .filter(([, value]) => typeof value === 'number' && Number.isFinite(value))
-    .map(([metricKey, value]) => [metricKey, value])
+  const entries = Object.entries(metrics || {})
+
+  if (entries.length > MAX_METRICS_PER_INGEST) {
+    throw httpError(
+      400,
+      `Too many metrics. Maximum is ${MAX_METRICS_PER_INGEST}`
+    )
+  }
+
+  return entries
+    .map(([metricKey, value]) => {
+      const normalizedKey = String(metricKey || '').trim()
+      const numberValue = Number(value)
+
+      if (!METRIC_KEY_PATTERN.test(normalizedKey)) {
+        throw httpError(400, `Invalid metric key: ${normalizedKey || '(empty)'}`)
+      }
+
+      if (!Number.isFinite(numberValue)) {
+        return null
+      }
+
+      return [normalizedKey, numberValue]
+    })
+    .filter(Boolean)
 }
 
 function broadcastIngestEvent(req, userIds, payload) {
@@ -54,12 +116,14 @@ function broadcastIngestEvent(req, userIds, payload) {
 export async function ingestReading(req, res) {
   const data = ingestSchema.parse(req.body)
   const device = req.device
-  const previousStatus = device.status
+  const previousStatus = device.status || 'offline'
+  const minIntervalSeconds = getIngestMinIntervalSeconds()
 
-  if (device.last_ingest_at) {
-    const diff = (Date.now() - new Date(device.last_ingest_at).getTime()) / 1000
+  if (device.last_ingest_at && minIntervalSeconds > 0) {
+    const diff =
+      (Date.now() - new Date(device.last_ingest_at).getTime()) / 1000
 
-    if (diff < env.ingestMinIntervalSeconds) {
+    if (diff < minIntervalSeconds) {
       return res.status(429).json({
         message: 'Device is sending too fast',
       })
@@ -75,8 +139,7 @@ export async function ingestReading(req, res) {
     })
   }
 
-  const time = data.timestamp || new Date().toISOString()
-
+  const time = normalizeTimestamp(data.timestamp)
   const client = await pool.connect()
 
   try {
@@ -138,6 +201,10 @@ export async function ingestReading(req, res) {
       [device.id, data.firmwareVersion || null]
     )
 
+    if (!deviceResult.rows.length) {
+      throw httpError(404, 'Device not found')
+    }
+
     await client.query('COMMIT')
 
     const updatedDevice = deviceResult.rows[0]
@@ -178,13 +245,9 @@ export async function ingestReading(req, res) {
       },
     }
 
-    const sentCount = broadcastIngestEvent(
-      req,
-      [updatedDevice.firebase_uid, updatedDevice.user_id],
-      readingPayload
-    )
+    const realtimeTargets = [updatedDevice.firebase_uid, updatedDevice.user_id]
 
-    const activityTargets = [updatedDevice.firebase_uid, updatedDevice.user_id]
+    const sentCount = broadcastIngestEvent(req, realtimeTargets, readingPayload)
 
     const readingActivity = await createReadingActivity({
       userId: updatedDevice.user_id,
@@ -195,7 +258,7 @@ export async function ingestReading(req, res) {
     })
 
     if (readingActivity) {
-      broadcastIngestEvent(req, activityTargets, {
+      broadcastIngestEvent(req, realtimeTargets, {
         type: 'activity',
         data: readingActivity,
       })
@@ -211,7 +274,7 @@ export async function ingestReading(req, res) {
       })
 
       if (statusActivity) {
-        broadcastIngestEvent(req, activityTargets, {
+        broadcastIngestEvent(req, realtimeTargets, {
           type: 'activity',
           data: statusActivity,
         })
@@ -227,7 +290,7 @@ export async function ingestReading(req, res) {
     }
 
     if (alerts.length > 0) {
-      broadcastIngestEvent(req, [updatedDevice.firebase_uid, updatedDevice.user_id], {
+      broadcastIngestEvent(req, realtimeTargets, {
         type: 'alarm',
         data: alerts,
       })
@@ -240,7 +303,7 @@ export async function ingestReading(req, res) {
         })
 
         if (alarmActivity) {
-          broadcastIngestEvent(req, activityTargets, {
+          broadcastIngestEvent(req, realtimeTargets, {
             type: 'activity',
             data: alarmActivity,
           })

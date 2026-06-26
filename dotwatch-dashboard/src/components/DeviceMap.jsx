@@ -1,48 +1,39 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
-import { Search } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 
 const DEFAULT_CENTER = [13.7563, 100.5018]
 
-function getStatus(device) {
+function getStatus(device = {}) {
   return device.status || 'offline'
 }
 
 function getStatusColor(status) {
   if (status === 'online') return '#22c55e'
   if (status === 'warning') return '#f59e0b'
-  return '#ef4444'
+  if (status === 'critical') return '#ef4444'
+  return '#64748b'
 }
 
-function createDeviceIcon(status) {
-  const color = getStatusColor(status)
-
-  return L.divIcon({
-    className: '',
-    html: `
-      <div style="
-        width: 18px;
-        height: 18px;
-        border-radius: 999px;
-        background: ${color};
-        border: 3px solid white;
-        box-shadow: 0 8px 20px rgba(0,0,0,.35);
-      "></div>
-    `,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-  })
+function getDeviceName(device = {}) {
+  return device.name || device.device_code || 'Unnamed Device'
 }
 
-function getDevicePosition(device, index) {
-  if (device.latitude != null && device.longitude != null) {
-    return [Number(device.latitude), Number(device.longitude)]
-  }
+function isValidCoordinate(latitude, longitude) {
+  return (
+    latitude !== null &&
+    latitude !== undefined &&
+    longitude !== null &&
+    longitude !== undefined &&
+    Number.isFinite(Number(latitude)) &&
+    Number.isFinite(Number(longitude))
+  )
+}
 
-  const angle = index * 0.7
-  const radius = 0.012 + index * 0.0008
+function getFallbackPosition(index = 0) {
+  const angle = index * 0.65
+  const radius = 0.012 + index * 0.0015
 
   return [
     DEFAULT_CENTER[0] + Math.sin(angle) * radius,
@@ -50,186 +41,130 @@ function getDevicePosition(device, index) {
   ]
 }
 
-function FitBounds({ devices }) {
+function getDevicePosition(device, index) {
+  if (isValidCoordinate(device.latitude, device.longitude)) {
+    return [Number(device.latitude), Number(device.longitude)]
+  }
+
+  return getFallbackPosition(index)
+}
+
+function createDeviceIcon(device) {
+  const status = getStatus(device)
+  const color = getStatusColor(status)
+
+  return L.divIcon({
+    className: 'device-map-marker-shell',
+    html: `
+      <span
+        class="device-map-marker-dot"
+        style="
+          --device-status-color: ${color};
+          background: ${color};
+          box-shadow: 0 0 0 6px ${color}24, 0 12px 24px ${color}35;
+        "
+      ></span>
+    `,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  })
+}
+
+function MapAutoFit({ positions }) {
   const map = useMap()
 
   useEffect(() => {
-    const positions = devices
-      .filter((device) => device.latitude != null && device.longitude != null)
-      .map((device) => [Number(device.latitude), Number(device.longitude)])
-
-    if (positions.length === 0) {
-      map.setView(DEFAULT_CENTER, 6)
+    if (!positions.length) {
+      map.setView(DEFAULT_CENTER, 11)
       return
     }
 
     if (positions.length === 1) {
-      map.setView(positions[0], 15)
+      map.setView(positions[0], 14)
       return
     }
 
-    map.fitBounds(positions, {
-      padding: [60, 60],
+    const bounds = L.latLngBounds(positions)
+    map.fitBounds(bounds, {
+      padding: [42, 42],
       maxZoom: 15,
-      animate: true,
     })
-  }, [devices, map])
+  }, [map, positions])
 
   return null
 }
 
-function DeviceMap({ devices = [] }) {
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [selectedDeviceId, setSelectedDeviceId] = useState(null)
+function DeviceMap({ devices = [], onOpenDevice }) {
+  const visibleDevices = useMemo(() => {
+    return Array.isArray(devices) ? devices : []
+  }, [devices])
 
-  const onlineCount = devices.filter(
-    (device) => getStatus(device) === 'online'
-  ).length
+  const devicesWithPositions = useMemo(() => {
+    return visibleDevices.map((device, index) => ({
+      device,
+      position: getDevicePosition(device, index),
+    }))
+  }, [visibleDevices])
 
-  const warningCount = devices.filter(
-    (device) => getStatus(device) === 'warning'
-  ).length
-
-  const offlineCount = devices.filter(
-    (device) => getStatus(device) === 'offline'
-  ).length
-
-  const filteredDevices = useMemo(() => {
-    return devices.filter((device) => {
-      const keyword = `${device.name || ''} ${device.device_code || ''} ${
-        device.deviceCode || ''
-      }`.toLowerCase()
-
-      const status = getStatus(device)
-
-      const matchSearch = keyword.includes(search.toLowerCase())
-      const matchStatus = statusFilter === 'all' || status === statusFilter
-
-      return matchSearch && matchStatus
-    })
-  }, [devices, search, statusFilter])
-
-  const hasLocation = filteredDevices.some(
-    (device) => device.latitude != null && device.longitude != null
+  const positions = useMemo(
+    () => devicesWithPositions.map((item) => item.position),
+    [devicesWithPositions]
   )
 
-  return (
-    <section className="device-map-card panel">
-      <div className="device-map-header">
-        <div className="device-map-title">
-          <h2>Device Map</h2>
-        </div>
-
-        <div className="device-map-toolbar">
-          <div className="status-map-legend">
-            <span>
-              <b className="online" />
-              Online {onlineCount}
-            </span>
-
-            <span>
-              <b className="warning" />
-              Warning {warningCount}
-            </span>
-
-            <span>
-              <b className="offline" />
-              Offline {offlineCount}
-            </span>
-          </div>
-
-          <div className="device-status-tools">
-            <div className="device-status-search">
-              <Search size={16} />
-
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search Device..."
-              />
-            </div>
-
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-            >
-              <option value="all">All Status</option>
-              <option value="online">Online</option>
-              <option value="warning">Warning</option>
-              <option value="offline">Offline</option>
-            </select>
-          </div>
-        </div>
+  if (!visibleDevices.length) {
+    return (
+      <div className="device-map-empty">
+        <strong>No devices on map</strong>
+        <p>ยังไม่มี Device สำหรับแสดงบนแผนที่</p>
       </div>
+    )
+  }
 
-      {!hasLocation ? (
-        <div className="device-map-empty">
-          <div>
-            <strong>📍 No Device Location</strong>
-            <p>Add Latitude and Longitude to display devices on the map.</p>
-          </div>
-        </div>
-      ) : (
-        <div className="device-map-wrapper">
-          <MapContainer
-            center={DEFAULT_CENTER}
-            zoom={10}
-            scrollWheelZoom
-            className="device-map"
-          >
-            <FitBounds devices={filteredDevices} />
+  return (
+    <div className="device-map-wrapper">
+      <MapContainer
+        center={positions[0] || DEFAULT_CENTER}
+        zoom={12}
+        scrollWheelZoom={false}
+        className="dashboard-map"
+      >
+        <TileLayer
+          attribution="&copy; OpenStreetMap contributors"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
-            <TileLayer
-              attribution="&copy; OpenStreetMap"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+        <MapAutoFit positions={positions} />
 
-            {filteredDevices.map((device, index) => {
-              const status = getStatus(device)
-              const position = getDevicePosition(device, index)
+        {devicesWithPositions.map(({ device, position }) => {
+          const deviceName = getDeviceName(device)
 
-              const deviceId = device.id || device.device_code || index
-              const isSelected = selectedDeviceId === deviceId
-
-              return (
-                <Marker
-                  key={deviceId}
-                  position={position}
-                  icon={createDeviceIcon(status)}
-                  eventHandlers={{
-                    click: () => {
-                      setSelectedDeviceId(isSelected ? null : deviceId)
-                    },
-                  }}
-                >
-                  {isSelected && (
-                    <Tooltip
-                      permanent
-                      direction="top"
-                      offset={[0, -12]}
-                      className="device-tooltip compact"
-                    >
-                      <div className="device-tooltip-row">
-                        <strong>
-                          {device.name ||
-                            device.device_code ||
-                            'Unnamed Device'}
-                        </strong>
-
-                        <span className={`status-text ${status}`}>
-                          {status}
-                        </span>
-                      </div>
-                    </Tooltip>
-                  )}
-                </Marker>
-              )
-            })}
-          </MapContainer>
-        </div>
-      )}
-    </section>
+          return (
+            <Marker
+              key={device.id || device.device_code}
+              position={position}
+              icon={createDeviceIcon(device)}
+              eventHandlers={{
+                click: () => {
+                  if (typeof onOpenDevice === 'function') {
+                    onOpenDevice(device)
+                  }
+                },
+              }}
+            >
+              <Tooltip
+                permanent
+                direction="top"
+                offset={[0, -14]}
+                opacity={1}
+                className="device-map-label"
+              >
+                {deviceName}
+              </Tooltip>
+            </Marker>
+          )
+        })}
+      </MapContainer>
+    </div>
   )
 }
 

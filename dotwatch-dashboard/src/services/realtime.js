@@ -1,3 +1,5 @@
+import { auth } from './firebase'
+
 let socket = null
 let currentUserId = null
 let reconnectTimer = null
@@ -14,6 +16,30 @@ const statusListeners = new Set()
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 const MAX_RECONNECT_DELAY = 15_000
 const HEARTBEAT_INTERVAL = 25_000
+
+async function getRealtimeToken() {
+  const user = auth.currentUser
+
+  if (!user) {
+    throw new Error('User not logged in')
+  }
+
+  return user.getIdToken()
+}
+
+function closeSocketWithError(message) {
+  lastError = message
+
+  if (
+    socket &&
+    (socket.readyState === WebSocket.OPEN ||
+      socket.readyState === WebSocket.CONNECTING)
+  ) {
+    socket.close(1008, message)
+  }
+
+  notifyStatusListeners()
+}
 
 function getWsUrl() {
   return API_URL.replace(/^http:\/\//, 'ws://').replace(/^https:\/\//, 'wss://')
@@ -37,6 +63,8 @@ function getStatusSnapshot() {
     reconnectAttempt,
     listenerCount: listeners.size,
     userId: currentUserId,
+    firebaseUserId: auth.currentUser?.uid || null,
+    authenticated: Boolean(auth.currentUser),
     wsUrl: getWsUrl(),
     lastMessageAt,
     lastConnectedAt,
@@ -107,6 +135,7 @@ function notifyListeners(payload) {
 
 function scheduleReconnect() {
   if (!shouldReconnect || !currentUserId || listeners.size === 0) return
+  if (!auth.currentUser) return
   if (reconnectTimer) return
 
   const delay = Math.min(1000 * 2 ** reconnectAttempt, MAX_RECONNECT_DELAY)
@@ -177,20 +206,32 @@ function openSocket(userId) {
   socket = new WebSocket(getWsUrl())
   notifyStatusListeners()
 
-  socket.onopen = () => {
+  socket.onopen = async () => {
     reconnectAttempt = 0
     lastConnectedAt = new Date().toISOString()
     lastDisconnectedAt = null
     lastError = ''
     console.log('Realtime connected')
 
-    safeSend({
-      type: 'subscribe',
-      userId: currentUserId,
-    })
+    try {
+      const token = await getRealtimeToken()
 
-    startHeartbeat()
-    notifyStatusListeners()
+      const subscribed = safeSend({
+        type: 'subscribe',
+        token,
+      })
+
+      if (!subscribed) {
+        closeSocketWithError('Realtime subscribe failed')
+        return
+      }
+
+      startHeartbeat()
+      notifyStatusListeners()
+    } catch (error) {
+      console.error('Realtime auth error:', error)
+      closeSocketWithError(error.message || 'Realtime auth error')
+    }
   }
 
   socket.onmessage = (event) => {

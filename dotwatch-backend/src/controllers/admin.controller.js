@@ -18,6 +18,55 @@ const PLAN_DEVICE_LIMITS = {
   enterprise: 100,
 }
 
+
+function isPrivilegedUser(user = {}) {
+  return ['admin', 'super_admin'].includes(user.role || 'user')
+}
+
+function isSuperAdmin(user = {}) {
+  return user.role === 'super_admin'
+}
+
+async function getTargetUser(userId) {
+  const result = await pool.query(
+    `
+    SELECT id, role, status, email
+    FROM users
+    WHERE id = $1
+    LIMIT 1
+    `,
+    [userId]
+  )
+
+  return result.rows[0] || null
+}
+
+async function assertCanManageTargetUser(actor, targetUserId) {
+  const targetUser = await getTargetUser(targetUserId)
+
+  if (!targetUser) {
+    return {
+      ok: false,
+      status: 404,
+      message: 'User not found',
+    }
+  }
+
+  if (!isSuperAdmin(actor) && isPrivilegedUser(targetUser)) {
+    return {
+      ok: false,
+      status: 403,
+      message: 'Super admin access required',
+    }
+  }
+
+  return {
+    ok: true,
+    targetUser,
+  }
+}
+
+
 export async function getAdminMe(req, res) {
   const user = req.dbUser
 
@@ -79,6 +128,14 @@ export async function updateAdminUserStatus(req, res) {
   const { status } = updateUserStatusSchema.parse(req.body)
   const { userId } = req.params
 
+  const permission = await assertCanManageTargetUser(req.dbUser, userId)
+
+  if (!permission.ok) {
+    return res.status(permission.status).json({
+      message: permission.message,
+    })
+  }
+
   const result = await pool.query(
     `
     UPDATE users
@@ -120,6 +177,14 @@ export async function updateAdminUserStatus(req, res) {
 export async function updateAdminUserPlan(req, res) {
   const data = updateUserPlanSchema.parse(req.body)
   const { userId } = req.params
+
+  const permission = await assertCanManageTargetUser(req.dbUser, userId)
+
+  if (!permission.ok) {
+    return res.status(permission.status).json({
+      message: permission.message,
+    })
+  }
 
   const deviceLimit = data.deviceLimit ?? PLAN_DEVICE_LIMITS[data.plan] ?? 3
 

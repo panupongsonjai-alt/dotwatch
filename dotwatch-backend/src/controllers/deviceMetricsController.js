@@ -1,5 +1,11 @@
 import { pool } from '../db/pool.js'
 
+const MAX_DEVICE_METRICS = 64
+const METRIC_NAME_MAX_LENGTH = 80
+const METRIC_UNIT_MAX_LENGTH = 24
+const METRIC_ICON_MAX_LENGTH = 40
+const METRIC_KEY_PATTERN = /^[a-z][a-z0-9_]{0,63}$/
+
 const FALLBACK_METRICS = [
   {
     metric_key: 'metric_1',
@@ -30,11 +36,20 @@ function normalizeMetricKey(value = '') {
 }
 
 function normalizeMetricType(value = '') {
-  return normalizeMetricKey(value)
+  const type = normalizeMetricKey(value)
+
+  return type || 'custom'
+}
+
+function cleanText(value = '', maxLength = 120) {
+  return String(value || '').trim().slice(0, maxLength)
 }
 
 function cleanMetric(metric, index) {
-  const metricName = String(metric.metric_name || metric.name || '').trim()
+  const metricName = cleanText(
+    metric.metric_name || metric.name || '',
+    METRIC_NAME_MAX_LENGTH
+  )
   const metricKey = normalizeMetricKey(
     metric.metric_key || metric.key || metricName
   )
@@ -43,8 +58,8 @@ function cleanMetric(metric, index) {
     return null
   }
 
-  if (!metricKey) {
-    throw new Error('Metric key is required')
+  if (!metricKey || !METRIC_KEY_PATTERN.test(metricKey)) {
+    throw new Error('Invalid metric key')
   }
 
   return {
@@ -53,8 +68,8 @@ function cleanMetric(metric, index) {
     metric_type: normalizeMetricType(
       metric.metric_type || metric.type || metricName || ''
     ),
-    unit: String(metric.unit || '').trim(),
-    icon: String(metric.icon || 'Activity').trim(),
+    unit: cleanText(metric.unit || '', METRIC_UNIT_MAX_LENGTH),
+    icon: cleanText(metric.icon || 'Activity', METRIC_ICON_MAX_LENGTH),
     visible: metric.visible !== false,
     sort_order: Number.isFinite(Number(metric.sort_order))
       ? Number(metric.sort_order)
@@ -63,19 +78,7 @@ function cleanMetric(metric, index) {
 }
 
 async function ensureDeviceOwner(deviceId, userId) {
-  if (!userId) {
-    const result = await pool.query(
-      `
-      SELECT id
-      FROM devices
-      WHERE id = $1
-        AND is_active = true
-      `,
-      [deviceId]
-    )
-
-    return result.rowCount > 0
-  }
+  if (!userId) return false
 
   const result = await pool.query(
     `
@@ -104,6 +107,7 @@ async function getDeviceModel(deviceId) {
     LEFT JOIN device_models dm
       ON dm.id = d.model_id
     WHERE d.id = $1
+      AND d.is_active = true
     LIMIT 1
     `,
     [deviceId]
@@ -268,6 +272,12 @@ export async function saveDeviceMetrics(req, res) {
       })
     }
 
+    if (metrics.length > MAX_DEVICE_METRICS) {
+      return res.status(400).json({
+        message: `Too many metrics. Maximum is ${MAX_DEVICE_METRICS}`,
+      })
+    }
+
     const allowed = await ensureDeviceOwner(deviceId, userId)
 
     if (!allowed) {
@@ -276,7 +286,16 @@ export async function saveDeviceMetrics(req, res) {
       })
     }
 
-    const cleaned = metrics.map(cleanMetric).filter(Boolean)
+    let cleaned
+
+    try {
+      cleaned = metrics.map(cleanMetric).filter(Boolean)
+    } catch {
+      return res.status(400).json({
+        message: 'Invalid metric config',
+      })
+    }
+
     const seen = new Set()
 
     for (const metric of cleaned) {
@@ -337,7 +356,7 @@ export async function saveDeviceMetrics(req, res) {
     console.error('saveDeviceMetrics error:', error)
 
     res.status(500).json({
-      message: error.message || 'Failed to save device metrics',
+      message: 'Failed to save device metrics',
     })
   } finally {
     client.release()
@@ -413,14 +432,21 @@ export async function deleteDeviceMetric(req, res) {
       })
     }
 
-    await pool.query(
+    const result = await pool.query(
       `
       DELETE FROM device_metrics
       WHERE id = $1
         AND device_id = $2
+      RETURNING id
       `,
       [metricId, deviceId]
     )
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        message: 'Metric not found',
+      })
+    }
 
     res.json({
       ok: true,

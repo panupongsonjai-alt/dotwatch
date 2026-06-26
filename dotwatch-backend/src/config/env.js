@@ -4,6 +4,7 @@ dotenv.config()
 
 function parseNumber(value, fallback) {
   const numberValue = Number(value)
+
   return Number.isFinite(numberValue) ? numberValue : fallback
 }
 
@@ -21,6 +22,34 @@ function parseCorsOrigins(value) {
 function requireEnv(name, value) {
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`)
+  }
+}
+
+function validateCorsOrigins(origins = []) {
+  if (!origins.length) {
+    throw new Error('CORS_ORIGIN must include at least one origin')
+  }
+
+  for (const origin of origins) {
+    if (origin === '*') {
+      throw new Error('CORS_ORIGIN must not include wildcard "*"')
+    }
+
+    let url
+
+    try {
+      url = new URL(origin)
+    } catch {
+      throw new Error(`Invalid CORS origin: ${origin}`)
+    }
+
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      throw new Error(`Invalid CORS origin protocol: ${origin}`)
+    }
+
+    if (url.pathname !== '/' || url.search || url.hash) {
+      throw new Error(`CORS origin must not include path/query/hash: ${origin}`)
+    }
   }
 }
 
@@ -53,6 +82,8 @@ export function validateEnv() {
     requireEnv('FIREBASE_PROJECT_ID', env.firebaseProjectId)
     requireEnv('FIREBASE_CLIENT_EMAIL', env.firebaseClientEmail)
     requireEnv('FIREBASE_PRIVATE_KEY', env.firebasePrivateKey)
+
+    validateCorsOrigins(env.corsOrigins)
   }
 }
 

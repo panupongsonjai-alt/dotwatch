@@ -9,6 +9,65 @@ const router = Router()
 router.use(authUser)
 router.use(loadUser)
 
+const ALLOWED_ALARM_OPERATORS = new Set(['>', '>=', '<', '<=', '==', '!='])
+const ALLOWED_ALARM_SEVERITIES = new Set(['warning', 'critical'])
+
+function normalizeAlarmPayload(payload = {}) {
+  const metric = String(payload.metric || '').trim()
+  const operator = String(payload.operator || '').trim()
+  const severity = String(payload.severity || 'warning').trim()
+  const threshold = Number(payload.threshold)
+
+  if (!metric) {
+    return {
+      error: 'Metric is required',
+    }
+  }
+
+  if (!ALLOWED_ALARM_OPERATORS.has(operator)) {
+    return {
+      error: 'Invalid operator',
+    }
+  }
+
+  if (!Number.isFinite(threshold)) {
+    return {
+      error: 'Threshold must be a valid number',
+    }
+  }
+
+  if (!ALLOWED_ALARM_SEVERITIES.has(severity)) {
+    return {
+      error: 'Invalid severity',
+    }
+  }
+
+  return {
+    value: {
+      metric,
+      operator,
+      threshold,
+      severity,
+    },
+  }
+}
+
+async function requireOwnedAlarmDevice(deviceId, userId) {
+  const result = await pool.query(
+    `
+    SELECT id
+    FROM devices
+    WHERE id = $1
+      AND user_id = $2
+      AND is_active = true
+    LIMIT 1
+    `,
+    [deviceId, userId]
+  )
+
+  return result.rows[0] || null
+}
+
 /**
  * GET /api/alarm-rules
  */
@@ -44,13 +103,7 @@ router.get(
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const {
-      device_id,
-      metric,
-      operator,
-      threshold,
-      severity = 'warning',
-    } = req.body
+    const { device_id } = req.body
 
     if (!device_id) {
       return res.status(400).json({
@@ -58,11 +111,23 @@ router.post(
       })
     }
 
-    if (!metric) {
+    const normalized = normalizeAlarmPayload(req.body)
+
+    if (normalized.error) {
       return res.status(400).json({
-        message: 'Metric is required',
+        message: normalized.error,
       })
     }
+
+    const ownedDevice = await requireOwnedAlarmDevice(device_id, req.dbUser.id)
+
+    if (!ownedDevice) {
+      return res.status(404).json({
+        message: 'Device not found or access denied',
+      })
+    }
+
+    const { metric, operator, threshold, severity } = normalized.value
 
     const result = await pool.query(
       `
@@ -78,7 +143,7 @@ router.post(
       VALUES ($1,$2,$3,$4,$5,$6,true)
       RETURNING *
       `,
-      [req.dbUser.id, device_id, metric, operator, Number(threshold), severity]
+      [req.dbUser.id, device_id, metric, operator, threshold, severity]
     )
 
     res.status(201).json(result.rows[0])
@@ -91,7 +156,17 @@ router.post(
 router.put(
   '/:id',
   asyncHandler(async (req, res) => {
-    const { metric, operator, threshold, severity, is_active } = req.body
+    const normalized = normalizeAlarmPayload(req.body)
+
+    if (normalized.error) {
+      return res.status(400).json({
+        message: normalized.error,
+      })
+    }
+
+    const { metric, operator, threshold, severity } = normalized.value
+    const isActive =
+      typeof req.body.is_active === 'boolean' ? req.body.is_active : undefined
 
     const result = await pool.query(
       `
@@ -109,9 +184,9 @@ router.put(
       [
         metric,
         operator,
-        Number(threshold),
+        threshold,
         severity,
-        is_active,
+        isActive,
         req.params.id,
         req.dbUser.id,
       ]

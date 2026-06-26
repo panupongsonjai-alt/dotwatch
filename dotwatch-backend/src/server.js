@@ -20,12 +20,18 @@ import { activityRouter } from './routes/activity.routes.js'
 import { pool } from './db/pool.js'
 import { createDeviceStatusActivity } from './services/activity.service.js'
 import { alarmStateRouter } from './routes/alarmState.routes.js'
+import { admin, firebaseReady } from './config/firebaseAdmin.js'
 
 const app = express()
 const server = http.createServer(app)
 const wss = new WebSocketServer({ server })
 
+app.set('trust proxy', 1)
+app.disable('x-powered-by')
+
 const clients = new Map()
+const WS_SUBSCRIBE_TIMEOUT_MS = 15_000
+const MAX_WS_CLIENTS_PER_USER = 5
 
 console.log('dotWatch backend starting:', {
   nodeEnv: env.nodeEnv,
@@ -66,6 +72,37 @@ function getWebSocketSummary() {
   }
 }
 
+async function verifyWebSocketToken(token) {
+  if (!firebaseReady) {
+    throw new Error('Firebase Admin not configured')
+  }
+
+  if (!token) {
+    throw new Error('Missing WebSocket token')
+  }
+
+  return admin.auth().verifyIdToken(token)
+}
+
+function closeWebSocketUnauthorized(ws, message = 'Unauthorized WebSocket') {
+  try {
+    ws.send(
+      JSON.stringify({
+        type: 'error',
+        message,
+      })
+    )
+  } catch {
+    // Ignore send errors before closing the socket.
+  }
+
+  ws.close(1008, message)
+}
+
+function closeWebSocketTooManyConnections(ws) {
+  closeWebSocketUnauthorized(ws, 'Too many WebSocket connections')
+}
+
 function requireDevelopment(req, res, next) {
   if (env.isDevelopment) {
     next()
@@ -81,6 +118,13 @@ wss.on('connection', (ws, req) => {
 
   console.log('WS connected:', ip)
 
+  const subscribeTimeout = setTimeout(() => {
+    if (!clients.has(ws)) {
+      console.warn('WS subscribe timeout:', ip)
+      closeWebSocketUnauthorized(ws, 'WebSocket subscribe timeout')
+    }
+  }, WS_SUBSCRIBE_TIMEOUT_MS)
+
   ws.isAlive = true
 
   ws.send(
@@ -94,13 +138,36 @@ wss.on('connection', (ws, req) => {
     ws.isAlive = true
   })
 
-  ws.on('message', (message) => {
+  ws.on('message', async (message) => {
     try {
       const data = JSON.parse(message)
 
-      if (data.type === 'subscribe' && data.userId) {
-        const userId = String(data.userId)
+      if (data.type === 'subscribe') {
+        const token = data.token || data.idToken || data.authToken
+        let userId = ''
 
+        if (token) {
+          const decoded = await verifyWebSocketToken(token)
+          userId = String(decoded.uid)
+        } else if (env.isDevelopment && data.userId) {
+          // Development-only fallback for local testing.
+          // Production must always subscribe with a verified Firebase token.
+          userId = String(data.userId)
+
+          console.warn('WS legacy subscribe accepted in development only:', {
+            userId,
+          })
+        } else {
+          closeWebSocketUnauthorized(ws, 'Missing WebSocket token')
+          return
+        }
+
+        if (getClientCountByUser(userId) >= MAX_WS_CLIENTS_PER_USER) {
+          closeWebSocketTooManyConnections(ws)
+          return
+        }
+
+        clearTimeout(subscribeTimeout)
         clients.set(ws, userId)
 
         console.log('WS subscribed:', {
@@ -129,11 +196,13 @@ wss.on('connection', (ws, req) => {
       }
     } catch (error) {
       console.error('WebSocket message error:', error.message)
-      ws.close()
+      closeWebSocketUnauthorized(ws, 'Invalid WebSocket token')
     }
   })
 
   ws.on('close', () => {
+    clearTimeout(subscribeTimeout)
+
     const userId = clients.get(ws)
 
     clients.delete(ws)
@@ -145,6 +214,8 @@ wss.on('connection', (ws, req) => {
   })
 
   ws.on('error', (error) => {
+    clearTimeout(subscribeTimeout)
+
     const userId = clients.get(ws)
 
     console.error('WebSocket error:', {
@@ -266,7 +337,7 @@ app.get('/health', async (req, res) => {
     service: 'dotwatch-backend',
     environment: env.nodeEnv,
     database,
-    websocket: getWebSocketSummary(),
+    websocket: env.isDevelopment ? getWebSocketSummary() : 'enabled',
     uptime: Math.round(process.uptime()),
     latencyMs: Date.now() - startedAt,
     timestamp: new Date().toISOString(),
@@ -310,15 +381,15 @@ app.get('/debug/ws', requireDevelopment, (req, res) => {
 })
 
 app.use('/api/devices', apiLimiter, devicesRouter)
-app.use('/api/demo', apiLimiter, demoRouter)
+app.use('/api/demo', apiLimiter, requireDevelopment, demoRouter)
 app.use('/api/ingest', ingestLimiter, ingestRouter)
 app.use('/api/alarms', apiLimiter, alarmsRouter)
 app.use('/api/alarm-rules', apiLimiter, alarmRulesRouter)
-app.use('/api/alarm-states', alarmStateRouter)
+app.use('/api/alarm-states', apiLimiter, alarmStateRouter)
 app.use('/api/admin', apiLimiter, adminRouter)
 app.use('/api/activity', apiLimiter, activityRouter)
-app.use('/api', deviceMetricsRoutes)
-app.use('/api', deviceModelsRoutes)
+app.use('/api', apiLimiter, deviceMetricsRoutes)
+app.use('/api', apiLimiter, deviceModelsRoutes)
 
 setInterval(() => {
   wss.clients.forEach((ws) => {
