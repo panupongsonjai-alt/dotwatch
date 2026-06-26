@@ -9,7 +9,7 @@ import {
   YAxis,
 } from 'recharts'
 import { Download } from 'lucide-react'
-import { PageHeader } from '../components/common'
+import { PageHeader, StatCard } from '../components/common'
 
 import {
   getDevices,
@@ -436,13 +436,7 @@ function formatHistoryTableValue(row, metricMap, selectedUnit = '') {
 }
 
 function HistoryStatCard({ label, value, hint }) {
-  return (
-    <article className="history-stat-card">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <p>{hint}</p>
-    </article>
-  )
+  return <StatCard label={label} value={value} hint={hint} />
 }
 
 function HistoryTooltip({ active, payload, label, metricMap }) {
@@ -865,7 +859,7 @@ function History() {
         description="ตรวจสอบข้อมูลย้อนหลังตาม Device, วันที่ และ Metric พร้อมกราฟ ตาราง และ Export CSV"
       />
 
-      <section className="history-stat-grid">
+      <section className="history-stat-grid history-stat-grid-tight">
         <HistoryStatCard
           label="Records"
           value={loadingHistory ? '...' : filteredRows.length}

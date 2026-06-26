@@ -1,0 +1,74 @@
+/* =========================================================
+   History Stat Spacing Fix
+   Align History KPI spacing with Dashboard / Devices
+========================================================= */
+
+/*
+  หน้า History เดิมมีช่องว่างใต้ PageHeader มากกว่าหน้าอื่น
+  เพราะ history-stat-grid อาจถูกกำหนด margin/gap ซ้อนจาก CSS เฉพาะหน้า
+
+  ไฟล์นี้ import ไว้ท้ายสุดของ styles.css เพื่อ override ให้แน่นอน
+*/
+
+.history-page-v2 {
+  gap: 20px !important;
+}
+
+.history-page-v2 > .dw-page-header,
+.history-page-v2 > .app-page-header {
+  margin-bottom: 0 !important;
+}
+
+.history-page-v2 > .history-stat-grid,
+.history-page-v2 > .history-stat-grid-tight {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.history-stat-grid,
+.history-stat-grid-tight {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  align-items: stretch;
+}
+
+.history-stat-grid .dw-stat-card,
+.history-stat-grid-tight .dw-stat-card,
+.history-stat-grid .history-stat-card,
+.history-stat-grid-tight .history-stat-card {
+  width: 100%;
+  min-height: 96px;
+}
+
+/* ให้ card ของ History ใช้ขนาดใกล้ Devices */
+.history-stat-grid .dw-stat-card {
+  padding: 18px;
+  border-radius: var(--radius-card, 18px);
+}
+
+.history-stat-grid .dw-stat-card strong {
+  font-size: 30px;
+}
+
+@media (max-width: 1100px) {
+  .history-stat-grid,
+  .history-stat-grid-tight {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .history-page-v2 {
+    gap: 16px !important;
+  }
+
+  .history-stat-grid,
+  .history-stat-grid-tight {
+    grid-template-columns: 1fr !important;
+  }
+
+  .history-stat-grid .dw-stat-card strong {
+    font-size: 24px;
+  }
+}
