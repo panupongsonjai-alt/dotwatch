@@ -19,6 +19,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { StatCard } from '../components/common'
+import { confirmDeleteAction } from '../utils/typedConfirm'
 
 function formatDate(value) {
   if (!value) return '--'
@@ -210,6 +211,21 @@ function Alarms() {
     }
   }
 
+  function handleClearAlarms() {
+    if (alarms.length === 0) return
+
+    const ok = window.confirm(
+      'ต้องการ Clear Alarm Events ที่แสดงอยู่ตอนนี้ใช่ไหม?\n\nรายการจะถูกซ่อนจากหน้า Alarm Center จนกว่าจะกด Refresh หรือมีข้อมูลใหม่จาก Realtime'
+    )
+
+    if (!ok) return
+
+    setAlarms([])
+    setSearch('')
+    setStatusFilter('all')
+    setSeverityFilter('all')
+  }
+
   async function handleToggleRule(rule) {
     try {
       setSaving(true)
@@ -317,15 +333,27 @@ function Alarms() {
           <p>ติดตาม Alarm Events และ Alarm Rules ของอุปกรณ์ทั้งหมด</p>
         </div>
 
-        <button
-          type="button"
-          className="ghost-button"
-          onClick={loadData}
-          disabled={loading || saving}
-        >
-          <RefreshCw size={17} />
-          Refresh
-        </button>
+        <div className="alarm-page-actions">
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={loadData}
+            disabled={loading || saving}
+          >
+            <RefreshCw size={17} />
+            Refresh
+          </button>
+
+          <button
+            type="button"
+            className="ghost-button alarm-clear-button"
+            onClick={handleClearAlarms}
+            disabled={loading || saving || alarms.length === 0}
+          >
+            <Trash2 size={17} />
+            Clear Alarm
+          </button>
+        </div>
       </section>
 
       <section className="alarms-stat-grid dashboard-style-stat-grid">

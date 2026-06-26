@@ -98,21 +98,15 @@ function Sidebar({ page, setPage, sidebarOpen, setSidebarOpen }) {
 
                   <span className="menu-label">{item.label}</span>
 
-                  {showBadge && <span className="alarm-badge">{activeAlarmCount}</span>}
+                  {showBadge && (
+                    <span className="alarm-badge">{activeAlarmCount}</span>
+                  )}
                 </button>
               )
             })}
           </div>
         ))}
       </nav>
-
-      <div className="sidebar-footer-note">
-        <Activity size={16} />
-        <div>
-          <strong>Operations Ready</strong>
-          <span>Realtime monitoring workspace</span>
-        </div>
-      </div>
     </aside>
   )
 }

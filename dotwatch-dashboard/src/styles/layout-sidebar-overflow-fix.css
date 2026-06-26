@@ -1,0 +1,281 @@
+/* =========================================================
+   dotWatch Layout - Sidebar Overflow Fix
+   แก้ปัญหาเปิด Sidebar แล้ว content เกินจอด้านขวา
+========================================================= */
+
+:root {
+  --dw-sidebar-expanded-width: 280px;
+  --dw-sidebar-collapsed-width: 88px;
+  --dw-main-padding-x: 28px;
+}
+
+/* กันทั้งหน้าเกิด horizontal scroll จาก child ที่กว้างเกิน */
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.layout {
+  width: 100%;
+  max-width: 100vw;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.sidebar {
+  width: var(--dw-sidebar-expanded-width) !important;
+  max-width: var(--dw-sidebar-expanded-width) !important;
+  flex: 0 0 var(--dw-sidebar-expanded-width) !important;
+}
+
+.sidebar.collapsed,
+.layout.sidebar-collapsed .sidebar {
+  width: var(--dw-sidebar-collapsed-width) !important;
+  max-width: var(--dw-sidebar-collapsed-width) !important;
+  flex-basis: var(--dw-sidebar-collapsed-width) !important;
+}
+
+/*
+  จุดสำคัญ:
+  ตอน Sidebar เปิด main ต้องกว้างไม่เกิน 100vw - sidebar
+  ไม่งั้น table/card ที่มี min-width จะดันหน้าออกนอกจอ
+*/
+.main {
+  min-width: 0 !important;
+  width: calc(100vw - var(--dw-sidebar-expanded-width)) !important;
+  max-width: calc(100vw - var(--dw-sidebar-expanded-width)) !important;
+  flex: 0 0 calc(100vw - var(--dw-sidebar-expanded-width)) !important;
+  overflow-x: hidden !important;
+}
+
+.layout.sidebar-collapsed .main {
+  width: calc(100vw - var(--dw-sidebar-collapsed-width)) !important;
+  max-width: calc(100vw - var(--dw-sidebar-collapsed-width)) !important;
+  flex-basis: calc(100vw - var(--dw-sidebar-collapsed-width)) !important;
+}
+
+/* ทุกหน้าและ card ต้องไม่บังคับ main ให้กว้างเกิน */
+.main > *,
+.page,
+.app-page,
+.dashboard-page,
+.alarms-page,
+.history-page-v2,
+.device-v2-page,
+.settings-v3-page,
+.profile-v3-page,
+.system-health-page,
+.workspace-route-bar,
+.dw-page-header,
+.app-card,
+.panel,
+.device-v2-table-wrap,
+.alarm-table-wrap,
+.history-table-wrap,
+.table-wrap {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Topbar ใช้ negative margin จาก .main padding จึงต้องคุม width ให้ไม่เกิน main */
+.top-header {
+  max-width: calc(100% + (var(--dw-main-padding-x) * 2)) !important;
+  overflow-x: hidden !important;
+}
+
+/* Workspace route bar: ถ้าปุ่มด้านขวาแน่น ให้ wrap ภายใน ไม่ดันจอ */
+.workspace-route-bar {
+  overflow: hidden !important;
+}
+
+.workspace-route-main,
+.workspace-route-copy,
+.workspace-route-actions {
+  min-width: 0 !important;
+}
+
+.workspace-route-actions {
+  flex-wrap: wrap !important;
+}
+
+.workspace-route-actions .ghost-button,
+.workspace-route-actions .secondary-button {
+  max-width: 100% !important;
+  white-space: nowrap !important;
+}
+
+/* PageHeader actions เช่น Refresh ต้องอยู่ในกล่อง ไม่ยื่นออกขวา */
+.dw-page-header {
+  overflow: hidden !important;
+}
+
+.dw-page-header-main,
+.dw-page-header-actions {
+  min-width: 0 !important;
+}
+
+.dw-page-header-actions {
+  flex: 0 1 auto !important;
+  max-width: 100% !important;
+  flex-wrap: wrap !important;
+}
+
+/* Alarm Center: ตาราง scroll ภายใน card ไม่ใช่ดันทั้ง page */
+.alarms-page,
+.alarms-center-page {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.alarms-page .dashboard-style-stat-grid,
+.alarms-center-page .dashboard-style-stat-grid,
+.alarms-stat-grid.dashboard-style-stat-grid {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.alarms-page .dw-stat-card,
+.alarms-center-page .dw-stat-card {
+  min-width: 0 !important;
+}
+
+.alarm-toolbar,
+.alarm-toolbar.clean {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.alarm-toolbar input,
+.alarm-toolbar select,
+.alarm-search-input {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.alarm-table-wrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.alarm-table-wrap .device-v2-table,
+.alarm-table-wrap .alarm-table {
+  width: max(100%, 860px) !important;
+  min-width: 860px !important;
+  table-layout: auto !important;
+}
+
+/* ทำให้ข้อความในตารางไม่บังคับ column กว้างเกินจำเป็น */
+.alarm-table-wrap th,
+.alarm-table-wrap td {
+  white-space: nowrap;
+}
+
+.alarm-table-wrap td strong,
+.alarm-table-wrap td span {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ถ้า sidebar เปิดและจอไม่กว้างมาก ให้ stat cards แบ่ง 2 columns เร็วขึ้น */
+@media (max-width: 1320px) {
+  .layout:not(.sidebar-collapsed) .alarms-page .dashboard-style-stat-grid,
+  .layout:not(.sidebar-collapsed) .alarms-center-page .dashboard-style-stat-grid,
+  .layout:not(.sidebar-collapsed) .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* ถ้า sidebar ย่อ พื้นที่เยอะขึ้น อนุญาต 4 columns ได้ */
+@media (min-width: 1180px) {
+  .layout.sidebar-collapsed .alarms-page .dashboard-style-stat-grid,
+  .layout.sidebar-collapsed .alarms-center-page .dashboard-style-stat-grid,
+  .layout.sidebar-collapsed .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+/* จอกลาง/เล็ก */
+@media (max-width: 980px) {
+  :root {
+    --dw-main-padding-x: 18px;
+  }
+
+  .main {
+    padding-left: var(--dw-main-padding-x) !important;
+    padding-right: var(--dw-main-padding-x) !important;
+  }
+
+  .top-header {
+    margin-left: calc(var(--dw-main-padding-x) * -1) !important;
+    margin-right: calc(var(--dw-main-padding-x) * -1) !important;
+    padding-left: var(--dw-main-padding-x) !important;
+    padding-right: var(--dw-main-padding-x) !important;
+  }
+
+  .workspace-route-bar {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  .workspace-route-actions {
+    justify-content: flex-start !important;
+  }
+
+  .alarms-page .dashboard-style-stat-grid,
+  .alarms-center-page .dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  :root {
+    --dw-main-padding-x: 14px;
+  }
+
+  .layout {
+    display: block !important;
+  }
+
+  .sidebar,
+  .sidebar.collapsed,
+  .layout.sidebar-collapsed .sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    flex-basis: auto !important;
+  }
+
+  .main,
+  .layout.sidebar-collapsed .main {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    flex-basis: auto !important;
+  }
+
+  .alarms-page .dashboard-style-stat-grid,
+  .alarms-center-page .dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .alarm-table-wrap .device-v2-table,
+  .alarm-table-wrap .alarm-table {
+    width: max(100%, 760px) !important;
+    min-width: 760px !important;
+  }
+}

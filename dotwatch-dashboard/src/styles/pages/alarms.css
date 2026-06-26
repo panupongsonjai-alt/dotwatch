@@ -355,3 +355,129 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   Alarm Center - Actions and Stat Row
+   ให้ StatCard อยู่แถวเดียว และเพิ่มปุ่ม Clear Alarm ต่อจาก Refresh
+========================================================= */
+
+.alarms-page .app-page-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  overflow: hidden !important;
+}
+
+.alarm-page-actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.alarm-page-actions .ghost-button {
+  min-width: 112px;
+  white-space: nowrap;
+}
+
+.alarm-clear-button {
+  color: var(--danger) !important;
+  border-color: rgba(239, 68, 68, 0.28) !important;
+  background:
+    linear-gradient(135deg, rgba(239, 68, 68, 0.1), transparent 62%),
+    var(--panel) !important;
+}
+
+.alarm-clear-button:hover:not(:disabled) {
+  border-color: rgba(239, 68, 68, 0.48) !important;
+  box-shadow: 0 12px 28px rgba(239, 68, 68, 0.12) !important;
+}
+
+.alarm-clear-button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+/* บังคับ Alarm stat cards ให้อยู่แถวเดียวบน desktop */
+.alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+.alarms-center-page .alarms-stat-grid.dashboard-style-stat-grid,
+.alarms-stat-grid.dashboard-style-stat-grid {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  overflow: visible !important;
+}
+
+.alarms-page .alarms-stat-grid .dw-stat-card,
+.alarms-center-page .alarms-stat-grid .dw-stat-card,
+.alarms-stat-grid .dw-stat-card {
+  min-width: 0 !important;
+  width: 100% !important;
+  min-height: 104px !important;
+}
+
+.alarms-page .alarms-stat-grid .dw-stat-card strong,
+.alarms-center-page .alarms-stat-grid .dw-stat-card strong,
+.alarms-stat-grid .dw-stat-card strong {
+  font-size: clamp(24px, 2.1vw, 30px) !important;
+}
+
+/* override จาก sidebar overflow patch ที่เคยบังคับเป็น 2 columns */
+@media (max-width: 1320px) {
+  .layout:not(.sidebar-collapsed) .alarms-page .dashboard-style-stat-grid,
+  .layout:not(.sidebar-collapsed) .alarms-center-page .dashboard-style-stat-grid,
+  .layout:not(.sidebar-collapsed) .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+/* desktop / laptop ยังให้ 4 ใบในแถวเดียว */
+@media (min-width: 721px) {
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-center-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+/* จอกลางมาก ๆ ค่อยลดเป็น 2 columns */
+@media (max-width: 720px) {
+  .alarms-page .app-page-header {
+    display: grid !important;
+    align-items: stretch !important;
+  }
+
+  .alarm-page-actions {
+    justify-content: flex-start;
+  }
+
+  .alarm-page-actions .ghost-button {
+    flex: 1 1 150px;
+  }
+
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-center-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 460px) {
+  .alarm-page-actions .ghost-button {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-center-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
