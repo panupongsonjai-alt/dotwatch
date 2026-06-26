@@ -1,0 +1,223 @@
+/* =========================================================
+   Alarm Center - Header Exact Match
+   ทำหัวข้อหน้า Alarm Center ให้กลับไปเท่ากับ PageHeader กลางของ dotWatch
+========================================================= */
+
+/*
+  รอบก่อนหน้า alarm-center-pageheader-unify.css ปรับค่าเฉพาะหน้า Alarm
+  มากเกินไป เช่น min-height, h1 font-size, line-height และ eyebrow color
+  ทำให้ไม่เท่าหน้า Activity / Notifications
+  ไฟล์นี้ import หลังสุดเพื่อ reset ให้ตรง design system กลาง
+*/
+
+.alarms-page {
+  display: grid !important;
+  gap: 20px !important;
+}
+
+/* PageHeader container: เท่าค่า default ของ .dw-page-header */
+.alarms-page > .dw-page-header {
+  position: relative !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 24px !important;
+  border-radius: var(--radius-xl, 24px) !important;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 36%),
+    var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-soft, var(--shadow)) !important;
+  overflow: hidden !important;
+}
+
+/* วง accent ด้านขวาให้เหมือน PageHeader กลาง */
+.alarms-page > .dw-page-header::after {
+  content: '' !important;
+  position: absolute !important;
+  right: -84px !important;
+  top: -84px !important;
+  width: 190px !important;
+  height: 190px !important;
+  border-radius: 999px !important;
+  background: rgba(37, 99, 235, 0.08) !important;
+  pointer-events: none !important;
+  display: block !important;
+}
+
+.alarms-page > .dw-page-header .dw-page-header-main,
+.alarms-page > .dw-page-header .dw-page-header-actions {
+  position: relative !important;
+  z-index: 1 !important;
+  min-width: 0 !important;
+}
+
+/* Eyebrow: ไม่ใช้สีแดง ให้กลับเป็น primary เหมือนทุกหน้า */
+.alarms-page > .dw-page-header .page-eyebrow {
+  display: inline-flex !important;
+  margin: 0 0 8px !important;
+  color: var(--primary) !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+/* Title: เท่า PageHeader กลาง ไม่ใช่ 42px */
+.alarms-page > .dw-page-header .dw-page-header-main h1 {
+  margin: 0 !important;
+  color: var(--text) !important;
+  font-size: 30px !important;
+  line-height: 1.12 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.045em !important;
+}
+
+/* Description: เท่า PageHeader กลาง */
+.alarms-page > .dw-page-header .dw-page-header-main p {
+  max-width: 720px !important;
+  margin: 8px 0 0 !important;
+  color: var(--muted) !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  font-weight: 400 !important;
+}
+
+/* Actions: ตำแหน่งเดียวกับ Notifications / Activity */
+.alarms-page > .dw-page-header .dw-page-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  align-self: flex-start !important;
+  padding-top: 0 !important;
+  max-width: 100% !important;
+}
+
+.alarm-page-actions,
+.alarm-page-actions-unified {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  max-width: 100% !important;
+}
+
+/* ปุ่มใช้ pattern เดียวกับ Notifications: secondary + primary */
+.alarm-page-actions .secondary-button,
+.alarm-page-actions .primary-button,
+.alarm-page-actions-unified .secondary-button,
+.alarm-page-actions-unified .primary-button {
+  min-height: 40px !important;
+  padding: 0 14px !important;
+  border-radius: 14px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+}
+
+/* Clear Alarm ยังเป็น action สำคัญ แต่ขนาดเท่าปุ่มทั่วไป */
+.alarm-clear-button {
+  color: white !important;
+  background: var(--danger) !important;
+  border-color: color-mix(in srgb, var(--danger) 70%, white) !important;
+  box-shadow: 0 12px 28px rgba(239, 68, 68, 0.18) !important;
+}
+
+.alarm-clear-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgba(239, 68, 68, 0.24) !important;
+}
+
+.alarm-clear-button:disabled {
+  opacity: 0.58 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* SectionHeader ด้านใน card ให้กลับไปตาม design-system */
+.alarms-page .app-card > .dw-section-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin: 0 0 18px !important;
+}
+
+.alarms-page .app-card > .dw-section-header h2 {
+  margin: 0 !important;
+  color: var(--text) !important;
+  font-size: 20px !important;
+  line-height: 1.2 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.03em !important;
+}
+
+.alarms-page .app-card > .dw-section-header p {
+  margin: 6px 0 0 !important;
+  color: var(--muted) !important;
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  font-weight: 400 !important;
+}
+
+/* Stat cards 4 ใบยังอยู่แถวเดียวบน desktop */
+.alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+.alarms-stat-grid.dashboard-style-stat-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* กัน app-page-header เดิมแสดงซ้ำ ถ้า JSX เก่าค้าง */
+.alarms-page > .app-page-header {
+  display: none !important;
+}
+
+/* Responsive เท่า PageHeader กลาง */
+@media (max-width: 860px) {
+  .alarms-page > .dw-page-header {
+    display: grid !important;
+    gap: 16px !important;
+  }
+
+  .alarms-page > .dw-page-header .dw-page-header-actions {
+    justify-content: flex-start !important;
+  }
+
+  .alarm-page-actions,
+  .alarm-page-actions-unified {
+    justify-content: flex-start !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 460px) {
+  .alarm-page-actions .secondary-button,
+  .alarm-page-actions .primary-button,
+  .alarm-page-actions-unified .secondary-button,
+  .alarm-page-actions-unified .primary-button {
+    width: 100% !important;
+  }
+
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

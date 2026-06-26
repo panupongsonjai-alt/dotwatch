@@ -1,0 +1,125 @@
+/* =========================================================
+   Alarm Center - Match Page Pattern
+   ใช้ PageHeader กลางเหมือน Notifications / Activity / Profile / Settings
+   ไม่ override ขนาดหัวข้อ Alarms อีกต่อไป
+========================================================= */
+
+/*
+  หลักการ:
+  - ห้ามปรับ .dw-page-header h1 / p / eyebrow เฉพาะหน้า Alarm
+  - ให้ PageHeader ใช้ค่าจาก design-system.css โดยตรง
+  - ไฟล์นี้ดูแลเฉพาะ layout ของ stat grid, toolbar, table
+*/
+
+.alarms-page {
+  display: grid;
+  gap: 20px;
+}
+
+/* ป้องกัน header เก่าซ้อน ถ้า JSX เก่าค้าง */
+.alarms-page > .app-page-header {
+  display: none !important;
+}
+
+/* ล้างผลข้างเคียงจาก patch เก่า เฉพาะค่าที่เคยทำให้ Header ไม่เท่าหน้าอื่น */
+.alarms-page > .dw-page-header {
+  min-height: unset !important;
+  height: auto !important;
+}
+
+.alarms-page > .dw-page-header .dw-page-header-actions {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* ปุ่มใน Header ใช้ secondary-button / primary-button กลาง */
+.alarms-page > .dw-page-header .secondary-button,
+.alarms-page > .dw-page-header .primary-button {
+  white-space: nowrap;
+}
+
+/* Stat cards เหมือน Notification / Activity */
+.alarms-page .alarms-stat-grid,
+.alarms-page .alarms-stat-grid.dashboard-style-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.alarms-page .alarms-stat-grid .dw-stat-card {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Panel rhythm */
+.alarms-page .app-card {
+  display: grid;
+  gap: 16px;
+}
+
+/* Toolbar เทียบกับ Notification toolbar */
+.alarms-page .alarm-toolbar,
+.alarms-page .alarm-toolbar.clean {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 180px 180px;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  margin: 0;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+.alarms-page .alarm-search-input,
+.alarms-page .alarm-toolbar select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  min-height: 42px;
+  box-sizing: border-box;
+}
+
+.alarms-page .alarm-table-wrap {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Table ไม่ดันทั้งหน้า */
+.alarms-page .alarm-table-wrap table,
+.alarms-page .alarm-table-wrap .device-v2-table,
+.alarms-page .alarm-table-wrap .alarm-table {
+  width: max(100%, 860px);
+  min-width: 860px;
+}
+
+/* Responsive เท่าหน้าอื่น */
+@media (max-width: 980px) {
+  .alarms-page .alarm-toolbar,
+  .alarms-page .alarm-toolbar.clean {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .alarms-page .alarms-stat-grid,
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 460px) {
+  .alarms-page .alarms-stat-grid,
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}

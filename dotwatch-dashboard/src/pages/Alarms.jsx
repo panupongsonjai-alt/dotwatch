@@ -18,7 +18,7 @@ import {
   Search,
   Trash2,
 } from 'lucide-react'
-import { StatCard } from '../components/common'
+import { PageHeader, SectionHeader, StatCard } from '../components/common'
 import { confirmDeleteAction } from '../utils/typedConfirm'
 
 function formatDate(value) {
@@ -79,8 +79,12 @@ function mergeAlarmEvents(prev, nextAlarms) {
   })
 
   return Array.from(unique.values()).sort((a, b) => {
-    const aTime = new Date(a.triggered_at || a.time || a.created_at || 0).getTime()
-    const bTime = new Date(b.triggered_at || b.time || b.created_at || 0).getTime()
+    const aTime = new Date(
+      a.triggered_at || a.time || a.created_at || 0
+    ).getTime()
+    const bTime = new Date(
+      b.triggered_at || b.time || b.created_at || 0
+    ).getTime()
     return bTime - aTime
   })
 }
@@ -214,12 +218,6 @@ function Alarms() {
   function handleClearAlarms() {
     if (alarms.length === 0) return
 
-    const ok = window.confirm(
-      'ต้องการ Clear Alarm Events ที่แสดงอยู่ตอนนี้ใช่ไหม?\n\nรายการจะถูกซ่อนจากหน้า Alarm Center จนกว่าจะกด Refresh หรือมีข้อมูลใหม่จาก Realtime'
-    )
-
-    if (!ok) return
-
     setAlarms([])
     setSearch('')
     setStatusFilter('all')
@@ -326,35 +324,34 @@ function Alarms() {
 
   return (
     <div className="page app-page alarms-page">
-      <section className="app-page-header">
-        <div>
-          <span className="page-eyebrow">Alarm Center</span>
-          <h2>Alarms</h2>
-          <p>ติดตาม Alarm Events และ Alarm Rules ของอุปกรณ์ทั้งหมด</p>
-        </div>
+      <PageHeader
+        eyebrow="Alarm Center"
+        title="Alarms"
+        description="ติดตาม Alarm Events และ Alarm Rules ของอุปกรณ์ทั้งหมด"
+        actions={
+          <>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={loadData}
+              disabled={loading || saving}
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
 
-        <div className="alarm-page-actions">
-          <button
-            type="button"
-            className="ghost-button"
-            onClick={loadData}
-            disabled={loading || saving}
-          >
-            <RefreshCw size={17} />
-            Refresh
-          </button>
-
-          <button
-            type="button"
-            className="ghost-button alarm-clear-button"
-            onClick={handleClearAlarms}
-            disabled={loading || saving || alarms.length === 0}
-          >
-            <Trash2 size={17} />
-            Clear Alarm
-          </button>
-        </div>
-      </section>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={handleClearAlarms}
+              disabled={loading || saving}
+            >
+              <Trash2 size={16} />
+              Clear Alarm
+            </button>
+          </>
+        }
+      />
 
       <section className="alarms-stat-grid dashboard-style-stat-grid">
         <StatCard
@@ -383,12 +380,10 @@ function Alarms() {
       </section>
 
       <section className="app-card">
-        <div className="app-section-title">
-          <div>
-            <h2>Alarm Events</h2>
-            <p>รายการแจ้งเตือนล่าสุดจาก Dynamic Metrics</p>
-          </div>
-        </div>
+        <SectionHeader
+          title="Alarm Events"
+          description="รายการแจ้งเตือนล่าสุดจาก Dynamic Metrics"
+        />
 
         <div className="alarm-toolbar">
           <label className="search-input">
@@ -515,12 +510,10 @@ function Alarms() {
       </section>
 
       <section className="app-card">
-        <div className="app-section-title">
-          <div>
-            <h2>Alarm Rules</h2>
-            <p>Rule ทั้งหมดที่ตั้งไว้ในหน้า Device</p>
-          </div>
-        </div>
+        <SectionHeader
+          title="Alarm Rules"
+          description="Rule ทั้งหมดที่ตั้งไว้ในหน้า Device"
+        />
 
         {rules.length === 0 ? (
           <div className="app-empty-state">

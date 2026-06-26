@@ -1,0 +1,103 @@
+/* =========================================================
+   Alarm Center - StatCards One Row
+   บังคับ StatCard หน้า Alarm Center ให้อยู่แถวเดียวกันบน desktop
+========================================================= */
+
+/*
+  ไฟล์นี้ต้อง import หลังสุด เพราะ patch layout-sidebar-overflow-fix
+  เคยบังคับ .layout:not(.sidebar-collapsed) ให้ stat grid แตกเป็น 2 columns
+*/
+
+.alarms-page .alarms-stat-grid,
+.alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+.alarms-center-page .alarms-stat-grid,
+.alarms-center-page .alarms-stat-grid.dashboard-style-stat-grid {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+/* override เฉพาะ rule เก่าที่ทำให้ sidebar เปิดแล้วเหลือ 2 columns */
+.layout:not(.sidebar-collapsed) .alarms-page .dashboard-style-stat-grid,
+.layout:not(.sidebar-collapsed) .alarms-center-page .dashboard-style-stat-grid,
+.layout:not(.sidebar-collapsed) .alarms-stat-grid.dashboard-style-stat-grid,
+.layout.sidebar-collapsed .alarms-page .dashboard-style-stat-grid,
+.layout.sidebar-collapsed .alarms-center-page .dashboard-style-stat-grid,
+.layout.sidebar-collapsed .alarms-stat-grid.dashboard-style-stat-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.alarms-page .alarms-stat-grid > *,
+.alarms-center-page .alarms-stat-grid > *,
+.alarms-page .alarms-stat-grid .dw-stat-card,
+.alarms-center-page .alarms-stat-grid .dw-stat-card {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* ลดขนาดด้านในเล็กน้อยเพื่อให้ 4 ใบพอดีตอน sidebar เปิด */
+.alarms-page .alarms-stat-grid .dw-stat-card,
+.alarms-center-page .alarms-stat-grid .dw-stat-card {
+  min-height: 104px !important;
+  padding: 16px !important;
+}
+
+.alarms-page .alarms-stat-grid .dw-stat-card h3,
+.alarms-center-page .alarms-stat-grid .dw-stat-card h3,
+.alarms-page .alarms-stat-grid .dw-stat-card label,
+.alarms-center-page .alarms-stat-grid .dw-stat-card label {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+.alarms-page .alarms-stat-grid .dw-stat-card strong,
+.alarms-center-page .alarms-stat-grid .dw-stat-card strong {
+  font-size: clamp(24px, 2vw, 30px) !important;
+  line-height: 1.05 !important;
+}
+
+.alarms-page .alarms-stat-grid .dw-stat-card p,
+.alarms-center-page .alarms-stat-grid .dw-stat-card p,
+.alarms-page .alarms-stat-grid .dw-stat-card small,
+.alarms-center-page .alarms-stat-grid .dw-stat-card small {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+/* Desktop / laptop: ต้อง 4 ใบแถวเดียว */
+@media (min-width: 861px) {
+  .alarms-page .alarms-stat-grid,
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-center-page .alarms-stat-grid,
+  .alarms-center-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .layout:not(.sidebar-collapsed) .alarms-page .dashboard-style-stat-grid,
+  .layout:not(.sidebar-collapsed) .alarms-center-page .dashboard-style-stat-grid,
+  .layout:not(.sidebar-collapsed) .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Tablet ค่อยลดเป็น 2 ใบ */
+@media (max-width: 860px) {
+  .alarms-page .alarms-stat-grid,
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-center-page .alarms-stat-grid,
+  .alarms-center-page .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Mobile เป็น 1 ใบ */
+@media (max-width: 460px) {
+  .alarms-page .alarms-stat-grid,
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-center-page .alarms-stat-grid,
+  .alarms-center-page .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -4,8 +4,12 @@ const API_URL = normalizeApiUrl(
   import.meta.env.VITE_API_URL || 'http://localhost:4000'
 )
 
-const REQUEST_TIMEOUT_MS = Number(
-  import.meta.env.VITE_REQUEST_TIMEOUT_MS || 15000
+const DEFAULT_REQUEST_TIMEOUT_MS = 45000
+const MIN_REQUEST_TIMEOUT_MS = 30000
+
+const REQUEST_TIMEOUT_MS = Math.max(
+  Number(import.meta.env.VITE_REQUEST_TIMEOUT_MS || DEFAULT_REQUEST_TIMEOUT_MS),
+  MIN_REQUEST_TIMEOUT_MS
 )
 
 function normalizeApiUrl(value) {
@@ -155,7 +159,20 @@ async function apiFetch(path, options = {}) {
     return data
   } catch (error) {
     if (error.name === 'AbortError') {
-      throw new Error(`API request timeout after ${timeout}ms`)
+      window.dispatchEvent(
+        new CustomEvent('dotwatchApiTimeout', {
+          detail: {
+            path,
+            timeout,
+            message:
+              'Backend ตอบช้ากว่าที่กำหนด กรุณาตรวจสอบ backend หรือกด Refresh อีกครั้ง',
+          },
+        })
+      )
+
+      throw new Error(
+        `Backend response timeout after ${Math.round(timeout / 1000)} seconds`
+      )
     }
 
     throw error

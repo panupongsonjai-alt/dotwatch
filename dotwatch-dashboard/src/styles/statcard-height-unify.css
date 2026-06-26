@@ -1,0 +1,233 @@
+/* =========================================================
+   dotWatch - StatCard Height Unify
+   ปรับ StatCard ทุกหน้าให้สูงเท่ากัน
+========================================================= */
+
+/*
+  เป้าหมาย:
+  ให้การ์ดสรุปด้านบนของทุกหน้าใช้ความสูงเดียวกัน
+  เช่น Dashboard, Devices, History, Alarm Center, Notifications,
+  Activity, Profile, Settings, System Health
+
+  ไฟล์นี้ควร import หลังสุดใน styles.css
+*/
+
+:root {
+  --dw-stat-card-height: 112px;
+  --dw-stat-card-compact-height: 104px;
+  --dw-stat-card-padding: 16px;
+}
+
+/* Base StatCard จาก component กลาง */
+.dw-stat-card,
+.stat-card,
+.summary-card,
+.dashboard-stat-card,
+.dashboard-summary-card,
+.history-stat-card,
+.profile-stat-card,
+.settings-stat-card,
+.system-health-stat-card,
+.alarm-stat-card,
+.notification-stat-card,
+.activity-stat-card {
+  min-height: var(--dw-stat-card-height) !important;
+  height: var(--dw-stat-card-height) !important;
+  max-height: var(--dw-stat-card-height) !important;
+  padding: var(--dw-stat-card-padding) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* ให้ content ภายในการ์ดจัดระยะเท่ากัน */
+.dw-stat-card,
+.stat-card,
+.summary-card,
+.dashboard-stat-card,
+.dashboard-summary-card,
+.history-stat-card,
+.profile-stat-card,
+.settings-stat-card,
+.system-health-stat-card,
+.alarm-stat-card,
+.notification-stat-card,
+.activity-stat-card {
+  display: grid !important;
+  align-content: space-between !important;
+  gap: 8px !important;
+}
+
+/* กลุ่ม stat grid ทุกหน้า */
+.dashboard-style-stat-grid,
+.dashboard-stat-grid,
+.alarms-stat-grid,
+.notifications-stat-grid,
+.activity-stat-grid,
+.history-stat-grid,
+.profile-stat-grid,
+.settings-stat-grid,
+.system-health-stat-grid,
+.device-v2-stat-grid,
+.devices-stat-grid,
+.stat-grid {
+  align-items: stretch !important;
+}
+
+/* กันตัวหนังสือดันความสูงไม่เท่ากัน */
+.dw-stat-card h3,
+.dw-stat-card h4,
+.dw-stat-card label,
+.dw-stat-card small,
+.dw-stat-card p,
+.stat-card h3,
+.stat-card h4,
+.stat-card label,
+.stat-card small,
+.stat-card p,
+.summary-card h3,
+.summary-card h4,
+.summary-card label,
+.summary-card small,
+.summary-card p {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Label / Title ของ card */
+.dw-stat-card h3,
+.dw-stat-card h4,
+.dw-stat-card label,
+.dw-stat-card .stat-label,
+.stat-card h3,
+.stat-card h4,
+.stat-card label,
+.stat-card .stat-label,
+.summary-card h3,
+.summary-card h4,
+.summary-card label,
+.summary-card .stat-label {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.075em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+
+/* Value */
+.dw-stat-card strong,
+.dw-stat-card .stat-value,
+.stat-card strong,
+.stat-card .stat-value,
+.summary-card strong,
+.summary-card .stat-value {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  font-size: clamp(24px, 2vw, 30px) !important;
+  line-height: 1.05 !important;
+  font-weight: 950 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Hint / detail */
+.dw-stat-card p,
+.dw-stat-card small,
+.dw-stat-card .stat-hint,
+.stat-card p,
+.stat-card small,
+.stat-card .stat-hint,
+.summary-card p,
+.summary-card small,
+.summary-card .stat-hint {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+}
+
+/* ถ้าหน้าไหนมี value ยาว เช่น Microsoft Edge / Asia Bangkok */
+.profile-stat-grid .dw-stat-card strong,
+.settings-stat-grid .dw-stat-card strong,
+.system-health-stat-grid .dw-stat-card strong,
+.profile-stat-grid .stat-card strong,
+.settings-stat-grid .stat-card strong,
+.system-health-stat-grid .stat-card strong {
+  font-size: clamp(20px, 1.8vw, 26px) !important;
+}
+
+/* Dashboard / Devices / History / Alarm Center ให้ดูเท่ากัน */
+.dashboard-page .dw-stat-card,
+.dashboard-page .stat-card,
+.device-v2-page .dw-stat-card,
+.device-v2-page .stat-card,
+.history-page-v2 .dw-stat-card,
+.history-page-v2 .stat-card,
+.alarms-page .dw-stat-card,
+.alarms-page .stat-card,
+.notifications-page .dw-stat-card,
+.notifications-page .stat-card,
+.activity-page .dw-stat-card,
+.activity-page .stat-card,
+.profile-v3-page .dw-stat-card,
+.profile-v3-page .stat-card,
+.settings-v3-page .dw-stat-card,
+.settings-v3-page .stat-card,
+.system-health-page .dw-stat-card,
+.system-health-page .stat-card {
+  min-height: var(--dw-stat-card-height) !important;
+  height: var(--dw-stat-card-height) !important;
+  max-height: var(--dw-stat-card-height) !important;
+}
+
+/* Alarm Center ยังคง 4 ใบในแถวเดียว */
+.alarms-page .alarms-stat-grid,
+.alarms-page .alarms-stat-grid.dashboard-style-stat-grid {
+  align-items: stretch !important;
+}
+
+.alarms-page .alarms-stat-grid .dw-stat-card,
+.alarms-page .alarms-stat-grid .stat-card {
+  min-height: var(--dw-stat-card-height) !important;
+  height: var(--dw-stat-card-height) !important;
+  max-height: var(--dw-stat-card-height) !important;
+}
+
+/* Compact density: สูงเท่ากันแต่ลดลงเล็กน้อย */
+:root[data-density='compact'] {
+  --dw-stat-card-height: 104px;
+  --dw-stat-card-padding: 14px;
+}
+
+:root[data-density='spacious'] {
+  --dw-stat-card-height: 124px;
+  --dw-stat-card-padding: 18px;
+}
+
+/* จอเล็กยังคงสูงเท่ากัน แต่ลดพื้นที่ลงเล็กน้อย */
+@media (max-width: 720px) {
+  :root {
+    --dw-stat-card-height: 104px;
+    --dw-stat-card-padding: 14px;
+  }
+
+  .dw-stat-card,
+  .stat-card,
+  .summary-card,
+  .dashboard-stat-card,
+  .dashboard-summary-card,
+  .history-stat-card,
+  .profile-stat-card,
+  .settings-stat-card,
+  .system-health-stat-card,
+  .alarm-stat-card,
+  .notification-stat-card,
+  .activity-stat-card {
+    min-height: var(--dw-stat-card-height) !important;
+    height: var(--dw-stat-card-height) !important;
+    max-height: var(--dw-stat-card-height) !important;
+  }
+}

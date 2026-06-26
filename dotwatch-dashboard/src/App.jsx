@@ -479,11 +479,19 @@ function App() {
       setPage('dashboard')
     }
 
+    function handleApiTimeout(event) {
+      if (import.meta.env.DEV) {
+        console.warn('dotWatch API timeout:', event.detail)
+      }
+    }
+
+    window.addEventListener('dotwatchApiTimeout', handleApiTimeout)
     window.addEventListener('dotwatchUnauthorized', handleUnauthorized)
     window.addEventListener('dotwatchSecurityReset', handleSecurityReset)
 
     return () => {
       uninstallSecurityGuards()
+      window.removeEventListener('dotwatchApiTimeout', handleApiTimeout)
       window.removeEventListener('dotwatchUnauthorized', handleUnauthorized)
       window.removeEventListener('dotwatchSecurityReset', handleSecurityReset)
     }
