@@ -3450,3 +3450,398 @@
   }
 }
 
+/* =========================================================
+   Devices - Metric Display Narrow Panel Fix
+   บังคับ Metric Display ให้พอดีกับ Selected Device panel
+========================================================= */
+
+.metric-config-panel-clean,
+.devices-v3-tab-panel .metric-config-panel-clean {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* Toolbar ด้านบนไม่ให้ Add Metric ล้นขวา */
+.metric-config-toolbar {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.metric-config-toolbar > div {
+  min-width: 0 !important;
+}
+
+.metric-config-toolbar .ghost-button {
+  min-width: 112px !important;
+  max-width: 150px !important;
+  white-space: nowrap !important;
+}
+
+/* Card list */
+.metric-config-list-clean {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 12px !important;
+  overflow: visible !important;
+}
+
+.metric-config-card-clean {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* เปลี่ยนเป็น 2 แถวเสมอ เพื่อให้พอดีกับ panel ขวา */
+.metric-config-card-clean-grid {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(76px, 92px) !important;
+  grid-template-areas:
+    'name unit'
+    'icon display' !important;
+  gap: 12px !important;
+  align-items: end !important;
+}
+
+.metric-config-field-name {
+  grid-area: name !important;
+}
+
+.metric-config-field-unit {
+  grid-area: unit !important;
+}
+
+.metric-config-field-icon {
+  grid-area: icon !important;
+}
+
+.metric-config-field-visible {
+  grid-area: display !important;
+}
+
+/* ทุกช่องห้ามล้น */
+.metric-config-field,
+.metric-config-field input,
+.metric-icon-dropdown,
+.metric-icon-dropdown-summary,
+.metric-visible-toggle {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.metric-config-field input,
+.metric-icon-dropdown-summary,
+.metric-visible-toggle {
+  width: 100% !important;
+  height: 40px !important;
+  min-height: 40px !important;
+}
+
+/* Icon dropdown ให้ไม่เบียด */
+.metric-icon-dropdown-current span,
+.metric-icon-dropdown-option span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Display pill ปรับให้พอดี ไม่ยื่นออกนอก card */
+.metric-visible-toggle {
+  grid-template-columns: 22px minmax(0, 1fr) !important;
+  gap: 7px !important;
+  padding: 0 10px !important;
+  justify-self: stretch !important;
+  overflow: hidden !important;
+}
+
+.metric-visible-toggle input {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+}
+
+.metric-visible-toggle > span {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 12px !important;
+}
+
+/* หัว card */
+.metric-config-card-clean-head {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.metric-config-card-clean-head > div {
+  min-width: 0 !important;
+}
+
+.metric-config-card-clean-head strong {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Footer actions ไม่ล้นขวา */
+.metric-config-footer-actions {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  overflow: hidden !important;
+}
+
+.metric-config-footer-actions button {
+  min-width: 112px !important;
+  max-width: 160px !important;
+}
+
+.metric-save-btn {
+  max-width: 170px !important;
+  white-space: nowrap !important;
+}
+
+/* จอ/Panel แคบมาก ให้เป็น 1 column */
+@media (max-width: 560px) {
+  .metric-config-toolbar {
+    grid-template-columns: 1fr !important;
+  }
+
+  .metric-config-toolbar .ghost-button,
+  .metric-config-footer-actions button {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .metric-config-card-clean-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      'name'
+      'unit'
+      'icon'
+      'display' !important;
+  }
+}
+
+/* =========================================================
+   Devices - Alarm Rules Narrow Panel Fix
+   บังคับ Alarm Rules ให้พอดีกับ Selected Device panel
+========================================================= */
+
+.metric-alarm-panel-easy,
+.devices-v3-alarm-rules-panel,
+.devices-v3-tab-panel .metric-alarm-panel-easy {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.metric-alarm-rule-grid-easy,
+.metric-alarm-rule-list-easy {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 12px !important;
+  overflow: visible !important;
+}
+
+.metric-alarm-card-easy {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  padding: 14px !important;
+}
+
+.metric-alarm-card-header {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.metric-alarm-card-header > div {
+  min-width: 0 !important;
+}
+
+.metric-alarm-card-header strong,
+.metric-alarm-card-header span:not(.device-model-badge) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+}
+
+/*
+  เดิม rule row เรียงหลาย column ในแถวเดียว:
+  Severity / Condition / Threshold / Active / Save
+  ทำให้ล้นใน panel ขวา
+  แก้เป็น card 2 แถว:
+  แถวบน: Severity + Active
+  แถวล่าง: Condition + Threshold + Save
+*/
+.metric-alarm-rule-row-easy,
+.device-alarm-rule-item.metric-alarm-rule-row-easy {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(104px, 124px) !important;
+  grid-template-areas:
+    'severity active'
+    'condition threshold'
+    'preview preview'
+    'save save' !important;
+  gap: 12px !important;
+  align-items: end !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  padding: 14px !important;
+}
+
+.metric-alarm-severity {
+  grid-area: severity !important;
+  min-width: 0 !important;
+}
+
+.metric-alarm-operator {
+  grid-area: condition !important;
+  min-width: 0 !important;
+}
+
+.metric-alarm-threshold {
+  grid-area: threshold !important;
+  min-width: 0 !important;
+}
+
+.alarm-active-toggle {
+  grid-area: active !important;
+  width: 100% !important;
+  max-width: 124px !important;
+  justify-self: end !important;
+  align-self: start !important;
+}
+
+.metric-alarm-save-btn {
+  grid-area: save !important;
+  width: 100% !important;
+  max-width: 160px !important;
+  justify-self: end !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  white-space: nowrap !important;
+}
+
+.metric-alarm-rule-preview {
+  grid-area: preview !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow-wrap: anywhere !important;
+  margin: 0 !important;
+}
+
+/* Fields ห้ามล้น */
+.metric-alarm-field,
+.metric-alarm-field select,
+.metric-alarm-field input,
+.alarm-active-toggle,
+.metric-alarm-save-btn {
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.metric-alarm-field select,
+.metric-alarm-field input {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 40px !important;
+  min-height: 40px !important;
+}
+
+.metric-alarm-severity .status {
+  max-width: 100% !important;
+  white-space: nowrap !important;
+}
+
+.metric-alarm-severity small {
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* Active pill ไม่ให้ล้น */
+.alarm-active-toggle {
+  grid-template-columns: 22px minmax(0, 1fr) !important;
+  gap: 7px !important;
+  padding: 0 10px !important;
+  overflow: hidden !important;
+}
+
+.alarm-active-toggle input {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+}
+
+.alarm-active-toggle > span {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* จอ/Panel แคบมาก ให้ทุกอย่างลง 1 column */
+@media (max-width: 560px) {
+  .metric-alarm-card-header {
+    display: grid !important;
+    align-items: stretch !important;
+  }
+
+  .metric-alarm-rule-row-easy,
+  .device-alarm-rule-item.metric-alarm-rule-row-easy {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      'severity'
+      'condition'
+      'threshold'
+      'active'
+      'preview'
+      'save' !important;
+  }
+
+  .alarm-active-toggle,
+  .metric-alarm-save-btn {
+    width: 100% !important;
+    max-width: none !important;
+    justify-self: stretch !important;
+  }
+}
+
