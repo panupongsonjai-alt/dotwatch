@@ -264,14 +264,12 @@ function Devices() {
   }
 
   async function handleDeleteDevice(deviceId) {
-    const device = devices.find(
-      (item) => String(item.id) === String(deviceId)
-    )
+    const device = devices.find((item) => String(item.id) === String(deviceId))
     const ok = confirmDeleteAction({
       title: 'Confirm Delete Device',
       targetName: device?.name || device?.device_code || `Device ID ${deviceId}`,
       description:
-        'Device นี้จะถูกลบออกจากระบบ รวมถึงข้อมูลที่เกี่ยวข้อง กรุณาพิมพ์ delete เพื่อยืนยัน',
+        'Device นี้จะถูกลบออกจากระบบ กรุณาพิมพ์ delete เพื่อยืนยัน',
     })
 
     if (!ok) return

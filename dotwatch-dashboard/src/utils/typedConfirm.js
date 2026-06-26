@@ -3,12 +3,7 @@ const CONFIRM_KEYWORDS = {
   resetSecret: 'reset secret',
 }
 
-function buildConfirmMessage({
-  title,
-  targetName,
-  description,
-  keyword,
-}) {
+function buildConfirmMessage({ title, targetName, description, keyword }) {
   return [
     title,
     targetName ? `Target: ${targetName}` : null,

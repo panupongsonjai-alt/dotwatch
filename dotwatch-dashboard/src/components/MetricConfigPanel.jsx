@@ -54,9 +54,7 @@ function MetricIconPicker({ value, disabled, onChange }) {
   const selectedIcon = value || 'Activity'
   const SelectedIconComponent = ICON_COMPONENTS[selectedIcon] || Activity
 
-  function handleSelect(event, iconName) {
-    event.preventDefault()
-
+  function handleSelect(iconName, event) {
     if (disabled) return
 
     onChange(iconName)
@@ -74,7 +72,7 @@ function MetricIconPicker({ value, disabled, onChange }) {
         aria-label="Select metric icon"
       >
         <span className="metric-icon-dropdown-current">
-          <SelectedIconComponent size={17} />
+          <SelectedIconComponent size={16} />
           <span>{selectedIcon}</span>
         </span>
       </summary>
@@ -93,10 +91,10 @@ function MetricIconPicker({ value, disabled, onChange }) {
                   ? 'metric-icon-dropdown-option active'
                   : 'metric-icon-dropdown-option'
               }
-              onClick={(event) => handleSelect(event, iconName)}
+              onClick={(event) => handleSelect(iconName, event)}
               disabled={disabled}
             >
-              <IconComponent size={17} />
+              <IconComponent size={16} />
               <span>{iconName}</span>
             </button>
           )
@@ -180,11 +178,11 @@ export default function MetricConfigPanel({ deviceId }) {
   ).length
 
   return (
-    <section className="metric-config-panel metric-config-panel-v2">
+    <section className="metric-config-panel metric-config-panel-v2 metric-config-panel-easy">
       <div className="metric-config-header">
         <div>
           <h4>Metric Display</h4>
-          <p>Configure metrics shown on Dashboard and Device Details.</p>
+          <p>ตั้งชื่อ Metric, หน่วย, Icon และเลือกว่าจะแสดงบน Dashboard หรือไม่</p>
         </div>
 
         <div className="metric-config-actions">
@@ -216,73 +214,88 @@ export default function MetricConfigPanel({ deviceId }) {
           <p>กด Add Metric เพื่อเพิ่มค่าที่ต้องการแสดงผล</p>
         </div>
       ) : (
-        <div className="metric-config-table metric-config-table-v2">
-          <div className="metric-config-table-head metric-config-table-head-v2">
-            <span>Metric Name</span>
-            <span>Unit</span>
-            <span>Icon</span>
-            <span>Visible</span>
-            <span />
-          </div>
-
+        <div className="metric-config-list-v3">
           {draftMetrics.map((metric, index) => (
-            <div
-              className="metric-config-row metric-config-row-v2"
+            <article
+              className="metric-config-card-v3"
               key={metric.id ? `metric-${metric.id}` : `metric-${index}`}
             >
-              <input
-                value={metric.metric_name || ''}
-                placeholder={`เช่น ${
-                  index === 0 ? 'Supply Air' : 'Metric Name'
-                }`}
-                onChange={(event) =>
-                  updateMetric(index, 'metric_name', event.target.value)
-                }
-                disabled={loading || saving}
-              />
+              <div className="metric-config-card-index">
+                <span>#{index + 1}</span>
+                <strong>{metric.metric_key || `metric_${index + 1}`}</strong>
+              </div>
 
-              <input
-                value={metric.unit || ''}
-                placeholder="เช่น °C, %, kWh"
-                onChange={(event) =>
-                  updateMetric(index, 'unit', event.target.value)
-                }
-                disabled={loading || saving}
-              />
-
-              <MetricIconPicker
-                value={metric.icon}
-                disabled={loading || saving}
-                onChange={(iconName) => updateMetric(index, 'icon', iconName)}
-              />
-
-              <label className="metric-visible-toggle">
+              <label className="metric-config-field metric-config-field-name">
+                <span>Metric Name</span>
                 <input
-                  type="checkbox"
-                  checked={metric.visible !== false}
+                  value={metric.metric_name || ''}
+                  placeholder={`เช่น ${
+                    index === 0 ? 'Supply Air' : 'Metric Name'
+                  }`}
                   onChange={(event) =>
-                    updateMetric(index, 'visible', event.target.checked)
+                    updateMetric(index, 'metric_name', event.target.value)
                   }
                   disabled={loading || saving}
                 />
-                Show
               </label>
+
+              <label className="metric-config-field metric-config-field-unit">
+                <span>Unit</span>
+                <input
+                  value={metric.unit || ''}
+                  placeholder="°C, %, kWh"
+                  onChange={(event) =>
+                    updateMetric(index, 'unit', event.target.value)
+                  }
+                  disabled={loading || saving}
+                />
+              </label>
+
+              <div className="metric-config-field metric-config-field-icon">
+                <span>Icon</span>
+                <MetricIconPicker
+                  value={metric.icon}
+                  disabled={loading || saving}
+                  onChange={(iconName) => updateMetric(index, 'icon', iconName)}
+                />
+              </div>
+
+              <div className="metric-config-field metric-config-field-visible">
+                <span>Display</span>
+                <label
+                  className={
+                    metric.visible !== false
+                      ? 'metric-visible-toggle active'
+                      : 'metric-visible-toggle'
+                  }
+                >
+                  <input
+                    type="checkbox"
+                    checked={metric.visible !== false}
+                    onChange={(event) =>
+                      updateMetric(index, 'visible', event.target.checked)
+                    }
+                    disabled={loading || saving}
+                  />
+                  <span>{metric.visible !== false ? 'Visible' : 'Hidden'}</span>
+                </label>
+              </div>
 
               <button
                 type="button"
-                className="delete-btn square"
+                className="delete-btn square metric-config-delete-btn"
                 onClick={() => removeMetric(index)}
                 disabled={loading || saving}
                 title="Delete metric"
               >
                 <Trash2 size={16} />
               </button>
-            </div>
+            </article>
           ))}
         </div>
       )}
 
-      <div className="metric-config-actions">
+      <div className="metric-config-actions metric-config-footer-actions">
         <button
           type="button"
           className="ghost-button"

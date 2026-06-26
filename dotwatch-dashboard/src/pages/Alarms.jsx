@@ -18,8 +18,7 @@ import {
   Search,
   Trash2,
 } from 'lucide-react'
-import { PageHeader, SectionHeader, StatCard } from '../components/common'
-import { confirmDeleteAction } from '../utils/typedConfirm'
+import { StatCard } from '../components/common'
 
 function formatDate(value) {
   if (!value) return '--'
@@ -311,22 +310,23 @@ function Alarms() {
 
   return (
     <div className="page app-page alarms-page">
-      <PageHeader
-        eyebrow="Alarm Center"
-        title="Alarms"
-        description="ติดตาม Alarm Events และ Alarm Rules ของอุปกรณ์ทั้งหมด"
-        actions={
-          <button
-            type="button"
-            className="ghost-button"
-            onClick={loadData}
-            disabled={loading || saving}
-          >
-            <RefreshCw size={17} />
-            Refresh
-          </button>
-        }
-      />
+      <section className="app-page-header">
+        <div>
+          <span className="page-eyebrow">Alarm Center</span>
+          <h2>Alarms</h2>
+          <p>ติดตาม Alarm Events และ Alarm Rules ของอุปกรณ์ทั้งหมด</p>
+        </div>
+
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={loadData}
+          disabled={loading || saving}
+        >
+          <RefreshCw size={17} />
+          Refresh
+        </button>
+      </section>
 
       <section className="alarms-stat-grid dashboard-style-stat-grid">
         <StatCard
@@ -355,10 +355,12 @@ function Alarms() {
       </section>
 
       <section className="app-card">
-        <SectionHeader
-          title="Alarm Events"
-          description="รายการแจ้งเตือนล่าสุดจาก Dynamic Metrics"
-        />
+        <div className="app-section-title">
+          <div>
+            <h2>Alarm Events</h2>
+            <p>รายการแจ้งเตือนล่าสุดจาก Dynamic Metrics</p>
+          </div>
+        </div>
 
         <div className="alarm-toolbar">
           <label className="search-input">
@@ -485,10 +487,12 @@ function Alarms() {
       </section>
 
       <section className="app-card">
-        <SectionHeader
-          title="Alarm Rules"
-          description="Rule ทั้งหมดที่ตั้งไว้ในหน้า Device"
-        />
+        <div className="app-section-title">
+          <div>
+            <h2>Alarm Rules</h2>
+            <p>Rule ทั้งหมดที่ตั้งไว้ในหน้า Device</p>
+          </div>
+        </div>
 
         {rules.length === 0 ? (
           <div className="app-empty-state">

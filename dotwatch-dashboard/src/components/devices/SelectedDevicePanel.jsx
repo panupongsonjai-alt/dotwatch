@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  BellRing,
   Edit3,
   KeyRound,
   MapPin,
   Save,
+  ShieldCheck,
   Trash2,
   X,
 } from 'lucide-react'
 import LocationPicker from '../LocationPicker.jsx'
 import MetricConfigPanel from '../MetricConfigPanel.jsx'
 import { useDeviceMetrics } from '../../hooks/useDeviceMetrics'
-import { EmptyState, SectionHeader, StatCard } from '../common'
+import { EmptyState, StatCard, StatusBadge } from '../common'
 import {
   formatDate,
   getDeviceDisplayName,
@@ -28,6 +30,11 @@ const DETAIL_TABS = [
   { key: 'security', label: 'Security' },
 ]
 
+function getHealthTone(status) {
+  if (status === 'online') return 'healthy'
+  if (status === 'warning') return 'warning'
+  return 'offline'
+}
 
 const OPERATORS = ['>', '>=', '<', '<=', '=']
 const SEVERITIES = ['warning', 'critical']
@@ -50,6 +57,20 @@ function getMetricLabel(metrics, metricKey, rule = {}) {
 function getMetricUnit(metrics, metricKey, rule = {}) {
   const metric = metrics.find((item) => item.metric_key === metricKey)
   return metric?.unit || rule.unit || ''
+}
+
+function DeviceTabHeader({ eyebrow, title, description, meta }) {
+  return (
+    <div className="devices-v3-tab-header">
+      <div>
+        {eyebrow && <span className="page-eyebrow">{eyebrow}</span>}
+        <h3>{title}</h3>
+        {description && <p>{description}</p>}
+      </div>
+
+      {meta && <span className="device-model-badge">{meta}</span>}
+    </div>
+  )
 }
 
 function DeviceAlarmRulesPanel({
@@ -186,12 +207,10 @@ function DeviceAlarmRulesPanel({
   }
 
   return (
-    <div className="alarm-rules-panel-v2 devices-v3-alarm-rules-panel metric-alarm-panel">
-      <div className="alarm-rule-empty metric-alarm-note">
-        ตั้งค่าได้ 2 Alarm Rule ต่อ 1 Metric: Warning และ Critical
-      </div>
+    <div className="alarm-rules-panel-v2 devices-v3-alarm-rules-panel metric-alarm-panel metric-alarm-panel-easy">
 
-      <div className="metric-alarm-rule-grid">
+
+      <div className="metric-alarm-rule-grid metric-alarm-rule-grid-easy">
         {visibleMetrics.map((metric) => {
           const metricKey = metric.metric_key
           const metricName = metric.metric_name || metric.metric_key
@@ -201,64 +220,93 @@ function DeviceAlarmRulesPanel({
           return (
             <section
               key={metricKey}
-              className="devices-v3-rule-card metric-alarm-card"
+              className="devices-v3-rule-card metric-alarm-card metric-alarm-card-easy"
             >
-              <div className="alarm-rule-summary-v2 metric-alarm-card-header">
-                <strong>{metricName}</strong>
-                <span>{metricKey}</span>
+              <div className="metric-alarm-card-header">
+                <div>
+                  <strong>{metricName}</strong>
+                  <span>
+                    {metricKey}
+                    {metricUnit ? ` • ${metricUnit}` : ''}
+                  </span>
+                </div>
+
+                <span className="device-model-badge">2 Rules</span>
               </div>
 
-              <div className="metric-alarm-rule-list">
+              <div className="metric-alarm-rule-list metric-alarm-rule-list-easy">
                 {SEVERITIES.map((severity) => {
                   const draft = metricDrafts[severity] || {
                     operator: severity === 'critical' ? '>' : '>=',
                     threshold: '',
                     is_active: true,
                   }
+                  const severityLabel =
+                    severity === 'critical' ? 'Critical' : 'Warning'
+
                   return (
                     <div
                       key={`${metricKey}-${severity}`}
-                      className="device-alarm-rule-item alarm-rule-edit-row-v2 metric-alarm-rule-row"
+                      className={`device-alarm-rule-item alarm-rule-edit-row-v2 metric-alarm-rule-row metric-alarm-rule-row-easy ${severity}`}
                     >
-                      <span className={`status ${severity}`}>
-                        {severity === 'critical' ? 'Critical' : 'Warning'}
-                      </span>
+                      <div className="metric-alarm-severity">
+                        <span className={`status ${severity}`}>
+                          {severityLabel}
+                        </span>
+                        <small>
+                          {severity === 'critical'
+                            ? 'ระดับวิกฤต ต้องตรวจสอบทันที'
+                            : 'ระดับเตือนล่วงหน้า'}
+                        </small>
+                      </div>
 
-                      <select
-                        value={draft.operator || '>'}
-                        onChange={(event) =>
-                          updateAlarmDraft(
-                            metricKey,
-                            severity,
-                            'operator',
-                            event.target.value
-                          )
+                      <label className="metric-alarm-field metric-alarm-operator">
+                        <span>Condition</span>
+                        <select
+                          value={draft.operator || '>'}
+                          onChange={(event) =>
+                            updateAlarmDraft(
+                              metricKey,
+                              severity,
+                              'operator',
+                              event.target.value
+                            )
+                          }
+                          disabled={saving}
+                        >
+                          {OPERATORS.map((operator) => (
+                            <option key={operator} value={operator}>
+                              {operator}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="metric-alarm-field metric-alarm-threshold">
+                        <span>Threshold {metricUnit ? `(${metricUnit})` : ''}</span>
+                        <input
+                          type="number"
+                          value={draft.threshold}
+                          placeholder="Value"
+                          onChange={(event) =>
+                            updateAlarmDraft(
+                              metricKey,
+                              severity,
+                              'threshold',
+                              event.target.value
+                            )
+                          }
+                          disabled={saving}
+                        />
+                      </label>
+
+                      <label
+                        className={
+                          draft.is_active !== false
+                            ? 'metric-visible-toggle alarm-active-toggle active'
+                            : 'metric-visible-toggle alarm-active-toggle'
                         }
-                        disabled={saving}
                       >
-                        {OPERATORS.map((operator) => (
-                          <option key={operator} value={operator}>
-                            {operator}
-                          </option>
-                        ))}
-                      </select>
-
-                      <input
-                        type="number"
-                        value={draft.threshold}
-                        placeholder={`Threshold${metricUnit ? ` (${metricUnit})` : ''}`}
-                        onChange={(event) =>
-                          updateAlarmDraft(
-                            metricKey,
-                            severity,
-                            'threshold',
-                            event.target.value
-                          )
-                        }
-                        disabled={saving}
-                      />
-
-                      <label className="metric-visible-toggle">
                         <input
                           type="checkbox"
                           checked={draft.is_active !== false}
@@ -272,21 +320,26 @@ function DeviceAlarmRulesPanel({
                           }
                           disabled={saving}
                         />
-                        Active
+                        <span>
+                          {draft.is_active !== false ? 'Active' : 'Paused'}
+                        </span>
                       </label>
 
-                      <div className="alarm-rule-actions">
-                        <button
-                          type="button"
-                          className="save-btn"
-                          disabled={saving}
-                          onClick={() =>
-                            saveMetricSeverityRule(metricKey, severity)
-                          }
-                        >
-                          Save
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        className="save-btn metric-alarm-save-btn"
+                        disabled={saving}
+                        onClick={() =>
+                          saveMetricSeverityRule(metricKey, severity)
+                        }
+                      >
+                        Save
+                      </button>
+
+                      <p className="metric-alarm-rule-preview">
+                        Trigger when {metricName} {draft.operator || '>'}{' '}
+                        {formatThreshold(draft.threshold, metricUnit)}
+                      </p>
                     </div>
                   )
                 })}
@@ -298,6 +351,7 @@ function DeviceAlarmRulesPanel({
     </div>
   )
 }
+
 
 function SelectedDevicePanel({
   selectedDevice,
@@ -331,9 +385,37 @@ function SelectedDevicePanel({
 
   const isEditing = editingDeviceId === selectedDevice.id
   const status = getStatus(selectedDevice)
+  const healthTone = getHealthTone(status)
+  const selectedAlarmRuleCount = Array.isArray(selectedRules)
+    ? selectedRules.length
+    : 0
+
 
   return (
     <section className="app-card devices-v3-detail-card">
+      <div className={`devices-v3-health-banner ${healthTone}`}>
+        <div className="devices-v3-health-icon">
+          {status === 'online' ? (
+            <ShieldCheck size={22} />
+          ) : (
+            <BellRing size={22} />
+          )}
+        </div>
+
+        <div>
+          <strong>
+            {status === 'online'
+              ? 'Device Healthy'
+              : status === 'warning'
+                ? 'Device Warning'
+                : 'Device Offline'}
+          </strong>
+          <p>Last data received {getLastSeen(selectedDevice)}</p>
+        </div>
+
+        <StatusBadge status={status} label={getStatusLabel(status)} />
+      </div>
+
       <div className="devices-v2-selected-header devices-v3-selected-header">
         <div className="devices-v2-selected-title">
           <span className="page-eyebrow">Selected Device</span>
@@ -421,53 +503,50 @@ function SelectedDevicePanel({
         role="tablist"
         aria-label="Device sections"
       >
-        {DETAIL_TABS.map((tab) => {
-          const badge = tab.key === 'overview' ? getStatusLabel(status) : null
-
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              className={activeTab === tab.key ? 'active' : ''}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label}
-              {badge != null && <b>{badge}</b>}
-            </button>
-          )
-        })}
+        {DETAIL_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            className={activeTab === tab.key ? 'active' : ''}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {activeTab === 'overview' && (
         <div className="devices-v3-tab-panel">
-          <section className="devices-v3-overview-grid">
-            <StatCard
-              label="Status"
-              value={getStatusLabel(status)}
-              hint="Current state"
-              tone={
-                status === 'online'
-                  ? 'success'
-                  : status === 'warning'
-                    ? 'warning'
-                    : 'danger'
-              }
-            />
-            <StatCard
-              label="Model"
-              value={getModelLabel(selectedDevice)}
-              hint="Device model"
-            />
-            <StatCard
-              label="Firmware"
-              value={selectedDevice.firmware_version || '--'}
-              hint="Firmware version"
-            />
-            <StatCard
-              label="Last Seen"
-              value={getLastSeen(selectedDevice)}
-              hint="Latest ingest"
-            />
+          <DeviceTabHeader
+            eyebrow="Device Summary"
+            title="Overview"
+            description="ข้อมูลภาพรวมล่าสุดของ Device นี้ รวมถึงรุ่น Firmware และเวลาที่รับค่าล่าสุด"
+            meta={getStatusLabel(status)}
+          />
+          <section className="devices-v3-overview-grid devices-v3-overview-grid-fit">
+            <div className="devices-v3-overview-stat devices-v3-overview-stat-model">
+              <StatCard
+                label="Model"
+                value={getModelLabel(selectedDevice)}
+                hint="Device model"
+              />
+            </div>
+
+            <div className="devices-v3-overview-stat devices-v3-overview-stat-firmware">
+              <StatCard
+                label="Firmware"
+                value={selectedDevice.firmware_version || '--'}
+                hint="Firmware version"
+              />
+            </div>
+
+            <div className="devices-v3-overview-stat devices-v3-overview-stat-last-seen">
+              <StatCard
+                label="Last Seen"
+                value={getLastSeen(selectedDevice)}
+                hint="Latest ingest"
+              />
+            </div>
           </section>
 
           <section className="devices-v3-info-grid">
@@ -478,10 +557,6 @@ function SelectedDevicePanel({
             <div>
               <label>Device ID</label>
               <p>{selectedDevice.id}</p>
-            </div>
-            <div>
-              <label>Group</label>
-              <p>{selectedDevice.group_name || 'Default'}</p>
             </div>
             <div>
               <label>Created / Latest</label>
@@ -497,9 +572,13 @@ function SelectedDevicePanel({
 
       {activeTab === 'metrics' && (
         <div className="devices-v3-tab-panel">
-          <SectionHeader
-            title="Metric Configuration"
-            description="ตั้งชื่อ Metric, หน่วย และการแสดงผลบน Dashboard / Device Detail"
+
+
+          <DeviceTabHeader
+            eyebrow="Metric Display"
+            title="Metrics"
+            description="ตั้งชื่อ Metric, หน่วย, Icon และเลือกข้อมูลที่ต้องการแสดงบน Dashboard และ Device Detail"
+            meta={`${selectedDevice.metric_count || 0} Channels`}
           />
 
           <MetricConfigPanel deviceId={selectedDevice.id} />
@@ -508,14 +587,18 @@ function SelectedDevicePanel({
 
       {activeTab === 'alarms' && (
         <div className="devices-v3-tab-panel">
-          <SectionHeader
-            title="Alarm Rules"
-            description="Configure Warning and Critical thresholds for each metric"
+
+
+          <DeviceTabHeader
+            eyebrow="Alarm Rules"
+            title="Alarms"
+            description="ตั้งค่า Warning และ Critical แยกตาม Metric เพื่อให้ระบบแจ้งเตือนอัตโนมัติ"
+            meta={`${selectedAlarmRuleCount} Rules`}
           />
 
           <DeviceAlarmRulesPanel
             deviceId={selectedDevice.id}
-            alarmRules={selectedRules}
+            alarmRules={Array.isArray(selectedRules) ? selectedRules : []}
             saving={saving}
             onCreateMetricAlarm={onCreateMetricAlarm}
             onUpdateMetricAlarm={onUpdateMetricAlarm}
@@ -526,10 +609,15 @@ function SelectedDevicePanel({
 
       {activeTab === 'location' && (
         <div className="devices-v3-tab-panel devices-v3-location-panel">
-          <SectionHeader
-            title="Device Location"
-            description="คลิกบนแผนที่เพื่อเลือกตำแหน่งของ Device"
-            actions={<MapPin size={18} />}
+          <DeviceTabHeader
+            eyebrow="Device Location"
+            title="Location"
+            description="จัดการตำแหน่ง Latitude, Longitude และลิงก์แผนที่ของ Device นี้"
+            meta={
+              selectedDevice.latitude && selectedDevice.longitude
+                ? 'Mapped'
+                : 'No Location'
+            }
           />
 
           <LocationPicker
@@ -556,9 +644,11 @@ function SelectedDevicePanel({
 
       {activeTab === 'security' && (
         <div className="devices-v3-tab-panel">
-          <SectionHeader
+          <DeviceTabHeader
+            eyebrow="Device Access"
             title="Security"
-            description="ข้อมูลสำหรับ Firmware / Gateway ใช้ยืนยันตัวตนกับ Backend"
+            description="ข้อมูลสำหรับ Firmware / Gateway ใช้ยืนยันตัวตนกับ Backend และจัดการ Secret"
+            meta="Protected"
           />
 
           <section className="devices-v3-info-grid">
