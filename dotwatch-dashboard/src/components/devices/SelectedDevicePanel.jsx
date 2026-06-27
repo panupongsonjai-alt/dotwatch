@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from 'firebase/auth'
+import {
   BellRing,
   Edit3,
+  Copy,
+  Eye,
+  EyeOff,
   KeyRound,
+  Lock,
   MapPin,
   Save,
   ShieldCheck,
@@ -11,6 +19,8 @@ import {
 } from 'lucide-react'
 import LocationPicker from '../LocationPicker.jsx'
 import MetricConfigPanel from '../MetricConfigPanel.jsx'
+import { auth } from '../../services/firebase'
+import { getDeviceSecret } from '../../services/api'
 import { useDeviceMetrics } from '../../hooks/useDeviceMetrics'
 import { EmptyState, StatCard, StatusBadge } from '../common'
 import {
@@ -353,6 +363,30 @@ function DeviceAlarmRulesPanel({
 }
 
 
+async function reauthenticateCurrentUser(password) {
+  const user = auth.currentUser
+
+  if (!user || !user.email) {
+    throw new Error('กรุณาเข้าสู่ระบบใหม่ก่อนดู Device Secret')
+  }
+
+  if (!password) {
+    throw new Error('กรุณากรอก Password ก่อนดู Device Secret')
+  }
+
+  const credential = EmailAuthProvider.credential(user.email, password)
+
+  await reauthenticateWithCredential(user, credential)
+  await user.getIdToken(true)
+}
+
+function maskSecret(secret = '') {
+  if (!secret) return '••••••••••••••••••••••••'
+  if (secret.length <= 8) return '••••••••'
+
+  return `${secret.slice(0, 4)}••••••••••••${secret.slice(-4)}`
+}
+
 function SelectedDevicePanel({
   selectedDevice,
   selectedRules,
@@ -371,6 +405,83 @@ function SelectedDevicePanel({
   onDeleteAlarmRule,
 }) {
   const [activeTab, setActiveTab] = useState('overview')
+  const [secretPassword, setSecretPassword] = useState('')
+  const [revealedSecret, setRevealedSecret] = useState('')
+  const [secretVisible, setSecretVisible] = useState(false)
+  const [secretLoading, setSecretLoading] = useState(false)
+  const [secretError, setSecretError] = useState('')
+  const [secretCopied, setSecretCopied] = useState(false)
+
+  useEffect(() => {
+    setSecretPassword('')
+    setRevealedSecret('')
+    setSecretVisible(false)
+    setSecretError('')
+    setSecretCopied(false)
+  }, [selectedDevice?.id])
+
+  async function handleRevealSecret() {
+    if (!selectedDevice?.id || secretLoading) return
+
+    setSecretError('')
+    setSecretCopied(false)
+
+    try {
+      setSecretLoading(true)
+      await reauthenticateCurrentUser(secretPassword)
+
+      const result = await getDeviceSecret(selectedDevice.id)
+      const nextSecret = result?.deviceSecret || ''
+
+      if (!nextSecret) {
+        throw new Error('ไม่พบ Device Secret ใน response จาก backend')
+      }
+
+      setRevealedSecret(nextSecret)
+      setSecretVisible(true)
+      setSecretPassword('')
+    } catch (error) {
+      const message = error?.message || 'ไม่สามารถดู Device Secret ได้'
+
+      if (
+        message.includes('SECRET_NOT_RECOVERABLE') ||
+        message.includes('not recoverable') ||
+        message.includes('ไม่สามารถถอดรหัส')
+      ) {
+        setSecretError(
+          'Device นี้ยังไม่มี Secret แบบเข้ารหัสให้ดูย้อนหลังได้ กรุณา Reset Secret ใหม่ 1 ครั้ง แล้วนำ Secret ใหม่ไปใส่ใน Firmware / Gateway'
+        )
+      } else if (
+        message.includes('auth/wrong-password') ||
+        message.includes('auth/invalid-credential') ||
+        message.includes('auth/invalid-login-credentials')
+      ) {
+        setSecretError('Password ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง')
+      } else {
+        setSecretError(message)
+      }
+    } finally {
+      setSecretLoading(false)
+    }
+  }
+
+  async function handleCopySecret() {
+    if (!revealedSecret) return
+
+    await navigator.clipboard.writeText(revealedSecret)
+    setSecretCopied(true)
+
+    window.setTimeout(() => {
+      setSecretCopied(false)
+    }, 1800)
+  }
+
+  function handleHideSecret() {
+    setSecretVisible(false)
+    setRevealedSecret('')
+    setSecretCopied(false)
+  }
+
 
   if (!selectedDevice) {
     return (
@@ -658,7 +769,13 @@ function SelectedDevicePanel({
             </div>
             <div>
               <label>Device Secret</label>
-              <p>ซ่อนเพื่อความปลอดภัย และสามารถออก Secret ใหม่ได้จากส่วนนี้</p>
+              <p>
+                {revealedSecret
+                  ? secretVisible
+                    ? revealedSecret
+                    : maskSecret(revealedSecret)
+                  : 'ซ่อนเพื่อความปลอดภัย ต้องใส่ Password ก่อนดู'}
+              </p>
             </div>
             <div>
               <label>Device ID</label>
@@ -667,6 +784,106 @@ function SelectedDevicePanel({
             <div>
               <label>Secret Status</label>
               <p>Secret เดิมจะใช้งานไม่ได้ทันทีหลัง Reset</p>
+            </div>
+          </section>
+
+          <section className="devices-v3-security-reveal-card">
+            <div className="devices-v3-security-action-copy">
+              <span className="page-eyebrow">Secret Visibility</span>
+              <h4>View Device Secret</h4>
+              <p>
+                กรอก Password ของบัญชีนี้เพื่อยืนยันตัวตนก่อนดู Device Secret
+                สำหรับนำไปตั้งค่า Firmware / Gateway
+              </p>
+            </div>
+
+            <div className="devices-v3-secret-viewer">
+              <label className="devices-v3-secret-password-field">
+                <span>Password</span>
+                <div>
+                  <Lock size={16} />
+                  <input
+                    type="password"
+                    value={secretPassword}
+                    placeholder="กรอก Password เพื่อดู Secret"
+                    autoComplete="current-password"
+                    disabled={secretLoading}
+                    onChange={(event) => {
+                      setSecretPassword(event.target.value)
+                      setSecretError('')
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        handleRevealSecret()
+                      }
+                    }}
+                  />
+                </div>
+              </label>
+
+              <div className="devices-v3-secret-output">
+                <span>{revealedSecret ? 'Device Secret' : 'Hidden Secret'}</span>
+                <code>
+                  {revealedSecret
+                    ? secretVisible
+                      ? revealedSecret
+                      : maskSecret(revealedSecret)
+                    : '••••••••••••••••••••••••'}
+                </code>
+              </div>
+
+              {secretError && (
+                <p className="devices-v3-secret-message error">
+                  {secretError}
+                </p>
+              )}
+
+              {secretCopied && (
+                <p className="devices-v3-secret-message success">
+                  Copied Device Secret
+                </p>
+              )}
+
+              <div className="devices-v3-secret-actions">
+                <button
+                  type="button"
+                  className="ghost-button"
+                  disabled={secretLoading || !secretPassword}
+                  onClick={handleRevealSecret}
+                >
+                  <Eye size={16} />
+                  {secretLoading ? 'Checking...' : 'View Secret'}
+                </button>
+
+                <button
+                  type="button"
+                  className="ghost-button"
+                  disabled={!revealedSecret}
+                  onClick={() => setSecretVisible((current) => !current)}
+                >
+                  {secretVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {secretVisible ? 'Hide' : 'Show'}
+                </button>
+
+                <button
+                  type="button"
+                  className="ghost-button"
+                  disabled={!revealedSecret}
+                  onClick={handleCopySecret}
+                >
+                  <Copy size={16} />
+                  Copy
+                </button>
+
+                <button
+                  type="button"
+                  className="ghost-button"
+                  disabled={!revealedSecret}
+                  onClick={handleHideSecret}
+                >
+                  Clear
+                </button>
+              </div>
             </div>
           </section>
 

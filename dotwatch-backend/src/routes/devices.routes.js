@@ -5,6 +5,7 @@ import { loadUser } from "../middlewares/loadUser.js";
 import {
   createDevice,
   getDevice,
+  getDeviceSecret,
   getHistory,
   listDevices,
   updateDevice,
@@ -20,6 +21,7 @@ devicesRouter.use(loadUser);
 devicesRouter.get("/", asyncHandler(listDevices));
 devicesRouter.post("/", asyncHandler(createDevice));
 devicesRouter.get("/:id", asyncHandler(getDevice));
+devicesRouter.get("/:id/secret", asyncHandler(getDeviceSecret));
 devicesRouter.put("/:id", asyncHandler(updateDevice));
 devicesRouter.post("/:id/reset-secret", asyncHandler(resetDeviceSecret));
 devicesRouter.delete("/:id", asyncHandler(deleteDevice));

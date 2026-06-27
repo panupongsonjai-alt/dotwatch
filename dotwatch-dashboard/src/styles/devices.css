@@ -3845,3 +3845,147 @@
   }
 }
 
+/* =========================================================
+   Devices - View Secret With Password
+   เพิ่มส่วนดู Device Secret โดยต้องใส่ Password ก่อน
+========================================================= */
+
+.devices-v3-security-reveal-card {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+  gap: 18px;
+  align-items: start;
+  padding: 18px;
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.055), transparent 64%),
+    var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-secret-viewer {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.devices-v3-secret-password-field {
+  display: grid;
+  gap: 7px;
+}
+
+.devices-v3-secret-password-field > span,
+.devices-v3-secret-output > span {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.devices-v3-secret-password-field > div {
+  height: 42px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-secret-password-field svg {
+  color: var(--muted);
+}
+
+.devices-v3-secret-password-field input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.devices-v3-secret-output {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.devices-v3-secret-output code {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  padding: 12px;
+  border-radius: 14px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px dashed var(--border);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 850;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.devices-v3-secret-message {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 800;
+}
+
+.devices-v3-secret-message.error {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.09);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+}
+
+.devices-v3-secret-message.success {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.09);
+  border: 1px solid rgba(34, 197, 94, 0.18);
+}
+
+.devices-v3-secret-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.devices-v3-secret-actions .ghost-button {
+  min-height: 38px;
+  border-radius: 14px;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .devices-v3-security-reveal-card {
+    grid-template-columns: 1fr;
+  }
+
+  .devices-v3-secret-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .devices-v3-secret-actions .ghost-button {
+    width: 100%;
+  }
+}
+

@@ -1,172 +1,10 @@
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { pool } from '../db/pool.js'
-import { env } from '../config/env.js'
-
-const DEVICE_NAME_MAX_LENGTH = 80
-const DEVICE_GROUP_MAX_LENGTH = 80
-const MAP_URL_MAX_LENGTH = 500
-const DEVICE_CODE_PATTERN = /^DW-[A-Z0-9-]{4,40}$/
-const METRIC_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_:-]{0,63}$/
-const MAX_HISTORY_RANGE_DAYS = 366
-const MAX_HISTORY_RAW_HOURS = 36
-
-function httpError(status, message) {
-  const error = new Error(message)
-  error.status = status
-  return error
-}
-
-function cleanText(value, fallback = '', maxLength = 120) {
-  const text = String(value ?? fallback).trim()
-
-  return text.slice(0, maxLength)
-}
-
-function normalizeNullableText(value, maxLength = 120) {
-  if (value === undefined) return undefined
-  if (value === null) return null
-
-  const text = String(value).trim()
-
-  return text ? text.slice(0, maxLength) : null
-}
-
-function normalizeCoordinate(value, min, max, label) {
-  if (value === undefined || value === null || value === '') return undefined
-
-  const numberValue = Number(value)
-
-  if (!Number.isFinite(numberValue) || numberValue < min || numberValue > max) {
-    throw httpError(400, `Invalid ${label}`)
-  }
-
-  return numberValue
-}
-
-function normalizeMapUrl(value) {
-  const text = normalizeNullableText(value, MAP_URL_MAX_LENGTH)
-
-  if (!text) return text
-
-  if (!/^https?:\/\//i.test(text)) {
-    throw httpError(400, 'Map URL must start with http:// or https://')
-  }
-
-  return text
-}
-
-function generateDeviceCode() {
-  return `DW-${crypto.randomInt(1, 999999999).toString().padStart(9, '0')}`
-}
-
-function isDateOnly(value) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))
-}
-
-function getBangkokDayRange(dateValue) {
-  return {
-    fromDate: new Date(`${dateValue}T00:00:00.000+07:00`),
-    toDate: new Date(`${dateValue}T23:59:59.999+07:00`),
-  }
-}
-
-function parseHistoryRange(query = {}) {
-  const now = new Date()
-  const dateValue = query.date || query.day
-
-  if (isDateOnly(dateValue)) {
-    return getBangkokDayRange(dateValue)
-  }
-
-  const fromValue = query.from || query.start
-  const toValue = query.to || query.end
-
-  if (
-    isDateOnly(fromValue) &&
-    (!toValue || String(toValue) === String(fromValue))
-  ) {
-    return getBangkokDayRange(fromValue)
-  }
-
-  let fromDate
-  let toDate
-
-  if (isDateOnly(fromValue)) {
-    fromDate = new Date(`${fromValue}T00:00:00.000+07:00`)
-  } else if (fromValue) {
-    fromDate = new Date(fromValue)
-  } else {
-    fromDate = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-  }
-
-  if (isDateOnly(toValue)) {
-    toDate = new Date(`${toValue}T23:59:59.999+07:00`)
-  } else if (toValue) {
-    toDate = new Date(toValue)
-  } else if (isDateOnly(fromValue)) {
-    toDate = new Date(`${fromValue}T23:59:59.999+07:00`)
-  } else {
-    toDate = now
-  }
-
-  return {
-    fromDate,
-    toDate,
-  }
-}
-
-function validateHistoryRange(fromDate, toDate) {
-  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
-    throw httpError(400, 'Invalid history date range')
-  }
-
-  if (fromDate > toDate) {
-    throw httpError(400, 'Invalid history date range: from must be before to')
-  }
-
-  const diffDays =
-    (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
-
-  if (diffDays > MAX_HISTORY_RANGE_DAYS) {
-    throw httpError(
-      400,
-      `History range is too large. Maximum is ${MAX_HISTORY_RANGE_DAYS} days`
-    )
-  }
-}
-
-function normalizeMetricKey(value) {
-  const metricKey = String(value || '').trim()
-
-  if (!metricKey) return ''
-
-  if (!METRIC_KEY_PATTERN.test(metricKey)) {
-    throw httpError(400, 'Invalid metric key')
-  }
-
-  return metricKey
-}
-
-async function createUniqueDeviceCode(client) {
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const deviceCode = generateDeviceCode()
-
-    const existing = await client.query(
-      `
-      SELECT id
-      FROM devices
-      WHERE device_code = $1
-      LIMIT 1
-      `,
-      [deviceCode]
-    )
-
-    if (!existing.rows.length) return deviceCode
-  }
-
-  throw httpError(500, 'Unable to generate device code')
-}
+import {
+  decryptDeviceSecret,
+  encryptDeviceSecret,
+} from '../utils/deviceSecretCrypto.js'
 
 export async function listDevices(req, res) {
   const user = req.dbUser
@@ -250,7 +88,6 @@ export async function listDevices(req, res) {
     ) metric_config ON true
 
     WHERE d.user_id = $1
-      AND d.is_active = true
     ORDER BY d.created_at DESC
     `,
     [user.id]
@@ -261,8 +98,19 @@ export async function listDevices(req, res) {
 
 export async function createDevice(req, res) {
   const user = req.dbUser
-  const name = cleanText(req.body.name, 'New Device', DEVICE_NAME_MAX_LENGTH)
+
+  const name = req.body.name || 'New Device'
   const modelId = Number(req.body.modelId) || 1
+
+  const deviceCode =
+    req.body.deviceCode ||
+    `DW-${crypto.randomInt(1, 999999).toString().padStart(6, '0')}`
+
+  const deviceSecret =
+    req.body.deviceSecret || crypto.randomBytes(18).toString('hex')
+
+  const secretHash = await bcrypt.hash(deviceSecret, 10)
+  const secretEncrypted = encryptDeviceSecret(deviceSecret)
 
   const client = await pool.connect()
 
@@ -287,32 +135,6 @@ export async function createDevice(req, res) {
       })
     }
 
-    const deviceCode =
-      env.isDevelopment && req.body.deviceCode
-        ? cleanText(req.body.deviceCode, '', 50).toUpperCase()
-        : await createUniqueDeviceCode(client)
-
-    if (!DEVICE_CODE_PATTERN.test(deviceCode)) {
-      await client.query('ROLLBACK')
-      return res.status(400).json({
-        message: 'Invalid device code',
-      })
-    }
-
-    const deviceSecret =
-      env.isDevelopment && req.body.deviceSecret
-        ? cleanText(req.body.deviceSecret, '', 128)
-        : crypto.randomBytes(24).toString('hex')
-
-    if (deviceSecret.length < 24) {
-      await client.query('ROLLBACK')
-      return res.status(400).json({
-        message: 'Device secret is too short',
-      })
-    }
-
-    const secretHash = await bcrypt.hash(deviceSecret, 12)
-
     const deviceResult = await client.query(
       `
       INSERT INTO devices (
@@ -320,9 +142,11 @@ export async function createDevice(req, res) {
         device_code,
         name,
         secret_hash,
+        secret_encrypted,
+        secret_encrypted_at,
         model_id
       )
-      VALUES ($1, $2, $3, $4, $5)
+      VALUES ($1, $2, $3, $4, now(), $5)
       RETURNING
         id,
         device_code,
@@ -334,7 +158,7 @@ export async function createDevice(req, res) {
         map_url,
         created_at
       `,
-      [user.id, deviceCode, name || 'New Device', secretHash, modelId]
+      [user.id, deviceCode, name, secretHash, secretEncrypted, modelId]
     )
 
     const device = deviceResult.rows[0]
@@ -377,14 +201,7 @@ export async function createDevice(req, res) {
       deviceSecret,
     })
   } catch (error) {
-    await client.query('ROLLBACK').catch(() => {})
-
-    if (error.code === '23505') {
-      return res.status(409).json({
-        message: 'Device code already exists',
-      })
-    }
-
+    await client.query('ROLLBACK')
     throw error
   } finally {
     client.release()
@@ -475,7 +292,6 @@ export async function getDevice(req, res) {
 
     WHERE d.id = $1
       AND d.user_id = $2
-      AND d.is_active = true
     LIMIT 1
     `,
     [id, user.id]
@@ -494,32 +310,19 @@ export async function updateDevice(req, res) {
   const user = req.dbUser
   const { id } = req.params
 
-  const name = normalizeNullableText(req.body.name, DEVICE_NAME_MAX_LENGTH)
-  const groupName = normalizeNullableText(
-    req.body.groupName ?? req.body.group_name,
-    DEVICE_GROUP_MAX_LENGTH
-  )
-  const latitude = normalizeCoordinate(req.body.latitude, -90, 90, 'latitude')
-  const longitude = normalizeCoordinate(
-    req.body.longitude,
-    -180,
-    180,
-    'longitude'
-  )
-  const mapUrl = normalizeMapUrl(req.body.mapUrl ?? req.body.map_url)
+  const { name, groupName, latitude, longitude, mapUrl } = req.body
 
   const result = await pool.query(
     `
     UPDATE devices
     SET
-      name = CASE WHEN $1::boolean THEN $2 ELSE name END,
-      group_name = CASE WHEN $3::boolean THEN $4 ELSE group_name END,
-      latitude = CASE WHEN $5::boolean THEN $6 ELSE latitude END,
-      longitude = CASE WHEN $7::boolean THEN $8 ELSE longitude END,
-      map_url = CASE WHEN $9::boolean THEN $10 ELSE map_url END
-    WHERE id = $11
-      AND user_id = $12
-      AND is_active = true
+      name = COALESCE($1, name),
+      group_name = COALESCE($2, group_name),
+      latitude = COALESCE($3, latitude),
+      longitude = COALESCE($4, longitude),
+      map_url = COALESCE($5, map_url)
+    WHERE id = $6
+      AND user_id = $7
     RETURNING
       id,
       device_code,
@@ -535,16 +338,11 @@ export async function updateDevice(req, res) {
       model_id
     `,
     [
-      name !== undefined,
-      name,
-      groupName !== undefined,
-      groupName,
-      latitude !== undefined,
-      latitude,
-      longitude !== undefined,
-      longitude,
-      mapUrl !== undefined,
-      mapUrl,
+      name ?? null,
+      groupName ?? null,
+      latitude ?? null,
+      longitude ?? null,
+      mapUrl ?? null,
       id,
       user.id,
     ]
@@ -559,23 +357,82 @@ export async function updateDevice(req, res) {
   res.json(result.rows[0])
 }
 
+export async function getDeviceSecret(req, res) {
+  const user = req.dbUser
+  const { id } = req.params
+
+  const result = await pool.query(
+    `
+    SELECT
+      id,
+      device_code,
+      name,
+      secret_encrypted,
+      secret_encrypted_at
+    FROM devices
+    WHERE id = $1
+      AND user_id = $2
+      AND is_active = true
+    LIMIT 1
+    `,
+    [id, user.id]
+  )
+
+  if (!result.rows.length) {
+    return res.status(404).json({
+      message: 'Device not found',
+    })
+  }
+
+  const device = result.rows[0]
+
+  if (!device.secret_encrypted) {
+    return res.status(409).json({
+      code: 'SECRET_NOT_RECOVERABLE',
+      message:
+        'Device Secret เดิมถูกเก็บเป็น hash จึงดูย้อนหลังไม่ได้ กรุณา Reset Secret ใหม่ 1 ครั้ง',
+    })
+  }
+
+  try {
+    const deviceSecret = decryptDeviceSecret(device.secret_encrypted)
+
+    res.json({
+      id: device.id,
+      device_code: device.device_code,
+      name: device.name,
+      deviceSecret,
+      secretEncryptedAt: device.secret_encrypted_at,
+    })
+  } catch (error) {
+    res.status(409).json({
+      code: 'SECRET_NOT_RECOVERABLE',
+      message:
+        'ไม่สามารถถอดรหัส Device Secret ได้ กรุณา Reset Secret ใหม่ 1 ครั้ง',
+    })
+  }
+}
+
 export async function resetDeviceSecret(req, res) {
   const user = req.dbUser
   const { id } = req.params
 
-  const deviceSecret = crypto.randomBytes(24).toString('hex')
-  const secretHash = await bcrypt.hash(deviceSecret, 12)
+  const deviceSecret = crypto.randomBytes(18).toString('hex')
+  const secretHash = await bcrypt.hash(deviceSecret, 10)
+  const secretEncrypted = encryptDeviceSecret(deviceSecret)
 
   const result = await pool.query(
     `
     UPDATE devices
-    SET secret_hash = $1
-    WHERE id = $2
-      AND user_id = $3
-      AND is_active = true
+    SET
+      secret_hash = $1,
+      secret_encrypted = $2,
+      secret_encrypted_at = now()
+    WHERE id = $3
+      AND user_id = $4
     RETURNING id, device_code, name
     `,
-    [secretHash, id, user.id]
+    [secretHash, secretEncrypted, id, user.id]
   )
 
   if (!result.rows.length) {
@@ -618,12 +475,67 @@ export async function deleteDevice(req, res) {
 export async function getHistory(req, res) {
   const user = req.dbUser
   const { id } = req.params
-  const metricKey = normalizeMetricKey(
+  const metricKey =
     req.query.metricKey ||
-      req.query.metric_key ||
-      req.query.metric ||
-      req.query.key
-  )
+    req.query.metric_key ||
+    req.query.metric ||
+    req.query.key
+
+  function isDateOnly(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))
+  }
+
+  function getBangkokDayRange(dateValue) {
+    return {
+      fromDate: new Date(`${dateValue}T00:00:00.000+07:00`),
+      toDate: new Date(`${dateValue}T23:59:59.999+07:00`),
+    }
+  }
+
+  function parseHistoryRange(query = {}) {
+    const now = new Date()
+    const dateValue = query.date || query.day
+
+    if (isDateOnly(dateValue)) {
+      return getBangkokDayRange(dateValue)
+    }
+
+    const fromValue = query.from || query.start
+    const toValue = query.to || query.end
+
+    if (
+      isDateOnly(fromValue) &&
+      (!toValue || String(toValue) === String(fromValue))
+    ) {
+      return getBangkokDayRange(fromValue)
+    }
+
+    let fromDate
+    let toDate
+
+    if (isDateOnly(fromValue)) {
+      fromDate = new Date(`${fromValue}T00:00:00.000+07:00`)
+    } else if (fromValue) {
+      fromDate = new Date(fromValue)
+    } else {
+      fromDate = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    }
+
+    if (isDateOnly(toValue)) {
+      toDate = new Date(`${toValue}T23:59:59.999+07:00`)
+    } else if (toValue) {
+      toDate = new Date(toValue)
+    } else if (isDateOnly(fromValue)) {
+      toDate = new Date(`${fromValue}T23:59:59.999+07:00`)
+    } else {
+      toDate = now
+    }
+
+    return {
+      fromDate,
+      toDate,
+    }
+  }
 
   const deviceCheck = await pool.query(
     `
@@ -631,7 +543,6 @@ export async function getHistory(req, res) {
     FROM devices
     WHERE id = $1
       AND user_id = $2
-      AND is_active = true
     LIMIT 1
     `,
     [id, user.id]
@@ -645,11 +556,15 @@ export async function getHistory(req, res) {
 
   const { fromDate, toDate } = parseHistoryRange(req.query)
 
-  try {
-    validateHistoryRange(fromDate, toDate)
-  } catch (error) {
-    return res.status(error.status || 400).json({
-      message: error.message,
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+    return res.status(400).json({
+      message: 'Invalid history date range',
+    })
+  }
+
+  if (fromDate > toDate) {
+    return res.status(400).json({
+      message: 'Invalid history date range: from must be before to',
     })
   }
 
@@ -657,7 +572,7 @@ export async function getHistory(req, res) {
     (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60)
 
   if (metricKey) {
-    if (diffHours <= MAX_HISTORY_RAW_HOURS) {
+    if (diffHours <= 36) {
       const result = await pool.query(
         `
         SELECT

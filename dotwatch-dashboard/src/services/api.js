@@ -227,6 +227,10 @@ export function resetDeviceSecret(id) {
   })
 }
 
+export function getDeviceSecret(id) {
+  return apiFetch(`/api/devices/${encodeURIComponent(id)}/secret`)
+}
+
 export function updateDeviceLocation(id, data) {
   return apiFetch(`/api/devices/${encodeURIComponent(id)}`, {
     method: 'PUT',
