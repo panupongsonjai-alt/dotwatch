@@ -4,13 +4,31 @@ const API_URL = normalizeApiUrl(
   import.meta.env.VITE_API_URL || 'http://localhost:4000'
 )
 
-const DEFAULT_REQUEST_TIMEOUT_MS = 45000
-const MIN_REQUEST_TIMEOUT_MS = 30000
+const DEFAULT_REQUEST_TIMEOUT_MS = 20000
+const MIN_REQUEST_TIMEOUT_MS = 15000
 
 const REQUEST_TIMEOUT_MS = Math.max(
   Number(import.meta.env.VITE_REQUEST_TIMEOUT_MS || DEFAULT_REQUEST_TIMEOUT_MS),
   MIN_REQUEST_TIMEOUT_MS
 )
+
+const DEFAULT_GET_CACHE_TTL_MS = 6000
+const SLOW_GET_CACHE_TTL_MS = 12000
+
+const GET_CACHE_TTL_MS = Math.max(
+  Number(import.meta.env.VITE_API_CACHE_TTL_MS || DEFAULT_GET_CACHE_TTL_MS),
+  1000
+)
+
+const GET_SLOW_CACHE_TTL_MS = Math.max(
+  Number(
+    import.meta.env.VITE_API_SLOW_CACHE_TTL_MS || SLOW_GET_CACHE_TTL_MS
+  ),
+  GET_CACHE_TTL_MS
+)
+
+const responseCache = new Map()
+const inFlightRequests = new Map()
 
 function normalizeApiUrl(value) {
   const rawValue = String(value || '').trim().replace(/\/$/, '')
@@ -75,6 +93,82 @@ function dispatchAuthError(status, data) {
   }
 }
 
+function getRequestMethod(options = {}) {
+  return String(options.method || 'GET').toUpperCase()
+}
+
+function cloneData(data) {
+  if (data == null) return data
+
+  try {
+    return structuredClone(data)
+  } catch {
+    try {
+      return JSON.parse(JSON.stringify(data))
+    } catch {
+      return data
+    }
+  }
+}
+
+function canUseMemoryCache(path, options = {}) {
+  const method = getRequestMethod(options)
+
+  if (method !== 'GET') return false
+  if (options.body) return false
+
+  // ห้าม cache secret โดยเด็ดขาด
+  if (path.includes('/secret')) return false
+
+  return true
+}
+
+function getMemoryCacheKey(path, options = {}) {
+  return `${getRequestMethod(options)}:${path}`
+}
+
+function getMemoryCacheTtl(path) {
+  if (
+    path.includes('/history') ||
+    path.includes('/activity') ||
+    path.includes('/alarms') ||
+    path.includes('/alarm-rules')
+  ) {
+    return GET_SLOW_CACHE_TTL_MS
+  }
+
+  return GET_CACHE_TTL_MS
+}
+
+function readMemoryCache(cacheKey) {
+  const entry = responseCache.get(cacheKey)
+
+  if (!entry) return null
+
+  if (entry.expiresAt <= Date.now()) {
+    responseCache.delete(cacheKey)
+    return null
+  }
+
+  return cloneData(entry.data)
+}
+
+function writeMemoryCache(cacheKey, data, ttl) {
+  responseCache.set(cacheKey, {
+    data: cloneData(data),
+    expiresAt: Date.now() + ttl,
+  })
+}
+
+export function clearApiCache() {
+  responseCache.clear()
+  inFlightRequests.clear()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('dotwatchUnauthorized', clearApiCache)
+}
+
 async function getToken({ forceRefresh = false } = {}) {
   const user = auth.currentUser
 
@@ -97,13 +191,11 @@ async function parseResponseBody(response) {
   }
 }
 
-async function apiFetch(path, options = {}) {
-  assertApiPath(path)
-
+async function performApiRequest(path, options = {}) {
   const controller = new AbortController()
   const timeout = Number.isFinite(REQUEST_TIMEOUT_MS)
     ? REQUEST_TIMEOUT_MS
-    : 15000
+    : DEFAULT_REQUEST_TIMEOUT_MS
 
   const timeoutId = setTimeout(() => controller.abort(), timeout)
 
@@ -178,6 +270,50 @@ async function apiFetch(path, options = {}) {
     throw error
   } finally {
     clearTimeout(timeoutId)
+  }
+}
+
+async function apiFetch(path, options = {}) {
+  assertApiPath(path)
+
+  const method = getRequestMethod(options)
+  const useCache = canUseMemoryCache(path, options)
+  const cacheKey = useCache ? getMemoryCacheKey(path, options) : ''
+
+  if (useCache) {
+    const cachedData = readMemoryCache(cacheKey)
+
+    if (cachedData !== null) {
+      return cachedData
+    }
+
+    const pendingRequest = inFlightRequests.get(cacheKey)
+
+    if (pendingRequest) {
+      return cloneData(await pendingRequest)
+    }
+  }
+
+  const requestPromise = performApiRequest(path, options)
+
+  if (useCache) {
+    inFlightRequests.set(cacheKey, requestPromise)
+  }
+
+  try {
+    const data = await requestPromise
+
+    if (useCache) {
+      writeMemoryCache(cacheKey, data, getMemoryCacheTtl(path))
+    } else if (method !== 'GET') {
+      clearApiCache()
+    }
+
+    return cloneData(data)
+  } finally {
+    if (useCache) {
+      inFlightRequests.delete(cacheKey)
+    }
   }
 }
 

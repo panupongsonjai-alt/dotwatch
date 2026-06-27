@@ -679,337 +679,71 @@
 }
 
 /* =========================================================
-   Dashboard Unified Sections
-   Make Data Overview / Devices Overview / Device Map /
-   Live Alarm State use the same title, description and card style
+   Dashboard Data Overview - Render Selected Metric Icon
 ========================================================= */
 
-.dashboard-unified-section,
-.dashboard-data-overview-card,
-.devices-overview-panel,
-.dashboard-devices-card,
-.dashboard-map-card-v2,
-.dashboard-alerts-under-map > * {
-  border-radius: var(--radius-xl, 24px) !important;
-  background:
-    linear-gradient(135deg, rgba(37, 99, 235, 0.045), transparent 42%),
-    var(--panel) !important;
-  border: 1px solid var(--border) !important;
-  box-shadow: var(--shadow-soft, var(--shadow)) !important;
+.live-metric-overview-title {
+  display: grid !important;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
 }
 
-.dashboard-unified-section,
-.dashboard-data-overview-card,
-.devices-overview-panel,
-.dashboard-devices-card,
-.dashboard-map-card-v2 {
-  display: grid;
-  gap: 18px;
-  padding: 20px !important;
-  overflow: hidden;
-}
-
-.dashboard-unified-section-header,
-.dashboard-unified-section .app-section-title,
-.dashboard-data-overview-card .app-section-title,
-.devices-overview-panel .app-section-title,
-.dashboard-devices-card .app-section-title,
-.dashboard-map-card-v2 .app-section-title {
-  margin: 0 !important;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.dashboard-unified-section-header h2,
-.dashboard-unified-section .app-section-title h2,
-.dashboard-data-overview-card .app-section-title h2,
-.devices-overview-panel .app-section-title h2,
-.dashboard-devices-card .app-section-title h2,
-.dashboard-map-card-v2 .app-section-title h2,
-.dashboard-alerts-under-map > * h2 {
-  margin: 0 !important;
-  color: var(--text);
-  font-size: 22px !important;
-  line-height: 1.2;
-  font-weight: 950 !important;
-  letter-spacing: -0.035em;
-}
-
-.dashboard-unified-section-header p,
-.dashboard-unified-section .app-section-title p,
-.dashboard-data-overview-card .app-section-title p,
-.devices-overview-panel .app-section-title p,
-.dashboard-devices-card .app-section-title p,
-.dashboard-map-card-v2 .app-section-title p,
-.dashboard-alerts-under-map > * p {
-  margin: 6px 0 0 !important;
-  color: var(--muted);
-  font-size: 14px !important;
-  line-height: 1.55;
-  font-weight: 750;
-}
-
-.dashboard-unified-section-badge,
-.dashboard-unified-section .device-count-badge,
-.dashboard-data-overview-card .device-count-badge,
-.devices-overview-panel .device-count-badge,
-.dashboard-devices-card .device-count-badge,
-.dashboard-map-card-v2 .device-count-badge,
-.dashboard-alerts-under-map > * [class*='badge'],
-.dashboard-alerts-under-map > * [class*='count'] {
-  min-height: 30px !important;
-  display: inline-flex !important;
+.live-metric-overview-icon {
+  position: relative;
+  z-index: 1;
+  width: 34px;
+  height: 34px;
+  border-radius: 13px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: fit-content;
-  padding: 0 11px !important;
-  border-radius: 999px !important;
-  color: var(--primary) !important;
-  background: rgba(37, 99, 235, 0.1) !important;
-  border: 1px solid rgba(37, 99, 235, 0.22) !important;
-  font-size: 11px !important;
-  line-height: 1;
-  font-weight: 950 !important;
-  white-space: nowrap;
+  color: var(--danger);
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.08), transparent 34%),
+    rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  box-shadow: 0 12px 24px rgba(239, 68, 68, 0.08);
 }
 
-/* Alarm card: keep warning/critical active badge red when needed */
-.dashboard-alerts-under-map > * [class*='critical'],
-.dashboard-alerts-under-map > * [class*='danger'],
-.dashboard-alerts-under-map > * [class*='active'] {
-  font-weight: 950;
-}
-
-/* Map has the same inner spacing as other sections */
-.dashboard-unified-map-frame {
-  min-width: 0;
-  overflow: hidden;
-  border-radius: 18px;
-}
-
-.dashboard-map-card-v2 .device-map-wrapper,
-.dashboard-map-card-v2 .device-map-empty,
-.dashboard-map-card-v2 .dashboard-map {
-  height: 320px;
-  border-radius: 18px;
-}
-
-/* Keep dashboard map marker display-only */
-.device-map-wrapper .leaflet-marker-icon,
-.device-map-marker-shell,
-.device-map-marker-shell *,
-.device-map-marker-dot,
-.leaflet-tooltip.device-map-label {
-  cursor: default !important;
-}
-
-.device-map-marker-shell,
-.device-map-marker-shell *,
-.device-map-marker-dot {
-  pointer-events: none !important;
-}
-
-/* Make the alarm area spacing match the other full-width sections */
-.dashboard-alerts-under-map {
-  display: grid;
-  grid-template-columns: 1fr !important;
-  gap: 18px !important;
-  align-items: stretch;
-}
-
-.dashboard-alerts-under-map > * {
-  width: 100%;
-  min-width: 0;
-  padding: 20px !important;
-  overflow: hidden;
-}
-
-/* Try to normalize common alarm component header patterns */
-.dashboard-alerts-under-map > * > header,
-.dashboard-alerts-under-map > * [class*='header']:first-child,
-.dashboard-alerts-under-map > * [class*='section-title']:first-child,
-.dashboard-alerts-under-map > * .app-section-title:first-child {
-  margin: 0 0 18px !important;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.dashboard-alerts-under-map > * [class*='eyebrow'],
-.dashboard-alerts-under-map > * .page-eyebrow {
-  color: var(--success);
-  font-size: 12px !important;
-  line-height: 1;
-  font-weight: 950 !important;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-@media (max-width: 760px) {
-  .dashboard-unified-section,
-  .dashboard-data-overview-card,
-  .devices-overview-panel,
-  .dashboard-devices-card,
-  .dashboard-map-card-v2,
-  .dashboard-alerts-under-map > * {
-    padding: 18px !important;
-  }
-
-  .dashboard-unified-section-header,
-  .dashboard-unified-section .app-section-title,
-  .dashboard-data-overview-card .app-section-title,
-  .devices-overview-panel .app-section-title,
-  .dashboard-devices-card .app-section-title,
-  .dashboard-map-card-v2 .app-section-title,
-  .dashboard-alerts-under-map > * > header,
-  .dashboard-alerts-under-map > * [class*='header']:first-child,
-  .dashboard-alerts-under-map > * [class*='section-title']:first-child,
-  .dashboard-alerts-under-map > * .app-section-title:first-child {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-
-@media (max-width: 560px) {
-  .dashboard-unified-section,
-  .dashboard-data-overview-card,
-  .devices-overview-panel,
-  .dashboard-devices-card,
-  .dashboard-map-card-v2,
-  .dashboard-alerts-under-map > * {
-    padding: 16px !important;
-    gap: 16px;
-  }
-
-  .dashboard-unified-section-header h2,
-  .dashboard-unified-section .app-section-title h2,
-  .dashboard-data-overview-card .app-section-title h2,
-  .devices-overview-panel .app-section-title h2,
-  .dashboard-devices-card .app-section-title h2,
-  .dashboard-map-card-v2 .app-section-title h2,
-  .dashboard-alerts-under-map > * h2 {
-    font-size: 20px !important;
-  }
-
-  .dashboard-map-card-v2 .device-map-wrapper,
-  .dashboard-map-card-v2 .device-map-empty,
-  .dashboard-map-card-v2 .dashboard-map {
-    height: 300px;
-  }
-}
-
-/* =========================================================
-   Dashboard - Live Metric Value Fix
-   แก้ value ใน Data Overview ไม่ให้ถูกตัด/ขาด
-========================================================= */
-
-/*
-  ปัญหา:
-  ค่าใน Data Overview เช่น 227.35 แสดงเหมือนถูกตัด
-  เพราะ font-size ใหญ่ + line-height ต่ำ + card overflow hidden
-
-  แนวทาง:
-  - เพิ่ม line-height
-  - ลด font แบบ responsive นิดหน่อย
-  - ให้ตัวเลข wrap/ย่อได้ในพื้นที่
-  - แยก unit ออกจาก value ให้ไม่เบียดกัน
-  - เพิ่มพื้นที่แนวตั้งของ card เล็กน้อย
-*/
-
-.live-metrics-overview-grid {
-  align-items: stretch !important;
-}
-
-.live-metric-overview-card {
-  min-height: 148px !important;
-  padding: 18px 18px 20px !important;
-  align-content: start !important;
-  gap: 10px !important;
+.live-metric-overview-icon svg {
+  display: block;
+  flex: 0 0 auto;
+  visibility: visible;
+  opacity: 1;
 }
 
 .live-metric-overview-title strong {
-  display: block;
-  max-width: 100%;
-  line-height: 1.25 !important;
-}
-
-.live-metric-overview-value {
-  min-width: 0 !important;
-  max-width: 100%;
-  display: flex !important;
-  align-items: flex-end !important;
-  gap: 8px !important;
-  margin-top: 2px;
-  overflow: visible !important;
-}
-
-.live-metric-overview-value strong {
-  display: block !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  color: var(--text) !important;
-  font-size: clamp(34px, 4.2vw, 46px) !important;
-  line-height: 1.08 !important;
-  font-weight: 950 !important;
-  letter-spacing: -0.07em !important;
-  white-space: normal !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
-  overflow-wrap: anywhere !important;
-  word-break: normal !important;
-  text-shadow: none !important;
-}
-
-.live-metric-overview-value span {
-  flex: 0 0 auto;
-  padding-bottom: 6px;
-  color: var(--muted) !important;
-  font-size: 13px !important;
-  line-height: 1 !important;
-  font-weight: 950 !important;
-}
-
-.live-metric-overview-device {
-  margin-top: 0;
-  line-height: 1.3 !important;
-}
-
-/* ถ้าค่าเลขยาวมาก ให้ลดขนาดลงอัตโนมัติจากพื้นที่ card */
-.live-metric-overview-card:has(.live-metric-overview-value strong) {
   min-width: 0;
 }
 
-/* Card ขนาดเล็กกว่า 260px ให้ลด font เพื่อไม่ให้ขาด */
-@container (max-width: 260px) {
-  .live-metric-overview-value strong {
-    font-size: 34px !important;
-  }
+.live-metric-overview-card.warning .live-metric-overview-icon {
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.24);
 }
 
-/* Browser fallback สำหรับกรณีไม่รองรับ container query */
-@media (max-width: 1100px) {
-  .live-metric-overview-value strong {
-    font-size: clamp(32px, 6vw, 42px) !important;
-    letter-spacing: -0.065em !important;
-  }
+.live-metric-overview-card.critical .live-metric-overview-icon {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.24);
+}
+
+.live-metric-overview-card.offline .live-metric-overview-icon {
+  color: var(--muted);
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.2);
 }
 
 @media (max-width: 560px) {
-  .live-metric-overview-card {
-    min-height: 136px !important;
-    padding: 16px 16px 18px !important;
+  .live-metric-overview-title {
+    grid-template-columns: 32px minmax(0, 1fr);
   }
 
-  .live-metric-overview-value strong {
-    font-size: 38px !important;
-    line-height: 1.08 !important;
-  }
-
-  .live-metric-overview-value span {
-    padding-bottom: 5px;
+  .live-metric-overview-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
   }
 }
 

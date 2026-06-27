@@ -27,5 +27,5 @@
 @import './styles/layout-sidebar-overflow-fix.css';
 @import './styles/pages/alarm-center-match-page-pattern.css';
 @import './styles/pages/alarm-center-statcards-one-row.css';
-@import './styles/statcard-height-unify.css';
-@import './styles/statcard-value-visibility-fix.css';
+@import './styles/statcard-final-balance.css';
+@import './styles/statcard-content-fit-final.css';

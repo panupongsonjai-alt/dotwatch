@@ -3989,3 +3989,114 @@
   }
 }
 
+/* =========================================================
+   Metric Display - Icon Dropdown Front Layer Fix
+   แก้ปัญหาเลือก Icon แล้วเมนูไม่โชว์ด้านหน้า / ถูก card ตัด
+========================================================= */
+
+/*
+  สาเหตุ:
+  patch ก่อนหน้าบางช่วงตั้ง overflow: hidden ที่
+  .metric-config-panel-clean และ .metric-config-card-clean
+  ทำให้ details menu ของ icon dropdown ถูกตัดอยู่ใน card
+*/
+
+.metric-config-panel-clean,
+.devices-v3-tab-panel .metric-config-panel-clean,
+.metric-config-list-clean,
+.metric-config-card-clean,
+.metric-config-card-clean-grid,
+.metric-config-field-icon {
+  overflow: visible !important;
+}
+
+.metric-config-card-clean {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.metric-config-card-clean:has(.metric-icon-dropdown[open]) {
+  z-index: 500 !important;
+}
+
+.metric-config-field-icon {
+  position: relative !important;
+  z-index: 20 !important;
+}
+
+.metric-config-field-icon:has(.metric-icon-dropdown[open]) {
+  z-index: 520 !important;
+}
+
+.metric-icon-dropdown {
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  z-index: 30 !important;
+}
+
+.metric-icon-dropdown[open] {
+  z-index: 600 !important;
+}
+
+.metric-icon-dropdown-summary {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.metric-icon-dropdown-menu {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 700 !important;
+  max-height: 260px !important;
+  overflow: auto !important;
+  display: grid !important;
+  gap: 4px !important;
+  padding: 8px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  background: var(--panel) !important;
+  box-shadow: 0 22px 60px rgba(2, 6, 23, 0.42) !important;
+}
+
+.metric-icon-dropdown-current svg,
+.metric-icon-dropdown-option svg {
+  display: block !important;
+  flex: 0 0 auto !important;
+  color: var(--danger) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.metric-icon-dropdown-current,
+.metric-icon-dropdown-option {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.metric-icon-dropdown-option {
+  width: 100% !important;
+  min-height: 36px !important;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  text-align: left !important;
+  cursor: pointer !important;
+}
+
+.metric-icon-dropdown-option:hover:not(:disabled),
+.metric-icon-dropdown-option.active {
+  color: var(--danger) !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+}
+
+/* Fallback สำหรับ browser ที่ไม่รองรับ :has() */
+.metric-icon-dropdown[open] .metric-icon-dropdown-menu {
+  transform: translateZ(0);
+}
+

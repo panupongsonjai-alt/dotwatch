@@ -69,6 +69,7 @@ sudo systemctl restart dotwatch-pi-config-ui
 echo ""
 echo "Config UI installed."
 echo "Open: http://<PI-IP>:8080"
+echo "Status page: http://<PI-IP>:8080/status"
 echo "Default username: admin"
 echo "Default password: change-this-config-password"
 echo ""

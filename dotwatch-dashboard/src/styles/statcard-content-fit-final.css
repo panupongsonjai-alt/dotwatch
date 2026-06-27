@@ -1,0 +1,315 @@
+/* =========================================================
+   dotWatch - StatCard Content Fit Final
+   แก้ hint/value ใน StatCard โดนตัด เช่น History: Filtered rows
+========================================================= */
+
+/*
+  ปัญหาก่อนหน้า:
+  ความสูง 102px เตี้ยเกินไปสำหรับ card ที่มี 3 บรรทัด:
+  Label / Value / Hint
+
+  แนวทาง:
+  - เพิ่มความสูงกลางเป็น 118px
+  - จัด layout ภายในด้วย grid 3 แถว
+  - ลด margin ที่ทำให้ hint ชนขอบล่าง
+  - ไม่จับ span ทุกตัว เพราะบางหน้าใช้ span เป็น element ย่อย
+*/
+
+:root {
+  --dw-stat-card-height: 118px;
+  --dw-stat-card-padding-y: 16px;
+  --dw-stat-card-padding-x: 16px;
+  --dw-stat-label-size: 11px;
+  --dw-stat-value-size: 28px;
+  --dw-stat-hint-size: 12px;
+}
+
+/* Compact ยังต้องพอสำหรับ 3 บรรทัด */
+:root[data-density='compact'],
+:root[data-compact-cards='true'] {
+  --dw-stat-card-height: 112px;
+  --dw-stat-card-padding-y: 15px;
+  --dw-stat-card-padding-x: 15px;
+  --dw-stat-value-size: 27px;
+}
+
+/* Spacious */
+:root[data-density='spacious'] {
+  --dw-stat-card-height: 126px;
+  --dw-stat-card-padding-y: 18px;
+  --dw-stat-card-padding-x: 18px;
+  --dw-stat-value-size: 30px;
+}
+
+/* Grid stretch */
+.dashboard-style-stat-grid,
+.dashboard-stat-grid,
+.app-summary-grid,
+.compact-summary-grid,
+.device-v2-stat-grid,
+.devices-stat-grid,
+.history-stat-grid,
+.alarms-stat-grid,
+.notifications-stat-grid,
+.activity-stat-grid,
+.profile-stat-grid,
+.settings-stat-grid,
+.system-health-stat-grid,
+.stat-grid {
+  align-items: stretch !important;
+}
+
+/* Card base */
+.dw-stat-card,
+.stat-card,
+.summary-card,
+.compact-summary-card,
+.dashboard-stat-card,
+.dashboard-summary-card,
+.history-stat-card,
+.profile-stat-card,
+.settings-stat-card,
+.system-health-stat-card,
+.alarm-stat-card,
+.notification-stat-card,
+.activity-stat-card {
+  height: var(--dw-stat-card-height) !important;
+  min-height: var(--dw-stat-card-height) !important;
+  max-height: none !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: var(--dw-stat-card-padding-y) var(--dw-stat-card-padding-x) !important;
+  overflow: visible !important;
+
+  display: grid !important;
+  grid-template-rows: auto auto minmax(16px, auto) !important;
+  align-content: start !important;
+  row-gap: 8px !important;
+}
+
+/* สำคัญ: ยกเลิก style กว้างที่เคยจับ span ทุกตัว */
+.dw-stat-card span:not(.stat-label):not(.metric-label):not(.badge):not(.status-pill),
+.stat-card span:not(.stat-label):not(.metric-label):not(.badge):not(.status-pill),
+.summary-card span:not(.stat-label):not(.metric-label):not(.badge):not(.status-pill),
+.compact-summary-card span:not(.stat-label):not(.metric-label):not(.badge):not(.status-pill) {
+  max-height: none !important;
+}
+
+/* Label / Title: เลือกเฉพาะ element ที่เป็นหัว card จริง */
+.dw-stat-card > span:first-child,
+.dw-stat-card > h3:first-child,
+.dw-stat-card > h4:first-child,
+.dw-stat-card > label:first-child,
+.dw-stat-card .stat-label,
+.stat-card > span:first-child,
+.stat-card > h3:first-child,
+.stat-card > h4:first-child,
+.stat-card > label:first-child,
+.stat-card .stat-label,
+.summary-card > span:first-child,
+.summary-card > h3:first-child,
+.summary-card > h4:first-child,
+.summary-card > label:first-child,
+.summary-card .stat-label,
+.compact-summary-card > span:first-child,
+.compact-summary-card > h3:first-child,
+.compact-summary-card > h4:first-child,
+.compact-summary-card > label:first-child,
+.compact-summary-card .stat-label {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  color: var(--muted) !important;
+  font-size: var(--dw-stat-label-size) !important;
+  line-height: 1.25 !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.075em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Value / Number ต้องมองเห็นเต็ม */
+.dw-stat-card > strong,
+.dw-stat-card .stat-value,
+.dw-stat-card .summary-value,
+.dw-stat-card .card-value,
+.stat-card > strong,
+.stat-card .stat-value,
+.stat-card .summary-value,
+.stat-card .card-value,
+.summary-card > strong,
+.summary-card .stat-value,
+.summary-card .summary-value,
+.summary-card .card-value,
+.compact-summary-card > strong,
+.compact-summary-card .stat-value,
+.compact-summary-card .summary-value,
+.compact-summary-card .card-value {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 30px !important;
+  margin: 0 !important;
+  color: var(--text) !important;
+  font-size: var(--dw-stat-value-size) !important;
+  line-height: 1.08 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.055em !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* รองรับ value ที่ไม่ได้เป็น direct child */
+.dw-stat-card [class*='value'],
+.dw-stat-card [class*='Value'],
+.stat-card [class*='value'],
+.stat-card [class*='Value'],
+.summary-card [class*='value'],
+.summary-card [class*='Value'],
+.compact-summary-card [class*='value'],
+.compact-summary-card [class*='Value'] {
+  overflow: visible !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Hint / Detail: ห้ามโดนตัดแนวตั้ง */
+.dw-stat-card > p,
+.dw-stat-card > small,
+.dw-stat-card .stat-hint,
+.stat-card > p,
+.stat-card > small,
+.stat-card .stat-hint,
+.summary-card > p,
+.summary-card > small,
+.summary-card .stat-hint,
+.compact-summary-card > p,
+.compact-summary-card > small,
+.compact-summary-card .stat-hint {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 16px !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--muted) !important;
+  font-size: var(--dw-stat-hint-size) !important;
+  line-height: 1.35 !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: ellipsis !important;
+}
+
+/* ถ้าข้อความ hint ยาวมาก ให้ตัดแนวนอนเท่านั้น ไม่ตัดแนวตั้ง */
+.dw-stat-card > p,
+.dw-stat-card > small,
+.stat-card > p,
+.stat-card > small,
+.summary-card > p,
+.summary-card > small,
+.compact-summary-card > p,
+.compact-summary-card > small {
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+}
+
+/* Status colors */
+.dw-stat-card.success > strong,
+.dw-stat-card .success,
+.dw-stat-card .online,
+.stat-card.success > strong,
+.stat-card .success,
+.stat-card .online,
+.summary-card.success > strong,
+.summary-card .success,
+.summary-card .online {
+  color: var(--success) !important;
+}
+
+.dw-stat-card.warning > strong,
+.dw-stat-card .warning,
+.stat-card.warning > strong,
+.stat-card .warning,
+.summary-card.warning > strong,
+.summary-card .warning {
+  color: var(--warning) !important;
+}
+
+.dw-stat-card.danger > strong,
+.dw-stat-card .danger,
+.dw-stat-card .critical,
+.dw-stat-card .offline,
+.stat-card.danger > strong,
+.stat-card .danger,
+.stat-card .critical,
+.stat-card .offline,
+.summary-card.danger > strong,
+.summary-card .danger,
+.summary-card .critical,
+.summary-card .offline {
+  color: var(--danger) !important;
+}
+
+/* หน้า History ที่พบปัญหาชัดเจน */
+.history-page-v2 .dashboard-style-stat-grid .dw-stat-card,
+.history-page-v2 .dashboard-style-stat-grid .stat-card,
+.history-page-v2 .history-stat-grid .dw-stat-card,
+.history-page-v2 .history-stat-grid .stat-card {
+  height: var(--dw-stat-card-height) !important;
+  min-height: var(--dw-stat-card-height) !important;
+  overflow: visible !important;
+}
+
+/* หน้า Profile / Settings / Health value ยาว */
+.profile-v3-page .dw-stat-card > strong,
+.profile-v3-page .dw-stat-card .stat-value,
+.settings-v3-page .dw-stat-card > strong,
+.settings-v3-page .dw-stat-card .stat-value,
+.system-health-page .dw-stat-card > strong,
+.system-health-page .dw-stat-card .stat-value {
+  font-size: clamp(20px, 2vw, 25px) !important;
+  letter-spacing: -0.05em !important;
+}
+
+/* Alarm Center 4 ใบแถวเดียว */
+.alarms-page .alarms-stat-grid,
+.alarms-page .alarms-stat-grid.dashboard-style-stat-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+}
+
+@media (max-width: 860px) {
+  :root {
+    --dw-stat-card-height: 112px;
+    --dw-stat-card-padding-y: 15px;
+    --dw-stat-value-size: 26px;
+  }
+
+  .alarms-page .alarms-stat-grid,
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 460px) {
+  :root {
+    --dw-stat-card-height: 108px;
+    --dw-stat-value-size: 25px;
+  }
+
+  .alarms-page .alarms-stat-grid,
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -1,14 +1,71 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import {
+  Activity,
+  Battery,
+  Cpu,
+  Droplets,
+  Gauge,
+  Power,
+  Thermometer,
+  Wifi,
+  Wind,
+  Zap,
+} from 'lucide-react'
 import { auth } from '../services/firebase'
 import AlarmPanel from '../components/AlarmPanel.jsx'
 import LatestActiveAlarms from '../components/LatestActiveAlarms.jsx'
-import { getDevices, getActiveAlarms, getAlarmSummary } from '../services/api'
+import {
+  clearApiCache,
+  getDevices,
+  getActiveAlarms,
+  getAlarmSummary,
+} from '../services/api'
 import { connectRealtime } from '../services/realtime'
 import { useAlarm } from '../context/AlarmContext'
 import { EmptyState, PageHeader, StatCard } from '../components/common'
 import '../styles/dashboard.css'
 import '../styles/page-system.css'
 const DeviceMap = lazy(() => import('../components/DeviceMap'))
+
+const METRIC_ICON_COMPONENTS = {
+  Activity,
+  Thermometer,
+  Droplets,
+  Gauge,
+  Zap,
+  Battery,
+  Wifi,
+  Wind,
+  Power,
+  Cpu,
+}
+
+function normalizeMetricIconName(value) {
+  const iconName = String(value || '').trim()
+
+  return METRIC_ICON_COMPONENTS[iconName] ? iconName : 'Activity'
+}
+
+function getMetricIconName(metricConfig = {}) {
+  return normalizeMetricIconName(
+    metricConfig?.icon ||
+      metricConfig?.default_icon ||
+      metricConfig?.defaultIcon ||
+      metricConfig?.icon_name ||
+      metricConfig?.iconName
+  )
+}
+
+function MetricOverviewIcon({ iconName }) {
+  const safeIconName = normalizeMetricIconName(iconName)
+  const IconComponent = METRIC_ICON_COMPONENTS[safeIconName] || Activity
+
+  return (
+    <span className="live-metric-overview-icon" title={safeIconName}>
+      <IconComponent size={18} strokeWidth={2.35} />
+    </span>
+  )
+}
 
 function normalizeRealtimeDevice(reading = {}) {
   const latestMetrics = reading.latest_metrics || reading.metrics || {}
@@ -187,6 +244,7 @@ function buildMetricCard(device, metricKey, value, metricConfig = null) {
       metricConfig?.label ||
       getFallbackMetricName(metricKey),
     unit: metricConfig?.unit || getFallbackMetricUnit(metricKey),
+    icon: getMetricIconName(metricConfig),
     value: formatMetricValue(value),
     latestTime: device.latest_time || device.last_ingest_at,
     healthStatus: getHealthStatus(device),
@@ -241,10 +299,8 @@ function Dashboard({ onOpenDevice }) {
     critical: 0,
   })
   const [dashboardDisplay, setDashboardDisplay] = useState({
-    showDataOverview: true,
     showDeviceOverview: true,
     showDeviceMap: true,
-    showLatestActiveAlarms: true,
   })
 
   const { addAlarm } = useAlarm()
@@ -291,12 +347,9 @@ function Dashboard({ onOpenDevice }) {
 
   function loadDisplaySettings() {
     setDashboardDisplay({
-      showDataOverview: localStorage.getItem('showDataOverview') !== 'false',
       showDeviceOverview:
         localStorage.getItem('showDeviceOverview') !== 'false',
       showDeviceMap: localStorage.getItem('showDeviceMap') !== 'false',
-      showLatestActiveAlarms:
-        localStorage.getItem('showLatestActiveAlarms') !== 'false',
     })
   }
 
@@ -332,7 +385,20 @@ function Dashboard({ onOpenDevice }) {
     loadDevices()
     loadAlarms()
 
+    function handleMetricConfigChanged(event) {
+      clearApiCache?.()
+      loadDevices()
+
+      if (import.meta.env.DEV) {
+        console.info('Metric config changed:', event.detail)
+      }
+    }
+
     window.addEventListener('dashboardSettingsChanged', loadDisplaySettings)
+    window.addEventListener(
+      'dotwatchMetricConfigChanged',
+      handleMetricConfigChanged
+    )
 
     let unsubscribeRealtime = null
 
@@ -383,6 +449,10 @@ function Dashboard({ onOpenDevice }) {
         'dashboardSettingsChanged',
         loadDisplaySettings
       )
+      window.removeEventListener(
+        'dotwatchMetricConfigChanged',
+        handleMetricConfigChanged
+      )
     }
   }, [addAlarm])
 
@@ -412,8 +482,6 @@ function Dashboard({ onOpenDevice }) {
       <PageHeader
         eyebrow="Operations Center"
         title="dotWatch Dashboard"
-        description="ศูนย์กลางสำหรับติดตามสถานะ Device, ค่าล่าสุดของ Sensor, ตำแหน่งบนแผนที่ และ Alarm ที่กำลัง Active แบบ Realtime"
-
       />
 
       <section className="dw-page-stat-grid dashboard-kpi-grid dashboard-health-kpi-grid">
@@ -447,9 +515,8 @@ function Dashboard({ onOpenDevice }) {
         />
       </section>
 
-      {dashboardDisplay.showDataOverview && (
-        <section className="app-card dashboard-unified-section dashboard-data-overview-card live-metrics-overview-card">
-        <div className="app-section-title dashboard-section-title-row dashboard-unified-section-header live-metrics-overview-header">
+      <section className="app-card dashboard-data-overview-card live-metrics-overview-card">
+        <div className="app-section-title dashboard-section-title-row live-metrics-overview-header">
           <div>
             <h2>Data Overview</h2>
             <p>
@@ -457,7 +524,7 @@ function Dashboard({ onOpenDevice }) {
             </p>
           </div>
 
-          <span className="device-count-badge dashboard-unified-section-badge live-metrics-count-badge">
+          <span className="device-count-badge live-metrics-count-badge">
             {dataOverviewMetrics.length} Metrics
           </span>
         </div>
@@ -482,6 +549,7 @@ function Dashboard({ onOpenDevice }) {
                 <span className="live-metric-bg-shape" />
 
                 <div className="live-metric-overview-title">
+                  <MetricOverviewIcon iconName={metric.icon} />
                   <strong>{metric.metricName}</strong>
                 </div>
 
@@ -497,18 +565,17 @@ function Dashboard({ onOpenDevice }) {
             ))}
           </div>
         )}
-        </section>
-      )}
+      </section>
 
       {dashboardDisplay.showDeviceOverview && (
-          <section className="app-card dashboard-unified-section devices-overview-panel dashboard-devices-card">
-            <div className="app-section-title dashboard-section-title-row dashboard-unified-section-header">
+          <section className="app-card devices-overview-panel dashboard-devices-card">
+            <div className="app-section-title dashboard-section-title-row">
               <div>
                 <h2>Devices Overview</h2>
                 <p>ภาพรวมสถานะอุปกรณ์ทั้งหมด</p>
               </div>
 
-              <span className="device-count-badge dashboard-unified-section-badge">
+              <span className="device-count-badge">
                 {devices.length} Devices
               </span>
             </div>
@@ -564,42 +631,27 @@ function Dashboard({ onOpenDevice }) {
       )}
 
       {dashboardDisplay.showDeviceMap && (
-        <section className="app-card dashboard-unified-section dashboard-map-card-v2">
-          <div className="app-section-title dashboard-section-title-row dashboard-unified-section-header">
-            <div>
-              <h2>Device Map</h2>
-              <p>แสดงตำแหน่ง Device และสถานะล่าสุดบนแผนที่</p>
-            </div>
-
-            <span className="device-count-badge dashboard-unified-section-badge">
-              {devices.length} Locations
-            </span>
-          </div>
-
-          <div className="dashboard-unified-map-frame">
-            <Suspense
-              fallback={
-                <div className="dashboard-map-loading">
-                  <div className="dashboard-map-loading-icon" />
-                  <div>
-                    <strong>Loading device map</strong>
-                    <p>กำลังโหลดแผนที่และตำแหน่งอุปกรณ์</p>
-                  </div>
+        <section className="app-card dashboard-map-card-v2">
+          <Suspense
+            fallback={
+              <div className="dashboard-map-loading">
+                <div className="dashboard-map-loading-icon" />
+                <div>
+                  <strong>Loading device map</strong>
+                  <p>กำลังโหลดแผนที่และตำแหน่งอุปกรณ์</p>
                 </div>
-              }
-            >
-              <DeviceMap devices={devices} />
-            </Suspense>
-          </div>
+              </div>
+            }
+          >
+            <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
+          </Suspense>
         </section>
       )}
 
-      {dashboardDisplay.showLatestActiveAlarms && (
-        <section className="dashboard-alerts-under-map">
-          <LatestActiveAlarms limit={6} />
-          <AlarmPanel />
-        </section>
-      )}
+      <section className="dashboard-alerts-under-map">
+        <LatestActiveAlarms limit={6} />
+        <AlarmPanel />
+      </section>
     </div>
   )
 }

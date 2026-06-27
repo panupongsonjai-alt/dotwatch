@@ -3,7 +3,11 @@ import base64
 import html
 import json
 import os
+import platform
+import shutil
+import socket
 import subprocess
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -113,6 +117,17 @@ def run_cmd(args, timeout=8):
         }
 
 
+def safe_read(path, default=""):
+    try:
+        return Path(path).read_text(encoding="utf-8").strip()
+    except Exception:
+        return default
+
+
+def esc(value):
+    return html.escape(str(value or ""), quote=True)
+
+
 def get_agent_status():
     active = run_cmd(["systemctl", "is-active", "dotwatch-pi-agent"])
     enabled = run_cmd(["systemctl", "is-enabled", "dotwatch-pi-agent"])
@@ -125,6 +140,180 @@ def get_agent_status():
         "active": active["output"] or "unknown",
         "enabled": enabled["output"] or "unknown",
         "logs": logs["output"] or "No logs yet",
+    }
+
+
+def get_service_status(service_name):
+    active = run_cmd(["systemctl", "is-active", service_name])
+    enabled = run_cmd(["systemctl", "is-enabled", service_name])
+
+    return {
+        "active": active["output"] or "unknown",
+        "enabled": enabled["output"] or "unknown",
+    }
+
+
+def format_bytes(value):
+    try:
+        value = float(value)
+    except Exception:
+        return "N/A"
+
+    units = ["B", "KB", "MB", "GB", "TB"]
+    index = 0
+
+    while value >= 1024 and index < len(units) - 1:
+        value /= 1024
+        index += 1
+
+    if index == 0:
+        return f"{int(value)} {units[index]}"
+
+    return f"{value:.1f} {units[index]}"
+
+
+def format_seconds(seconds):
+    try:
+        seconds = int(float(seconds))
+    except Exception:
+        return "N/A"
+
+    days, remainder = divmod(seconds, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, _ = divmod(remainder, 60)
+
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    parts.append(f"{minutes}m")
+
+    return " ".join(parts)
+
+
+def get_cpu_temperature():
+    raw = safe_read("/sys/class/thermal/thermal_zone0/temp")
+
+    if not raw:
+        return "N/A"
+
+    try:
+        return f"{int(raw) / 1000:.1f} °C"
+    except Exception:
+        return "N/A"
+
+
+def get_mem_info():
+    info = {}
+    raw = safe_read("/proc/meminfo")
+
+    for line in raw.splitlines():
+        if ":" not in line:
+            continue
+
+        key, value = line.split(":", 1)
+        number = value.strip().split()[0]
+
+        try:
+            info[key] = int(number) * 1024
+        except Exception:
+            pass
+
+    total = info.get("MemTotal", 0)
+    available = info.get("MemAvailable", 0)
+    used = max(total - available, 0)
+    percent = round((used / total) * 100, 1) if total else 0
+
+    return {
+        "total": total,
+        "available": available,
+        "used": used,
+        "percent": percent,
+    }
+
+
+def get_disk_info():
+    try:
+        usage = shutil.disk_usage("/")
+        percent = round((usage.used / usage.total) * 100, 1)
+        return {
+            "total": usage.total,
+            "used": usage.used,
+            "free": usage.free,
+            "percent": percent,
+        }
+    except Exception:
+        return {
+            "total": 0,
+            "used": 0,
+            "free": 0,
+            "percent": 0,
+        }
+
+
+def get_network_info():
+    ip_br = run_cmd(["ip", "-br", "addr"], timeout=5)
+    route = run_cmd(["ip", "route"], timeout=5)
+    wifi = run_cmd(["nmcli", "-t", "-f", "active,ssid,signal", "dev", "wifi"], timeout=6)
+    active_connections = run_cmd(["nmcli", "-f", "NAME,TYPE,DEVICE", "con", "show", "--active"], timeout=6)
+
+    wifi_lines = []
+    for line in (wifi["output"] or "").splitlines():
+        parts = line.split(":")
+        if len(parts) >= 3 and parts[0] == "yes":
+            wifi_lines.append(f"SSID: {parts[1]} · Signal: {parts[2]}%")
+
+    return {
+        "ip_br": ip_br["output"] or "N/A",
+        "route": route["output"] or "N/A",
+        "wifi": "\n".join(wifi_lines) or "N/A",
+        "active_connections": active_connections["output"] or "N/A",
+    }
+
+
+def get_system_status():
+    mem = get_mem_info()
+    disk = get_disk_info()
+    net = get_network_info()
+    load = os.getloadavg() if hasattr(os, "getloadavg") else (0, 0, 0)
+
+    uptime_seconds = 0
+    raw_uptime = safe_read("/proc/uptime")
+    if raw_uptime:
+        try:
+            uptime_seconds = float(raw_uptime.split()[0])
+        except Exception:
+            uptime_seconds = 0
+
+    throttled = run_cmd(["vcgencmd", "get_throttled"], timeout=5)
+    cpu_freq = run_cmd(["vcgencmd", "measure_clock", "arm"], timeout=5)
+    voltage = run_cmd(["vcgencmd", "measure_volts"], timeout=5)
+
+    return {
+        "hostname": socket.gethostname(),
+        "local_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "uptime": format_seconds(uptime_seconds),
+        "platform": platform.platform(),
+        "python_version": platform.python_version(),
+        "cpu_temp": get_cpu_temperature(),
+        "load_1": f"{load[0]:.2f}",
+        "load_5": f"{load[1]:.2f}",
+        "load_15": f"{load[2]:.2f}",
+        "mem_total": format_bytes(mem["total"]),
+        "mem_used": format_bytes(mem["used"]),
+        "mem_available": format_bytes(mem["available"]),
+        "mem_percent": mem["percent"],
+        "disk_total": format_bytes(disk["total"]),
+        "disk_used": format_bytes(disk["used"]),
+        "disk_free": format_bytes(disk["free"]),
+        "disk_percent": disk["percent"],
+        "network": net,
+        "agent": get_service_status("dotwatch-pi-agent"),
+        "config_ui": get_service_status("dotwatch-pi-config-ui"),
+        "throttled": throttled["output"] or "N/A",
+        "cpu_freq": cpu_freq["output"] or "N/A",
+        "voltage": voltage["output"] or "N/A",
     }
 
 
@@ -187,29 +376,16 @@ def test_ingest(config):
         return False, str(error)
 
 
-def esc(value):
-    return html.escape(str(value or ""), quote=True)
-
-
-def render_page(message="", message_type="info"):
-    config = read_env()
-    status = get_agent_status()
-
-    active_class = "online" if status["active"] == "active" else "offline"
-    secret_mask = mask_secret(config.get("DEVICE_SECRET", ""))
+def render_shell(content, active_page="settings", message="", message_type="info"):
+    agent = get_service_status("dotwatch-pi-agent")
+    active_class = "" if agent["active"] == "active" else "offline"
 
     message_html = ""
     if message:
         message_html = f'<div class="notice {esc(message_type)}">{esc(message)}</div>'
 
-    password_warning = ""
-    if config.get("CONFIG_UI_PASSWORD") == "change-this-config-password":
-        password_warning = """
-        <div class="notice danger">
-          <strong>Security warning:</strong>
-          CONFIG_UI_PASSWORD ยังเป็นค่าเริ่มต้น กรุณาเปลี่ยนรหัสผ่านหน้านี้ทันที
-        </div>
-        """
+    settings_active = "active" if active_page == "settings" else ""
+    status_active = "active" if active_page == "status" else ""
 
     return f"""<!doctype html>
 <html lang="th">
@@ -234,6 +410,7 @@ def render_page(message="", message_type="info"):
       --green: #22c55e;
       --yellow: #f59e0b;
       --red: #ef4444;
+      --blue: #38bdf8;
       --shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
       --radius-xl: 26px;
       --radius-lg: 18px;
@@ -255,6 +432,11 @@ def render_page(message="", message_type="info"):
         linear-gradient(135deg, #080b12 0%, #0b1020 50%, #080b12 100%);
     }}
 
+    a {{
+      color: inherit;
+      text-decoration: none;
+    }}
+
     .shell {{
       width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
@@ -266,7 +448,7 @@ def render_page(message="", message_type="info"):
       justify-content: space-between;
       gap: 18px;
       align-items: flex-start;
-      margin-bottom: 22px;
+      margin-bottom: 18px;
     }}
 
     .brand {{
@@ -328,9 +510,46 @@ def render_page(message="", message_type="info"):
       box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.12);
     }}
 
+    .nav {{
+      display: flex;
+      gap: 10px;
+      margin: 0 0 18px;
+      flex-wrap: wrap;
+    }}
+
+    .nav a {{
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.58);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      font-weight: 800;
+    }}
+
+    .nav a.active {{
+      color: white;
+      border-color: rgba(239, 68, 68, 0.45);
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.34), rgba(249, 115, 22, 0.18));
+    }}
+
     .grid {{
       display: grid;
       grid-template-columns: 1.45fr 0.9fr;
+      gap: 18px;
+      align-items: start;
+    }}
+
+    .status-page-grid {{
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }}
+
+    .two-col {{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 18px;
       align-items: start;
     }}
@@ -458,6 +677,7 @@ def render_page(message="", message_type="info"):
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 15px;
+      min-height: 92px;
     }}
 
     .stat span {{
@@ -471,6 +691,11 @@ def render_page(message="", message_type="info"):
       font-size: 1.05rem;
       letter-spacing: -0.02em;
       overflow-wrap: anywhere;
+    }}
+
+    .stat.accent {{
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(249, 115, 22, 0.08));
+      border-color: rgba(239, 68, 68, 0.26);
     }}
 
     .secret {{
@@ -525,16 +750,25 @@ def render_page(message="", message_type="info"):
       text-align: center;
     }}
 
-    @media (max-width: 900px) {{
+    @media (max-width: 980px) {{
+      .grid,
+      .two-col {{
+        grid-template-columns: 1fr;
+      }}
+
+      .status-page-grid {{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }}
+    }}
+
+    @media (max-width: 640px) {{
       .topbar {{
         flex-direction: column;
       }}
 
-      .grid {{
-        grid-template-columns: 1fr;
-      }}
-
-      .form-grid {{
+      .form-grid,
+      .status-grid,
+      .status-page-grid {{
         grid-template-columns: 1fr;
       }}
     }}
@@ -552,12 +786,43 @@ def render_page(message="", message_type="info"):
       </div>
 
       <div class="pill">
-        <span class="dot {'' if active_class == 'online' else 'offline'}"></span>
-        Agent: {esc(status["active"])}
+        <span class="dot {active_class}"></span>
+        Agent: {esc(agent["active"])}
       </div>
     </header>
 
+    <nav class="nav">
+      <a class="{settings_active}" href="/">Settings</a>
+      <a class="{status_active}" href="/status">Raspberry Pi Status</a>
+    </nav>
+
     {message_html}
+    {content}
+
+    <div class="footer">
+      dotWatch Raspberry Pi Config UI · Local network only
+    </div>
+  </main>
+</body>
+</html>
+""".encode("utf-8")
+
+
+def render_settings_page(message="", message_type="info"):
+    config = read_env()
+    status = get_agent_status()
+    secret_mask = mask_secret(config.get("DEVICE_SECRET", ""))
+
+    password_warning = ""
+    if config.get("CONFIG_UI_PASSWORD") == "change-this-config-password":
+        password_warning = """
+        <div class="notice danger">
+          <strong>Security warning:</strong>
+          CONFIG_UI_PASSWORD ยังเป็นค่าเริ่มต้น กรุณาเปลี่ยนรหัสผ่านหน้านี้ทันที
+        </div>
+        """
+
+    content = f"""
     {password_warning}
 
     <section class="grid">
@@ -659,18 +924,150 @@ def render_page(message="", message_type="info"):
         <pre>{esc(status["logs"])}</pre>
       </div>
     </section>
+    """
 
-    <div class="footer">
-      dotWatch Raspberry Pi Config UI · Local network only
-    </div>
-  </main>
-</body>
-</html>
-""".encode("utf-8")
+    return render_shell(content, active_page="settings", message=message, message_type=message_type)
+
+
+def render_status_page(message="", message_type="info"):
+    status = get_system_status()
+
+    content = f"""
+    <section class="status-page-grid">
+      <div class="stat accent">
+        <span>Hostname</span>
+        <strong>{esc(status["hostname"])}</strong>
+      </div>
+      <div class="stat">
+        <span>Local Time</span>
+        <strong>{esc(status["local_time"])}</strong>
+      </div>
+      <div class="stat">
+        <span>Uptime</span>
+        <strong>{esc(status["uptime"])}</strong>
+      </div>
+      <div class="stat">
+        <span>CPU Temp</span>
+        <strong>{esc(status["cpu_temp"])}</strong>
+      </div>
+      <div class="stat">
+        <span>Memory Used</span>
+        <strong>{esc(status["mem_percent"])}%</strong>
+        <div class="hint">{esc(status["mem_used"])} / {esc(status["mem_total"])}</div>
+      </div>
+      <div class="stat">
+        <span>Disk Used</span>
+        <strong>{esc(status["disk_percent"])}%</strong>
+        <div class="hint">{esc(status["disk_used"])} / {esc(status["disk_total"])}</div>
+      </div>
+      <div class="stat">
+        <span>Agent Service</span>
+        <strong>{esc(status["agent"]["active"])}</strong>
+        <div class="hint">enabled: {esc(status["agent"]["enabled"])}</div>
+      </div>
+      <div class="stat">
+        <span>Config UI Service</span>
+        <strong>{esc(status["config_ui"]["active"])}</strong>
+        <div class="hint">enabled: {esc(status["config_ui"]["enabled"])}</div>
+      </div>
+    </section>
+
+    <section class="two-col">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>System Health</h2>
+          <p>ข้อมูลพื้นฐานของ Raspberry Pi สำหรับตรวจสอบตอนใช้งานจริง</p>
+        </div>
+        <div class="panel-body">
+          <div class="status-grid">
+            <div class="stat">
+              <span>Load Average</span>
+              <strong>{esc(status["load_1"])} / {esc(status["load_5"])} / {esc(status["load_15"])}</strong>
+            </div>
+            <div class="stat">
+              <span>Memory Available</span>
+              <strong>{esc(status["mem_available"])}</strong>
+            </div>
+            <div class="stat">
+              <span>Disk Free</span>
+              <strong>{esc(status["disk_free"])}</strong>
+            </div>
+            <div class="stat">
+              <span>Python</span>
+              <strong>{esc(status["python_version"])}</strong>
+            </div>
+          </div>
+
+          <pre>{esc(status["platform"])}</pre>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Raspberry Pi Power / Throttle</h2>
+          <p>ถ้า undervoltage หรือ throttle เกิดขึ้น ควรตรวจ adapter และสายไฟ</p>
+        </div>
+        <div class="panel-body">
+          <div class="status-grid">
+            <div class="stat">
+              <span>Throttle</span>
+              <strong>{esc(status["throttled"])}</strong>
+            </div>
+            <div class="stat">
+              <span>Voltage</span>
+              <strong>{esc(status["voltage"])}</strong>
+            </div>
+            <div class="stat">
+              <span>CPU Clock</span>
+              <strong>{esc(status["cpu_freq"])}</strong>
+            </div>
+            <div class="stat">
+              <span>Temperature</span>
+              <strong>{esc(status["cpu_temp"])}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px;">
+      <div class="panel-header">
+        <h2>Network Status</h2>
+        <p>ดู IP, Wi-Fi, active connection และ route ปัจจุบัน</p>
+      </div>
+      <div class="panel-body">
+        <div class="two-col">
+          <div>
+            <label>Active Wi-Fi</label>
+            <pre>{esc(status["network"]["wifi"])}</pre>
+          </div>
+          <div>
+            <label>Active Connections</label>
+            <pre>{esc(status["network"]["active_connections"])}</pre>
+          </div>
+        </div>
+
+        <div style="height:14px;"></div>
+
+        <div class="two-col">
+          <div>
+            <label>IP Addresses</label>
+            <pre>{esc(status["network"]["ip_br"])}</pre>
+          </div>
+          <div>
+            <label>Routes</label>
+            <pre>{esc(status["network"]["route"])}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+    """
+
+    return render_shell(content, active_page="status", message=message, message_type=message_type)
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "dotWatchPiConfig/0.1"
+    server_version = "dotWatchPiConfig/0.2"
 
     def log_message(self, fmt, *args):
         print(f"[{datetime.now().isoformat(timespec='seconds')}] {self.address_string()} {fmt % args}")
@@ -699,15 +1096,20 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write("Authentication required".encode("utf-8"))
 
-    def send_html(self, message="", message_type="info"):
+    def send_html(self, page="settings", message="", message_type="info"):
         if not self.is_authorized():
             self.require_auth()
             return
 
+        if page == "status":
+            body = render_status_page(message, message_type)
+        else:
+            body = render_settings_page(message, message_type)
+
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
-        self.wfile.write(render_page(message, message_type))
+        self.wfile.write(body)
 
     def read_form(self):
         length = int(self.headers.get("Content-Length", "0") or "0")
@@ -721,7 +1123,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/" or self.path.startswith("/?"):
-            self.send_html()
+            self.send_html("settings")
+            return
+
+        if self.path == "/status" or self.path.startswith("/status?"):
+            self.send_html("status")
             return
 
         self.send_response(404)
@@ -743,20 +1149,21 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError
                 current["SEND_INTERVAL_SECONDS"] = str(interval)
             except ValueError:
-                self.send_html("Send interval must be a number greater than 0.", "danger")
+                self.send_html("settings", "Send interval must be a number greater than 0.", "danger")
                 return
 
             write_env(current)
-            self.send_html("Saved settings successfully. Restart agent to apply changes.", "success")
+            self.send_html("settings", "Saved settings successfully. Restart agent to apply changes.", "success")
             return
 
         if self.path == "/restart-agent":
             result = run_cmd(["sudo", "-n", "systemctl", "restart", "dotwatch-pi-agent"], timeout=12)
 
             if result["ok"]:
-                self.send_html("Agent restarted successfully.", "success")
+                self.send_html("settings", "Agent restarted successfully.", "success")
             else:
                 self.send_html(
+                    "settings",
                     "Restart failed. Run manually: sudo systemctl restart dotwatch-pi-agent. Detail: "
                     + result["output"],
                     "warning",
@@ -766,9 +1173,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/test-ingest":
             ok, output = test_ingest(read_env())
             if ok:
-                self.send_html("Test ingest success: " + output[:600], "success")
+                self.send_html("settings", "Test ingest success: " + output[:600], "success")
             else:
-                self.send_html("Test ingest failed: " + output[:600], "danger")
+                self.send_html("settings", "Test ingest failed: " + output[:600], "danger")
             return
 
         self.send_response(404)
