@@ -3,16 +3,6 @@
    แก้เฉพาะแถบสีด้านบนของ StatCard ให้เป็นกรอบบน
 ========================================================= */
 
-/*
-  จุดประสงค์:
-  - ให้แถบสีเป็นเส้นกรอบเฉพาะด้านบนของ StatCard
-  - ให้โค้งรับกับมุมของการ์ด
-  - ไม่เป็นแท่ง pill ลอยอยู่ด้านใน
-  - ใช้รูปแบบเดียวกันกับ StatCard ทุกหน้า
-
-  ไฟล์นี้ควร import ไว้ท้ายสุดของ src/styles.css
-*/
-
 :root {
   --dotwatch-stat-card-radius: 20px;
   --dotwatch-stat-top-border-height: 4px;
@@ -24,7 +14,6 @@
   );
 }
 
-/* คุมเฉพาะ StatCard classes ที่ใช้อยู่ในโปรเจกต์ */
 .dw-stat-card,
 .stat-card,
 .summary-card,
@@ -33,7 +22,7 @@
 .dashboard-summary-card,
 .history-stat-card,
 .profile-stat-card,
-.settings-stat-card,
+..settings-stat-card,
 .system-health-stat-card,
 .alarm-stat-card,
 .notification-stat-card,
@@ -43,12 +32,6 @@
   border-radius: var(--dotwatch-stat-card-radius) !important;
 }
 
-/*
-  แถบสีด้านบน:
-  - ชิดขอบบนของ card
-  - กว้างเต็มกรอบ card
-  - โค้งเฉพาะมุมบนซ้าย/ขวาตาม card
-*/
 .dw-stat-card::before,
 .stat-card::before,
 .summary-card::before,
@@ -57,7 +40,7 @@
 .dashboard-summary-card::before,
 .history-stat-card::before,
 .profile-stat-card::before,
-.settings-stat-card::before,
+..settings-stat-card::before,
 .system-health-stat-card::before,
 .alarm-stat-card::before,
 .notification-stat-card::before,
@@ -83,7 +66,6 @@
   z-index: 2 !important;
 }
 
-/* ให้เนื้อหาอยู่เหนือพื้นหลัง แต่ไม่ทับแถบสี */
 .dw-stat-card > *,
 .stat-card > *,
 .summary-card > *,
@@ -101,24 +83,6 @@
   z-index: 3;
 }
 
-/* ปิดรูปแบบแถบสีแบบ inset/pill จาก patch เก่าที่อาจยังค้าง */
-.dw-stat-card::after,
-.stat-card::after,
-.summary-card::after,
-.compact-summary-card::after,
-.dashboard-stat-card::after,
-.dashboard-summary-card::after,
-.history-stat-card::after,
-.profile-stat-card::after,
-.settings-stat-card::after,
-.system-health-stat-card::after,
-.alarm-stat-card::after,
-.notification-stat-card::after,
-.activity-stat-card::after {
-  pointer-events: none !important;
-}
-
-/* จอเล็กยังใช้รูปแบบเดียวกัน */
 @media (max-width: 560px) {
   :root {
     --dotwatch-stat-card-radius: 18px;

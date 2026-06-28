@@ -26,4 +26,6 @@
 @import './styles/design-latest-guard.css';
 @import './styles/dotwatch-design-stabilizer.css';
 @import './styles/device-map-title-status-restore.css';
+@import './styles/statcard-top-border-unify.css';
+@import './styles/statcard-detail-unify.css';
 @import './styles/pageheader-unify.css';

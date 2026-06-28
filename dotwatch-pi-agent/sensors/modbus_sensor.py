@@ -33,7 +33,7 @@ def create_client(config):
     try:
         from pymodbus.client import ModbusSerialClient, ModbusTcpClient
     except Exception as error:
-        raise RuntimeError("pymodbus is not installed. Click Install Modbus Dependencies on /modbus page.") from error
+        raise RuntimeError("pymodbus is not installed. Click Install Dependencies on the Modbus page.") from error
 
     mode = str(config.get("mode", "tcp")).lower()
 
@@ -158,19 +158,15 @@ def read_one(client, item, default_unit_id):
     if function in ("coil", "coils", "fc1"):
         response = call_read(client.read_coils, address, count, unit_id)
         bits = getattr(response, "bits", None)
-
         if not bits:
             raise RuntimeError(f"No coil data returned at address {address}")
-
         return 1 if bool(bits[0]) else 0
 
     if function in ("discrete", "discrete_inputs", "di", "fc2"):
         response = call_read(client.read_discrete_inputs, address, count, unit_id)
         bits = getattr(response, "bits", None)
-
         if not bits:
             raise RuntimeError(f"No discrete input data returned at address {address}")
-
         return 1 if bool(bits[0]) else 0
 
     raise RuntimeError(f"Unsupported function: {function}")
@@ -183,7 +179,6 @@ def read_modbus_metrics(config_path):
         raise RuntimeError("Modbus is disabled in modbus_config.json")
 
     registers = config.get("registers", [])
-
     if not registers:
         raise RuntimeError("No Modbus registers configured")
 
@@ -193,6 +188,7 @@ def read_modbus_metrics(config_path):
         raise RuntimeError("Cannot connect to Modbus device")
 
     metrics = {}
+    errors = {}
 
     try:
         default_unit_id = int(config.get("unit_id", 1))
@@ -202,11 +198,13 @@ def read_modbus_metrics(config_path):
                 continue
 
             metric_key = str(item.get("metric_key", "")).strip()
-
             if not metric_key:
                 continue
 
-            metrics[metric_key] = read_one(client, item, default_unit_id)
+            try:
+                metrics[metric_key] = read_one(client, item, default_unit_id)
+            except Exception as error:
+                errors[metric_key] = str(error)
 
     finally:
         try:
@@ -214,7 +212,11 @@ def read_modbus_metrics(config_path):
         except Exception:
             pass
 
+    if not metrics and errors:
+        first_key = next(iter(errors))
+        raise RuntimeError(f"{first_key}: {errors[first_key]}")
+
     if not metrics:
         raise RuntimeError("No metrics were read from Modbus")
 
-    return metrics
+    return metrics, errors

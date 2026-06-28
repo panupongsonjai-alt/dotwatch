@@ -4,8 +4,6 @@ import html
 import json
 import os
 import platform
-import shutil
-import socket
 import subprocess
 import time
 from datetime import datetime
@@ -13,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs
 
-APP_VERSION = "0.8.0"
+APP_VERSION = "0.9.0"
 
 PROJECT_DIR = Path(os.getenv("DOTWATCH_AGENT_DIR", "/home/pi/dotwatch-pi-agent"))
 ENV_PATH = PROJECT_DIR / ".env"
@@ -27,7 +25,7 @@ DEFAULTS = {
     "DEVICE_CODE": "",
     "DEVICE_SECRET": "",
     "SEND_INTERVAL_SECONDS": "5",
-    "FIRMWARE_VERSION": "rpi-agent-modbus-0.8.0",
+    "FIRMWARE_VERSION": "rpi-agent-modbus-0.9.0",
     "SENSOR_SOURCE": "dummy",
     "MODBUS_CONFIG_PATH": str(MODBUS_CONFIG_PATH),
     "CONFIG_UI_USERNAME": "admin",
@@ -37,27 +35,23 @@ DEFAULTS = {
 
 def default_register(index):
     defaults = [
-        ("Voltage", "V", "holding", 0, "uint16", 1, 0.1, 0, 1),
-        ("Current", "A", "holding", 1, "uint16", 1, 0.01, 0, 2),
-        ("Active Power", "W", "holding", 2, "int32", 2, 1, 0, 0),
-        ("Energy", "kWh", "holding", 4, "uint32", 2, 0.01, 0, 2),
-        ("Frequency", "Hz", "holding", 6, "uint16", 1, 0.01, 0, 2),
-        ("Power Factor", "PF", "holding", 7, "int16", 1, 0.001, 0, 3),
-        ("Temperature", "°C", "holding", 8, "int16", 1, 0.1, 0, 1),
-        ("Humidity", "%", "holding", 9, "uint16", 1, 0.1, 0, 1),
-        ("Status", "", "coil", 0, "raw", 1, 1, 0, 0),
-        ("Alarm", "", "discrete", 0, "raw", 1, 1, 0, 0),
+        ("Voltage", "V", "holding", 0, "uint16", 1, 1, 0, 2),
+        ("Current", "A", "holding", 1, "uint16", 1, 1, 0, 2),
+        ("Active Power", "W", "holding", 2, "uint16", 1, 1, 0, 2),
+        ("Energy", "kWh", "holding", 3, "uint16", 1, 1, 0, 2),
+        ("Frequency", "Hz", "holding", 4, "uint16", 1, 1, 0, 2),
+        ("Power Factor", "PF", "holding", 5, "uint16", 1, 1, 0, 2),
     ]
 
     if index < len(defaults):
         name, unit, function, address, data_type, count, scale, offset, round_value = defaults[index]
     else:
         name, unit, function, address, data_type, count, scale, offset, round_value = (
-            f"Custom {index + 1}", "", "holding", index, "uint16", 1, 1, 0, 2
+            f"Value {index + 1}", "", "holding", index, "uint16", 1, 1, 0, 2
         )
 
     return {
-        "enabled": index < 6,
+        "enabled": index == 0,
         "metric_key": f"metric_{index + 1}",
         "name": name,
         "unit": unit,
@@ -79,6 +73,7 @@ def default_modbus_config():
         "enabled": True,
         "mode": "tcp",
         "unit_id": 1,
+        "poll_interval_ms": 3000,
         "tcp": {"host": "192.168.1.22", "port": 502, "timeout": 3},
         "rtu": {"port": "/dev/ttyUSB0", "baudrate": 9600, "parity": "N", "stopbits": 1, "bytesize": 8, "timeout": 3},
         "registers": [default_register(i) for i in range(20)],
@@ -86,7 +81,7 @@ def default_modbus_config():
 
 
 def esc(value):
-    return html.escape(str(value or ""), quote=True)
+    return html.escape(str(value if value is not None else ""), quote=True)
 
 
 def selected(current, value):
@@ -107,7 +102,6 @@ def read_env(path=ENV_PATH):
         raw = line.strip()
         if not raw or raw.startswith("#") or "=" not in raw:
             continue
-
         key, value = raw.split("=", 1)
         data[key.strip()] = value.strip().strip('"').strip("'")
 
@@ -128,12 +122,7 @@ def write_env(values, path=ENV_PATH):
     ]
 
     path.parent.mkdir(parents=True, exist_ok=True)
-
-    lines = [
-        "# dotWatch Raspberry Pi Agent settings",
-        f"# Updated at {datetime.now().isoformat(timespec='seconds')}",
-        "",
-    ]
+    lines = ["# dotWatch Raspberry Pi Agent settings", f"# Updated at {datetime.now().isoformat(timespec='seconds')}", ""]
 
     for key in keys:
         lines.append(f"{key}={str(values.get(key, DEFAULTS.get(key, ''))).strip()}")
@@ -153,20 +142,20 @@ def read_modbus_config():
 
     cfg = default_modbus_config()
     cfg.update(data)
-    cfg["tcp"] = {**default_modbus_config()["tcp"], **data.get("tcp", {})}
-    cfg["rtu"] = {**default_modbus_config()["rtu"], **data.get("rtu", {})}
+    base = default_modbus_config()
+    cfg["tcp"] = {**base["tcp"], **data.get("tcp", {})}
+    cfg["rtu"] = {**base["rtu"], **data.get("rtu", {})}
+    cfg["poll_interval_ms"] = int(data.get("poll_interval_ms", 3000) or 3000)
 
     registers = data.get("registers", [])
     normalized = []
 
     for i in range(20):
-        base = default_register(i)
-
+        item = default_register(i)
         if i < len(registers) and isinstance(registers[i], dict):
-            base.update(registers[i])
-
-        base["metric_key"] = f"metric_{i + 1}"
-        normalized.append(base)
+            item.update(registers[i])
+        item["metric_key"] = f"metric_{i + 1}"
+        normalized.append(item)
 
     cfg["registers"] = normalized
     return cfg
@@ -198,28 +187,22 @@ def get_service_status(service):
     return {"active": active["output"] or "unknown", "enabled": enabled["output"] or "unknown"}
 
 
-def get_network():
-    ip_br = run_cmd(["ip", "-br", "addr"], timeout=5)["output"] or "N/A"
-    primary_ip = "N/A"
-
+def get_primary_ip():
+    ip_br = run_cmd(["ip", "-br", "addr"], timeout=5)["output"] or ""
     for line in ip_br.splitlines():
         if "UP" in line and "127.0.0.1" not in line:
             parts = line.split()
             if len(parts) >= 3:
-                primary_ip = parts[2].split("/")[0]
-                break
-
-    return {"primary_ip": primary_ip, "ip_br": ip_br}
+                return parts[2].split("/")[0]
+    return "N/A"
 
 
 def system_status():
-    net = get_network()
     return {
-        "hostname": socket.gethostname(),
-        "primary_ip": net["primary_ip"],
-        "platform": platform.platform(),
+        "primary_ip": get_primary_ip(),
         "agent": get_service_status("dotwatch-pi-agent"),
         "config_ui": get_service_status("dotwatch-pi-config-ui"),
+        "platform": platform.platform(),
     }
 
 
@@ -239,10 +222,8 @@ def install_requirements():
     venv_python = PROJECT_DIR / "venv" / "bin" / "python"
     python_bin = str(venv_python) if venv_python.exists() else "python3"
     req = PROJECT_DIR / "requirements.txt"
-
     if not req.exists():
         return False, "requirements.txt not found on Raspberry Pi"
-
     result = run_cmd([python_bin, "-m", "pip", "install", "-r", str(req)], timeout=180, cwd=str(PROJECT_DIR))
     return result["ok"], result["output"]
 
@@ -253,10 +234,9 @@ def test_modbus():
     script = PROJECT_DIR / "modbus_test.py"
 
     if not script.exists():
-        return False, "modbus_test.py not found. Upload the Modbus agent files first."
+        return False, {"ok": False, "error": "modbus_test.py not found. Upload the Modbus agent files first."}
 
     result = run_cmd([python_bin, str(script)], timeout=45, cwd=str(PROJECT_DIR))
-
     output = result["output"] or ""
 
     try:
@@ -264,13 +244,10 @@ def test_modbus():
     except Exception:
         data = {"ok": False, "raw_output": output}
 
-    data["time"] = datetime.now().isoformat(timespec="seconds")
+    data["ui_time"] = datetime.now().isoformat(timespec="seconds")
     LAST_TEST_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    if data.get("ok"):
-        return True, json.dumps(data, ensure_ascii=False, indent=2)
-
-    return False, json.dumps(data, ensure_ascii=False, indent=2)
+    return bool(data.get("ok")), data
 
 
 def read_last_test():
@@ -285,28 +262,15 @@ def read_last_test():
 STYLE = """
 <style>
 :root{color-scheme:dark;--bg:#070a12;--sidebar:#0b1020;--line:rgba(148,163,184,.16);--text:#f8fafc;--muted:#9fb2cd;--muted2:#64748b;--accent:#ef4444;--accent2:#f97316;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--radius:22px;--shadow:0 24px 70px rgba(0,0,0,.34)}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(circle at -10% -20%,rgba(239,68,68,.24),transparent 34rem),linear-gradient(135deg,#070a12,#0b1020 48%,#070a12)}a{color:inherit;text-decoration:none}button,input,select{font:inherit}.app{min-height:100vh;display:grid;grid-template-columns:280px 1fr}.sidebar{position:sticky;top:0;height:100vh;padding:22px;background:linear-gradient(180deg,rgba(11,16,32,.96),rgba(7,10,18,.96));border-right:1px solid var(--line)}.brand{display:flex;gap:12px;align-items:center;padding:10px 8px 22px}.logo{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent2));font-weight:950}.brand-title{font-size:1.1rem;font-weight:950}.brand-subtitle{color:var(--muted2);font-size:.78rem;font-weight:800;text-transform:uppercase}.nav-label{padding:0 10px 10px;color:var(--muted2);font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.12em}.nav-link{display:flex;gap:10px;padding:12px 13px;margin-bottom:8px;border:1px solid transparent;border-radius:16px;color:var(--muted);font-weight:850}.nav-link.active{color:#fff;border-color:rgba(239,68,68,.34);background:linear-gradient(135deg,rgba(239,68,68,.20),rgba(249,115,22,.10));box-shadow:inset 3px 0 0 rgba(239,68,68,.95)}.nav-icon{width:28px;height:28px;border-radius:10px;display:grid;place-items:center;background:rgba(148,163,184,.09)}.main{min-width:0;padding:26px clamp(18px,3vw,36px) 44px}.header{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:20px}.eyebrow{color:#fca5a5;font-size:.78rem;font-weight:950;text-transform:uppercase;letter-spacing:.12em}h1{margin:6px 0 0;font-size:clamp(1.7rem,3vw,2.65rem);line-height:1.03;letter-spacing:-.055em}.header p{margin:10px 0 0;color:var(--muted)}.header-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;background:rgba(15,23,42,.70);color:var(--muted);padding:9px 12px;font-size:.82rem;font-weight:850}.status-dot{width:9px;height:9px;border-radius:99px;background:var(--green);box-shadow:0 0 0 5px rgba(34,197,94,.12)}.status-dot.offline{background:var(--red);box-shadow:0 0 0 5px rgba(239,68,68,.12)}.button-link,button{border:0;border-radius:14px;padding:11px 14px;color:#fff;cursor:pointer;font-weight:950;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 14px 30px rgba(239,68,68,.18);font-size:.88rem}.secondary{background:rgba(148,163,184,.10);border:1px solid var(--line);box-shadow:none}.warning{background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.25);box-shadow:none;color:#fde68a}.danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.28);box-shadow:none;color:#fecaca}.grid{display:grid;grid-template-columns:1fr 380px;gap:18px;align-items:start}.card{border:1px solid var(--line);background:linear-gradient(180deg,rgba(16,24,39,.92),rgba(13,20,34,.90));border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}.card-header{padding:20px 22px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.025)}.card-header h2{margin:0;font-size:1.04rem}.card-header p{margin:8px 0 0;color:var(--muted);font-size:.88rem;line-height:1.55}.card-body{padding:20px 22px 22px}.block{padding:16px;border:1px solid var(--line);border-radius:18px;background:rgba(2,6,23,.22);margin-bottom:16px}.block-title{margin:0 0 14px;color:#cbd5e1;font-size:.76rem;font-weight:950;text-transform:uppercase;letter-spacing:.11em}.form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:8px}.field.full{grid-column:1/-1}.field.two{grid-column:span 2}label{color:#cbd5e1;font-size:.82rem;font-weight:850}input,select{width:100%;border:1px solid rgba(148,163,184,.18);background:rgba(2,6,23,.52);color:var(--text);border-radius:14px;padding:11px 12px;outline:none}.hint{color:var(--muted2);font-size:.78rem;line-height:1.45}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.notice{border-radius:16px;padding:13px 15px;margin-bottom:16px;border:1px solid var(--line);background:rgba(56,189,248,.08);color:#bfdbfe;line-height:1.5}.notice.success{background:rgba(34,197,94,.10);border-color:rgba(34,197,94,.22);color:#bbf7d0}.notice.danger{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.22);color:#fecaca}.notice.warning{background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.22);color:#fde68a}.map-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:18px}.map-table{width:100%;min-width:1260px;border-collapse:separate;border-spacing:0;background:rgba(2,6,23,.28)}.map-table th,.map-table td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:middle}.map-table th{position:sticky;top:0;background:#111827;color:#cbd5e1;font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;z-index:1}.map-table tr:last-child td{border-bottom:0}.map-table input,.map-table select{padding:9px 10px;border-radius:11px;font-size:.84rem}.map-table .mini{width:76px}.map-table .tiny{width:58px}.map-table .name{width:170px}.map-table .metric{width:86px}.check{width:18px;height:18px}.result-list{display:grid;gap:10px}.result-item{display:grid;grid-template-columns:90px 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:12px;background:rgba(2,6,23,.28)}.result-item span{color:var(--muted);font-size:.78rem}.result-item strong{overflow-wrap:anywhere}.result-value{font-size:1rem;color:#bbf7d0;font-weight:950}.empty{color:var(--muted2);font-size:.9rem;line-height:1.5}pre{margin:0;padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(2,6,23,.52);color:#cbd5e1;overflow:auto;max-height:360px;font-size:.78rem;line-height:1.55}.footer{margin-top:18px;color:var(--muted2);font-size:.8rem;text-align:center}@media(max-width:1200px){.grid{grid-template-columns:1fr}.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:1080px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto;border-right:0;border-bottom:1px solid var(--line)}.nav-section{display:flex;gap:8px;overflow:auto}.nav-label{display:none}}@media(max-width:640px){.main{padding:18px 12px 36px}.header{flex-direction:column}.form-grid{grid-template-columns:1fr}.field.two{grid-column:span 1}}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(circle at -10% -20%,rgba(239,68,68,.24),transparent 34rem),linear-gradient(135deg,#070a12,#0b1020 48%,#070a12)}a{color:inherit;text-decoration:none}button,input,select{font:inherit}.app{min-height:100vh;display:grid;grid-template-columns:260px 1fr}.sidebar{position:sticky;top:0;height:100vh;padding:22px;background:linear-gradient(180deg,rgba(11,16,32,.96),rgba(7,10,18,.96));border-right:1px solid var(--line)}.brand{display:flex;gap:12px;align-items:center;padding:10px 8px 22px}.logo{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent2));font-weight:950}.brand-title{font-size:1.1rem;font-weight:950}.brand-subtitle{color:var(--muted2);font-size:.78rem;font-weight:800;text-transform:uppercase}.nav-label{padding:0 10px 10px;color:var(--muted2);font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.12em}.nav-link{display:flex;gap:10px;padding:12px 13px;margin-bottom:8px;border:1px solid transparent;border-radius:16px;color:var(--muted);font-weight:850}.nav-link.active{color:#fff;border-color:rgba(239,68,68,.34);background:linear-gradient(135deg,rgba(239,68,68,.20),rgba(249,115,22,.10));box-shadow:inset 3px 0 0 rgba(239,68,68,.95)}.nav-icon{width:28px;height:28px;border-radius:10px;display:grid;place-items:center;background:rgba(148,163,184,.09)}.main{min-width:0;padding:26px clamp(18px,3vw,36px) 44px}.header{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:20px}.eyebrow{color:#fca5a5;font-size:.78rem;font-weight:950;text-transform:uppercase;letter-spacing:.12em}h1{margin:6px 0 0;font-size:clamp(1.7rem,3vw,2.65rem);line-height:1.03;letter-spacing:-.055em}.header p{margin:10px 0 0;color:var(--muted)}.header-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;background:rgba(15,23,42,.70);color:var(--muted);padding:9px 12px;font-size:.82rem;font-weight:850}.status-dot{width:9px;height:9px;border-radius:99px;background:var(--green);box-shadow:0 0 0 5px rgba(34,197,94,.12)}.status-dot.offline{background:var(--red);box-shadow:0 0 0 5px rgba(239,68,68,.12)}.button-link,button{border:0;border-radius:14px;padding:11px 14px;color:#fff;cursor:pointer;font-weight:950;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 14px 30px rgba(239,68,68,.18);font-size:.88rem}.secondary{background:rgba(148,163,184,.10);border:1px solid var(--line);box-shadow:none}.warning{background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.25);box-shadow:none;color:#fde68a}.ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);box-shadow:none;color:#bbf7d0}.danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.28);box-shadow:none;color:#fecaca}.grid{display:grid;grid-template-columns:1fr 390px;gap:18px;align-items:start}.card{border:1px solid var(--line);background:linear-gradient(180deg,rgba(16,24,39,.92),rgba(13,20,34,.90));border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}.card-header{padding:20px 22px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.025)}.card-header h2{margin:0;font-size:1.04rem}.card-header p{margin:8px 0 0;color:var(--muted);font-size:.88rem;line-height:1.55}.card-body{padding:20px 22px 22px}.block{padding:16px;border:1px solid var(--line);border-radius:18px;background:rgba(2,6,23,.22);margin-bottom:16px}.block-title{margin:0 0 14px;color:#cbd5e1;font-size:.76rem;font-weight:950;text-transform:uppercase;letter-spacing:.11em}.simple-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:8px}.field.full{grid-column:1/-1}.field.two{grid-column:span 2}label{color:#cbd5e1;font-size:.82rem;font-weight:850}input,select{width:100%;border:1px solid rgba(148,163,184,.18);background:rgba(2,6,23,.52);color:var(--text);border-radius:14px;padding:11px 12px;outline:none}.hint{color:var(--muted2);font-size:.78rem;line-height:1.45}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.notice{border-radius:16px;padding:13px 15px;margin-bottom:16px;border:1px solid var(--line);background:rgba(56,189,248,.08);color:#bfdbfe;line-height:1.5}.notice.success{background:rgba(34,197,94,.10);border-color:rgba(34,197,94,.22);color:#bbf7d0}.notice.danger{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.22);color:#fecaca}.notice.warning{background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.22);color:#fde68a}.read-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid var(--line);border-radius:18px;background:rgba(2,6,23,.28);margin-bottom:16px}.read-buttons{display:flex;gap:10px;flex-wrap:wrap}.small-status{color:var(--muted);font-size:.82rem}.live-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.live-card{min-height:94px;border:1px solid var(--line);border-radius:16px;padding:13px;background:rgba(2,6,23,.28)}.live-card .top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.live-card span{color:var(--muted);font-size:.75rem;font-weight:850}.live-card strong{display:block;margin-top:4px;font-size:.92rem;line-height:1.2}.live-value{margin-top:10px;font-size:1.3rem;font-weight:950;color:#bbf7d0;letter-spacing:-.04em;overflow-wrap:anywhere}.live-value.empty{color:var(--muted2)}.live-error{margin-top:8px;color:#fecaca;font-size:.74rem;line-height:1.35}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{border:1px solid var(--line);border-radius:999px;background:rgba(148,163,184,.08);color:var(--muted);padding:8px 12px;font-weight:850;font-size:.82rem}.tab.active{color:white;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.18)}details{border:1px solid var(--line);border-radius:18px;background:rgba(2,6,23,.18);overflow:hidden}summary{cursor:pointer;padding:16px 18px;font-weight:950;color:#cbd5e1}.map-table-wrap{overflow:auto;border-top:1px solid var(--line)}.map-table{width:100%;min-width:1260px;border-collapse:separate;border-spacing:0;background:rgba(2,6,23,.28)}.map-table th,.map-table td{border-bottom:1px solid var(--line);padding:9px 7px;text-align:left;vertical-align:middle}.map-table th{position:sticky;top:0;background:#111827;color:#cbd5e1;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;z-index:1}.map-table input,.map-table select{padding:8px 9px;border-radius:10px;font-size:.82rem}.map-table .mini{width:76px}.map-table .tiny{width:58px}.map-table .name{width:160px}.map-table .metric{width:86px}.check{width:18px;height:18px}.footer{margin-top:18px;color:var(--muted2);font-size:.8rem;text-align:center}@media(max-width:1200px){.grid{grid-template-columns:1fr}.simple-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:1080px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto;border-right:0;border-bottom:1px solid var(--line)}.nav-section{display:flex;gap:8px;overflow:auto}.nav-label{display:none}}@media(max-width:640px){.main{padding:18px 12px 36px}.header{flex-direction:column}.simple-grid,.live-grid{grid-template-columns:1fr}}
 </style>
 """
 
 
 def shell(content, page="modbus", message="", message_type="info"):
     st = system_status()
-    active = {name: "active" if page == name else "" for name in ["settings", "status", "network", "modbus"]}
-    title = {
-        "settings": "Pi Gateway Settings",
-        "status": "Raspberry Pi Status",
-        "network": "Network Settings",
-        "modbus": "Modbus Mapping 20 Values",
-    }.get(page, "Pi Gateway Settings")
-    subtitle = {
-        "settings": "Manage backend and agent runtime settings.",
-        "status": "Monitor services and network health.",
-        "network": "View current network status for the gateway.",
-        "modbus": "Easy mapping table for metric_1 to metric_20 with live test result display.",
-    }.get(page, "")
+    active = {name: "active" if page == name else "" for name in ["settings", "status", "modbus"]}
     message_html = f'<div class="notice {esc(message_type)}">{esc(message)}</div>' if message else ""
-    refresh_path = f"/{page}" if page != "settings" else "/"
 
     return f"""<!doctype html>
 <html lang="th">
@@ -318,19 +282,22 @@ def shell(content, page="modbus", message="", message_type="info"):
   <div class="nav-label">Navigation</div>
   <nav class="nav-section">
     <a class="nav-link {active["settings"]}" href="/"><span class="nav-icon">⚙</span>Settings</a>
-    <a class="nav-link {active["status"]}" href="/status"><span class="nav-icon">●</span>Pi Status</a>
-    <a class="nav-link {active["network"]}" href="/network"><span class="nav-icon">⌁</span>Network</a>
-    <a class="nav-link {active["modbus"]}" href="/modbus"><span class="nav-icon">↔</span>Modbus Map</a>
+    <a class="nav-link {active["status"]}" href="/status"><span class="nav-icon">●</span>Status</a>
+    <a class="nav-link {active["modbus"]}" href="/modbus"><span class="nav-icon">↔</span>Modbus Live</a>
     <a class="nav-link" href="/logout"><span class="nav-icon">↩</span>Logout</a>
   </nav>
 </aside>
 <main class="main">
   <header class="header">
-    <div><div class="eyebrow">dotWatch Raspberry Pi</div><h1>{esc(title)}</h1><p>{esc(subtitle)}</p></div>
+    <div>
+      <div class="eyebrow">dotWatch Raspberry Pi</div>
+      <h1>{"Modbus Live Reader" if page == "modbus" else esc(page.title())}</h1>
+      <p>{"อ่านค่า Modbus แบบต่อเนื่อง พร้อมตั้งค่า mapping 20 ค่าแบบง่าย" if page == "modbus" else "dotWatch Pi configuration"}</p>
+    </div>
     <div class="header-actions">
       <span class="pill"><span class="status-dot {dot_class(st["agent"]["active"])}"></span>Agent: {esc(st["agent"]["active"])}</span>
       <span class="pill">IP: {esc(st["primary_ip"])}</span>
-      <a class="button-link secondary" href="{refresh_path}">Refresh</a>
+      <a class="button-link secondary" href="/{'' if page == 'settings' else page}">Refresh</a>
     </div>
   </header>
   {message_html}
@@ -342,60 +309,30 @@ def shell(content, page="modbus", message="", message_type="info"):
 </html>""".encode("utf-8")
 
 
-def settings_page(message="", message_type="info"):
-    cfg = read_env()
-    content = f"""
-    <section class="card">
-      <div class="card-header"><h2>Settings</h2><p>ตั้งค่าพื้นฐานของ dotWatch Pi Agent</p></div>
-      <div class="card-body">
-        <form method="POST" action="/save">
-          <div class="form-grid">
-            <div class="field two"><label>Backend API URL</label><input name="DOTWATCH_API_URL" value="{esc(cfg.get("DOTWATCH_API_URL"))}"></div>
-            <div class="field"><label>Device Code</label><input name="DEVICE_CODE" value="{esc(cfg.get("DEVICE_CODE"))}"></div>
-            <div class="field"><label>Device Secret</label><input name="DEVICE_SECRET" type="password" value="{esc(cfg.get("DEVICE_SECRET"))}"><div class="hint">{esc(mask_secret(cfg.get("DEVICE_SECRET")))}</div></div>
-            <div class="field"><label>Send Interval</label><input name="SEND_INTERVAL_SECONDS" type="number" value="{esc(cfg.get("SEND_INTERVAL_SECONDS"))}"></div>
-            <div class="field"><label>Firmware</label><input name="FIRMWARE_VERSION" value="{esc(cfg.get("FIRMWARE_VERSION"))}"></div>
-            <div class="field"><label>Sensor Source</label><select name="SENSOR_SOURCE"><option value="dummy" {selected(cfg.get("SENSOR_SOURCE"), "dummy")}>Dummy</option><option value="modbus" {selected(cfg.get("SENSOR_SOURCE"), "modbus")}>Modbus</option></select></div>
-            <div class="field"><label>Modbus Config Path</label><input name="MODBUS_CONFIG_PATH" value="{esc(cfg.get("MODBUS_CONFIG_PATH") or str(MODBUS_CONFIG_PATH))}"></div>
-            <div class="field"><label>UI Username</label><input name="CONFIG_UI_USERNAME" value="{esc(cfg.get("CONFIG_UI_USERNAME"))}"></div>
-            <div class="field"><label>UI Password</label><input name="CONFIG_UI_PASSWORD" type="password" value="{esc(cfg.get("CONFIG_UI_PASSWORD"))}"></div>
+def render_live_cards(registers):
+    cards = []
+    for i in range(20):
+        item = registers[i] if i < len(registers) else default_register(i)
+        key = f"metric_{i+1}"
+        enabled_class = "" if item.get("enabled") else " empty"
+        cards.append(f"""
+          <div class="live-card" data-metric-card="{key}">
+            <div class="top">
+              <div>
+                <span>{key}</span>
+                <strong data-name="{key}">{esc(item.get("name", key))}</strong>
+              </div>
+              <span data-unit-label="{key}">{esc(item.get("unit", ""))}</span>
+            </div>
+            <div class="live-value{enabled_class}" data-value="{key}">{"Waiting" if item.get("enabled") else "Off"}</div>
+            <div class="live-error" data-error="{key}"></div>
           </div>
-          <div class="actions"><button type="submit">Save Settings</button></div>
-        </form>
-      </div>
-    </section>
-    """
-    return shell(content, "settings", message, message_type)
-
-
-def status_page(message="", message_type="info"):
-    st = system_status()
-    content = f"""
-    <section class="card"><div class="card-header"><h2>Status</h2></div><div class="card-body">
-      <pre>Hostname: {esc(st["hostname"])}
-Primary IP: {esc(st["primary_ip"])}
-Agent: {esc(st["agent"]["active"])}
-Config UI: {esc(st["config_ui"]["active"])}
-Platform: {esc(st["platform"])}</pre>
-    </div></section>
-    """
-    return shell(content, "status", message, message_type)
-
-
-def network_page(message="", message_type="info"):
-    st = system_status()
-    content = f"""
-    <section class="card"><div class="card-header"><h2>Network</h2></div><div class="card-body">
-      <pre>{esc(st["primary_ip"])}
-{esc(st.get("network", {}).get("ip_br", ""))}</pre>
-    </div></section>
-    """
-    return shell(content, "network", message, message_type)
+        """)
+    return "".join(cards)
 
 
 def render_register_rows(registers):
     rows = []
-
     for i, item in enumerate(registers[:20]):
         rows.append(f"""
         <tr>
@@ -441,185 +378,290 @@ def render_register_rows(registers):
           </td>
         </tr>
         """)
-
     return "\n".join(rows)
-
-
-def render_results(last_test, registers):
-    if not last_test:
-        return '<div class="empty">ยังไม่มีผลทดสอบ กด <strong>Test Modbus Read</strong> เพื่ออ่านค่าแล้วแสดงผลตรงนี้</div>'
-
-    if not last_test.get("ok"):
-        return f"""
-        <div class="notice danger" style="margin-bottom:12px;">Test Failed: {esc(last_test.get("error") or last_test.get("raw_output") or "Unknown error")}</div>
-        <pre>{esc(json.dumps(last_test, ensure_ascii=False, indent=2))}</pre>
-        """
-
-    metrics = last_test.get("metrics", {})
-    by_key = {item.get("metric_key"): item for item in registers}
-    items = []
-
-    for i in range(1, 21):
-        key = f"metric_{i}"
-        value = metrics.get(key, "-")
-        item = by_key.get(key, {})
-        name = item.get("name", key)
-        unit = item.get("unit", "")
-
-        items.append(f"""
-        <div class="result-item">
-          <span>{esc(key)}</span>
-          <strong>{esc(name)}</strong>
-          <div class="result-value">{esc(value)} {esc(unit)}</div>
-        </div>
-        """)
-
-    return f"""
-    <div class="hint" style="margin-bottom:12px;">Last test: {esc(last_test.get("time", ""))}</div>
-    <div class="result-list">{''.join(items)}</div>
-    """
 
 
 def modbus_page(message="", message_type="info"):
     cfg = read_env()
     modbus = read_modbus_config()
     registers = modbus.get("registers", [])
-    last_test = read_last_test()
+    interval_ms = int(modbus.get("poll_interval_ms", 3000) or 3000)
+    enabled_count = sum(1 for r in registers if r.get("enabled"))
 
     content = f"""
     <section class="grid">
-      <form class="card" method="POST" action="/modbus/save-table">
-        <div class="card-header">
-          <h2>Easy Modbus Mapping</h2>
-          <p>ตั้งค่าอ่านค่า Modbus ได้สูงสุด 20 ค่า โดยไม่ต้องแก้ JSON เอง</p>
-        </div>
-        <div class="card-body">
-          <div class="block">
-            <div class="block-title">Connection</div>
-            <div class="form-grid">
-              <div class="field">
-                <label>Enable Modbus</label>
-                <select name="enabled">
-                  <option value="false" {selected(str(modbus.get("enabled")).lower(), "false")}>Disabled</option>
-                  <option value="true" {selected(str(modbus.get("enabled")).lower(), "true")}>Enabled</option>
-                </select>
+      <div>
+        <form class="card" method="POST" action="/modbus/save-table" id="mappingForm">
+          <div class="card-header">
+            <h2>Simple Setup</h2>
+            <p>ตั้งค่า connection และเปิดค่าที่ต้องการอ่าน แล้วใช้ Start Continuous Read เพื่อดูค่าแบบต่อเนื่อง</p>
+          </div>
+          <div class="card-body">
+            <div class="block">
+              <div class="block-title">Connection</div>
+              <div class="simple-grid">
+                <div class="field">
+                  <label>Mode</label>
+                  <select name="mode">
+                    <option value="tcp" {selected(modbus.get("mode"), "tcp")}>TCP</option>
+                    <option value="rtu" {selected(modbus.get("mode"), "rtu")}>RTU</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Host / IP</label>
+                  <input name="tcp_host" value="{esc(modbus.get("tcp", {}).get("host", "192.168.1.22"))}">
+                </div>
+                <div class="field">
+                  <label>Port</label>
+                  <input name="tcp_port" type="number" value="{esc(modbus.get("tcp", {}).get("port", 502))}">
+                </div>
+                <div class="field">
+                  <label>Unit ID</label>
+                  <input name="unit_id" type="number" value="{esc(modbus.get("unit_id", 1))}">
+                </div>
+                <div class="field">
+                  <label>Poll</label>
+                  <select name="poll_interval_ms">
+                    <option value="1000" {selected(interval_ms, 1000)}>1 sec</option>
+                    <option value="2000" {selected(interval_ms, 2000)}>2 sec</option>
+                    <option value="3000" {selected(interval_ms, 3000)}>3 sec</option>
+                    <option value="5000" {selected(interval_ms, 5000)}>5 sec</option>
+                    <option value="10000" {selected(interval_ms, 10000)}>10 sec</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Agent Source</label>
+                  <select name="sensor_source">
+                    <option value="dummy" {selected(cfg.get("SENSOR_SOURCE"), "dummy")}>Dummy</option>
+                    <option value="modbus" {selected(cfg.get("SENSOR_SOURCE"), "modbus")}>Modbus</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>RTU Port</label>
+                  <input name="rtu_port" value="{esc(modbus.get("rtu", {}).get("port", "/dev/ttyUSB0"))}">
+                </div>
+                <div class="field">
+                  <label>Baudrate</label>
+                  <input name="rtu_baudrate" type="number" value="{esc(modbus.get("rtu", {}).get("baudrate", 9600))}">
+                </div>
+                <div class="field">
+                  <label>Parity</label>
+                  <select name="rtu_parity">
+                    <option value="N" {selected(modbus.get("rtu", {}).get("parity"), "N")}>N</option>
+                    <option value="E" {selected(modbus.get("rtu", {}).get("parity"), "E")}>E</option>
+                    <option value="O" {selected(modbus.get("rtu", {}).get("parity"), "O")}>O</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Stopbits</label>
+                  <input name="rtu_stopbits" type="number" value="{esc(modbus.get("rtu", {}).get("stopbits", 1))}">
+                </div>
+                <div class="field">
+                  <label>Timeout</label>
+                  <input name="tcp_timeout" type="number" step="0.1" value="{esc(modbus.get("tcp", {}).get("timeout", 3))}">
+                </div>
+                <div class="field">
+                  <label>RTU Timeout</label>
+                  <input name="rtu_timeout" type="number" step="0.1" value="{esc(modbus.get("rtu", {}).get("timeout", 3))}">
+                </div>
               </div>
-              <div class="field">
-                <label>Mode</label>
-                <select name="mode">
-                  <option value="tcp" {selected(modbus.get("mode"), "tcp")}>Modbus TCP</option>
-                  <option value="rtu" {selected(modbus.get("mode"), "rtu")}>Modbus RTU</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Default Unit ID</label>
-                <input name="unit_id" type="number" value="{esc(modbus.get("unit_id", 1))}">
-              </div>
-              <div class="field">
-                <label>Agent Source</label>
-                <select name="sensor_source">
-                  <option value="dummy" {selected(cfg.get("SENSOR_SOURCE"), "dummy")}>Dummy</option>
-                  <option value="modbus" {selected(cfg.get("SENSOR_SOURCE"), "modbus")}>Modbus</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>TCP Host</label>
-                <input name="tcp_host" value="{esc(modbus.get("tcp", {}).get("host", "192.168.1.22"))}">
-              </div>
-              <div class="field">
-                <label>TCP Port</label>
-                <input name="tcp_port" type="number" value="{esc(modbus.get("tcp", {}).get("port", 502))}">
-              </div>
-              <div class="field">
-                <label>TCP Timeout</label>
-                <input name="tcp_timeout" type="number" step="0.1" value="{esc(modbus.get("tcp", {}).get("timeout", 3))}">
-              </div>
-              <div class="field">
-                <label>RTU Port</label>
-                <input name="rtu_port" value="{esc(modbus.get("rtu", {}).get("port", "/dev/ttyUSB0"))}">
-              </div>
-              <div class="field">
-                <label>Baudrate</label>
-                <input name="rtu_baudrate" type="number" value="{esc(modbus.get("rtu", {}).get("baudrate", 9600))}">
-              </div>
-              <div class="field">
-                <label>Parity</label>
-                <select name="rtu_parity">
-                  <option value="N" {selected(modbus.get("rtu", {}).get("parity"), "N")}>N</option>
-                  <option value="E" {selected(modbus.get("rtu", {}).get("parity"), "E")}>E</option>
-                  <option value="O" {selected(modbus.get("rtu", {}).get("parity"), "O")}>O</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Stopbits</label>
-                <input name="rtu_stopbits" type="number" value="{esc(modbus.get("rtu", {}).get("stopbits", 1))}">
-              </div>
-              <div class="field">
-                <label>RTU Timeout</label>
-                <input name="rtu_timeout" type="number" step="0.1" value="{esc(modbus.get("rtu", {}).get("timeout", 3))}">
+              <input type="hidden" name="enabled" value="true">
+              <div class="actions">
+                <button type="submit">Save Setup</button>
+                <button class="secondary" type="submit" name="action" value="save_and_test">Save & Read Once</button>
               </div>
             </div>
-          </div>
 
-          <div class="block">
-            <div class="block-title">20 Data Mapping</div>
-            <div class="hint" style="margin-bottom:12px;">แนะนำเริ่มจาก Enable ทีละ 1 ค่า แล้วกด Test Read ถ้าผ่านค่อยเปิดเพิ่ม</div>
-            <div class="map-table-wrap">
-              <table class="map-table">
-                <thead>
-                  <tr>
-                    <th>On</th>
-                    <th>Metric</th>
-                    <th>Name</th>
-                    <th>Unit</th>
-                    <th>Function</th>
-                    <th>Addr</th>
-                    <th>Type</th>
-                    <th>Cnt</th>
-                    <th>Scale</th>
-                    <th>Offset</th>
-                    <th>Round</th>
-                    <th>ID</th>
-                    <th>Byte</th>
-                    <th>Word</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {render_register_rows(registers)}
-                </tbody>
-              </table>
-            </div>
+            <details open>
+              <summary>Advanced Mapping 20 Values · Enabled {enabled_count}/20</summary>
+              <div class="map-table-wrap">
+                <table class="map-table">
+                  <thead>
+                    <tr>
+                      <th>On</th><th>Metric</th><th>Name</th><th>Unit</th><th>Function</th><th>Addr</th><th>Type</th><th>Cnt</th><th>Scale</th><th>Offset</th><th>Round</th><th>ID</th><th>Byte</th><th>Word</th>
+                    </tr>
+                  </thead>
+                  <tbody>{render_register_rows(registers)}</tbody>
+                </table>
+              </div>
+            </details>
           </div>
-
-          <div class="actions">
-            <button type="submit">Save Mapping</button>
-            <button class="secondary" type="submit" name="action" value="save_and_test">Save & Test Read</button>
-          </div>
-        </div>
-      </form>
+        </form>
+      </div>
 
       <aside class="card">
         <div class="card-header">
-          <h2>Live Test Result</h2>
-          <p>แสดงผลอ่านค่า metric_1 ถึง metric_20 หลังทดสอบ</p>
+          <h2>Continuous Read</h2>
+          <p>อ่านค่าต่อเนื่องจาก Modbus และแสดงผลทันที</p>
         </div>
         <div class="card-body">
+          <div class="read-toolbar">
+            <div>
+              <strong id="readState">Stopped</strong>
+              <div class="small-status" id="readMeta">Poll every {interval_ms / 1000:g}s</div>
+            </div>
+            <div class="read-buttons">
+              <button class="ok" type="button" onclick="startRead()">Start</button>
+              <button class="danger" type="button" onclick="stopRead()">Stop</button>
+              <button class="secondary" type="button" onclick="readOnce()">Read Once</button>
+            </div>
+          </div>
+
           <form class="actions" method="POST" action="/modbus/install">
             <button class="secondary" type="submit">Install Dependencies</button>
           </form>
-          <form class="actions" method="POST" action="/modbus/test">
-            <button class="warning" type="submit">Test Modbus Read</button>
-          </form>
           <form class="actions" method="POST" action="/restart-agent">
-            <button type="submit">Restart Agent</button>
+            <button class="warning" type="submit">Restart Agent</button>
           </form>
+
           <div style="height:16px;"></div>
-          {render_results(last_test, registers)}
+          <div class="live-grid" id="liveGrid">
+            {render_live_cards(registers)}
+          </div>
         </div>
       </aside>
     </section>
+
+    <script>
+      const pollMs = {interval_ms};
+      let timer = null;
+      let isReading = false;
+      let round = 0;
+
+      function setState(text) {{
+        document.getElementById('readState').textContent = text;
+      }}
+
+      function setMeta(text) {{
+        document.getElementById('readMeta').textContent = text;
+      }}
+
+      function formatValue(value) {{
+        if (value === undefined || value === null) return '-';
+        return String(value);
+      }}
+
+      function updateCards(data) {{
+        const metrics = data.metrics || {{}};
+        const errors = data.errors || {{}};
+        const registers = data.registers || [];
+
+        registers.forEach((item, index) => {{
+          const key = item.metric_key || `metric_${{index + 1}}`;
+          const nameEl = document.querySelector(`[data-name="${{key}}"]`);
+          const unitEl = document.querySelector(`[data-unit-label="${{key}}"]`);
+          if (nameEl) nameEl.textContent = item.name || key;
+          if (unitEl) unitEl.textContent = item.unit || '';
+        }});
+
+        for (let i = 1; i <= 20; i++) {{
+          const key = `metric_${{i}}`;
+          const valueEl = document.querySelector(`[data-value="${{key}}"]`);
+          const errorEl = document.querySelector(`[data-error="${{key}}"]`);
+          const unitEl = document.querySelector(`[data-unit-label="${{key}}"]`);
+          if (!valueEl) continue;
+
+          if (Object.prototype.hasOwnProperty.call(metrics, key)) {{
+            const unit = unitEl ? unitEl.textContent : '';
+            valueEl.textContent = `${{formatValue(metrics[key])}} ${{unit}}`.trim();
+            valueEl.classList.remove('empty');
+            if (errorEl) errorEl.textContent = '';
+          }} else if (errors[key]) {{
+            valueEl.textContent = 'Error';
+            valueEl.classList.add('empty');
+            if (errorEl) errorEl.textContent = errors[key];
+          }}
+        }}
+      }}
+
+      async function readOnce() {{
+        if (isReading) return;
+        isReading = true;
+        round += 1;
+        setState('Reading...');
+        setMeta(`Request #${{round}}`);
+
+        try {{
+          const res = await fetch('/api/modbus/read', {{ cache: 'no-store' }});
+          const data = await res.json();
+
+          if (data.ok) {{
+            updateCards(data);
+            setState('Live OK');
+            setMeta(`Last read: ${{data.time || data.ui_time || new Date().toLocaleTimeString()}}`);
+          }} else {{
+            setState('Read Error');
+            setMeta(data.error || 'Unknown error');
+            updateCards(data);
+          }}
+        }} catch (err) {{
+          setState('Connection Error');
+          setMeta(String(err));
+        }} finally {{
+          isReading = false;
+        }}
+      }}
+
+      function startRead() {{
+        if (timer) return;
+        setState('Starting...');
+        readOnce();
+        timer = setInterval(readOnce, pollMs);
+      }}
+
+      function stopRead() {{
+        if (timer) clearInterval(timer);
+        timer = null;
+        setState('Stopped');
+        setMeta(`Poll every ${{pollMs / 1000}}s`);
+      }}
+    </script>
     """
     return shell(content, "modbus", message, message_type)
+
+
+def settings_page(message="", message_type="info"):
+    cfg = read_env()
+    content = f"""
+    <section class="card">
+      <div class="card-header"><h2>Settings</h2><p>ตั้งค่าพื้นฐานของ Agent</p></div>
+      <div class="card-body">
+        <form method="POST" action="/save">
+          <div class="simple-grid">
+            <div class="field two"><label>Backend API URL</label><input name="DOTWATCH_API_URL" value="{esc(cfg.get("DOTWATCH_API_URL"))}"></div>
+            <div class="field"><label>Device Code</label><input name="DEVICE_CODE" value="{esc(cfg.get("DEVICE_CODE"))}"></div>
+            <div class="field"><label>Device Secret</label><input name="DEVICE_SECRET" type="password" value="{esc(cfg.get("DEVICE_SECRET"))}"><div class="hint">{esc(mask_secret(cfg.get("DEVICE_SECRET")))}</div></div>
+            <div class="field"><label>Send Interval</label><input name="SEND_INTERVAL_SECONDS" type="number" value="{esc(cfg.get("SEND_INTERVAL_SECONDS"))}"></div>
+            <div class="field"><label>Sensor Source</label><select name="SENSOR_SOURCE"><option value="dummy" {selected(cfg.get("SENSOR_SOURCE"), "dummy")}>Dummy</option><option value="modbus" {selected(cfg.get("SENSOR_SOURCE"), "modbus")}>Modbus</option></select></div>
+            <div class="field"><label>UI Username</label><input name="CONFIG_UI_USERNAME" value="{esc(cfg.get("CONFIG_UI_USERNAME"))}"></div>
+            <div class="field"><label>UI Password</label><input name="CONFIG_UI_PASSWORD" type="password" value="{esc(cfg.get("CONFIG_UI_PASSWORD"))}"></div>
+          </div>
+          <div class="actions"><button type="submit">Save Settings</button></div>
+        </form>
+      </div>
+    </section>
+    """
+    return shell(content, "settings", message, message_type)
+
+
+def status_page(message="", message_type="info"):
+    st = system_status()
+    content = f"""
+    <section class="card">
+      <div class="card-header"><h2>Status</h2></div>
+      <div class="card-body">
+        <div class="block">
+          <div class="block-title">Services</div>
+          <div class="simple-grid">
+            <div class="field"><label>Agent</label><input readonly value="{esc(st["agent"]["active"])}"></div>
+            <div class="field"><label>Config UI</label><input readonly value="{esc(st["config_ui"]["active"])}"></div>
+            <div class="field two"><label>Primary IP</label><input readonly value="{esc(st["primary_ip"])}"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    """
+    return shell(content, "status", message, message_type)
 
 
 def parse_register(form, i):
@@ -638,7 +680,7 @@ def parse_register(form, i):
         "scale": float(form.get(f"reg_{i}_scale", 1) or 1),
         "offset": float(form.get(f"reg_{i}_offset", 0) or 0),
         "round": int(form.get(f"reg_{i}_round", 2) or 2),
-        "unit_id": int(form.get(f"reg_{i}_unit_id", 1) or 1),
+        "unit_id": int(form.get(f"reg_{i}_unit_id", form.get("unit_id", 1)) or 1),
         "byte_order": form.get(f"reg_{i}_byte_order", "big"),
         "word_order": form.get(f"reg_{i}_word_order", "big"),
     }
@@ -656,10 +698,8 @@ class Handler(BaseHTTPRequestHandler):
         username = cfg.get("CONFIG_UI_USERNAME", "admin")
         password = cfg.get("CONFIG_UI_PASSWORD", "change-this-config-password")
         header = self.headers.get("Authorization", "")
-
         if not header.startswith("Basic "):
             return False
-
         try:
             decoded = base64.b64decode(header.split(" ", 1)[1].strip()).decode("utf-8")
             supplied_username, supplied_password = decoded.split(":", 1)
@@ -674,14 +714,19 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write("Authentication required".encode("utf-8"))
 
+    def send_json(self, data, status=200):
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
+
     def send_html(self, page="modbus", message="", message_type="info"):
         if not self.is_authorized():
             self.require_auth()
             return
-
-        pages = {"settings": settings_page, "status": status_page, "network": network_page, "modbus": modbus_page}
+        pages = {"settings": settings_page, "status": status_page, "modbus": modbus_page}
         body = pages.get(page, modbus_page)(message, message_type)
-
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
@@ -695,11 +740,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/health":
-            body = json.dumps({"ok": True, "version": APP_VERSION}).encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(body)
+            self.send_json({"ok": True, "version": APP_VERSION})
+            return
+
+        if self.path == "/api/modbus/read":
+            if not self.is_authorized():
+                self.send_json({"ok": False, "error": "Authentication required"}, 401)
+                return
+            ok, data = test_modbus()
+            self.send_json(data, 200)
             return
 
         if self.path == "/logout":
@@ -715,9 +764,6 @@ class Handler(BaseHTTPRequestHandler):
             return
         if self.path.startswith("/status"):
             self.send_html("status")
-            return
-        if self.path.startswith("/network"):
-            self.send_html("network")
             return
         if self.path.startswith("/modbus"):
             self.send_html("modbus")
@@ -735,7 +781,7 @@ class Handler(BaseHTTPRequestHandler):
             form = self.read_form()
             cfg = read_env()
             cfg.update(form)
-            cfg["MODBUS_CONFIG_PATH"] = cfg.get("MODBUS_CONFIG_PATH") or str(MODBUS_CONFIG_PATH)
+            cfg["MODBUS_CONFIG_PATH"] = str(MODBUS_CONFIG_PATH)
             write_env(cfg)
             self.send_html("settings", "Saved settings successfully.", "success")
             return
@@ -750,19 +796,14 @@ class Handler(BaseHTTPRequestHandler):
             self.send_html("modbus", ("Install success: " if ok else "Install failed: ") + output[:1200], "success" if ok else "danger")
             return
 
-        if self.path == "/modbus/test":
-            ok, output = test_modbus()
-            self.send_html("modbus", ("Modbus test success." if ok else "Modbus test failed."), "success" if ok else "danger")
-            return
-
         if self.path == "/modbus/save-table":
             form = self.read_form()
-
             try:
                 config = {
-                    "enabled": form.get("enabled") == "true",
+                    "enabled": True,
                     "mode": form.get("mode", "tcp"),
                     "unit_id": int(form.get("unit_id", 1)),
+                    "poll_interval_ms": int(form.get("poll_interval_ms", 3000) or 3000),
                     "tcp": {
                         "host": form.get("tcp_host", "192.168.1.22"),
                         "port": int(form.get("tcp_port", 502)),
@@ -778,7 +819,6 @@ class Handler(BaseHTTPRequestHandler):
                     },
                     "registers": [parse_register(form, i) for i in range(20)],
                 }
-
                 write_modbus_config(config)
 
                 cfg = read_env()
@@ -787,11 +827,10 @@ class Handler(BaseHTTPRequestHandler):
                 write_env(cfg)
 
                 if form.get("action") == "save_and_test":
-                    ok, output = test_modbus()
-                    self.send_html("modbus", "Saved mapping and test success." if ok else "Saved mapping but test failed.", "success" if ok else "danger")
+                    ok, data = test_modbus()
+                    self.send_html("modbus", "Saved and read success." if ok else "Saved but read failed.", "success" if ok else "danger")
                 else:
-                    self.send_html("modbus", "Saved 20-value Modbus mapping successfully.", "success")
-
+                    self.send_html("modbus", "Saved Modbus setup successfully.", "success")
             except Exception as error:
                 self.send_html("modbus", "Save failed: " + str(error), "danger")
             return
@@ -803,7 +842,6 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     print(f"dotWatch Pi Config UI started on http://{HOST}:{PORT}")
     print(f"Version: {APP_VERSION}")
-    print(f"Project dir: {PROJECT_DIR}")
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     server.serve_forever()
 

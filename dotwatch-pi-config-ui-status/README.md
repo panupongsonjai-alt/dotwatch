@@ -1,1 +1,1 @@
-dotWatch Pi Config UI v0.8.0 - Modbus Map 20
+dotWatch Pi Config UI v0.9.0 - Continuous Modbus Reader

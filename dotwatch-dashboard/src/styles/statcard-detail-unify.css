@@ -3,20 +3,11 @@
    แก้เฉพาะรายละเอียดของ StatCard ให้ทุกใบดูเหมือนกัน
 ========================================================= */
 
-/*
-  จุดประสงค์:
-  - ให้ StatCard ทุกใบมีพื้นที่สำหรับรายละเอียด/คำอธิบายด้านล่างเหมือนกัน
-  - ถ้าการ์ดไหนมีรายละเอียดอยู่แล้ว ให้แสดงตำแหน่งเดียวกัน
-  - ถ้าการ์ดไหนไม่มีรายละเอียด ให้กันพื้นที่ไว้ เพื่อให้ความสูงและจังหวะเหมือนกัน
-  - ไม่แก้ layout ส่วนอื่นของหน้า
-*/
-
 :root {
   --dotwatch-stat-card-min-height: 112px;
   --dotwatch-stat-card-detail-height: 18px;
 }
 
-/* คุมเฉพาะ StatCard classes ที่ใช้ในโปรเจกต์ */
 .dw-stat-card,
 .stat-card,
 .summary-card,
@@ -37,7 +28,6 @@
   row-gap: 8px !important;
 }
 
-/* Label */
 .dw-stat-card > span:first-child,
 .dw-stat-card > h3:first-child,
 .dw-stat-card > h4:first-child,
@@ -70,7 +60,6 @@
   text-overflow: ellipsis !important;
 }
 
-/* Value */
 .dw-stat-card > strong,
 .dw-stat-card .stat-value,
 .dw-stat-card .summary-value,
@@ -99,7 +88,6 @@
   overflow: visible !important;
 }
 
-/* Detail / Hint */
 .dw-stat-card > p,
 .dw-stat-card > small,
 .dw-stat-card .stat-hint,
@@ -131,10 +119,6 @@
   text-overflow: ellipsis !important;
 }
 
-/*
-  ถ้าการ์ดไม่มี p/small/detail เลย ให้สร้างพื้นที่ว่างไว้
-  เพื่อให้ทุก StatCard ดูจังหวะเดียวกัน
-*/
 .dw-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
 .stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
 .summary-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
@@ -154,7 +138,6 @@
   pointer-events: none;
 }
 
-/* Compact StatCard ยังคงมีรายละเอียด แต่ลดขนาดลงเล็กน้อย */
 .compact-summary-card {
   min-height: 98px !important;
   grid-template-rows: auto auto minmax(16px, auto) !important;
@@ -169,7 +152,6 @@
   font-size: 11px !important;
 }
 
-/* จอเล็ก */
 @media (max-width: 560px) {
   :root {
     --dotwatch-stat-card-min-height: 108px;
