@@ -21,7 +21,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-APP_VERSION = "1.2.0-phase2-gateway"
+APP_VERSION = "1.2.1-ui-cleanup"
 
 PROJECT_DIR = Path(os.getenv("DOTWATCH_AGENT_DIR", "/home/pi/dotwatch-pi-agent"))
 ENV_PATH = PROJECT_DIR / ".env"
@@ -34,7 +34,7 @@ DEFAULTS = {
     "DOTWATCH_API_URL": "https://dotwatch-backend.onrender.com",
     "DEVICE_CODE": "",
     "DEVICE_SECRET": "",
-    "SEND_INTERVAL_SECONDS": "10",
+    "SEND_INTERVAL_SECONDS": "20",
     "REQUEST_TIMEOUT_SECONDS": "15",
     "FIRMWARE_VERSION": "rpi-agent-0.2.0",
     "SENSOR_SOURCE": "dummy",
@@ -42,7 +42,7 @@ DEFAULTS = {
     "OFFLINE_QUEUE_ENABLED": "true",
     "OFFLINE_QUEUE_PATH": str(PROJECT_DIR / "data" / "offline_queue.jsonl"),
     "OFFLINE_QUEUE_MAX_ITEMS": "1000",
-    "QUEUE_FLUSH_LIMIT": "20",
+    "QUEUE_FLUSH_LIMIT": "1",
     "MAX_BACKOFF_SECONDS": "60",
     "LOG_METRICS": "true",
     "CONFIG_UI_USERNAME": "admin",
@@ -229,6 +229,14 @@ def get_primary_ip():
         return "N/A"
 
 
+def get_all_ips():
+    output = run_cmd(["sh", "-lc", "hostname -I 2>/dev/null || true"], timeout=5)["output"]
+    ips = [item for item in str(output or "").split() if item and ":" not in item]
+    if ips:
+        return " / ".join(ips)
+    return get_primary_ip()
+
+
 def parse_percent(value):
     try:
         return value.strip().replace("%", "")
@@ -257,6 +265,7 @@ def system_status():
 
     return {
         "primary_ip": get_primary_ip(),
+        "all_ips": get_all_ips(),
         "agent": get_service_status("dotwatch-pi-agent"),
         "config_ui": get_service_status("dotwatch-pi-config-ui"),
         "platform": platform.platform(),
@@ -282,11 +291,12 @@ def system_status():
 
 
 def status_badge(value):
-    v = str(value or "unknown").lower()
-    if v in ("active", "online", "ok", "connected", "enabled", "success"):
-        cls = "ok"
-    elif v in ("inactive", "failed", "offline", "error", "disabled"):
+    v = str(value or "unknown").lower().replace("/", " ").replace("-", " ")
+    words = set(v.split())
+    if words.intersection({"inactive", "failed", "offline", "error", "disabled", "missing"}):
         cls = "bad"
+    elif words.intersection({"active", "online", "ok", "connected", "enabled", "success", "running"}):
+        cls = "ok"
     else:
         cls = "warn"
     return f'<span class="badge {cls}"><span></span>{esc(value or "unknown")}</span>'
@@ -460,8 +470,8 @@ button:disabled,input:disabled,select:disabled{cursor:not-allowed;opacity:.55}
 .main{flex:1;min-width:0;padding:28px;background:transparent;overflow-x:hidden}.header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:24px;margin:0 0 18px;border-radius:var(--radius-lg);background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow)}.eyebrow{display:inline-flex;margin-bottom:8px;color:var(--primary);font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.header h1{margin:0;color:var(--text);font-size:28px;line-height:1.15;font-weight:900;letter-spacing:-.04em}.header p{margin:7px 0 0;color:var(--muted);font-size:14px;line-height:1.55}.header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 .pill,.badge{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--border);background:var(--panel-2);color:var(--muted);font-size:12px;font-weight:800;white-space:nowrap}.badge span{width:8px;height:8px;border-radius:999px;background:var(--warning);box-shadow:0 0 0 4px rgba(245,158,11,.12)}.badge.ok{color:#bbf7d0;border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.10)}.badge.ok span{background:var(--success);box-shadow:0 0 0 4px rgba(34,197,94,.12)}.badge.bad{color:#fecaca;border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.10)}.badge.bad span{background:var(--danger);box-shadow:0 0 0 4px rgba(239,68,68,.12)}.badge.warn{color:#fde68a;border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.10)}
 button,.button-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 14px;border-radius:13px;border:0;color:#fff;background:var(--primary);font-weight:800;font-size:13px;white-space:nowrap;box-shadow:0 12px 28px rgba(37,99,235,.20);transition:transform .2s ease,background-color .2s ease,border-color .2s ease,box-shadow .2s ease}.button-link{height:40px}button:hover,.button-link:hover{transform:translateY(-1px);box-shadow:0 16px 34px rgba(37,99,235,.27)}.secondary{background:transparent;color:var(--text);border:1px solid var(--border);box-shadow:none}.secondary:hover{background:rgba(148,163,184,.10);box-shadow:none}.warning{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.28);box-shadow:none;color:#fde68a}.ok-btn{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.28);box-shadow:none;color:#bbf7d0}.danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.28);box-shadow:none;color:#fecaca}.button-row,.actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:18px;align-items:start}.stack{display:grid;gap:18px}.card{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;transition:box-shadow .2s ease,transform .2s ease}.card:hover{box-shadow:var(--shadow-hover)}.card-header{padding:22px 24px 16px;border-bottom:1px solid var(--border);background:transparent;display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.card-header h2{margin:0;color:var(--text);font-size:20px;font-weight:900;line-height:1.2;letter-spacing:-.02em}.card-header p{margin:6px 0 0;color:var(--muted);font-size:14px;line-height:1.55}.card-body{padding:24px}.mini-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.stat-card{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:0 10px 30px rgba(0,0,0,.10);padding:16px;min-width:0}.stat-card small{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;font-weight:800;text-transform:none;letter-spacing:0}.stat-card strong{display:block;margin-top:8px;color:var(--text);font-size:20px;font-weight:900;line-height:1.15;letter-spacing:-.04em;overflow-wrap:anywhere}.block{padding:18px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel-2);margin-bottom:16px}.block-title{margin:0 0 14px;color:var(--text);font-size:14px;font-weight:900;letter-spacing:-.01em;text-transform:none}.form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:8px}.field.full{grid-column:1/-1}.field.two{grid-column:span 2}label{display:grid;gap:8px;color:var(--text);font-size:13px;font-weight:700}input,select,textarea{width:100%;border:1px solid var(--border);border-radius:13px;background:var(--input);color:var(--text);padding:12px 14px;outline:none;transition:border-color .2s ease,box-shadow .2s ease,background-color .2s ease}textarea{min-height:180px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(37,99,235,.12)}.hint{color:var(--muted);font-size:12px;line-height:1.45}.notice{border-radius:16px;padding:14px 16px;margin-bottom:18px;border:1px solid rgba(14,165,233,.28);background:rgba(14,165,233,.10);color:#bfdbfe;line-height:1.5;font-size:14px}.notice.success{background:rgba(34,197,94,.10);border-color:rgba(34,197,94,.28);color:#bbf7d0}.notice.danger{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.28);color:#fecaca}.notice.warning{background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.28);color:#fde68a}.check-list{display:grid;gap:10px}.check-item{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--border);border-radius:16px;padding:13px;background:var(--panel-2)}.check-item strong{color:var(--text);font-size:13px}.check-item small{display:block;margin-top:4px;color:var(--muted);font-size:12px;overflow-wrap:anywhere}.check-icon{width:28px;height:28px;border-radius:10px;display:grid;place-items:center;font-weight:900;background:rgba(245,158,11,.14);color:#fde68a}.check-item.done .check-icon{background:rgba(34,197,94,.14);color:#bbf7d0}.read-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel-2);margin-bottom:16px}.read-buttons{display:flex;gap:10px;flex-wrap:wrap}.small-status{color:var(--muted);font-size:13px}.live-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.live-card{min-height:106px;border:1px solid var(--border);border-radius:16px;padding:14px;background:var(--panel-2);box-shadow:0 10px 30px rgba(0,0,0,.10)}.live-card .top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.live-card span{color:var(--muted);font-size:12px;font-weight:800}.live-card strong{display:block;margin-top:4px;font-size:14px;line-height:1.2;color:var(--text)}.live-value{margin-top:12px;font-size:24px;font-weight:900;color:#bbf7d0;letter-spacing:-.05em;overflow-wrap:anywhere}.live-value.empty{color:var(--muted-2)}.live-error{margin-top:8px;color:#fecaca;font-size:12px;line-height:1.35}details{border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel-2);overflow:hidden}summary{cursor:pointer;padding:16px 18px;font-weight:900;color:var(--text)}.map-table-wrap{overflow:auto;border-top:1px solid var(--border)}.map-table{width:100%;min-width:1260px;border-collapse:separate;border-spacing:0;background:var(--panel-2)}.map-table th,.map-table td{border-bottom:1px solid var(--border);padding:9px 7px;text-align:left;vertical-align:middle}.map-table th{position:sticky;top:0;background:#0f172a;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;z-index:1}.map-table input,.map-table select{padding:8px 9px;border-radius:10px;font-size:12px}.map-table .mini{width:76px}.map-table .tiny{width:58px}.map-table .name{width:160px}.map-table .metric{width:86px}.check{width:18px;height:18px}.console{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.55;background:var(--input);border:1px solid var(--border);border-radius:16px;padding:14px;color:#dbeafe;max-height:420px;overflow:auto}.footer{margin-top:18px;color:var(--muted);font-size:12px;text-align:center}
-@media(max-width:1200px){.layout{grid-template-columns:1fr}.mini-grid,.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.layout>aside.card{position:static}}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:18px;align-items:start}.setup-layout{display:grid;grid-template-columns:1fr;gap:18px;align-items:start}.setup-summary{display:grid;grid-template-columns:1fr 1fr;gap:18px}.stack{display:grid;gap:18px}.card{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;transition:box-shadow .2s ease,transform .2s ease}.card:hover{box-shadow:var(--shadow-hover)}.card-header{padding:22px 24px 16px;border-bottom:1px solid var(--border);background:transparent;display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.card-header h2{margin:0;color:var(--text);font-size:20px;font-weight:900;line-height:1.2;letter-spacing:-.02em}.card-header p{margin:6px 0 0;color:var(--muted);font-size:14px;line-height:1.55}.card-body{padding:24px}.mini-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.stat-card{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:0 10px 30px rgba(0,0,0,.10);padding:16px;min-width:0}.stat-card small{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;font-weight:800;text-transform:none;letter-spacing:0}.stat-card strong{display:block;margin-top:8px;color:var(--text);font-size:20px;font-weight:900;line-height:1.15;letter-spacing:-.04em;overflow-wrap:anywhere}.block{padding:18px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel-2);margin-bottom:16px}.block-title{margin:0 0 14px;color:var(--text);font-size:14px;font-weight:900;letter-spacing:-.01em;text-transform:none}.form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:8px}.field.full{grid-column:1/-1}.field.two{grid-column:span 2}label{display:grid;gap:8px;color:var(--text);font-size:13px;font-weight:700}input,select,textarea{width:100%;border:1px solid var(--border);border-radius:13px;background:var(--input);color:var(--text);padding:12px 14px;outline:none;transition:border-color .2s ease,box-shadow .2s ease,background-color .2s ease}textarea{min-height:180px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(37,99,235,.12)}.hint{color:var(--muted);font-size:12px;line-height:1.45}.notice{border-radius:16px;padding:14px 16px;margin-bottom:18px;border:1px solid rgba(14,165,233,.28);background:rgba(14,165,233,.10);color:#bfdbfe;line-height:1.5;font-size:14px}.notice.success{background:rgba(34,197,94,.10);border-color:rgba(34,197,94,.28);color:#bbf7d0}.notice.danger{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.28);color:#fecaca}.notice.warning{background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.28);color:#fde68a}.check-list{display:grid;gap:10px}.check-item{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--border);border-radius:16px;padding:13px;background:var(--panel-2)}.check-item strong{color:var(--text);font-size:13px}.check-item small{display:block;margin-top:4px;color:var(--muted);font-size:12px;overflow-wrap:anywhere}.check-icon{width:28px;height:28px;border-radius:10px;display:grid;place-items:center;font-weight:900;background:rgba(245,158,11,.14);color:#fde68a}.check-item.done .check-icon{background:rgba(34,197,94,.14);color:#bbf7d0}.read-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel-2);margin-bottom:16px}.read-buttons{display:flex;gap:10px;flex-wrap:wrap}.small-status{color:var(--muted);font-size:13px}.live-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.live-card{min-height:106px;border:1px solid var(--border);border-radius:16px;padding:14px;background:var(--panel-2);box-shadow:0 10px 30px rgba(0,0,0,.10)}.live-card .top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.live-card span{color:var(--muted);font-size:12px;font-weight:800}.live-card strong{display:block;margin-top:4px;font-size:14px;line-height:1.2;color:var(--text)}.live-value{margin-top:12px;font-size:24px;font-weight:900;color:#bbf7d0;letter-spacing:-.05em;overflow-wrap:anywhere}.live-value.empty{color:var(--muted-2)}.live-error{margin-top:8px;color:#fecaca;font-size:12px;line-height:1.35}details{border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel-2);overflow:hidden}summary{cursor:pointer;padding:16px 18px;font-weight:900;color:var(--text)}.map-table-wrap{overflow:auto;border-top:1px solid var(--border)}.map-table{width:100%;min-width:1260px;border-collapse:separate;border-spacing:0;background:var(--panel-2)}.map-table th,.map-table td{border-bottom:1px solid var(--border);padding:9px 7px;text-align:left;vertical-align:middle}.map-table th{position:sticky;top:0;background:#0f172a;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;z-index:1}.map-table input,.map-table select{padding:8px 9px;border-radius:10px;font-size:12px}.map-table .mini{width:76px}.map-table .tiny{width:58px}.map-table .name{width:160px}.map-table .metric{width:86px}.check{width:18px;height:18px}.console{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.55;background:var(--input);border:1px solid var(--border);border-radius:16px;padding:14px;color:#dbeafe;max-height:420px;overflow:auto}.footer{margin-top:18px;color:var(--muted);font-size:12px;text-align:center}
+@media(max-width:1200px){.layout{grid-template-columns:1fr}.setup-summary{grid-template-columns:1fr}.mini-grid,.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.layout>aside.card{position:static}}
 @media(max-width:1080px){.app{display:block}.sidebar{width:auto;min-height:auto;border-right:0;border-bottom:1px solid rgba(148,163,184,.16);box-shadow:0 12px 30px rgba(2,6,23,.20)}.side-card{display:none}.nav-label{display:none}.nav-section{display:flex;flex-direction:row;gap:8px;overflow:auto;padding-bottom:2px}.nav-link{width:auto;min-width:max-content}.nav-link.active::before{display:none}}
 @media(max-width:640px){.main{padding:16px 12px 36px}.header{flex-direction:column;padding:20px}.header h1{font-size:24px}.card-header{flex-direction:column;padding:20px 20px 14px}.card-body{padding:20px}.mini-grid,.form-grid,.live-grid{grid-template-columns:1fr}.field.two{grid-column:1}.read-toolbar{align-items:flex-start;flex-direction:column}.button-row,.actions{align-items:stretch}.button-row>*{width:100%}.button-row button,.button-row .button-link,.actions button,.actions .button-link{width:100%}}
 </style>
@@ -524,7 +534,7 @@ def shell(content, page="setup", message="", message_type="info", title=None, su
       <p>{esc(subtitle_text)}</p>
     </div>
     <div class="header-actions">
-      <span class="pill">IP: {esc(st['primary_ip'])}</span>
+      <span class="pill">IPs: {esc(st.get('all_ips') or st['primary_ip'])}</span>
       {status_badge('Agent ' + st['agent']['active'])}
       {status_badge('UI ' + st['config_ui']['active'])}
     </div>
@@ -542,7 +552,7 @@ def setup_page(message="", message_type="info"):
     cfg = read_env()
     st = system_status()
     content = f"""
-    <section class="layout">
+    <section class="setup-layout">
       <div class="stack">
         <section class="card">
           <div class="card-header">
@@ -563,12 +573,12 @@ def setup_page(message="", message_type="info"):
                 <div class="block-title">Agent Behavior</div>
                 <div class="form-grid">
                   <div class="field"><label>Sensor Source</label><select name="SENSOR_SOURCE"><option value="dummy" {selected(cfg.get('SENSOR_SOURCE'), 'dummy')}>Dummy / Test</option><option value="modbus" {selected(cfg.get('SENSOR_SOURCE'), 'modbus')}>Modbus config mode</option><option value="modbus_tcp" {selected(cfg.get('SENSOR_SOURCE'), 'modbus_tcp')}>Force Modbus TCP</option><option value="modbus_rtu" {selected(cfg.get('SENSOR_SOURCE'), 'modbus_rtu')}>Force Modbus RTU</option></select></div>
-                  <div class="field"><label>Send Interval</label><select name="SEND_INTERVAL_SECONDS"><option value="5" {selected(cfg.get('SEND_INTERVAL_SECONDS'), '5')}>5 sec</option><option value="10" {selected(cfg.get('SEND_INTERVAL_SECONDS'), '10')}>10 sec</option><option value="30" {selected(cfg.get('SEND_INTERVAL_SECONDS'), '30')}>30 sec</option><option value="60" {selected(cfg.get('SEND_INTERVAL_SECONDS'), '60')}>60 sec</option></select></div>
+                  <div class="field"><label>Send Interval</label><select name="SEND_INTERVAL_SECONDS"><option value="5" {selected(cfg.get('SEND_INTERVAL_SECONDS'), '5')}>5 sec</option><option value="10" {selected(cfg.get('SEND_INTERVAL_SECONDS'), '10')}>10 sec</option><option value="20" {selected(cfg.get('SEND_INTERVAL_SECONDS'), '20')}>20 sec</option><option value="30" {selected(cfg.get('SEND_INTERVAL_SECONDS'), '30')}>30 sec</option><option value="60" {selected(cfg.get('SEND_INTERVAL_SECONDS'), '60')}>60 sec</option></select></div>
                   <div class="field"><label>Request Timeout</label><select name="REQUEST_TIMEOUT_SECONDS"><option value="10" {selected(cfg.get('REQUEST_TIMEOUT_SECONDS'), '10')}>10 sec</option><option value="15" {selected(cfg.get('REQUEST_TIMEOUT_SECONDS'), '15')}>15 sec</option><option value="30" {selected(cfg.get('REQUEST_TIMEOUT_SECONDS'), '30')}>30 sec</option><option value="60" {selected(cfg.get('REQUEST_TIMEOUT_SECONDS'), '60')}>60 sec</option></select></div>
                   <div class="field"><label>Firmware Version</label><input name="FIRMWARE_VERSION" value="{esc(cfg.get('FIRMWARE_VERSION'))}"></div>
                   <div class="field"><label>Offline Queue</label><select name="OFFLINE_QUEUE_ENABLED"><option value="true" {selected(cfg.get('OFFLINE_QUEUE_ENABLED'), 'true')}>Enabled</option><option value="false" {selected(cfg.get('OFFLINE_QUEUE_ENABLED'), 'false')}>Disabled</option></select></div>
                   <div class="field"><label>Queue Max Items</label><input name="OFFLINE_QUEUE_MAX_ITEMS" value="{esc(cfg.get('OFFLINE_QUEUE_MAX_ITEMS'))}" placeholder="1000"></div>
-                  <div class="field"><label>Flush Per Cycle</label><input name="QUEUE_FLUSH_LIMIT" value="{esc(cfg.get('QUEUE_FLUSH_LIMIT'))}" placeholder="20"></div>
+                  <div class="field"><label>Flush Per Cycle</label><input name="QUEUE_FLUSH_LIMIT" value="{esc(cfg.get('QUEUE_FLUSH_LIMIT'))}" placeholder="1"></div>
                   <div class="field"><label>Max Backoff</label><input name="MAX_BACKOFF_SECONDS" value="{esc(cfg.get('MAX_BACKOFF_SECONDS'))}" placeholder="60"></div>
                 </div>
               </div>
@@ -590,7 +600,7 @@ def setup_page(message="", message_type="info"):
         </section>
       </div>
 
-      <aside class="stack">
+      <div class="setup-summary">
         <section class="card">
           <div class="card-header"><div><h2>Setup Checklist</h2><p>ถ้าทุกข้อเป็นสีเขียว แปลว่าพร้อมเริ่มส่งข้อมูล</p></div></div>
           <div class="card-body"><div class="check-list">{quick_check_items()}</div></div>
@@ -599,7 +609,7 @@ def setup_page(message="", message_type="info"):
           <div class="card-header"><div><h2>Snapshot</h2><p>สถานะปัจจุบันของ Pi Gateway</p></div></div>
           <div class="card-body">
             <div class="mini-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
-              <div class="stat-card"><small>IP</small><strong>{esc(st['primary_ip'])}</strong></div>
+              <div class="stat-card"><small>IP</small><strong>{esc(st.get('all_ips') or st['primary_ip'])}</strong></div>
               <div class="stat-card"><small>Agent</small><strong>{esc(st['agent']['active'])}</strong></div>
               <div class="stat-card"><small>Source</small><strong>{esc(cfg.get('SENSOR_SOURCE'))}</strong></div>
               <div class="stat-card"><small>Interval</small><strong>{esc(cfg.get('SEND_INTERVAL_SECONDS'))}s</strong></div>
@@ -611,7 +621,7 @@ def setup_page(message="", message_type="info"):
             </div>
           </div>
         </section>
-      </aside>
+      </div>
     </section>
     """
     return shell(content, "setup", message, message_type)
