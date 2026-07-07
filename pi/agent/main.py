@@ -7,7 +7,6 @@ from config import settings
 from runtime.offline_queue import OfflineQueue
 from services.dotwatch_api import (
     build_ingest_payload,
-    post_ingest_batch_payload,
     post_ingest_payload,
 )
 from sensors.dummy_sensor import read_dummy_metrics
@@ -90,6 +89,13 @@ def read_metrics():
 
 
 def flush_offline_queue(queue):
+    """Send at most one queued payload per loop cycle.
+
+    The backend enforces per-device pacing. Sending many queued items in the
+    same cycle, or sending a live payload immediately after a queued payload,
+    can trigger HTTP 429. This function therefore flushes exactly one item
+    per successful cycle and lets the main loop sleep before the next send.
+    """
     if not settings.offline_queue_enabled:
         return {"sent": 0, "remaining": 0, "error": None}
 
@@ -97,34 +103,18 @@ def flush_offline_queue(queue):
     if not items:
         return {"sent": 0, "remaining": 0, "error": None}
 
-    sent = 0
     remaining = list(items)
-    first_error = None
+    item = remaining[0]
 
-    if settings.queue_flush_batch_enabled and settings.queue_flush_limit > 1:
-        batch = remaining[: settings.queue_flush_limit]
-        try:
-            post_ingest_batch_payload(settings, batch)
-            sent = len(batch)
-            remaining = remaining[sent:]
-            queue.write(remaining)
-        except Exception as error:
-            first_error = str(error)
-        return {"sent": sent, "remaining": len(remaining), "error": first_error}
+    try:
+        post_ingest_payload(settings, item)
+    except Exception as error:
+        return {"sent": 0, "remaining": len(remaining), "error": str(error)}
 
-    while remaining and sent < settings.queue_flush_limit and RUNNING:
-        item = remaining[0]
-        try:
-            post_ingest_payload(settings, item)
-        except Exception as error:
-            first_error = str(error)
-            break
+    remaining.pop(0)
+    queue.write(remaining)
 
-        sent += 1
-        remaining.pop(0)
-        queue.write(remaining)
-
-    return {"sent": sent, "remaining": len(remaining), "error": first_error}
+    return {"sent": 1, "remaining": len(remaining), "error": None}
 
 
 def sleep_interruptible(seconds):
@@ -165,14 +155,27 @@ def main():
             settings.validate()
 
             flush_result = flush_offline_queue(queue)
+
             if flush_result["sent"]:
+                consecutive_errors = 0
                 print(
                     f"[{now_text()}] QUEUE_FLUSHED sent={flush_result['sent']} "
                     f"remaining={flush_result['remaining']}",
                     flush=True,
                 )
+                sleep_interruptible(settings.send_interval_seconds)
+                continue
+
             if flush_result["error"]:
                 print(f"[{now_text()}] QUEUE_WAIT error={flush_result['error']}", flush=True)
+                consecutive_errors += 1
+                backoff = min(
+                    settings.max_backoff_seconds,
+                    settings.send_interval_seconds * min(consecutive_errors, 6),
+                )
+                print(f"[{now_text()}] RETRY_AFTER {backoff}s", flush=True)
+                sleep_interruptible(backoff)
+                continue
 
             metrics, read_errors = read_metrics()
             payload = build_ingest_payload(settings, metrics, timestamp=utc_now_iso())
