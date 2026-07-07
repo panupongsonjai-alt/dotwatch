@@ -57,15 +57,23 @@ def build_ingest_payload(settings, metrics, timestamp=None, firmware_version=Non
     }
 
 
-def post_ingest_payload(settings, payload):
-    if not settings.api_url:
-        raise RuntimeError("DOTWATCH_API_URL is missing")
-
+def build_device_headers(settings):
     if not settings.device_code:
         raise RuntimeError("DEVICE_CODE is missing")
 
     if not settings.device_secret:
         raise RuntimeError("DEVICE_SECRET is missing")
+
+    return {
+        "User-Agent": f"dotwatch-pi-agent/{settings.firmware_version}",
+        "x-device-code": settings.device_code,
+        "x-device-secret": settings.device_secret,
+    }
+
+
+def post_ingest_payload(settings, payload):
+    if not settings.api_url:
+        raise RuntimeError("DOTWATCH_API_URL is missing")
 
     url = f"{settings.api_url.rstrip('/')}/api/ingest"
 
@@ -74,52 +82,30 @@ def post_ingest_payload(settings, payload):
         method="POST",
         payload=payload,
         timeout=getattr(settings, "request_timeout_seconds", 15),
-        headers={
-            "User-Agent": f"dotwatch-pi-agent/{settings.firmware_version}",
-            "x-device-code": settings.device_code,
-            "x-device-secret": settings.device_secret,
-        },
+        headers=build_device_headers(settings),
     )
 
 
 def post_ingest_batch_payload(settings, payloads):
-    if not settings.api_url:
-        raise RuntimeError("DOTWATCH_API_URL is missing")
+    """Flush queued payloads safely using the normal ingest endpoint.
 
-    if not settings.device_code:
-        raise RuntimeError("DEVICE_CODE is missing")
+    This intentionally sends items one by one instead of assuming a backend
+    batch endpoint exists. It keeps compatibility with /api/ingest and prevents
+    queue flushing from failing because of a missing /api/ingest/batch route.
+    """
+    if not payloads:
+        return {"ok": True, "status": 200, "sent": 0, "results": []}
 
-    if not settings.device_secret:
-        raise RuntimeError("DEVICE_SECRET is missing")
+    results = []
+    for payload in payloads:
+        results.append(post_ingest_payload(settings, payload))
 
-    readings = []
-    for payload in payloads or []:
-        if isinstance(payload, dict):
-            readings.append({
-                "timestamp": payload.get("timestamp"),
-                "metrics": payload.get("metrics") or {},
-                "firmwareVersion": payload.get("firmwareVersion"),
-            })
-
-    if not readings:
-        return {"ok": True, "status": 204, "acceptedReadings": 0}
-
-    url = f"{settings.api_url.rstrip('/')}/api/ingest/batch"
-
-    return request_json(
-        url,
-        method="POST",
-        payload={
-            "firmwareVersion": settings.firmware_version,
-            "readings": readings,
-        },
-        timeout=getattr(settings, "request_timeout_seconds", 15),
-        headers={
-            "User-Agent": f"dotwatch-pi-agent/{settings.firmware_version}",
-            "x-device-code": settings.device_code,
-            "x-device-secret": settings.device_secret,
-        },
-    )
+    return {
+        "ok": True,
+        "status": 200,
+        "sent": len(results),
+        "results": results,
+    }
 
 
 def post_ingest(settings, metrics, timestamp=None, firmware_version=None):
@@ -137,15 +123,22 @@ def backend_health(settings):
         return {"ok": False, "error": "DOTWATCH_API_URL is missing"}
 
     started = datetime.now(timezone.utc)
-    try:
-        data = request_json(
-            f"{settings.api_url.rstrip('/')}/health/live",
-            method="GET",
-            timeout=getattr(settings, "request_timeout_seconds", 15),
-            headers={"User-Agent": f"dotwatch-pi-agent/{settings.firmware_version}"},
-        )
-        elapsed = datetime.now(timezone.utc) - started
-        data["latencyMsFromPi"] = round(elapsed.total_seconds() * 1000)
-        return data
-    except Exception as error:
-        return {"ok": False, "error": str(error)}
+
+    # Prefer the public health endpoint used by the Render smoke checks.
+    # Fall back to /health/live for older backend builds.
+    for path in ("/health", "/health/live"):
+        try:
+            data = request_json(
+                f"{settings.api_url.rstrip()}{path}",
+                method="GET",
+                timeout=getattr(settings, "request_timeout_seconds", 15),
+                headers={"User-Agent": f"dotwatch-pi-agent/{settings.firmware_version}"},
+            )
+            elapsed = datetime.now(timezone.utc) - started
+            data["latencyMsFromPi"] = round(elapsed.total_seconds() * 1000)
+            data["healthPath"] = path
+            return data
+        except Exception as error:
+            last_error = str(error)
+
+    return {"ok": False, "error": last_error}

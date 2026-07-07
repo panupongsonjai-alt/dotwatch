@@ -82,7 +82,6 @@ class Settings:
     offline_queue_path = os.getenv("OFFLINE_QUEUE_PATH", str(BASE_DIR / "data" / "offline_queue.jsonl"))
     offline_queue_max_items = get_int("OFFLINE_QUEUE_MAX_ITEMS", 1000, minimum=0, maximum=100000)
     queue_flush_limit = get_int("QUEUE_FLUSH_LIMIT", 20, minimum=1, maximum=500)
-    queue_flush_batch_enabled = get_bool("QUEUE_FLUSH_BATCH_ENABLED", True)
     max_backoff_seconds = get_int("MAX_BACKOFF_SECONDS", 60, minimum=1, maximum=3600)
 
     log_metrics = get_bool("LOG_METRICS", True)
