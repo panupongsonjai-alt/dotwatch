@@ -1,0 +1,180 @@
+.latest-active-alarms-card {
+  display: grid;
+  gap: 14px;
+}
+
+.latest-active-alarms-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.latest-active-alarms-header h2 {
+  margin: 4px 0 6px;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+.latest-active-alarms-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.alarm-live-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.alarm-live-badge.healthy {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+}
+
+.alarm-live-badge.danger {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+}
+
+.latest-active-alarms-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 22px 14px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  text-align: center;
+}
+
+.latest-active-alarms-empty svg {
+  color: var(--success);
+}
+
+.latest-active-alarms-empty strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.latest-active-alarms-empty p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.latest-active-alarms-list {
+  display: grid;
+  gap: 10px;
+}
+
+.latest-active-alarm-item {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border-radius: 17px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.latest-active-alarm-item.critical {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.22);
+}
+
+.latest-active-alarm-item.warning {
+  background: rgba(245, 158, 11, 0.09);
+  border-color: rgba(245, 158, 11, 0.24);
+}
+
+.latest-active-alarm-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.latest-active-alarm-item.critical .latest-active-alarm-icon {
+  color: var(--danger);
+}
+
+.latest-active-alarm-item.warning .latest-active-alarm-icon {
+  color: var(--warning);
+}
+
+.latest-active-alarm-main {
+  min-width: 0;
+}
+
+.latest-active-alarm-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.latest-active-alarm-title strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.latest-active-alarm-title span {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--danger);
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.latest-active-alarm-item.warning .latest-active-alarm-title span {
+  background: var(--warning);
+}
+
+.latest-active-alarm-main p {
+  margin: 5px 0 4px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.latest-active-alarm-main small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+@media (max-width: 640px) {
+  .latest-active-alarms-header {
+    flex-direction: column;
+  }
+
+  .alarm-live-badge {
+    width: fit-content;
+  }
+}

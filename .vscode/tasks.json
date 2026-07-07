@@ -1,0 +1,43 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dotWatch: Docker Up",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "up", "-d"],
+      "problemMatcher": []
+    },
+    {
+      "label": "dotWatch: Docker Down",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "down"],
+      "problemMatcher": []
+    },
+    {
+      "label": "dotWatch Backend: Dev",
+      "type": "shell",
+      "command": "npm",
+      "args": ["--prefix", "services/backend", "run", "dev"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "dotWatch Dashboard: Dev",
+      "type": "shell",
+      "command": "npm",
+      "args": ["--prefix", "apps/dashboard", "run", "dev"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "dotWatch Admin: Dev",
+      "type": "shell",
+      "command": "npm",
+      "args": ["--prefix", "apps/admin", "run", "dev", "--", "--port", "5174"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    }
+  ]
+}

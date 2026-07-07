@@ -1,0 +1,243 @@
+/* =========================================================
+   dotWatch - Design Stabilizer
+   Safe final visual layer, not an aggressive redesign
+========================================================= */
+
+/*
+  ใช้เป็น final layer เพื่อแก้จุดผิดปกติจาก CSS patch หลายตัวชนกัน
+  โดยไม่ redesign ทั้งระบบ
+*/
+
+:root {
+  --dw-radius-page: 24px;
+  --dw-radius-card: 22px;
+  --dw-radius-stat: 18px;
+  --dw-stat-height: 112px;
+}
+
+/* Page rhythm */
+.page,
+.app-page,
+.dashboard-page,
+.device-v2-page,
+.history-page-v2,
+.alarms-page,
+.notifications-page,
+.activity-page,
+.profile-v3-page,
+.settings-v3-page,
+.system-health-page {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Headers */
+.app-page-header,
+.dw-page-header {
+  min-width: 0;
+  border-radius: var(--dw-radius-page) !important;
+  overflow: hidden;
+}
+
+.app-page-header > *,
+.dw-page-header > * {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.app-page-actions,
+.dw-page-header-actions,
+.alarm-page-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Cards */
+.app-card,
+.panel,
+.card,
+.dashboard-card,
+.profile-card,
+.settings-card,
+.system-health-card,
+.device-v2-card {
+  min-width: 0;
+  border-radius: var(--dw-radius-card) !important;
+  box-sizing: border-box;
+}
+
+/* StatCard */
+.dw-stat-card,
+.stat-card,
+.summary-card,
+.compact-summary-card,
+.dashboard-stat-card,
+.dashboard-summary-card,
+.history-stat-card,
+.profile-stat-card,
+.settings-stat-card,
+.system-health-stat-card,
+.alarm-stat-card,
+.notification-stat-card,
+.activity-stat-card {
+  position: relative !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  min-height: var(--dw-stat-height) !important;
+  height: auto !important;
+  max-height: none !important;
+  padding: 16px !important;
+  border-radius: var(--dw-radius-stat) !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+/* Stable topbar: place it slightly inside the card so it follows the card shape */
+.dw-stat-card,
+.stat-card,
+.summary-card,
+.compact-summary-card,
+.dashboard-stat-card,
+.dashboard-summary-card,
+.history-stat-card,
+.profile-stat-card,
+.settings-stat-card,
+.system-health-stat-card,
+.alarm-stat-card,
+.notification-stat-card,
+.activity-stat-card {
+  overflow: hidden !important;
+}
+
+.dw-stat-card::before,
+.stat-card::before,
+.summary-card::before,
+.compact-summary-card::before,
+.dashboard-stat-card::before,
+.dashboard-summary-card::before,
+.history-stat-card::before,
+.profile-stat-card::before,
+.settings-stat-card::before,
+.system-health-stat-card::before,
+.alarm-stat-card::before,
+.notification-stat-card::before,
+.activity-stat-card::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 14px !important;
+  right: 14px !important;
+  top: 8px !important;
+  height: 4px !important;
+  min-height: 0 !important;
+  max-height: 4px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(
+    90deg,
+    #ff5a67 0%,
+    #8ba3c7 52%,
+    #21d4fd 100%
+  ) !important;
+  opacity: 0.95 !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+}
+
+.dw-stat-card > *,
+.stat-card > *,
+.summary-card > *,
+.compact-summary-card > * {
+  position: relative;
+  z-index: 3;
+  min-width: 0;
+}
+
+.dw-stat-card strong,
+.stat-card strong,
+.summary-card strong,
+.compact-summary-card strong,
+.dw-stat-card .stat-value,
+.stat-card .stat-value,
+.summary-card .stat-value {
+  visibility: visible !important;
+  opacity: 1 !important;
+  overflow: visible !important;
+}
+
+/* Stat grids */
+.dashboard-style-stat-grid,
+.dashboard-stat-grid,
+.device-v2-stat-grid,
+.history-stat-grid,
+.alarms-stat-grid,
+.notifications-stat-grid,
+.activity-stat-grid,
+.profile-stat-grid,
+.settings-stat-grid,
+.system-health-stat-grid,
+.stat-grid {
+  align-items: stretch !important;
+  min-width: 0;
+}
+
+/* Controls */
+.search-input,
+input:not([type='checkbox']):not([type='radio']),
+select,
+textarea {
+  border-radius: 14px !important;
+  box-sizing: border-box;
+}
+
+.search-input {
+  min-width: 0;
+}
+
+/* Buttons */
+.ghost-button,
+.primary-button,
+.secondary-button,
+.save-btn,
+.delete-btn {
+  border-radius: 14px !important;
+  min-height: 40px;
+}
+
+/* Tables */
+.table-wrap,
+.alarm-table-wrap,
+.device-table-wrap,
+.history-table-wrap {
+  min-width: 0;
+  max-width: 100%;
+  overflow: auto;
+}
+
+/* Scrollbar */
+* {
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 48%, transparent);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Responsive */
+@media (max-width: 860px) {
+  :root {
+    --dw-stat-height: 108px;
+  }
+}

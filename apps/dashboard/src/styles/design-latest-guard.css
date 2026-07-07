@@ -1,0 +1,127 @@
+/* =========================================================
+   dotWatch Latest Design Guard
+   Generated from latest uploaded dashboard ZIP
+   Purpose: keep all page sections aligned after final imports
+========================================================= */
+
+/* Keep page vertical rhythm consistent */
+.page.app-page,
+.dashboard-v2-page,
+.settings-v3-page,
+.profile-v3-page,
+.history-page-v2,
+.alarms-page,
+.activity-page,
+.system-health-page,
+.device-detail-page {
+  gap: 20px;
+}
+
+/* Common card rhythm for pages that use app-card/panel */
+.app-card,
+.panel,
+.settings-v3-card,
+.profile-v3-hero,
+.history-filter-card,
+.history-chart-card,
+.history-table-card,
+.device-detail-unified-card,
+.dashboard-unified-section {
+  border-radius: var(--radius-xl, 24px);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft, var(--shadow));
+}
+
+/* Normalize section title text */
+.dw-section-header h2,
+.app-section-title h2,
+.history-section-title h2,
+.dashboard-unified-section-header h2 {
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+}
+
+.dw-section-header p,
+.app-section-title p,
+.history-section-title p,
+.dashboard-unified-section-header p {
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 750;
+}
+
+/* Prevent live metric values from being clipped */
+.live-metric-overview-value,
+.live-metric-overview-value strong {
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.live-metric-overview-value strong {
+  line-height: 1.08 !important;
+}
+
+/* Device Detail tab card consistency */
+.device-detail-tab-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.device-detail-unified-card {
+  padding: 24px !important;
+  display: grid;
+  gap: 18px;
+}
+
+/* Tables and forms */
+input,
+select,
+textarea {
+  border-radius: 14px;
+}
+
+table th {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Responsive */
+@media (max-width: 760px) {
+  .dw-page-header,
+  .dw-section-header,
+  .app-section-title,
+  .history-section-title,
+  .dashboard-unified-section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-card,
+  .panel,
+  .settings-v3-card,
+  .device-detail-unified-card,
+  .dashboard-unified-section {
+    padding: 18px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .page.app-page,
+  .dashboard-v2-page,
+  .settings-v3-page,
+  .profile-v3-page,
+  .history-page-v2,
+  .device-detail-page {
+    gap: 16px;
+  }
+
+  .dw-section-header h2,
+  .app-section-title h2,
+  .history-section-title h2,
+  .dashboard-unified-section-header h2 {
+    font-size: 20px !important;
+  }
+}

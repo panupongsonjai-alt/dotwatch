@@ -1,0 +1,101 @@
+﻿# dotWatch repository ignore rules
+# Keep source files, docs, migrations and examples. Never commit generated files or secrets.
+
+# Dependencies
+node_modules/
+**/node_modules/
+.pnpm-store/
+.yarn/
+
+# Build output / generated artifacts
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+**/coverage/
+.vite/
+**/.vite/
+.tmp/
+tmp/
+temp/
+
+# Environment files / secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p8
+*.p12
+*.crt
+*.cer
+*serviceAccount*.json
+*service-account*.json
+firebase-adminsdk*.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+**/logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/.history/
+.idea/
+*.swp
+*.swo
+
+# Python / Raspberry Pi agent
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.venv/
+venv/
+**/.venv/
+**/venv/
+.pytest_cache/
+.mypy_cache/
+
+# Local database / backups / dumps
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.backup
+*.bak
+*.sql.gz
+*.tar.gz
+*.zip
+*.7z
+*.rar
+
+# Local export folder created by scripts/export-clean.ps1
+_export/
+
+# Raspberry Pi runtime data
+pi/agent/data/
+**/offline_queue.jsonl
+modbus_last_test_result.json
+
+# Local environment files
+!*.env.example
+!*.env.template
+apps/**/.env
+apps/**/.env.*
+services/**/.env
+services/**/.env.*
+!apps/**/*.env.example
+!services/**/*.env.example
+
+# Local temporary exports/backups
+*.bak-*
+*.pre-*.bak
+fix-*.ps1

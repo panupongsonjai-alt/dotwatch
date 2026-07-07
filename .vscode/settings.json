@@ -1,0 +1,7 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "terminal.integrated.stickyScroll.enabled": false,
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false
+}

@@ -1,0 +1,65 @@
+{
+  "enabled": true,
+  "mode": "rtu",
+  "unit_id": 1,
+  "tcp": {
+    "host": "192.168.1.50",
+    "port": 502,
+    "timeout": 3
+  },
+  "rtu": {
+    "port": "/dev/ttyUSB0",
+    "baudrate": 9600,
+    "parity": "N",
+    "stopbits": 1,
+    "bytesize": 8,
+    "timeout": 3
+  },
+  "registers": [
+    {
+      "enabled": true,
+      "metric_key": "metric_1",
+      "name": "Meter 1 Voltage",
+      "function": "input",
+      "address": 0,
+      "data_type": "uint16",
+      "count": 1,
+      "scale": 0.1,
+      "offset": 0,
+      "round": 1,
+      "unit_id": 1,
+      "byte_order": "big",
+      "word_order": "big"
+    },
+    {
+      "enabled": true,
+      "metric_key": "metric_2",
+      "name": "Meter 2 Voltage",
+      "function": "input",
+      "address": 0,
+      "data_type": "uint16",
+      "count": 1,
+      "scale": 0.1,
+      "offset": 0,
+      "round": 1,
+      "unit_id": 2,
+      "byte_order": "big",
+      "word_order": "big"
+    },
+    {
+      "enabled": true,
+      "metric_key": "metric_3",
+      "name": "Meter 3 Voltage",
+      "function": "input",
+      "address": 0,
+      "data_type": "uint16",
+      "count": 1,
+      "scale": 0.1,
+      "offset": 0,
+      "round": 1,
+      "unit_id": 3,
+      "byte_order": "big",
+      "word_order": "big"
+    }
+  ]
+}

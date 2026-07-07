@@ -1,0 +1,59 @@
+/* =========================================================
+   Device Detail Final Cleanup
+========================================================= */
+
+.device-detail-page .history-analytics-card,
+.device-detail-page .history-analytics-panel,
+.device-detail-page .device-history-card,
+.device-detail-page .device-history-panel,
+.device-detail-page .dw-chart-card,
+.device-detail-page [class*='history-analytics'],
+.device-detail-page [class*='device-history'] {
+  display: none !important;
+}
+
+.device-detail-page .devices-v3-health-banner,
+.device-detail-page .device-health-banner,
+.device-detail-page .device-status-banner,
+.device-detail-page .device-telemetry-status,
+.device-detail-page .device-health-strip,
+.device-detail-page .device-status-strip,
+.device-detail-page [class*='health-banner'],
+.device-detail-page [class*='telemetry-status'] {
+  display: none !important;
+}
+
+.device-detail-firmware-stat .dw-stat-card strong,
+.device-detail-firmware-stat .stat-card strong,
+.device-detail-firmware-stat article strong {
+  font-size: clamp(18px, 1.55vw, 23px) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.035em !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+.device-detail-firmware-stat .dw-stat-card span,
+.device-detail-firmware-stat .dw-stat-card small,
+.device-detail-firmware-stat .dw-stat-card p,
+.device-detail-firmware-stat .stat-card span,
+.device-detail-firmware-stat .stat-card small,
+.device-detail-firmware-stat .stat-card p,
+.device-detail-firmware-stat article span,
+.device-detail-firmware-stat article small,
+.device-detail-firmware-stat article p {
+  font-size: 11px !important;
+}
+
+.device-detail-tab-panel {
+  display: grid;
+  gap: 16px;
+}
+
+@media (max-width: 560px) {
+  .device-detail-firmware-stat .dw-stat-card strong,
+  .device-detail-firmware-stat .stat-card strong,
+  .device-detail-firmware-stat article strong {
+    font-size: 20px !important;
+  }
+}

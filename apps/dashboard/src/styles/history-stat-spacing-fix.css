@@ -1,0 +1,89 @@
+/* =========================================================
+   History Stat Spacing Fix
+   Align History KPI spacing with Dashboard / Devices
+========================================================= */
+
+.history-page-v2,
+.page.app-page.history-page-v2 {
+  display: grid !important;
+  gap: 20px !important;
+  row-gap: 20px !important;
+}
+
+.history-page-v2 > .dw-page-header,
+.history-page-v2 > .app-page-header {
+  margin: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.history-page-v2 > .dw-page-header + .history-stat-grid,
+.history-page-v2 > .dw-page-header + .history-stat-grid-tight,
+.history-page-v2 > .app-page-header + .history-stat-grid,
+.history-page-v2 > .app-page-header + .history-stat-grid-tight {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.history-page-v2 > .history-stat-grid,
+.history-page-v2 > .history-stat-grid-tight,
+.history-stat-grid,
+.history-stat-grid-tight {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.history-stat-grid > *,
+.history-stat-grid-tight > * {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+.history-stat-grid .dw-stat-card,
+.history-stat-grid-tight .dw-stat-card,
+.history-stat-grid .history-stat-card,
+.history-stat-grid-tight .history-stat-card {
+  min-height: 96px !important;
+  padding: 18px !important;
+  border-radius: var(--radius-card, 18px) !important;
+}
+
+.history-stat-grid .dw-stat-card strong,
+.history-stat-grid-tight .dw-stat-card strong,
+.history-stat-grid .history-stat-card strong,
+.history-stat-grid-tight .history-stat-card strong {
+  font-size: 30px !important;
+  line-height: 1 !important;
+}
+
+@media (max-width: 1100px) {
+  .history-stat-grid,
+  .history-stat-grid-tight {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .history-page-v2,
+  .page.app-page.history-page-v2 {
+    gap: 16px !important;
+    row-gap: 16px !important;
+  }
+
+  .history-stat-grid,
+  .history-stat-grid-tight {
+    grid-template-columns: 1fr !important;
+  }
+
+  .history-stat-grid .dw-stat-card strong,
+  .history-stat-grid-tight .dw-stat-card strong,
+  .history-stat-grid .history-stat-card strong,
+  .history-stat-grid-tight .history-stat-card strong {
+    font-size: 24px !important;
+  }
+}

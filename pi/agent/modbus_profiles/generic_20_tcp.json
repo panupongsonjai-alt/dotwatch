@@ -1,0 +1,40 @@
+{
+  "enabled": true,
+  "mode": "tcp",
+  "unit_id": 1,
+  "tcp": {
+    "host": "192.168.1.50",
+    "port": 502,
+    "timeout": 3
+  },
+  "rtu": {
+    "port": "/dev/ttyUSB0",
+    "baudrate": 9600,
+    "parity": "N",
+    "stopbits": 1,
+    "bytesize": 8,
+    "timeout": 3
+  },
+  "registers": [
+    {"enabled": true, "metric_key": "metric_1", "name": "Register 1", "function": "holding", "address": 0, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_2", "name": "Register 2", "function": "holding", "address": 1, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_3", "name": "Register 3", "function": "holding", "address": 2, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_4", "name": "Register 4", "function": "holding", "address": 3, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_5", "name": "Register 5", "function": "holding", "address": 4, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_6", "name": "Register 6", "function": "holding", "address": 5, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_7", "name": "Register 7", "function": "holding", "address": 6, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_8", "name": "Register 8", "function": "holding", "address": 7, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_9", "name": "Register 9", "function": "holding", "address": 8, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_10", "name": "Register 10", "function": "holding", "address": 9, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_11", "name": "Register 11", "function": "holding", "address": 10, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_12", "name": "Register 12", "function": "holding", "address": 11, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_13", "name": "Register 13", "function": "holding", "address": 12, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_14", "name": "Register 14", "function": "holding", "address": 13, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_15", "name": "Register 15", "function": "holding", "address": 14, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_16", "name": "Register 16", "function": "holding", "address": 15, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_17", "name": "Register 17", "function": "holding", "address": 16, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_18", "name": "Register 18", "function": "holding", "address": 17, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_19", "name": "Register 19", "function": "holding", "address": 18, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"},
+    {"enabled": true, "metric_key": "metric_20", "name": "Register 20", "function": "holding", "address": 19, "data_type": "uint16", "count": 1, "scale": 1, "offset": 0, "round": 2, "unit_id": 1, "byte_order": "big", "word_order": "big"}
+  ]
+}

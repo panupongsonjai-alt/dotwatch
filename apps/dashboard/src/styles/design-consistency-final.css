@@ -1,0 +1,596 @@
+/* =========================================================
+   dotWatch Final Design Consistency Guard
+   Purpose:
+   Keep Dashboard / Devices / Device Detail / History /
+   Alarms / Profile / Settings / Activity-like pages visually
+   aligned without changing business logic.
+========================================================= */
+
+/* ---------------------------------------------------------
+   1) Global page rhythm
+--------------------------------------------------------- */
+
+.page,
+.app-page,
+.page.app-page {
+  gap: 20px;
+}
+
+.dw-page-header,
+.app-page-header {
+  border-radius: var(--radius-xl, 24px);
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 36%),
+    var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft, var(--shadow));
+}
+
+.dw-page-header-main h1,
+.app-page-header h1,
+.app-page-header h2 {
+  color: var(--text);
+  font-size: 30px;
+  line-height: 1.12;
+  font-weight: 950;
+  letter-spacing: -0.045em;
+}
+
+.dw-page-header-main p,
+.app-page-header p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ---------------------------------------------------------
+   2) Common section card pattern
+--------------------------------------------------------- */
+
+.app-card,
+.panel,
+.settings-panel,
+.profile-v3-card,
+.settings-v3-card,
+.history-filter-card,
+.history-chart-card,
+.history-table-card,
+.dashboard-unified-section,
+.device-detail-unified-card,
+.device-overview-grid-card-ds,
+.device-metrics-panel-ds,
+.device-timeline-panel-ds {
+  border-radius: var(--radius-xl, 24px) !important;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.04), transparent 42%),
+    var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-soft, var(--shadow)) !important;
+}
+
+.dashboard-unified-section,
+.device-detail-unified-card,
+.device-overview-grid-card-ds,
+.device-metrics-panel-ds,
+.device-timeline-panel-ds {
+  padding: 24px !important;
+  gap: 18px !important;
+}
+
+/* ---------------------------------------------------------
+   3) Section headers
+--------------------------------------------------------- */
+
+.dw-section-header,
+.app-section-title,
+.history-section-title,
+.dashboard-unified-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 18px;
+}
+
+.device-detail-unified-card .dw-section-header,
+.dashboard-unified-section .app-section-title,
+.device-overview-grid-card-ds .dw-section-header,
+.device-metrics-panel-ds .dw-section-header,
+.device-timeline-panel-ds .dw-section-header {
+  margin-bottom: 0 !important;
+}
+
+.dw-section-header h2,
+.app-section-title h2,
+.history-section-title h2,
+.dashboard-unified-section-header h2,
+.device-detail-unified-card .dw-section-header h2,
+.device-overview-grid-card-ds .dw-section-header h2,
+.device-metrics-panel-ds .dw-section-header h2,
+.device-timeline-panel-ds .dw-section-header h2 {
+  margin: 0 !important;
+  color: var(--text) !important;
+  font-size: 22px !important;
+  line-height: 1.2 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.dw-section-header p,
+.app-section-title p,
+.history-section-title p,
+.dashboard-unified-section-header p,
+.device-detail-unified-card .dw-section-header p,
+.device-overview-grid-card-ds .dw-section-header p,
+.device-metrics-panel-ds .dw-section-header p,
+.device-timeline-panel-ds .dw-section-header p {
+  margin: 6px 0 0 !important;
+  color: var(--muted) !important;
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  font-weight: 750 !important;
+}
+
+/* ---------------------------------------------------------
+   4) Stat / state cards
+--------------------------------------------------------- */
+
+.dw-page-stat-grid,
+.dashboard-kpi-grid,
+.dashboard-health-kpi-grid,
+.devices-ops-stat-grid,
+.alarms-stat-grid,
+.dashboard-style-stat-grid,
+.history-stat-grid,
+.settings-v3-stat-grid,
+.profile-v3-stat-grid,
+.device-detail-stat-grid,
+.device-detail-state-grid,
+.device-detail-stats-grid,
+.device-detail-summary-grid,
+.device-detail-overview-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px !important;
+  align-items: stretch;
+}
+
+.dw-stat-card,
+.summary-card,
+.stat-card,
+.compact-summary-card,
+.history-stat-card {
+  min-height: 96px;
+  padding: 18px;
+  border-radius: var(--radius-card, 18px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft, var(--shadow));
+}
+
+.dw-stat-card span,
+.summary-card span,
+.stat-card h3,
+.compact-summary-card span,
+.history-stat-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dw-stat-card strong,
+.summary-card strong,
+.stat-card strong,
+.compact-summary-card strong,
+.history-stat-card strong {
+  color: var(--text);
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.055em;
+}
+
+/* Firmware can be long, keep it controlled */
+.device-detail-firmware-stat .dw-stat-card strong,
+.device-detail-firmware-stat .stat-card strong,
+.device-detail-firmware-stat article strong {
+  font-size: clamp(18px, 1.55vw, 23px) !important;
+  line-height: 1.08 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+/* ---------------------------------------------------------
+   5) Badges / status chips
+--------------------------------------------------------- */
+
+.dw-status-badge,
+.status,
+.history-device-status,
+.device-count-badge,
+.dashboard-unified-section-badge,
+.device-detail-section-badge,
+.device-live-count-ds {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  gap: 7px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 950;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.device-count-badge,
+.dashboard-unified-section-badge,
+.device-detail-section-badge,
+.device-live-count-ds {
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.22);
+}
+
+.status.online,
+.status.active,
+.dw-status-badge.online,
+.dw-status-badge.active,
+.dw-status-badge.healthy,
+.history-device-status.online {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.24);
+}
+
+.status.warning,
+.dw-status-badge.warning,
+.history-device-status.warning {
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.13);
+  border-color: rgba(245, 158, 11, 0.26);
+}
+
+.status.critical,
+.status.offline,
+.dw-status-badge.critical,
+.dw-status-badge.offline,
+.history-device-status.critical,
+.history-device-status.offline {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+/* ---------------------------------------------------------
+   6) Forms / buttons / tables
+--------------------------------------------------------- */
+
+.primary-button,
+.secondary-button,
+.ghost-button,
+.history-export-btn,
+.save-btn,
+.delete-btn,
+.security-action,
+button[type='submit'] {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  font-weight: 900;
+}
+
+input,
+select,
+textarea,
+.search-input input,
+.history-filter-grid input,
+.history-filter-grid select,
+.history-table-actions select,
+.alarm-toolbar select,
+.profile-info-grid input,
+.profile-info-grid select {
+  min-height: 42px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.alarm-table-wrap,
+.history-table-wrap,
+.table-wrap {
+  width: 100%;
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+}
+
+.device-v2-table,
+.history-table,
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.device-v2-table th,
+.history-table th,
+table th {
+  color: var(--muted);
+  background: var(--panel);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.device-v2-table td,
+.history-table td,
+table td {
+  color: var(--text);
+  border-top: 1px solid var(--border);
+}
+
+.device-v2-table th,
+.device-v2-table td,
+.history-table th,
+.history-table td,
+table th,
+table td {
+  padding: 13px 14px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* ---------------------------------------------------------
+   7) Device Detail tabs
+--------------------------------------------------------- */
+
+.device-detail-tab-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.device-metrics-ds-grid,
+.device-detail-content-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.device-metrics-ds-grid .dw-metric-card,
+.device-metrics-ds-grid .metric-card,
+.device-metrics-ds-grid article {
+  min-height: 116px;
+  padding: 16px !important;
+  border-radius: 18px !important;
+  background: var(--panel-2) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+/* Timeline header must match Overview */
+.device-timeline-panel-ds .dw-section-header h2 {
+  font-size: 22px !important;
+}
+
+.device-timeline-panel-ds .dw-section-header p {
+  font-size: 14px !important;
+}
+
+/* Timeline item details stay smaller */
+.device-timeline-list-ds {
+  display: grid;
+  gap: 12px;
+}
+
+.device-timeline-item-ds {
+  min-height: 84px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.device-timeline-title-row-ds h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+  font-weight: 950 !important;
+}
+
+.device-timeline-title-row-ds time,
+.device-timeline-content-ds small {
+  color: var(--muted);
+  font-size: 10.5px !important;
+  line-height: 1.25 !important;
+  font-weight: 800 !important;
+}
+
+.device-timeline-content-ds p {
+  color: var(--muted);
+  font-size: 11.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 700 !important;
+}
+
+/* ---------------------------------------------------------
+   8) Dashboard sections
+--------------------------------------------------------- */
+
+.dashboard-unified-section,
+.dashboard-data-overview-card,
+.devices-overview-panel,
+.dashboard-devices-card,
+.dashboard-map-card-v2,
+.dashboard-alerts-under-map > * {
+  border-radius: var(--radius-xl, 24px) !important;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.045), transparent 42%),
+    var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-soft, var(--shadow)) !important;
+}
+
+.dashboard-map-card-v2 .device-map-wrapper,
+.dashboard-map-card-v2 .device-map-empty,
+.dashboard-map-card-v2 .dashboard-map {
+  border-radius: 18px;
+}
+
+/* Keep dashboard map display-only */
+.device-map-wrapper .leaflet-marker-icon,
+.device-map-marker-shell,
+.device-map-marker-shell *,
+.device-map-marker-dot,
+.leaflet-tooltip.device-map-label {
+  cursor: default !important;
+}
+
+.device-map-marker-shell,
+.device-map-marker-shell *,
+.device-map-marker-dot {
+  pointer-events: none !important;
+}
+
+/* ---------------------------------------------------------
+   9) Empty states
+--------------------------------------------------------- */
+
+.dw-empty-state,
+.app-empty-state,
+.history-empty-box {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 32px;
+  text-align: center;
+  border-radius: var(--radius-xl, 24px);
+  background: var(--panel-2);
+  border: 1px dashed var(--border);
+  color: var(--muted);
+}
+
+.dw-empty-state h3,
+.app-empty-state h3,
+.history-empty-box strong {
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.dw-empty-state p,
+.app-empty-state p,
+.history-empty-box p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ---------------------------------------------------------
+   10) Responsive consistency
+--------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .dw-page-stat-grid,
+  .dashboard-kpi-grid,
+  .dashboard-health-kpi-grid,
+  .devices-ops-stat-grid,
+  .alarms-stat-grid,
+  .dashboard-style-stat-grid,
+  .history-stat-grid,
+  .settings-v3-stat-grid,
+  .profile-v3-stat-grid,
+  .device-detail-stat-grid,
+  .device-detail-state-grid,
+  .device-detail-stats-grid,
+  .device-detail-summary-grid,
+  .device-detail-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .dw-page-header,
+  .app-page-header,
+  .dw-section-header,
+  .app-section-title,
+  .history-section-title,
+  .dashboard-unified-section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard-unified-section,
+  .device-detail-unified-card,
+  .device-overview-grid-card-ds,
+  .device-metrics-panel-ds,
+  .device-timeline-panel-ds,
+  .app-card,
+  .panel {
+    padding: 18px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .page,
+  .app-page,
+  .page.app-page {
+    gap: 16px;
+  }
+
+  .dw-page-header-main h1,
+  .app-page-header h1,
+  .app-page-header h2 {
+    font-size: 24px;
+  }
+
+  .dw-page-stat-grid,
+  .dashboard-kpi-grid,
+  .dashboard-health-kpi-grid,
+  .devices-ops-stat-grid,
+  .alarms-stat-grid,
+  .dashboard-style-stat-grid,
+  .history-stat-grid,
+  .settings-v3-stat-grid,
+  .profile-v3-stat-grid,
+  .device-detail-stat-grid,
+  .device-detail-state-grid,
+  .device-detail-stats-grid,
+  .device-detail-summary-grid,
+  .device-detail-overview-grid,
+  .device-metrics-ds-grid,
+  .device-detail-content-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dw-section-header h2,
+  .app-section-title h2,
+  .history-section-title h2,
+  .dashboard-unified-section-header h2,
+  .device-detail-unified-card .dw-section-header h2 {
+    font-size: 20px !important;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .ghost-button,
+  .history-export-btn,
+  .save-btn,
+  .delete-btn {
+    width: 100%;
+  }
+}

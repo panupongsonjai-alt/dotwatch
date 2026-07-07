@@ -1,0 +1,922 @@
+import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
+import { pool } from '../db/pool.js'
+import {
+  decryptDeviceSecret,
+  encryptDeviceSecret,
+} from '../utils/deviceSecretCrypto.js'
+import { env } from '../config/env.js'
+import {
+  assertUserCanCreateDevice,
+  resolveDevicePlacement,
+} from '../services/commercial.service.js'
+import { createAdminAuditLog } from '../services/adminAudit.service.js'
+
+const HISTORY_METRIC_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_:-]{0,63}$/
+const HISTORY_RESOLUTIONS = new Set(['auto', 'raw', '1m', '5m', '15m', '1h', '1d'])
+
+function normalizeHistoryMetricKey(value) {
+  const metricKey = String(value || '').trim()
+
+  if (!metricKey) return ''
+  if (!HISTORY_METRIC_KEY_PATTERN.test(metricKey)) return null
+
+  return metricKey
+}
+
+function normalizeHistoryResolution(value) {
+  const resolution = String(value || 'auto').trim().toLowerCase()
+  return HISTORY_RESOLUTIONS.has(resolution) ? resolution : 'auto'
+}
+
+function getHistoryLimit(value) {
+  const requested = Number(value)
+
+  if (!Number.isFinite(requested)) return env.historyMaxRows
+
+  return Math.min(Math.max(Math.trunc(requested), 100), env.historyMaxRows)
+}
+
+
+function getFallbackBucketSeconds(diffHours, resolution = 'auto') {
+  if (resolution === '1m') return 60
+  if (resolution === '5m') return 300
+  if (resolution === '15m') return 900
+  if (resolution === '1h') return 3600
+  if (resolution === '1d') return 86400
+
+  if (diffHours <= 24 * 7) return 60
+  if (diffHours <= 24 * 30) return 300
+  if (diffHours <= 24 * 180) return 3600
+  return 86400
+}
+
+function pickHistorySource(diffHours, resolution = 'auto') {
+  if (!env.historyUseContinuousAggregates || resolution === 'raw') {
+    return { type: 'raw', interval: null }
+  }
+
+  if (resolution === '1d' || diffHours > 24 * 180) {
+    return { type: 'aggregate', table: 'device_metric_readings_1d', interval: '1 day' }
+  }
+
+  if (resolution === '1h' || diffHours > 24 * 30) {
+    return { type: 'aggregate', table: 'device_metric_readings_1h', interval: '1 hour' }
+  }
+
+  if (resolution === '5m') {
+    return { type: 'aggregate_bucket', table: 'device_metric_readings_1m', interval: '5 minutes' }
+  }
+
+  if (resolution === '15m') {
+    return { type: 'aggregate_bucket', table: 'device_metric_readings_1m', interval: '15 minutes' }
+  }
+
+  if (resolution === '1m' || diffHours > env.historyRawMaxHours) {
+    return { type: 'aggregate', table: 'device_metric_readings_1m', interval: '1 minute' }
+  }
+
+  return { type: 'raw', interval: null }
+}
+
+export async function listDevices(req, res) {
+  const user = req.dbUser
+
+  const result = await pool.query(
+    `
+    SELECT
+      d.id,
+      d.device_code,
+      d.name,
+      d.group_name,
+      d.status,
+      d.last_seen_at,
+      d.last_ingest_at,
+      d.firmware_version,
+      d.latitude,
+      d.longitude,
+      d.map_url,
+      d.model_id,
+      d.organization_id,
+      d.site_id,
+      d.device_group_id,
+      o.name AS organization_name,
+      s.name AS site_name,
+      dg.name AS device_group_name,
+      dm.model_key,
+      dm.model_name,
+      dm.metric_count,
+
+      lr.temperature,
+      lr.humidity,
+      lr.rssi,
+
+      COALESCE(lm.latest_time, lr.time) AS latest_time,
+      COALESCE(lm.latest_metrics, '{}'::jsonb) AS latest_metrics,
+      COALESCE(metric_config.metric_configs, '[]'::jsonb) AS metric_configs
+
+    FROM devices d
+    LEFT JOIN device_models dm
+      ON dm.id = d.model_id
+    LEFT JOIN organizations o
+      ON o.id = d.organization_id
+    LEFT JOIN sites s
+      ON s.id = d.site_id
+    LEFT JOIN device_groups dg
+      ON dg.id = d.device_group_id
+
+    LEFT JOIN LATERAL (
+      SELECT time, temperature, humidity, rssi
+      FROM sensor_readings
+      WHERE device_id = d.id
+      ORDER BY time DESC
+      LIMIT 1
+    ) lr ON true
+
+    LEFT JOIN LATERAL (
+      SELECT
+        MAX(metric_latest.time) AS latest_time,
+        jsonb_object_agg(metric_latest.metric_key, metric_latest.value) AS latest_metrics
+      FROM device_metric_latest metric_latest
+      WHERE metric_latest.device_id = d.id
+    ) lm ON true
+
+    LEFT JOIN LATERAL (
+      SELECT
+        COALESCE(
+          jsonb_agg(
+            jsonb_build_object(
+              'id', dm_cfg.id,
+              'metric_key', dm_cfg.metric_key,
+              'source_key', dm_cfg.source_key,
+              'metric_name', dm_cfg.metric_name,
+              'metric_type', dm_cfg.metric_type,
+              'unit', dm_cfg.unit,
+              'icon', dm_cfg.icon,
+              'visible', dm_cfg.visible,
+              'sort_order', dm_cfg.sort_order
+            )
+            ORDER BY dm_cfg.sort_order ASC, dm_cfg.metric_key ASC
+          ),
+          '[]'::jsonb
+        ) AS metric_configs
+      FROM device_metrics dm_cfg
+      WHERE dm_cfg.device_id = d.id
+        AND dm_cfg.visible = true
+    ) metric_config ON true
+
+    WHERE d.user_id = $1
+    ORDER BY d.created_at DESC
+    `,
+    [user.id]
+  )
+
+  res.json(result.rows)
+}
+
+export async function createDevice(req, res) {
+  const user = req.dbUser
+
+  const name = req.body.name || 'New Device'
+  const modelId = Number(req.body.modelId) || 1
+  const organizationId = req.body.organizationId || req.body.organization_id || null
+  const siteId = req.body.siteId || req.body.site_id || null
+  const deviceGroupId = req.body.deviceGroupId || req.body.device_group_id || null
+
+  const deviceCode =
+    req.body.deviceCode ||
+    `DW-${crypto.randomInt(1, 999999).toString().padStart(6, '0')}`
+
+  const deviceSecret =
+    req.body.deviceSecret || crypto.randomBytes(18).toString('hex')
+
+  const secretHash = await bcrypt.hash(deviceSecret, 10)
+  const secretEncrypted = encryptDeviceSecret(deviceSecret)
+
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+
+    await assertUserCanCreateDevice({ userId: user.id, client })
+
+    const placement = await resolveDevicePlacement({
+      client,
+      user,
+      organizationId,
+      siteId,
+      deviceGroupId,
+    })
+
+    const modelCheck = await client.query(
+      `
+      SELECT id
+      FROM device_models
+      WHERE id = $1
+        AND is_active = true
+      LIMIT 1
+      `,
+      [modelId]
+    )
+
+    if (!modelCheck.rows.length) {
+      await client.query('ROLLBACK')
+      return res.status(400).json({
+        message: 'Invalid device model',
+      })
+    }
+
+    const deviceResult = await client.query(
+      `
+      INSERT INTO devices (
+        user_id,
+        device_code,
+        name,
+        secret_hash,
+        secret_encrypted,
+        secret_encrypted_at,
+        model_id,
+        organization_id,
+        site_id,
+        device_group_id
+      )
+      VALUES ($1, $2, $3, $4, $5, now(), $6, $7, $8, $9)
+      RETURNING
+        id,
+        device_code,
+        name,
+        model_id,
+        organization_id,
+        site_id,
+        device_group_id,
+        group_name,
+        latitude,
+        longitude,
+        map_url,
+        created_at
+      `,
+      [
+        user.id,
+        deviceCode,
+        name,
+        secretHash,
+        secretEncrypted,
+        modelId,
+        placement?.organizationId || null,
+        placement?.siteId || null,
+        placement?.deviceGroupId || null,
+      ]
+    )
+
+    const device = deviceResult.rows[0]
+
+    await client.query(
+      `
+      INSERT INTO device_metrics (
+        device_id,
+        metric_key,
+        source_key,
+        metric_name,
+        metric_type,
+        unit,
+        icon,
+        visible,
+        sort_order
+      )
+      SELECT
+        $1,
+        metric_key,
+        metric_key,
+        default_name,
+        default_type,
+        default_unit,
+        default_icon,
+        true,
+        sort_order
+      FROM device_model_metrics
+      WHERE model_id = $2
+      ORDER BY sort_order ASC
+      ON CONFLICT (device_id, metric_key) DO NOTHING
+      `,
+      [device.id, modelId]
+    )
+
+    await createAdminAuditLog({
+      actorUserId: user.id,
+      action: 'device.created',
+      detail: `Created device ${device.id}`,
+      metadata: {
+        deviceId: device.id,
+        deviceCode,
+        modelId,
+        organizationId: placement?.organizationId || null,
+        siteId: placement?.siteId || null,
+        deviceGroupId: placement?.deviceGroupId || null,
+      },
+      request: req,
+      client,
+    })
+
+    await client.query('COMMIT')
+
+    res.status(201).json({
+      ...device,
+      deviceSecret,
+    })
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function getDevice(req, res) {
+  const user = req.dbUser
+  const { id } = req.params
+
+  const result = await pool.query(
+    `
+    SELECT
+      d.id,
+      d.device_code,
+      d.name,
+      d.group_name,
+      d.status,
+      d.last_seen_at,
+      d.last_ingest_at,
+      d.firmware_version,
+      d.latitude,
+      d.longitude,
+      d.map_url,
+      d.model_id,
+      d.organization_id,
+      d.site_id,
+      d.device_group_id,
+      o.name AS organization_name,
+      s.name AS site_name,
+      dg.name AS device_group_name,
+      dm.model_key,
+      dm.model_name,
+      dm.metric_count,
+
+      lr.temperature,
+      lr.humidity,
+      lr.rssi,
+
+      COALESCE(lm.latest_time, lr.time) AS latest_time,
+      COALESCE(lm.latest_metrics, '{}'::jsonb) AS latest_metrics,
+      COALESCE(metric_config.metric_configs, '[]'::jsonb) AS metric_configs
+
+    FROM devices d
+    LEFT JOIN device_models dm
+      ON dm.id = d.model_id
+    LEFT JOIN organizations o
+      ON o.id = d.organization_id
+    LEFT JOIN sites s
+      ON s.id = d.site_id
+    LEFT JOIN device_groups dg
+      ON dg.id = d.device_group_id
+
+    LEFT JOIN LATERAL (
+      SELECT time, temperature, humidity, rssi
+      FROM sensor_readings
+      WHERE device_id = d.id
+      ORDER BY time DESC
+      LIMIT 1
+    ) lr ON true
+
+    LEFT JOIN LATERAL (
+      SELECT
+        MAX(metric_latest.time) AS latest_time,
+        jsonb_object_agg(metric_latest.metric_key, metric_latest.value) AS latest_metrics
+      FROM device_metric_latest metric_latest
+      WHERE metric_latest.device_id = d.id
+    ) lm ON true
+
+    LEFT JOIN LATERAL (
+      SELECT
+        COALESCE(
+          jsonb_agg(
+            jsonb_build_object(
+              'id', dm_cfg.id,
+              'metric_key', dm_cfg.metric_key,
+              'source_key', dm_cfg.source_key,
+              'metric_name', dm_cfg.metric_name,
+              'metric_type', dm_cfg.metric_type,
+              'unit', dm_cfg.unit,
+              'icon', dm_cfg.icon,
+              'visible', dm_cfg.visible,
+              'sort_order', dm_cfg.sort_order
+            )
+            ORDER BY dm_cfg.sort_order ASC, dm_cfg.metric_key ASC
+          ),
+          '[]'::jsonb
+        ) AS metric_configs
+      FROM device_metrics dm_cfg
+      WHERE dm_cfg.device_id = d.id
+        AND dm_cfg.visible = true
+    ) metric_config ON true
+
+    WHERE d.id = $1
+      AND d.user_id = $2
+    LIMIT 1
+    `,
+    [id, user.id]
+  )
+
+  if (!result.rows.length) {
+    return res.status(404).json({
+      message: 'Device not found',
+    })
+  }
+
+  res.json(result.rows[0])
+}
+
+export async function updateDevice(req, res) {
+  const user = req.dbUser
+  const { id } = req.params
+
+  const {
+    name,
+    groupName,
+    latitude,
+    longitude,
+    mapUrl,
+    organizationId,
+    organization_id,
+    siteId,
+    site_id,
+    deviceGroupId,
+    device_group_id,
+  } = req.body
+
+  const requestedOrganizationId = organizationId ?? organization_id ?? null
+  const requestedSiteId = siteId ?? site_id ?? null
+  const requestedDeviceGroupId = deviceGroupId ?? device_group_id ?? null
+  const hasPlacementChange = Boolean(
+    requestedOrganizationId || requestedSiteId || requestedDeviceGroupId
+  )
+
+  let placement = {
+    organizationId: requestedOrganizationId,
+    siteId: requestedSiteId,
+    deviceGroupId: requestedDeviceGroupId,
+  }
+
+  if (hasPlacementChange) {
+    const currentDeviceResult = await pool.query(
+      `
+      SELECT organization_id, site_id, device_group_id
+      FROM devices
+      WHERE id = $1
+        AND user_id = $2
+      LIMIT 1
+      `,
+      [id, user.id]
+    )
+
+    if (!currentDeviceResult.rows.length) {
+      return res.status(404).json({
+        message: 'Device not found',
+      })
+    }
+
+    const currentDevice = currentDeviceResult.rows[0]
+    const organizationForPlacement =
+      requestedOrganizationId || currentDevice.organization_id
+
+    placement = await resolveDevicePlacement({
+      user,
+      organizationId: organizationForPlacement,
+      siteId: requestedSiteId || currentDevice.site_id,
+      deviceGroupId: requestedDeviceGroupId || currentDevice.device_group_id,
+    })
+  }
+
+  const result = await pool.query(
+    `
+    UPDATE devices
+    SET
+      name = COALESCE($1, name),
+      group_name = COALESCE($2, group_name),
+      latitude = COALESCE($3, latitude),
+      longitude = COALESCE($4, longitude),
+      map_url = COALESCE($5, map_url),
+      organization_id = COALESCE($6, organization_id),
+      site_id = COALESCE($7, site_id),
+      device_group_id = COALESCE($8, device_group_id)
+    WHERE id = $9
+      AND user_id = $10
+    RETURNING
+      id,
+      device_code,
+      name,
+      group_name,
+      status,
+      last_seen_at,
+      last_ingest_at,
+      firmware_version,
+      latitude,
+      longitude,
+      map_url,
+      model_id,
+      organization_id,
+      site_id,
+      device_group_id
+    `,
+    [
+      name ?? null,
+      groupName ?? null,
+      latitude ?? null,
+      longitude ?? null,
+      mapUrl ?? null,
+      requestedOrganizationId,
+      requestedSiteId,
+      requestedDeviceGroupId,
+      id,
+      user.id,
+    ]
+  )
+
+  if (!result.rows.length) {
+    return res.status(404).json({
+      message: 'Device not found',
+    })
+  }
+
+  res.json(result.rows[0])
+}
+
+export async function getDeviceSecret(req, res) {
+  const user = req.dbUser
+  const { id } = req.params
+
+  const result = await pool.query(
+    `
+    SELECT
+      id,
+      device_code,
+      name,
+      secret_encrypted,
+      secret_encrypted_at
+    FROM devices
+    WHERE id = $1
+      AND user_id = $2
+      AND is_active = true
+    LIMIT 1
+    `,
+    [id, user.id]
+  )
+
+  if (!result.rows.length) {
+    return res.status(404).json({
+      message: 'Device not found',
+    })
+  }
+
+  const device = result.rows[0]
+
+  if (!device.secret_encrypted) {
+    return res.status(409).json({
+      code: 'SECRET_NOT_RECOVERABLE',
+      message:
+        'Device Secret เดิมถูกเก็บเป็น hash จึงดูย้อนหลังไม่ได้ กรุณา Reset Secret ใหม่ 1 ครั้ง',
+    })
+  }
+
+  try {
+    const deviceSecret = decryptDeviceSecret(device.secret_encrypted)
+
+    res.json({
+      id: device.id,
+      device_code: device.device_code,
+      name: device.name,
+      deviceSecret,
+      secretEncryptedAt: device.secret_encrypted_at,
+    })
+  } catch (error) {
+    res.status(409).json({
+      code: 'SECRET_NOT_RECOVERABLE',
+      message:
+        'ไม่สามารถถอดรหัส Device Secret ได้ กรุณา Reset Secret ใหม่ 1 ครั้ง',
+    })
+  }
+}
+
+export async function resetDeviceSecret(req, res) {
+  const user = req.dbUser
+  const { id } = req.params
+
+  const deviceSecret = crypto.randomBytes(18).toString('hex')
+  const secretHash = await bcrypt.hash(deviceSecret, 10)
+  const secretEncrypted = encryptDeviceSecret(deviceSecret)
+
+  const result = await pool.query(
+    `
+    UPDATE devices
+    SET
+      secret_hash = $1,
+      secret_encrypted = $2,
+      secret_encrypted_at = now()
+    WHERE id = $3
+      AND user_id = $4
+    RETURNING id, device_code, name
+    `,
+    [secretHash, secretEncrypted, id, user.id]
+  )
+
+  if (!result.rows.length) {
+    return res.status(404).json({
+      message: 'Device not found',
+    })
+  }
+
+  res.json({
+    ...result.rows[0],
+    deviceSecret,
+  })
+}
+
+export async function deleteDevice(req, res) {
+  const user = req.dbUser
+  const { id } = req.params
+
+  const result = await pool.query(
+    `
+    DELETE FROM devices
+    WHERE id = $1
+      AND user_id = $2
+    RETURNING id
+    `,
+    [id, user.id]
+  )
+
+  if (!result.rows.length) {
+    return res.status(404).json({
+      message: 'Device not found',
+    })
+  }
+
+  res.json({
+    ok: true,
+  })
+}
+
+export async function getHistory(req, res) {
+  const user = req.dbUser
+  const { id } = req.params
+  const rawMetricKey =
+    req.query.metricKey ||
+    req.query.metric_key ||
+    req.query.metric ||
+    req.query.key
+  const metricKey = normalizeHistoryMetricKey(rawMetricKey)
+
+  if (rawMetricKey && metricKey === null) {
+    return res.status(400).json({
+      message: 'Invalid metric key',
+    })
+  }
+
+  function isDateOnly(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))
+  }
+
+  function getBangkokDayRange(dateValue) {
+    return {
+      fromDate: new Date(`${dateValue}T00:00:00.000+07:00`),
+      toDate: new Date(`${dateValue}T23:59:59.999+07:00`),
+    }
+  }
+
+  function parseHistoryRange(query = {}) {
+    const now = new Date()
+    const dateValue = query.date || query.day
+
+    if (isDateOnly(dateValue)) {
+      return getBangkokDayRange(dateValue)
+    }
+
+    const fromValue = query.from || query.start
+    const toValue = query.to || query.end
+
+    if (
+      isDateOnly(fromValue) &&
+      (!toValue || String(toValue) === String(fromValue))
+    ) {
+      return getBangkokDayRange(fromValue)
+    }
+
+    let fromDate
+    let toDate
+
+    if (isDateOnly(fromValue)) {
+      fromDate = new Date(`${fromValue}T00:00:00.000+07:00`)
+    } else if (fromValue) {
+      fromDate = new Date(fromValue)
+    } else {
+      fromDate = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    }
+
+    if (isDateOnly(toValue)) {
+      toDate = new Date(`${toValue}T23:59:59.999+07:00`)
+    } else if (toValue) {
+      toDate = new Date(toValue)
+    } else if (isDateOnly(fromValue)) {
+      toDate = new Date(`${fromValue}T23:59:59.999+07:00`)
+    } else {
+      toDate = now
+    }
+
+    return {
+      fromDate,
+      toDate,
+    }
+  }
+
+  const deviceCheck = await pool.query(
+    `
+    SELECT id
+    FROM devices
+    WHERE id = $1
+      AND user_id = $2
+    LIMIT 1
+    `,
+    [id, user.id]
+  )
+
+  if (!deviceCheck.rows.length) {
+    return res.status(404).json({
+      message: 'Device not found',
+    })
+  }
+
+  const { fromDate, toDate } = parseHistoryRange(req.query)
+
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+    return res.status(400).json({
+      message: 'Invalid history date range',
+    })
+  }
+
+  if (fromDate > toDate) {
+    return res.status(400).json({
+      message: 'Invalid history date range: from must be before to',
+    })
+  }
+
+  const diffHours =
+    (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60)
+  const resolution = normalizeHistoryResolution(req.query.resolution)
+  const limit = getHistoryLimit(req.query.limit)
+  const historySource = pickHistorySource(diffHours, resolution)
+
+  res.set('x-dotwatch-history-source', historySource.type)
+  if (historySource.interval) {
+    res.set('x-dotwatch-history-resolution', historySource.interval)
+  }
+
+  if (metricKey) {
+    if (historySource.type === 'raw') {
+      const result = await pool.query(
+        `
+        SELECT
+          time,
+          time AS bucket_time,
+          metric_key,
+          value,
+          value AS avg_value,
+          value AS min_value,
+          value AS max_value,
+          1 AS sample_count
+        FROM device_metric_readings
+        WHERE device_id = $1
+          AND metric_key = $2
+          AND time BETWEEN $3 AND $4
+        ORDER BY time ASC
+        LIMIT $5
+        `,
+        [id, metricKey, fromDate, toDate, limit]
+      )
+
+      return res.json(result.rows)
+    }
+
+    try {
+      if (historySource.type === 'aggregate_bucket') {
+        const result = await pool.query(
+          `
+          SELECT
+            time_bucket($5::interval, bucket) AS time,
+            time_bucket($5::interval, bucket) AS bucket_time,
+            metric_key,
+            AVG(avg_value)::double precision AS value,
+            AVG(avg_value)::double precision AS avg_value,
+            MIN(min_value)::double precision AS min_value,
+            MAX(max_value)::double precision AS max_value,
+            SUM(sample_count)::integer AS sample_count
+          FROM ${historySource.table}
+          WHERE device_id = $1
+            AND metric_key = $2
+            AND bucket BETWEEN $3 AND $4
+          GROUP BY time_bucket($5::interval, bucket), metric_key
+          ORDER BY bucket_time ASC
+          LIMIT $6
+          `,
+          [id, metricKey, fromDate, toDate, historySource.interval, limit]
+        )
+
+        return res.json(result.rows)
+      }
+
+      const result = await pool.query(
+        `
+        SELECT
+          bucket AS time,
+          bucket AS bucket_time,
+          metric_key,
+          avg_value::double precision AS value,
+          avg_value::double precision AS avg_value,
+          min_value::double precision AS min_value,
+          max_value::double precision AS max_value,
+          sample_count::integer AS sample_count
+        FROM ${historySource.table}
+        WHERE device_id = $1
+          AND metric_key = $2
+          AND bucket BETWEEN $3 AND $4
+        ORDER BY bucket ASC
+        LIMIT $5
+        `,
+        [id, metricKey, fromDate, toDate, limit]
+      )
+
+      return res.json(result.rows)
+    } catch (error) {
+      console.warn('History aggregate query fallback:', {
+        deviceId: id,
+        metricKey,
+        source: historySource.table,
+        message: error.message,
+      })
+
+      const bucketSeconds = getFallbackBucketSeconds(diffHours, resolution)
+      const result = await pool.query(
+        `
+        SELECT
+          bucket_time AS time,
+          bucket_time,
+          metric_key,
+          AVG(value)::double precision AS value,
+          AVG(value)::double precision AS avg_value,
+          MIN(value)::double precision AS min_value,
+          MAX(value)::double precision AS max_value,
+          COUNT(*)::integer AS sample_count
+        FROM (
+          SELECT
+            to_timestamp(
+              floor(extract(epoch from time) / $5) * $5
+            ) AS bucket_time,
+            metric_key,
+            value
+          FROM device_metric_readings
+          WHERE device_id = $1
+            AND metric_key = $2
+            AND time BETWEEN $3 AND $4
+        ) bucketed
+        GROUP BY bucket_time, metric_key
+        ORDER BY bucket_time ASC
+        LIMIT $6
+        `,
+        [id, metricKey, fromDate, toDate, bucketSeconds, limit]
+      )
+
+      res.set('x-dotwatch-history-source', 'raw-fallback')
+      res.set('x-dotwatch-history-resolution', `${bucketSeconds}s`)
+      return res.json(result.rows)
+    }
+  }
+
+  const result = await pool.query(
+    `
+    SELECT
+      latest.time,
+      latest.time AS bucket_time,
+      latest.metric_key,
+      latest.value,
+      latest.value AS avg_value,
+      latest.value AS min_value,
+      latest.value AS max_value,
+      1 AS sample_count
+    FROM device_metric_latest latest
+    WHERE latest.device_id = $1
+      AND latest.time BETWEEN $2 AND $3
+    ORDER BY latest.metric_key ASC
+    `,
+    [id, fromDate, toDate]
+  )
+
+  res.json(result.rows)
+}
+

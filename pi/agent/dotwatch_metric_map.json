@@ -1,0 +1,87 @@
+{
+  "device_code": "DW-261103731",
+  "profile": "standard_power_meter",
+  "description": "Default dotWatch metric naming for Modbus power meter / PLC / sensor gateway.",
+  "metrics": [
+    {
+      "metric_key": "metric_1",
+      "metric_name": "Voltage",
+      "metric_type": "voltage",
+      "unit": "V",
+      "icon": "Zap",
+      "sort_order": 1
+    },
+    {
+      "metric_key": "metric_2",
+      "metric_name": "Current",
+      "metric_type": "current",
+      "unit": "A",
+      "icon": "Activity",
+      "sort_order": 2
+    },
+    {
+      "metric_key": "metric_3",
+      "metric_name": "Active Power",
+      "metric_type": "power",
+      "unit": "W",
+      "icon": "Gauge",
+      "sort_order": 3
+    },
+    {
+      "metric_key": "metric_4",
+      "metric_name": "Energy",
+      "metric_type": "energy",
+      "unit": "kWh",
+      "icon": "Battery",
+      "sort_order": 4
+    },
+    {
+      "metric_key": "metric_5",
+      "metric_name": "Frequency",
+      "metric_type": "frequency",
+      "unit": "Hz",
+      "icon": "Activity",
+      "sort_order": 5
+    },
+    {
+      "metric_key": "metric_6",
+      "metric_name": "Power Factor",
+      "metric_type": "power_factor",
+      "unit": "PF",
+      "icon": "Gauge",
+      "sort_order": 6
+    },
+    {
+      "metric_key": "metric_7",
+      "metric_name": "Temperature",
+      "metric_type": "temperature",
+      "unit": "°C",
+      "icon": "Thermometer",
+      "sort_order": 7
+    },
+    {
+      "metric_key": "metric_8",
+      "metric_name": "Humidity",
+      "metric_type": "humidity",
+      "unit": "%",
+      "icon": "Droplets",
+      "sort_order": 8
+    },
+    {
+      "metric_key": "metric_9",
+      "metric_name": "Status",
+      "metric_type": "status",
+      "unit": "",
+      "icon": "Power",
+      "sort_order": 9
+    },
+    {
+      "metric_key": "metric_10",
+      "metric_name": "Alarm",
+      "metric_type": "alarm",
+      "unit": "",
+      "icon": "AlertTriangle",
+      "sort_order": 10
+    }
+  ]
+}

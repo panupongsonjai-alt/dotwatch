@@ -1,0 +1,475 @@
+/* =========================================================
+   Dashboard Device Map - Dashboard-aligned UX/UI
+   Scope: map card header, status summary, Leaflet frame,
+   controls, markers and permanent tooltip labels.
+========================================================= */
+
+.dashboard-map-card-v2 {
+  position: relative;
+  isolation: isolate;
+  display: grid !important;
+  gap: 18px !important;
+  overflow: hidden;
+}
+
+.dashboard-map-card-v2::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(37, 99, 235, 0.14), transparent 34%),
+    radial-gradient(circle at 90% 12%, rgba(34, 197, 94, 0.08), transparent 28%);
+  opacity: 0.82;
+}
+
+.dashboard-map-section-header {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: flex-start !important;
+  gap: 18px !important;
+  width: 100%;
+}
+
+.dashboard-map-section-header > div:first-child {
+  min-width: 0;
+  max-width: 620px;
+}
+
+.dashboard-map-section-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.dashboard-map-section-header h2::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--primary, #2563eb);
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.14);
+}
+
+.dashboard-map-section-header p {
+  max-width: 600px;
+  text-wrap: pretty;
+}
+
+.dashboard-map-header-actions {
+  min-width: min(360px, 100%);
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
+.dashboard-map-status-summary {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  justify-content: end;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.dashboard-map-status-chip {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--muted, #94a3b8);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent),
+    color-mix(in srgb, var(--panel-2, #111827) 84%, black 16%);
+  border: 1px solid color-mix(in srgb, currentColor 24%, var(--border, #334155));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.dashboard-map-status-chip::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.dashboard-map-status-chip.online {
+  color: var(--success, #22c55e);
+}
+
+.dashboard-map-status-chip.warning {
+  color: var(--warning, #f59e0b);
+}
+
+.dashboard-map-status-chip.critical {
+  color: var(--danger, #ef4444);
+}
+
+.dashboard-map-status-chip.offline {
+  color: var(--muted, #94a3b8);
+}
+
+.dashboard-unified-map-frame {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 22px !important;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.28), rgba(15, 23, 42, 0.06)),
+    color-mix(in srgb, var(--panel-2, #111827) 88%, black 12%);
+  border: 1px solid color-mix(in srgb, var(--border, #334155) 78%, white 4%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 42px rgba(2, 6, 23, 0.18);
+}
+
+.dashboard-map-card-v2 .device-map-wrapper,
+.dashboard-map-card-v2 .device-map-empty,
+.dashboard-map-card-v2 .dashboard-map {
+  height: 320px;
+  min-height: 320px;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+}
+
+.device-map-wrapper {
+  position: relative;
+  min-width: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--panel-2, #111827);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.device-map-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px rgba(15, 23, 42, 0.24),
+    inset 0 24px 70px rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-map {
+  width: 100%;
+  min-width: 0;
+  background: var(--panel-2, #111827);
+}
+
+/* Leaflet controls: make native map UI match dotWatch dashboard */
+.dashboard-map .leaflet-control-container {
+  font-family: inherit;
+}
+
+.dashboard-map .leaflet-control-zoom {
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 16px 34px rgba(2, 6, 23, 0.24) !important;
+}
+
+.dashboard-map .leaflet-control-zoom a {
+  width: 34px !important;
+  height: 34px !important;
+  display: grid !important;
+  place-items: center;
+  color: var(--text, #f8fafc) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent),
+    rgba(15, 23, 42, 0.92) !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22) !important;
+  font-size: 20px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+}
+
+.dashboard-map .leaflet-control-zoom a:last-child {
+  border-bottom: 0 !important;
+}
+
+.dashboard-map .leaflet-control-zoom a:hover,
+.dashboard-map .leaflet-control-zoom a:focus-visible {
+  color: #ffffff !important;
+  background: rgba(37, 99, 235, 0.94) !important;
+}
+
+.dashboard-map .leaflet-control-attribution {
+  margin: 0 8px 6px 0 !important;
+  padding: 3px 7px !important;
+  border-radius: 999px;
+  color: rgba(248, 250, 252, 0.78) !important;
+  background: rgba(15, 23, 42, 0.74) !important;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  backdrop-filter: blur(10px);
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+}
+
+.dashboard-map .leaflet-control-attribution a {
+  color: #bfdbfe !important;
+  font-weight: 800;
+}
+
+.device-map-marker-shell {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.device-map-marker-dot {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  display: block;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 255, 255, 0.92);
+}
+
+.device-map-marker-dot::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: inherit;
+  border: 1px solid color-mix(in srgb, var(--device-status-color, #22c55e) 42%, transparent);
+  animation: device-map-pulse 1.8s ease-out infinite;
+}
+
+@keyframes device-map-pulse {
+  0% {
+    transform: scale(0.65);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1.18);
+    opacity: 0;
+  }
+}
+
+.leaflet-tooltip.device-map-label {
+  padding: 9px 11px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  color: var(--text, #f8fafc) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.065), transparent),
+    rgba(15, 23, 42, 0.92) !important;
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.32) !important;
+  backdrop-filter: blur(12px);
+}
+
+.leaflet-tooltip-top.device-map-label::before,
+.leaflet-tooltip-bottom.device-map-label::before,
+.leaflet-tooltip-left.device-map-label::before,
+.leaflet-tooltip-right.device-map-label::before {
+  border-top-color: rgba(15, 23, 42, 0.92) !important;
+}
+
+.device-map-label-content {
+  display: grid;
+  gap: 4px;
+  min-width: 112px;
+  max-width: 180px;
+}
+
+.device-map-label-content strong {
+  display: block;
+  max-width: 168px;
+  overflow: hidden;
+  color: var(--text, #f8fafc);
+  font-size: 12px;
+  line-height: 1.15;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-map-label-content span {
+  display: block;
+  max-width: 168px;
+  overflow: hidden;
+  color: var(--muted, #94a3b8);
+  font-size: 10px;
+  line-height: 1.15;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-map-label-status {
+  width: fit-content;
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  margin-top: 2px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1;
+  font-style: normal;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.device-map-label-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.device-map-label-status.online {
+  color: var(--success, #22c55e);
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.device-map-label-status.warning {
+  color: var(--warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.13);
+  border: 1px solid rgba(245, 158, 11, 0.26);
+}
+
+.device-map-label-status.critical {
+  color: var(--danger, #ef4444);
+  background: rgba(239, 68, 68, 0.13);
+  border: 1px solid rgba(239, 68, 68, 0.26);
+}
+
+.device-map-label-status.offline {
+  color: var(--muted, #94a3b8);
+  background: rgba(148, 163, 184, 0.11);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+/* Keep labels readable but allow marker click when onOpenDevice is provided */
+.device-map-wrapper .leaflet-marker-icon,
+.device-map-marker-shell,
+.device-map-marker-shell *,
+.device-map-marker-dot,
+.leaflet-tooltip.device-map-label {
+  cursor: pointer !important;
+}
+
+.device-map-empty {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  padding: 24px;
+  border-radius: 18px;
+  color: var(--muted, #94a3b8);
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.065), transparent 40%),
+    var(--panel-2, #111827);
+  border: 1px dashed var(--border, #334155);
+  text-align: center;
+}
+
+.device-map-empty strong {
+  color: var(--text, #f8fafc);
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.device-map-empty p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+@media (min-width: 1240px) {
+  .dashboard-map-header-actions {
+    min-width: min(430px, 100%);
+  }
+
+  .dashboard-map-status-summary {
+    grid-template-columns: repeat(4, max-content);
+  }
+}
+
+@media (max-width: 960px) {
+  .dashboard-map-section-header {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-map-section-header > div:first-child {
+    max-width: none;
+  }
+
+  .dashboard-map-header-actions {
+    width: 100%;
+    min-width: 0;
+    justify-items: start;
+  }
+
+  .dashboard-map-status-summary {
+    justify-content: start;
+  }
+}
+
+@media (max-width: 620px) {
+  .dashboard-unified-map-frame {
+    padding: 10px;
+    border-radius: 18px !important;
+  }
+
+  .dashboard-map-card-v2 .device-map-wrapper,
+  .dashboard-map-card-v2 .device-map-empty,
+  .dashboard-map-card-v2 .dashboard-map {
+    height: 300px;
+    min-height: 300px;
+    border-radius: 15px !important;
+  }
+
+  .dashboard-map-status-summary {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-map-status-chip {
+    justify-content: flex-start;
+  }
+
+  .leaflet-tooltip.device-map-label {
+    padding: 8px 9px !important;
+  }
+
+  .device-map-label-content {
+    min-width: 96px;
+    max-width: 146px;
+  }
+
+  .device-map-label-content strong,
+  .device-map-label-content span {
+    max-width: 138px;
+  }
+}
+
+:root[data-reduce-motion='true'] .device-map-marker-dot::after {
+  animation: none !important;
+}

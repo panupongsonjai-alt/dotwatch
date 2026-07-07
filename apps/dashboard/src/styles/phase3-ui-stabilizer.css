@@ -1,0 +1,306 @@
+/* =========================================================
+   Phase 3 - Dashboard UX Stabilizer
+   Scope: final import layer only. Keeps page logic unchanged.
+========================================================= */
+
+:root {
+  --dw-space-1: 4px;
+  --dw-space-2: 8px;
+  --dw-space-3: 12px;
+  --dw-space-4: 16px;
+  --dw-space-5: 20px;
+  --dw-space-6: 24px;
+  --dw-space-8: 32px;
+  --dw-page-gap: 24px;
+  --dw-card-padding: 24px;
+  --dw-card-radius: var(--radius-lg, 22px);
+  --dw-card-border: 1px solid var(--border);
+  --dw-card-shadow: var(--shadow);
+  --dw-card-shadow-hover: var(--shadow-hover);
+  --dw-primary-soft: color-mix(in srgb, var(--primary) 12%, transparent);
+  --dw-primary-border: color-mix(in srgb, var(--primary) 24%, var(--border));
+  --dw-focus-ring: 0 0 0 4px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+:root[data-density='compact'] {
+  --dw-page-gap: 18px;
+  --dw-card-padding: 18px;
+}
+
+:root[data-density='spacious'] {
+  --dw-page-gap: 32px;
+  --dw-card-padding: 30px;
+}
+
+.page,
+.app-page {
+  display: grid;
+  gap: var(--dw-page-gap);
+}
+
+.dw-page-header,
+.app-page-header,
+.device-v2-header,
+.clean-device-header,
+.device-management-header,
+.unified-page-header {
+  border-radius: var(--dw-card-radius) !important;
+  border: var(--dw-card-border) !important;
+  background:
+    linear-gradient(135deg, var(--dw-primary-soft), transparent 42%),
+    var(--panel) !important;
+  box-shadow: var(--dw-card-shadow) !important;
+}
+
+.dw-page-header::after {
+  background: color-mix(in srgb, var(--primary) 11%, transparent) !important;
+}
+
+.panel,
+.app-card,
+.summary-card,
+.stat-card,
+.device-card,
+.dashboard-device-card,
+.realtime-graph-card,
+.dw-chart-card,
+.device-v2-table-wrap,
+.device-v2-card,
+.profile-card,
+.profile-section,
+.settings-panel,
+.unified-card,
+.unified-feedback-card,
+.unified-stat-card,
+.system-health-card,
+.activity-center-card,
+.notification-center-card {
+  border-radius: var(--dw-card-radius) !important;
+  border: var(--dw-card-border) !important;
+  background: var(--panel) !important;
+  box-shadow: var(--dw-card-shadow) !important;
+}
+
+.panel:hover,
+.app-card:hover,
+.summary-card:hover,
+.stat-card:hover,
+.device-card:hover,
+.dashboard-device-card:hover,
+.device-v2-card:hover,
+.profile-card:hover,
+.profile-section:hover,
+.unified-card:hover {
+  border-color: var(--dw-primary-border) !important;
+  box-shadow: var(--dw-card-shadow-hover) !important;
+}
+
+.dw-stat-card,
+.dw-metric-card,
+.summary-card,
+.stat-card,
+.unified-stat-card,
+.compact-summary-card {
+  border-radius: var(--radius-card, 18px) !important;
+  border: var(--dw-card-border) !important;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 7%, transparent), transparent 48%),
+    var(--panel) !important;
+}
+
+.dw-stat-card::before,
+.stat-card::before,
+.summary-card::before,
+.unified-stat-card::before,
+.compact-summary-card::before {
+  background: linear-gradient(
+    90deg,
+    var(--primary),
+    color-mix(in srgb, var(--primary) 62%, var(--info))
+  ) !important;
+}
+
+.dw-stat-card .stat-value,
+.dw-stat-card strong,
+.stat-card strong,
+.summary-card strong,
+.unified-stat-card strong,
+.compact-summary-card strong {
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.primary-button,
+.export-btn,
+.csv-export-btn,
+.dw-export-button,
+.table-manage-btn.active,
+.filter-button.active {
+  background: var(--primary) !important;
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--primary) 24%, transparent) !important;
+}
+
+.primary-button:hover,
+.export-btn:hover,
+.csv-export-btn:hover,
+.dw-export-button:hover {
+  background: var(--primary-hover) !important;
+}
+
+.ghost-button:focus-visible,
+.secondary-button:focus-visible,
+.primary-button:focus-visible,
+.danger-button:focus-visible,
+.icon-button:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none !important;
+  box-shadow: var(--dw-focus-ring) !important;
+}
+
+.settings-v3-accent.active,
+.settings-v3-density.active {
+  border-color: var(--dw-primary-border) !important;
+  background: var(--dw-primary-soft) !important;
+  box-shadow: var(--dw-focus-ring) !important;
+}
+
+.settings-v3-toggle-item,
+.settings-v3-density,
+.settings-v3-accent {
+  border-radius: 16px !important;
+}
+
+.dashboard-map-card-v2,
+.dashboard-unified-map-frame,
+.dashboard-map-card-v2 .device-map-wrapper,
+.dashboard-map-card-v2 .device-map-empty,
+.dashboard-map-card-v2 .dashboard-map {
+  background: var(--panel) !important;
+}
+
+.dashboard-unified-map-frame,
+.device-map-wrapper,
+.dashboard-map,
+.device-map-empty {
+  border-radius: 20px !important;
+}
+
+.device-map-wrapper {
+  border: 1px solid var(--border) !important;
+  overflow: hidden !important;
+}
+
+.device-map-wrapper::before,
+.device-map-wrapper::after,
+.dashboard-unified-map-frame::before,
+.dashboard-unified-map-frame::after {
+  pointer-events: none;
+}
+
+.workspace-route-bar,
+.command-palette,
+.workspace-help-panel {
+  border-color: var(--border) !important;
+  background: color-mix(in srgb, var(--panel) 94%, var(--primary) 6%) !important;
+}
+
+.command-palette-item.active,
+.workspace-quick-link-list button:hover {
+  border-color: var(--dw-primary-border) !important;
+  background: var(--dw-primary-soft) !important;
+}
+
+:root[data-density='compact'] .panel,
+:root[data-density='compact'] .app-card,
+:root[data-density='compact'] .profile-section,
+:root[data-density='compact'] .settings-panel,
+:root[data-density='compact'] .dw-page-header,
+:root[data-density='compact'] .app-page-header,
+:root[data-density='compact'] .device-v2-header,
+:root[data-density='compact'] .clean-device-header,
+:root[data-density='compact'] .device-management-header,
+:root[data-density='compact'] .unified-page-header {
+  padding: var(--dw-card-padding) !important;
+}
+
+:root[data-density='spacious'] .panel,
+:root[data-density='spacious'] .app-card,
+:root[data-density='spacious'] .profile-section,
+:root[data-density='spacious'] .settings-panel,
+:root[data-density='spacious'] .dw-page-header,
+:root[data-density='spacious'] .app-page-header,
+:root[data-density='spacious'] .device-v2-header,
+:root[data-density='spacious'] .clean-device-header,
+:root[data-density='spacious'] .device-management-header,
+:root[data-density='spacious'] .unified-page-header {
+  padding: var(--dw-card-padding) !important;
+}
+
+:root[data-density='spacious'] .dw-stat-card,
+:root[data-density='spacious'] .summary-card,
+:root[data-density='spacious'] .stat-card,
+:root[data-density='spacious'] .compact-summary-card {
+  min-height: 118px;
+  padding: 22px !important;
+}
+
+:root[data-density='spacious'] .dw-stat-card strong,
+:root[data-density='spacious'] .summary-card strong,
+:root[data-density='spacious'] .stat-card strong,
+:root[data-density='spacious'] .compact-summary-card strong {
+  font-size: 32px !important;
+}
+
+:root[data-compact-cards='true'] .dw-stat-card,
+:root[data-compact-cards='true'] .summary-card,
+:root[data-compact-cards='true'] .stat-card,
+:root[data-compact-cards='true'] .unified-stat-card,
+:root[data-compact-cards='true'] .compact-summary-card {
+  min-height: 78px !important;
+  padding: 14px 16px !important;
+}
+
+:root[data-compact-cards='true'] .dw-stat-card strong,
+:root[data-compact-cards='true'] .summary-card strong,
+:root[data-compact-cards='true'] .stat-card strong,
+:root[data-compact-cards='true'] .unified-stat-card strong,
+:root[data-compact-cards='true'] .compact-summary-card strong {
+  font-size: 25px !important;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --dw-page-gap: 18px;
+    --dw-card-padding: 18px;
+  }
+
+  .dw-page-header,
+  .app-page-header,
+  .device-v2-header,
+  .clean-device-header,
+  .device-management-header,
+  .unified-page-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .dw-page-header-actions,
+  .app-page-actions,
+  .device-v2-header-actions,
+  .unified-header-actions,
+  .workspace-route-actions {
+    justify-content: flex-start !important;
+  }
+
+  .workspace-route-bar {
+    align-items: stretch !important;
+  }
+
+  .workspace-command-button span,
+  .workspace-help-button span {
+    display: none;
+  }
+}

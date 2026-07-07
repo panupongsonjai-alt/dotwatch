@@ -1,0 +1,544 @@
+/* =========================================================
+   Alarm Center Page - Design System Applied
+========================================================= */
+
+.alarms-center-page {
+  display: grid;
+  gap: 20px;
+}
+
+.alarms-stat-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.alarm-focus-card {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 22px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(239, 68, 68, 0.1), transparent 42%),
+    var(--panel);
+}
+
+.alarm-focus-card.warning {
+  background:
+    linear-gradient(135deg, rgba(245, 158, 11, 0.12), transparent 42%),
+    var(--panel);
+}
+
+.alarm-focus-card.empty {
+  grid-template-columns: 64px minmax(0, 1fr);
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.1), transparent 42%),
+    var(--panel);
+}
+
+.alarm-focus-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.13);
+  border: 1px solid rgba(239, 68, 68, 0.24);
+}
+
+.alarm-focus-icon.healthy {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.24);
+}
+
+.alarm-focus-topline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.alarm-focus-card h2 {
+  margin: 8px 0 4px;
+  color: var(--text);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.alarm-focus-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.alarm-focus-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.alarm-focus-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.alarm-focus-meta strong {
+  color: var(--text);
+}
+
+.alarm-mini-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.alarm-toolbar.clean {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 180px 180px;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.alarm-search-input {
+  min-width: 0;
+  height: 42px;
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.alarm-search-input input {
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.alarm-event-list,
+.alarm-rule-list-clean {
+  display: grid;
+  gap: 12px;
+}
+
+.alarm-event-card,
+.alarm-rule-card-clean {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.alarm-event-card:hover,
+.alarm-rule-card-clean:hover {
+  transform: translateY(-1px);
+  border-color: rgba(37, 99, 235, 0.32);
+  box-shadow: var(--shadow-soft);
+}
+
+.alarm-event-card.danger {
+  border-left: 4px solid var(--danger);
+}
+
+.alarm-event-card.warning {
+  border-left: 4px solid var(--warning);
+}
+
+.alarm-event-main {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 13px;
+  align-items: center;
+}
+
+.alarm-event-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.alarm-event-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.alarm-event-title-row h3,
+.alarm-rule-main-clean h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.alarm-event-main p {
+  margin: 5px 0 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.alarm-event-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.alarm-event-actions,
+.alarm-rule-actions-clean {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.alarm-rule-main-clean {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(160px, 1fr) minmax(140px, 0.8fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.alarm-rule-main-clean p,
+.alarm-rule-main-clean span {
+  display: block;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.alarm-rule-main-clean strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+@media (max-width: 1100px) {
+  .alarms-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .alarm-focus-card,
+  .alarm-focus-card.empty,
+  .alarm-event-card,
+  .alarm-rule-card-clean {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .alarm-toolbar.clean {
+    grid-template-columns: 1fr;
+  }
+
+  .alarm-rule-main-clean {
+    grid-template-columns: 1fr;
+  }
+
+  .alarm-event-actions,
+  .alarm-rule-actions-clean {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .alarms-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .alarm-focus-card {
+    padding: 18px;
+  }
+
+  .alarm-focus-card h2 {
+    font-size: 22px;
+  }
+
+  .alarm-event-main {
+    grid-template-columns: 1fr;
+  }
+
+  .alarm-event-actions button,
+  .alarm-rule-actions-clean button {
+    width: 100%;
+  }
+}
+
+
+/* =========================================================
+   Alarm Center V3 - Dashboard-like StatCards
+========================================================= */
+
+.alarms-page .dashboard-style-stat-grid,
+.alarms-center-page .dashboard-style-stat-grid,
+.alarms-stat-grid.dashboard-style-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.alarms-stat-grid .dw-stat-card {
+  min-height: 104px;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.alarms-stat-grid .dw-stat-card strong {
+  font-size: 30px;
+}
+
+@media (max-width: 900px) {
+  .alarms-page .dashboard-style-stat-grid,
+  .alarms-center-page .dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .alarms-page .dashboard-style-stat-grid,
+  .alarms-center-page .dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* =========================================================
+   Alarm Center - Stabilized Final Layer
+========================================================= */
+
+.alarms-page {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.alarms-page .alarm-clear-button {
+  color: white;
+  background: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 72%, white);
+}
+
+.alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+.alarms-stat-grid.dashboard-style-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.alarms-page .app-section-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.alarm-section-count {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.alarms-page .alarm-events-toolbar,
+.alarms-page .alarm-toolbar {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(150px, 180px) minmax(150px, 180px);
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+.alarms-page .alarm-events-toolbar .search-input,
+.alarms-page .alarm-toolbar .search-input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  min-height: 42px;
+  margin: 0;
+  padding: 0 12px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+
+.alarms-page .alarm-events-toolbar .search-input input,
+.alarms-page .alarm-toolbar .search-input input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.alarms-page .alarm-events-toolbar select,
+.alarms-page .alarm-toolbar select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  min-height: 42px;
+  margin: 0;
+  padding: 0 38px 0 14px;
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+
+.alarms-page .alarm-table-wrap {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.alarms-page .alarm-events-table-wrap {
+  position: relative;
+  isolation: isolate;
+  max-height: 704px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.alarms-page .alarm-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.alarms-page .alarm-table th,
+.alarms-page .alarm-table td {
+  padding: 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+}
+
+.alarms-page .alarm-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.alarms-page .alarm-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 31;
+  height: 44px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--panel) 98%, white 2%),
+      color-mix(in srgb, var(--panel) 94%, black 6%)
+    );
+  box-shadow: 0 12px 18px rgba(2, 6, 23, 0.22);
+  backdrop-filter: none;
+}
+
+@media (max-width: 980px) {
+  .alarms-page .alarm-events-toolbar,
+  .alarms-page .alarm-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .alarms-page .app-section-title {
+    display: grid;
+  }
+}
+
+@media (max-width: 860px) {
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 460px) {
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}

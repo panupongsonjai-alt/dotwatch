@@ -1,0 +1,4306 @@
+/* =========================================================
+   Devices Page - Master / Detail Layout
+========================================================= */
+
+.device-v2-page {
+  gap: 20px;
+}
+
+.device-v2-header h2 {
+  font-size: 28px;
+}
+
+.devices-v2-shell {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.devices-v2-list {
+  display: grid;
+  gap: 12px;
+}
+
+.devices-v2-list-card {
+  position: sticky;
+  top: 96px;
+  display: grid;
+  gap: 12px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+}
+
+.devices-v2-list-title {
+  margin-bottom: 4px;
+}
+
+.devices-v2-list-scroll {
+  display: grid;
+  gap: 10px;
+}
+
+.devices-v2-item {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel-2);
+  color: var(--text);
+  text-align: left;
+  display: grid;
+  gap: 10px;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.devices-v2-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.devices-v2-item.active {
+  border-color: rgba(37, 99, 235, 0.55);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.devices-v2-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.devices-v2-item-name {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.devices-v2-item-code {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.devices-v2-item-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.devices-v2-item-foot small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.device-model-badge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.devices-v2-config {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.devices-v2-config > .app-card {
+  overflow: hidden;
+}
+
+.devices-v2-selected-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.devices-v2-selected-title {
+  min-width: 0;
+}
+
+.devices-v2-selected-title h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.devices-v2-selected-title p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.devices-v2-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.devices-v2-mini-stat {
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v2-mini-stat span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.devices-v2-mini-stat strong {
+  display: block;
+  margin-top: 7px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 900;
+  word-break: break-word;
+}
+
+.status-text.online {
+  color: var(--success);
+}
+
+.status-text.warning {
+  color: var(--warning);
+}
+
+.status-text.offline {
+  color: var(--danger);
+}
+
+.devices-v2-config-card {
+  display: grid;
+  gap: 14px;
+}
+
+.device-action-row,
+.clean-device-actions,
+.table-actions,
+.rule-actions,
+.alarm-rule-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.device-edit-row.clean,
+.device-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.device-edit-input {
+  flex: 1;
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.device-location-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.device-location-header strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.device-location-header span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.location-save-btn {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.create-location-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.create-location-values span {
+  padding: 8px 10px;
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* Create Device Wizard */
+.device-create-modal,
+.pro-device-modal {
+  width: min(920px, 100%);
+  max-height: 92vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  background: var(--panel);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+}
+
+.pro-device-modal {
+  padding: 0;
+}
+
+.pro-modal-header,
+.modal-header,
+.pro-modal-actions,
+.modal-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pro-modal-header h3,
+.modal-header h3 {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.pro-modal-header p,
+.modal-header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.pro-modal-header > button,
+.modal-header button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 24px;
+}
+
+.pro-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pro-stepper > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--bg);
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.pro-stepper span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--panel);
+  font-weight: 900;
+}
+
+.pro-stepper strong {
+  color: inherit;
+  font-size: 13px;
+}
+
+.pro-stepper small {
+  display: block;
+  color: inherit;
+  font-size: 11px;
+}
+
+.pro-stepper > div.active {
+  color: #ffffff;
+  background: var(--primary);
+}
+
+.pro-wizard-content {
+  padding: 20px;
+}
+
+.pro-device-details {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 16px;
+  align-items: start;
+}
+
+.pro-device-details .pro-form-card {
+  grid-column: 1 / -1;
+}
+
+.pro-form-card,
+.pro-location-card,
+.pro-info-card,
+.confirm-summary-card,
+.device-success-card,
+.confirm-box {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--panel-2);
+}
+
+.pro-form-card {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.pro-form-card label,
+.secret-result-box label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.copy-input,
+.secret-result-box {
+  display: flex;
+  gap: 8px;
+}
+
+.copy-input input,
+.secret-result-box input {
+  min-height: 40px;
+}
+
+.copy-input button {
+  width: 42px;
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  background: var(--primary);
+}
+
+.pro-info-card svg,
+.device-success-card > svg {
+  color: var(--primary);
+}
+
+.device-success-card > svg {
+  color: var(--success);
+}
+
+.pro-info-card h4,
+.confirm-summary-card h4,
+.device-success-card h4 {
+  margin: 10px 0 6px;
+  color: var(--text);
+}
+
+.pro-info-card p,
+.device-success-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.confirm-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.confirm-row span {
+  color: var(--muted);
+}
+
+.confirm-row strong {
+  color: var(--text);
+  text-align: right;
+  word-break: break-all;
+}
+
+.confirm-warning {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  color: #92400e;
+  background: rgba(245, 158, 11, 0.14);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.device-success-card {
+  text-align: center;
+}
+
+.secret-result-box {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  text-align: left;
+}
+
+.pro-modal-actions {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+}
+
+.pro-modal-actions > div,
+.modal-actions > div {
+  display: flex;
+  gap: 10px;
+}
+
+.modal-next-button {
+  min-width: 138px;
+}
+
+@media (max-width: 1100px) {
+  .devices-v2-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .devices-v2-list-card {
+    position: static;
+    max-height: none;
+  }
+
+  .devices-v2-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pro-device-details {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .devices-v2-selected-header,
+  .device-location-header,
+  .pro-modal-actions,
+  .modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pro-stepper,
+  .pro-form-card {
+    grid-template-columns: 1fr;
+  }
+
+  .clean-device-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 560px) {
+  .devices-v2-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .device-action-row button,
+  .clean-device-actions button,
+  .primary-button,
+  .ghost-button,
+  .secondary-button,
+  .danger-button,
+  .rename-btn,
+  .save-btn,
+  .cancel-btn,
+  .delete-btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   Create Device Wizard V2
+========================================================= */
+
+.wizard-v2-backdrop {
+  align-items: center;
+  padding: 24px;
+}
+
+.wizard-v2-modal {
+  width: min(1120px, 100%);
+  max-height: 92vh;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 30px 90px rgba(2, 6, 23, 0.32);
+}
+
+.wizard-v2-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(37, 99, 235, 0.22),
+      transparent 34%
+    ),
+    linear-gradient(180deg, #111827 0%, #020617 100%);
+  color: #ffffff;
+}
+
+.wizard-v2-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.wizard-v2-brand-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.wizard-v2-brand .page-eyebrow {
+  color: #93c5fd;
+}
+
+.wizard-v2-brand h3 {
+  margin: 4px 0 6px;
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.wizard-v2-brand p,
+.wizard-v2-note p,
+.wizard-v2-step small {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.76);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.wizard-v2-steps {
+  display: grid;
+  gap: 10px;
+}
+
+.wizard-v2-step {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.wizard-v2-step.active {
+  background: rgba(37, 99, 235, 0.34);
+  border-color: rgba(147, 197, 253, 0.4);
+}
+
+.wizard-v2-step.done {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.wizard-v2-step > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-weight: 950;
+}
+
+.wizard-v2-step strong {
+  display: block;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.wizard-v2-note {
+  margin-top: auto;
+  display: flex;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  color: #93c5fd;
+  background: rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(147, 197, 253, 0.2);
+}
+
+.wizard-v2-main {
+  min-width: 0;
+  max-height: 92vh;
+  overflow: auto;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--panel);
+}
+
+.wizard-v2-header,
+.wizard-v2-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wizard-v2-header h2 {
+  margin: 4px 0 6px;
+  color: var(--text);
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.wizard-v2-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.wizard-v2-close {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.wizard-v2-content {
+  padding: 24px;
+}
+
+.wizard-v2-section-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+  align-items: start;
+}
+
+.wizard-v2-form-card,
+.wizard-v2-preview-card,
+.wizard-v2-location-card,
+.wizard-v2-help-card,
+.wizard-v2-review-card,
+.wizard-v2-success-card {
+  padding: 20px;
+  border-radius: 22px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.wizard-v2-form-card {
+  display: grid;
+  gap: 18px;
+}
+
+.wizard-v2-field-title {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.wizard-v2-field-title strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.wizard-v2-field-title span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.wizard-v2-model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.wizard-v2-model-card {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  min-height: 128px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.wizard-v2-model-card:hover,
+.wizard-v2-model-card.active {
+  transform: translateY(-1px);
+  border-color: rgba(37, 99, 235, 0.52);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12);
+}
+
+.wizard-v2-model-card.active {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.wizard-v2-model-card svg {
+  color: var(--primary);
+}
+
+.wizard-v2-model-card strong {
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.wizard-v2-model-card span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.wizard-v2-copy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wizard-v2-preview-card {
+  position: sticky;
+  top: 0;
+  min-height: 240px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.1), transparent 50%),
+    var(--panel-2);
+}
+
+.wizard-v2-preview-label {
+  display: inline-flex;
+  margin-bottom: 14px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.wizard-v2-preview-card h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.wizard-v2-preview-card p {
+  margin: 7px 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.wizard-v2-preview-meta {
+  display: grid;
+  gap: 10px;
+}
+
+.wizard-v2-preview-meta div,
+.wizard-v2-review-grid div {
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.wizard-v2-preview-meta span,
+.wizard-v2-review-grid span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.wizard-v2-preview-meta strong,
+.wizard-v2-review-grid strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+  word-break: break-word;
+}
+
+.wizard-v2-location-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 18px;
+  align-items: start;
+}
+
+.wizard-v2-help-card svg {
+  color: var(--primary);
+}
+
+.wizard-v2-help-card h4 {
+  margin: 12px 0 6px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.wizard-v2-help-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.wizard-v2-review-card h3,
+.wizard-v2-success-card h3 {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+.wizard-v2-review-card > p,
+.wizard-v2-success-card > p {
+  margin: 0 0 18px;
+  color: var(--muted);
+}
+
+.wizard-v2-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wizard-v2-warning {
+  margin-top: 16px;
+}
+
+.wizard-v2-success-card {
+  text-align: center;
+}
+
+.wizard-v2-success-icon {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.24);
+}
+
+.wizard-v2-secret-box {
+  max-width: 720px;
+  margin: 20px auto 0;
+}
+
+.wizard-v2-actions {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+}
+
+.wizard-v2-actions > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 980px) {
+  .wizard-v2-modal {
+    grid-template-columns: 1fr;
+    max-height: 94vh;
+  }
+
+  .wizard-v2-sidebar {
+    display: none;
+  }
+
+  .wizard-v2-main {
+    max-height: 94vh;
+  }
+
+  .wizard-v2-section-grid,
+  .wizard-v2-location-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-v2-preview-card {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .wizard-v2-backdrop {
+    align-items: flex-start;
+    padding: 10px;
+  }
+
+  .wizard-v2-modal {
+    border-radius: 22px;
+  }
+
+  .wizard-v2-header,
+  .wizard-v2-content,
+  .wizard-v2-actions {
+    padding: 16px;
+  }
+
+  .wizard-v2-header h2 {
+    font-size: 23px;
+  }
+
+  .wizard-v2-copy-grid,
+  .wizard-v2-review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-v2-actions,
+  .wizard-v2-actions > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .wizard-v2-actions button {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   Devices Operations Center V3 - Phase 11
+   Design System application + tabbed selected device panel
+========================================================= */
+
+.device-v2-page .dw-page-header {
+  margin-bottom: 0;
+}
+
+.devices-ops-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.devices-v3-list-card {
+  padding: 18px;
+}
+
+.devices-v3-list-card .dw-section-header {
+  margin-bottom: 12px;
+}
+
+.devices-v3-create-btn {
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.devices-v3-list-scroll {
+  gap: 10px;
+}
+
+.devices-v3-item {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.04), transparent 54%),
+    var(--panel-2);
+  color: var(--text);
+  text-align: left;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.devices-v3-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.38);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+}
+
+.devices-v3-item.active {
+  border-color: rgba(37, 99, 235, 0.62);
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.14), transparent 58%),
+    var(--panel-2);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.devices-v3-item-top,
+.devices-v3-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.devices-v3-item-name {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.devices-v3-item-code {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  word-break: break-word;
+}
+
+.devices-v3-item-footer {
+  padding-top: 2px;
+}
+
+.devices-v3-item-footer span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.devices-v3-item-footer strong {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 950;
+  text-align: right;
+}
+
+.devices-v3-detail-card {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.devices-v3-health-banner {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+}
+
+.devices-v3-health-banner.healthy {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.22);
+}
+
+.devices-v3-health-banner.warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.26);
+}
+
+.devices-v3-health-banner.offline {
+  background: rgba(239, 68, 68, 0.09);
+  border-color: rgba(239, 68, 68, 0.24);
+}
+
+.devices-v3-health-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: var(--primary);
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-health-banner.healthy .devices-v3-health-icon {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.24);
+}
+
+.devices-v3-health-banner.warning .devices-v3-health-icon {
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.24);
+}
+
+.devices-v3-health-banner.offline .devices-v3-health-icon {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.24);
+}
+
+.devices-v3-health-banner strong {
+  display: block;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.devices-v3-health-banner p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.devices-v3-selected-header {
+  align-items: center;
+}
+
+.devices-v3-action-bar {
+  padding: 8px;
+  border-radius: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.devices-v3-tabs button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 950;
+  white-space: nowrap;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.devices-v3-tabs button:hover,
+.devices-v3-tabs button.active {
+  color: var(--text);
+  background: var(--panel);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+.devices-v3-tab-panel {
+  display: grid;
+  gap: 16px;
+  padding-top: 2px;
+}
+
+.devices-v3-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.devices-v3-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.devices-v3-info-grid > div {
+  padding: 15px;
+  border-radius: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-info-grid label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.devices-v3-info-grid p {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 850;
+  word-break: break-word;
+}
+
+.devices-v3-location-panel .location-map,
+.devices-v3-location-panel .leaflet-container {
+  min-height: 320px;
+}
+
+.devices-v3-location-panel .location-save-btn {
+  margin-top: 0;
+}
+
+.devices-v3-tab-panel .metric-config-panel,
+.devices-v3-tab-panel .device-metric-config-section,
+.devices-v3-tab-panel .clean-metric-panel {
+  margin-top: 0;
+}
+
+@media (max-width: 1200px) {
+  .devices-ops-stat-grid,
+  .devices-v3-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .devices-v3-health-banner {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .devices-v3-health-banner .dw-status-badge {
+    grid-column: 1 / -1;
+    width: fit-content;
+  }
+
+  .devices-v3-selected-header {
+    align-items: stretch;
+  }
+
+  .devices-v3-action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .devices-v3-action-bar button {
+    width: 100%;
+  }
+
+  .devices-v3-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .devices-ops-stat-grid,
+  .devices-v3-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .devices-v3-detail-card {
+    padding: 16px;
+  }
+}
+
+.devices-v3-rule-list {
+  display: grid;
+  gap: 10px;
+}
+
+.devices-v3-rule-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-rule-card strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.devices-v3-rule-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+@media (max-width: 760px) {
+  .devices-v3-rule-card {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .devices-v3-rule-card .delete-btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   Devices Mobile + Search Polish - Phase 17
+========================================================= */
+
+.devices-v3-search-box {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.devices-v3-search-box input {
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  box-shadow: none;
+}
+
+.devices-v3-search-box input:focus {
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .devices-v2-list-card,
+  .devices-v3-list-card {
+    position: static;
+    max-height: none;
+  }
+
+  .devices-v2-shell {
+    gap: 14px;
+  }
+
+  .devices-v3-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .devices-v3-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .devices-v3-tabs button {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .devices-v3-item,
+  .devices-v2-item {
+    padding: 13px;
+  }
+
+  .devices-v3-item-top,
+  .devices-v2-item-head {
+    display: grid;
+    gap: 10px;
+  }
+
+  .devices-v3-item-top .status,
+  .devices-v2-item-head .status {
+    width: fit-content;
+  }
+}
+
+/* =========================================================
+   Metric Display - Icon Dropdown with SVG Icon
+========================================================= */
+
+.metric-icon-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.metric-icon-dropdown[open] {
+  z-index: 80;
+}
+
+.metric-icon-dropdown-summary {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--input, var(--panel-2));
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.metric-icon-dropdown-summary::-webkit-details-marker {
+  display: none;
+}
+
+.metric-icon-dropdown-summary::after {
+  content: '⌄';
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.18s ease;
+}
+
+.metric-icon-dropdown[open] .metric-icon-dropdown-summary {
+  border-color: rgba(37, 99, 235, 0.68);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.metric-icon-dropdown[open] .metric-icon-dropdown-summary::after {
+  transform: rotate(180deg);
+}
+
+.metric-icon-dropdown-current,
+.metric-icon-dropdown-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.metric-icon-dropdown-current svg,
+.metric-icon-dropdown-option svg {
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+
+.metric-icon-dropdown-current span,
+.metric-icon-dropdown-option span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-icon-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 90;
+  max-height: 260px;
+  overflow: auto;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 18px 45px rgba(2, 6, 23, 0.26);
+}
+
+.metric-icon-dropdown-option {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.metric-icon-dropdown-option:hover:not(:disabled),
+.metric-icon-dropdown-option.active {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.metric-icon-dropdown-option.active {
+  color: var(--primary);
+}
+
+.metric-icon-dropdown-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* =========================================================
+   Devices - Selected Device Header / Overview / Security Cleanup
+========================================================= */
+
+.devices-v3-action-bar {
+  justify-content: flex-end;
+}
+
+.devices-v3-tabs button b {
+  display: none !important;
+}
+
+.devices-v3-security-action-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(245, 158, 11, 0.1), transparent 54%),
+    var(--panel-2);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+}
+
+.devices-v3-security-action-copy {
+  min-width: 0;
+}
+
+.devices-v3-security-action-copy h4 {
+  margin: 6px 0 6px;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+}
+
+.devices-v3-security-action-copy p {
+  margin: 0;
+  max-width: 680px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 750;
+}
+
+.devices-v3-reset-secret-btn {
+  min-width: 152px;
+  white-space: nowrap;
+}
+
+.devices-v3-tab-panel .devices-v3-info-grid {
+  align-items: stretch;
+}
+
+.devices-v3-tab-panel .devices-v3-info-grid > div {
+  min-height: 88px;
+}
+
+@media (max-width: 720px) {
+  .devices-v3-security-action-card {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .devices-v3-reset-secret-btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   Devices - Selected Device Overview Stat Fit
+   จัด Model / Firmware / Last Seen ให้พอดี ไม่เบียด ไม่ล้น
+========================================================= */
+
+/* ใช้กับ Overview โดยตรง */
+.devices-v3-overview-grid-fit,
+.devices-v3-tab-panel .devices-v3-overview-grid-fit {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+}
+
+/* wrapper เฉพาะ card ใน Overview */
+.devices-v3-overview-stat,
+.devices-v3-overview-stat > *,
+.devices-v3-overview-stat article,
+.devices-v3-overview-stat .dw-stat-card,
+.devices-v3-overview-stat .stat-card {
+  min-width: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* card ให้มีความสูงพอดี และไม่ให้ข้อความดัน layout */
+.devices-v3-overview-stat article,
+.devices-v3-overview-stat .dw-stat-card,
+.devices-v3-overview-stat .stat-card {
+  min-height: 126px !important;
+  padding: 18px 16px !important;
+  overflow: hidden !important;
+}
+
+/* label */
+.devices-v3-overview-stat span,
+.devices-v3-overview-stat .dw-stat-card span,
+.devices-v3-overview-stat .stat-card span,
+.devices-v3-overview-stat article span {
+  max-width: 100% !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.07em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* value หลัก */
+.devices-v3-overview-stat strong,
+.devices-v3-overview-stat .dw-stat-card strong,
+.devices-v3-overview-stat .stat-card strong,
+.devices-v3-overview-stat article strong {
+  display: block !important;
+  max-width: 100% !important;
+  color: var(--text) !important;
+  font-size: clamp(20px, 2vw, 26px) !important;
+  line-height: 1.06 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.045em !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+/* hint */
+.devices-v3-overview-stat small,
+.devices-v3-overview-stat .dw-stat-card small,
+.devices-v3-overview-stat .stat-card small,
+.devices-v3-overview-stat article small {
+  display: block !important;
+  margin-top: 8px !important;
+  color: var(--muted) !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+/* Model ยังให้เด่น แต่ไม่ล้น */
+.devices-v3-overview-stat-model strong,
+.devices-v3-overview-stat-model .dw-stat-card strong,
+.devices-v3-overview-stat-model .stat-card strong,
+.devices-v3-overview-stat-model article strong {
+  font-size: clamp(22px, 2.1vw, 28px) !important;
+}
+
+/* Firmware มักยาว เช่น pi-20ch-1.0.0 */
+.devices-v3-overview-stat-firmware strong,
+.devices-v3-overview-stat-firmware .dw-stat-card strong,
+.devices-v3-overview-stat-firmware .stat-card strong,
+.devices-v3-overview-stat-firmware article strong {
+  font-size: clamp(18px, 1.75vw, 23px) !important;
+  line-height: 1.08 !important;
+}
+
+/* Last Seen เป็นวันที่/เวลาที่ยาว */
+.devices-v3-overview-stat-last-seen strong,
+.devices-v3-overview-stat-last-seen .dw-stat-card strong,
+.devices-v3-overview-stat-last-seen .stat-card strong,
+.devices-v3-overview-stat-last-seen article strong {
+  font-size: clamp(17px, 1.65vw, 21px) !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.035em !important;
+}
+
+/* หน้าจอกลางให้แบ่ง 2 ช่อง จะไม่บีบเกิน */
+@media (max-width: 980px) {
+  .devices-v3-overview-grid-fit,
+  .devices-v3-tab-panel .devices-v3-overview-grid-fit {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* มือถือ 1 ช่อง */
+@media (max-width: 560px) {
+  .devices-v3-overview-grid-fit,
+  .devices-v3-tab-panel .devices-v3-overview-grid-fit {
+    grid-template-columns: 1fr !important;
+  }
+
+  .devices-v3-overview-stat article,
+  .devices-v3-overview-stat .dw-stat-card,
+  .devices-v3-overview-stat .stat-card {
+    min-height: 112px !important;
+  }
+}
+
+/* =========================================================
+   Devices - Selected Device Overview Compact Text
+   ลดขนาดตัวอักษร MODEL / FIRMWARE / LAST SEEN
+========================================================= */
+
+/* ลด label เช่น MODEL, FIRMWARE, LAST SEEN */
+.devices-v3-overview-stat span,
+.devices-v3-overview-stat .dw-stat-card span,
+.devices-v3-overview-stat .stat-card span,
+.devices-v3-overview-stat article span {
+  font-size: 10.5px !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.065em !important;
+}
+
+/* ลด value หลักทุก card ใน overview */
+.devices-v3-overview-stat strong,
+.devices-v3-overview-stat .dw-stat-card strong,
+.devices-v3-overview-stat .stat-card strong,
+.devices-v3-overview-stat article strong {
+  font-size: clamp(17px, 1.45vw, 21px) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.035em !important;
+}
+
+/* Model ให้ใหญ่กว่านิดเดียว แต่ยังเล็กลงจากเดิม */
+.devices-v3-overview-stat-model strong,
+.devices-v3-overview-stat-model .dw-stat-card strong,
+.devices-v3-overview-stat-model .stat-card strong,
+.devices-v3-overview-stat-model article strong {
+  font-size: clamp(18px, 1.55vw, 22px) !important;
+  line-height: 1.08 !important;
+}
+
+/* Firmware ลดเพิ่ม เพราะข้อความยาว */
+.devices-v3-overview-stat-firmware strong,
+.devices-v3-overview-stat-firmware .dw-stat-card strong,
+.devices-v3-overview-stat-firmware .stat-card strong,
+.devices-v3-overview-stat-firmware article strong {
+  font-size: clamp(16px, 1.35vw, 19px) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.03em !important;
+}
+
+/* Last Seen ลดเพิ่มเพื่อให้วันที่/เวลาไม่แน่น */
+.devices-v3-overview-stat-last-seen strong,
+.devices-v3-overview-stat-last-seen .dw-stat-card strong,
+.devices-v3-overview-stat-last-seen .stat-card strong,
+.devices-v3-overview-stat-last-seen article strong {
+  font-size: clamp(15px, 1.3vw, 18px) !important;
+  line-height: 1.12 !important;
+  letter-spacing: -0.025em !important;
+}
+
+/* ลด hint ด้านล่าง เช่น Device model / Firmware version / Latest ingest */
+.devices-v3-overview-stat small,
+.devices-v3-overview-stat .dw-stat-card small,
+.devices-v3-overview-stat .stat-card small,
+.devices-v3-overview-stat article small {
+  margin-top: 8px !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+/* ลด padding นิดหน่อยให้ card ดูบาลานซ์กับ font ที่เล็กลง */
+.devices-v3-overview-stat article,
+.devices-v3-overview-stat .dw-stat-card,
+.devices-v3-overview-stat .stat-card {
+  min-height: 118px !important;
+  padding: 17px 16px !important;
+}
+
+/* จอเล็กให้ยังอ่านง่าย */
+@media (max-width: 560px) {
+  .devices-v3-overview-stat strong,
+  .devices-v3-overview-stat .dw-stat-card strong,
+  .devices-v3-overview-stat .stat-card strong,
+  .devices-v3-overview-stat article strong {
+    font-size: 18px !important;
+  }
+
+  .devices-v3-overview-stat-firmware strong,
+  .devices-v3-overview-stat-firmware .dw-stat-card strong,
+  .devices-v3-overview-stat-firmware .stat-card strong,
+  .devices-v3-overview-stat-firmware article strong,
+  .devices-v3-overview-stat-last-seen strong,
+  .devices-v3-overview-stat-last-seen .dw-stat-card strong,
+  .devices-v3-overview-stat-last-seen .stat-card strong,
+  .devices-v3-overview-stat-last-seen article strong {
+    font-size: 17px !important;
+  }
+}
+
+/* =========================================================
+   Devices - Metric Display Layout Fix
+   จัด Metric Display ให้พอดีกับ Selected Device panel
+========================================================= */
+
+.metric-config-panel,
+.metric-config-panel-v2 {
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+.metric-config-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin-bottom: 18px !important;
+}
+
+.metric-config-header h4 {
+  margin: 0 !important;
+  color: var(--text) !important;
+  font-size: 18px !important;
+  line-height: 1.25 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.metric-config-header p {
+  margin: 6px 0 0 !important;
+  color: var(--muted) !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  font-weight: 750 !important;
+}
+
+.metric-config-header .metric-config-actions {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  margin: 0 !important;
+}
+
+/* ใช้ grid column ที่พอดี ไม่ให้ Visible/Delete โดนบีบออกขวา */
+.metric-config-table-v2 {
+  display: grid !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+.metric-config-table-head-v2,
+.metric-config-row-v2 {
+  display: grid !important;
+  grid-template-columns:
+    minmax(145px, 1fr)
+    minmax(68px, 82px)
+    minmax(126px, 138px)
+    minmax(64px, 74px)
+    42px !important;
+  gap: 10px !important;
+  align-items: center !important;
+}
+
+.metric-config-table-head-v2 {
+  padding: 0 12px 0 !important;
+}
+
+.metric-config-table-head-v2 span {
+  color: var(--muted) !important;
+  font-size: 10.5px !important;
+  line-height: 1.2 !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.075em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+
+.metric-config-row-v2 {
+  min-height: 78px !important;
+  padding: 14px 12px !important;
+  border-radius: 18px !important;
+  background: var(--panel-2) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.metric-config-row-v2 input[type='text'],
+.metric-config-row-v2 input:not([type]),
+.metric-config-row-v2 > input {
+  min-width: 0 !important;
+  width: 100% !important;
+  min-height: 38px !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  border-radius: 13px !important;
+}
+
+/* Icon dropdown แทนปุ่ม icon หลายปุ่ม */
+.metric-icon-dropdown {
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.metric-icon-dropdown[open] {
+  z-index: 120 !important;
+}
+
+.metric-icon-dropdown-summary {
+  min-height: 38px !important;
+  width: 100% !important;
+  padding: 0 10px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 13px !important;
+  background: var(--input, var(--panel)) !important;
+  color: var(--text) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  cursor: pointer !important;
+  list-style: none !important;
+}
+
+.metric-icon-dropdown-summary::-webkit-details-marker {
+  display: none !important;
+}
+
+.metric-icon-dropdown-summary::after {
+  content: '⌄';
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  margin-left: 8px;
+  transition: transform 0.18s ease;
+}
+
+.metric-icon-dropdown[open] .metric-icon-dropdown-summary {
+  border-color: color-mix(in srgb, var(--primary) 62%, var(--border)) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent) !important;
+}
+
+.metric-icon-dropdown[open] .metric-icon-dropdown-summary::after {
+  transform: rotate(180deg);
+}
+
+.metric-icon-dropdown-current,
+.metric-icon-dropdown-option {
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.metric-icon-dropdown-current svg,
+.metric-icon-dropdown-option svg {
+  flex: 0 0 auto !important;
+  color: var(--primary) !important;
+}
+
+.metric-icon-dropdown-current span,
+.metric-icon-dropdown-option span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+}
+
+.metric-icon-dropdown-menu {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 130 !important;
+  max-height: 240px !important;
+  overflow: auto !important;
+  display: grid !important;
+  gap: 4px !important;
+  padding: 8px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  background: var(--panel) !important;
+  box-shadow: 0 18px 45px rgba(2, 6, 23, 0.34) !important;
+}
+
+.metric-icon-dropdown-option {
+  width: 100% !important;
+  min-height: 34px !important;
+  padding: 0 9px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  text-align: left !important;
+  cursor: pointer !important;
+}
+
+.metric-icon-dropdown-option:hover:not(:disabled),
+.metric-icon-dropdown-option.active {
+  background: color-mix(in srgb, var(--primary) 13%, transparent) !important;
+  color: var(--primary) !important;
+}
+
+/* ปิด style เก่าของ icon grid เผื่อ class เก่ายังหลงเหลือ */
+.metric-icon-picker {
+  display: grid !important;
+  grid-template-columns: repeat(5, 28px) !important;
+  gap: 4px !important;
+}
+
+.metric-icon-option {
+  width: 28px !important;
+  height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  border-radius: 9px !important;
+  color: var(--muted) !important;
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.metric-icon-option.active {
+  color: var(--primary) !important;
+  border-color: color-mix(in srgb, var(--primary) 50%, var(--border)) !important;
+  background: color-mix(in srgb, var(--primary) 12%, transparent) !important;
+}
+
+/* Visible toggle ไม่ให้คำว่า Show โดนตัด */
+.metric-visible-toggle {
+  min-width: 0 !important;
+  width: 100% !important;
+  min-height: 38px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  padding: 0 8px !important;
+  border-radius: 13px !important;
+  color: var(--text) !important;
+  background: var(--input, var(--panel)) !important;
+  border: 1px solid var(--border) !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+}
+
+.metric-visible-toggle input {
+  width: 16px !important;
+  height: 16px !important;
+  min-height: 0 !important;
+  flex: 0 0 auto !important;
+  accent-color: var(--primary) !important;
+}
+
+.metric-config-row-v2 .delete-btn.square {
+  width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 !important;
+  border-radius: 13px !important;
+}
+
+/* Bottom actions ให้ไม่หลุดจอ */
+.metric-config-panel > .metric-config-actions:last-child {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-top: 18px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid var(--border) !important;
+  flex-wrap: wrap !important;
+}
+
+.metric-config-panel > .metric-config-actions:last-child button {
+  min-width: 110px !important;
+}
+
+/* จอแคบให้ layout เป็น 2 ชั้น อ่านง่าย ไม่ล้น */
+@media (max-width: 720px) {
+  .metric-config-header {
+    display: grid !important;
+  }
+
+  .metric-config-header .metric-config-actions {
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+
+  .metric-config-table-head-v2 {
+    display: none !important;
+  }
+
+  .metric-config-row-v2 {
+    grid-template-columns: minmax(0, 1fr) 78px !important;
+    gap: 10px !important;
+  }
+
+  .metric-config-row-v2 .metric-icon-dropdown,
+  .metric-visible-toggle {
+    grid-column: auto !important;
+  }
+
+  .metric-config-row-v2 .delete-btn.square {
+    justify-self: end !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .metric-config-row-v2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .metric-config-row-v2 .delete-btn.square,
+  .metric-config-panel > .metric-config-actions:last-child button {
+    width: 100% !important;
+  }
+}
+
+/* =========================================================
+   Devices - Metric Display Final Polish
+   ปรับ Visible เป็น pill/switch และจัด row ให้สมดุล
+========================================================= */
+
+.metric-config-table-head-v2,
+.metric-config-row-v2 {
+  grid-template-columns:
+    minmax(220px, 1fr)
+    minmax(70px, 82px)
+    minmax(138px, 148px)
+    minmax(92px, 104px)
+    40px !important;
+  column-gap: 10px !important;
+}
+
+.metric-config-row-v2 {
+  min-height: 72px !important;
+  padding: 12px 14px !important;
+}
+
+.metric-config-row-v2 input[type='text'],
+.metric-config-row-v2 input:not([type]),
+.metric-config-row-v2 > input {
+  min-height: 38px !important;
+  height: 38px !important;
+}
+
+.metric-icon-dropdown-summary {
+  min-height: 38px !important;
+  height: 38px !important;
+}
+
+.metric-icon-dropdown-current span {
+  font-size: 12px !important;
+}
+
+/* Visible pill */
+.metric-visible-toggle {
+  position: relative !important;
+  min-width: 92px !important;
+  width: 100% !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  display: inline-grid !important;
+  grid-template-columns: 24px 1fr !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  color: var(--muted) !important;
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease !important;
+}
+
+.metric-visible-toggle.active {
+  color: var(--success) !important;
+  background: rgba(34, 197, 94, 0.1) !important;
+  border-color: rgba(34, 197, 94, 0.28) !important;
+}
+
+.metric-visible-toggle input {
+  appearance: none !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--panel-2) !important;
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 auto !important;
+  cursor: pointer !important;
+}
+
+.metric-visible-toggle input::after {
+  content: '';
+  width: 7px;
+  height: 11px;
+  border-right: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.metric-visible-toggle input:checked {
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+}
+
+.metric-visible-toggle input:checked::after {
+  border-color: white;
+}
+
+.metric-visible-toggle span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.metric-config-row-v2 .delete-btn.square {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  justify-self: end !important;
+}
+
+.metric-config-panel > .metric-config-actions:last-child {
+  margin-top: 18px !important;
+  padding-top: 16px !important;
+}
+
+/* จอกว้างน้อยลง ปรับให้ไม่ล้น */
+@media (max-width: 980px) {
+  .metric-config-table-head-v2,
+  .metric-config-row-v2 {
+    grid-template-columns:
+      minmax(180px, 1fr)
+      76px
+      138px
+      96px
+      40px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .metric-config-row-v2 {
+    grid-template-columns: minmax(0, 1fr) 78px !important;
+  }
+
+  .metric-icon-dropdown,
+  .metric-visible-toggle,
+  .metric-config-row-v2 .delete-btn.square {
+    width: 100% !important;
+  }
+
+  .metric-visible-toggle {
+    grid-template-columns: 24px 1fr !important;
+  }
+}
+
+/* =========================================================
+   Devices - Easy Metric Display and Alarm Rules
+   ปรับ Metrics / Alarms ให้อ่านง่ายขึ้นและใช้งานง่ายขึ้น
+========================================================= */
+
+/* ---------- Metric Display: card form ---------- */
+
+.metric-config-panel-easy {
+  overflow: visible !important;
+}
+
+.metric-config-panel-easy .metric-config-header {
+  align-items: flex-start !important;
+  margin-bottom: 18px !important;
+}
+
+.metric-config-list-v3 {
+  display: grid;
+  gap: 12px;
+}
+
+.metric-config-card-v3 {
+  display: grid;
+  grid-template-columns:
+    86px
+    minmax(220px, 1fr)
+    minmax(82px, 98px)
+    minmax(150px, 170px)
+    minmax(116px, 136px)
+    42px;
+  gap: 12px;
+  align-items: end;
+  padding: 14px;
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.035), transparent 58%),
+    var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.metric-config-card-index {
+  min-height: 42px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 0 10px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.metric-config-card-index span {
+  color: var(--primary);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.metric-config-card-index strong {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 850;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-config-field {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.metric-config-field > span {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.metric-config-field input,
+.metric-config-card-v3 input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.metric-config-field-name input {
+  font-weight: 900;
+}
+
+.metric-config-delete-btn {
+  align-self: end;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  border-radius: 14px !important;
+}
+
+.metric-config-footer-actions {
+  justify-content: flex-end !important;
+  margin-top: 18px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid var(--border) !important;
+}
+
+/* Dropdown */
+.metric-icon-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.metric-icon-dropdown[open] {
+  z-index: 160;
+}
+
+.metric-icon-dropdown-summary {
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--input, var(--panel));
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+
+.metric-icon-dropdown-summary::-webkit-details-marker {
+  display: none;
+}
+
+.metric-icon-dropdown-summary::after {
+  content: '⌄';
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  margin-left: 8px;
+  transition: transform 0.18s ease;
+}
+
+.metric-icon-dropdown[open] .metric-icon-dropdown-summary {
+  border-color: color-mix(in srgb, var(--primary) 60%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.metric-icon-dropdown[open] .metric-icon-dropdown-summary::after {
+  transform: rotate(180deg);
+}
+
+.metric-icon-dropdown-current,
+.metric-icon-dropdown-option {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metric-icon-dropdown-current svg,
+.metric-icon-dropdown-option svg {
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+
+.metric-icon-dropdown-current span,
+.metric-icon-dropdown-option span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.metric-icon-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 170;
+  max-height: 250px;
+  overflow: auto;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 18px 45px rgba(2, 6, 23, 0.34);
+}
+
+.metric-icon-dropdown-option {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.metric-icon-dropdown-option:hover:not(:disabled),
+.metric-icon-dropdown-option.active {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 13%, transparent);
+}
+
+/* Visible / Active switch */
+.metric-visible-toggle {
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  display: inline-grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 950;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.metric-visible-toggle.active {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.metric-visible-toggle input {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.metric-visible-toggle input::after {
+  content: '';
+  width: 7px;
+  height: 11px;
+  border-right: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.metric-visible-toggle input:checked {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.metric-visible-toggle input:checked::after {
+  border-color: white;
+}
+
+.metric-visible-toggle > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Hide old table header when new card list is used */
+.metric-config-panel-easy .metric-config-table-head-v2 {
+  display: none !important;
+}
+
+/* ---------- Alarm Rules: easy cards ---------- */
+
+.metric-alarm-panel-easy {
+  display: grid;
+  gap: 14px;
+}
+
+.metric-alarm-panel-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.metric-alarm-panel-note strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.metric-alarm-panel-note span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 750;
+}
+
+.metric-alarm-rule-grid-easy {
+  display: grid;
+  gap: 14px;
+}
+
+.metric-alarm-card-easy {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 14px !important;
+  padding: 16px !important;
+  border-radius: 22px !important;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.04), transparent 62%),
+    var(--panel-2) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.metric-alarm-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.metric-alarm-card-header strong {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 950;
+}
+
+.metric-alarm-card-header span:not(.device-model-badge) {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.metric-alarm-rule-list-easy {
+  display: grid;
+  gap: 10px;
+}
+
+.metric-alarm-rule-row-easy {
+  display: grid !important;
+  grid-template-columns:
+    minmax(150px, 1fr)
+    minmax(92px, 110px)
+    minmax(150px, 190px)
+    minmax(106px, 124px)
+    78px !important;
+  gap: 10px !important;
+  align-items: end !important;
+  padding: 12px !important;
+  border-radius: 18px !important;
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.metric-alarm-rule-row-easy.warning {
+  border-color: rgba(245, 158, 11, 0.24) !important;
+}
+
+.metric-alarm-rule-row-easy.critical {
+  border-color: rgba(239, 68, 68, 0.24) !important;
+}
+
+.metric-alarm-severity {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  align-content: center;
+}
+
+.metric-alarm-severity .status {
+  width: fit-content;
+}
+
+.metric-alarm-severity small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 750;
+}
+
+.metric-alarm-field {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.metric-alarm-field > span {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.metric-alarm-field select,
+.metric-alarm-field input {
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.alarm-active-toggle {
+  align-self: end;
+}
+
+.metric-alarm-save-btn {
+  width: 78px;
+  min-width: 78px;
+  height: 40px;
+  min-height: 40px;
+  align-self: end;
+  border-radius: 14px;
+}
+
+.metric-alarm-rule-preview {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--panel-2) 86%, transparent);
+  border: 1px dashed var(--border);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 750;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .metric-config-card-v3 {
+    grid-template-columns: 72px minmax(180px, 1fr) 92px;
+  }
+
+  .metric-config-field-icon,
+  .metric-config-field-visible,
+  .metric-config-delete-btn {
+    grid-column: auto;
+  }
+
+  .metric-alarm-rule-row-easy {
+    grid-template-columns: minmax(150px, 1fr) 104px minmax(140px, 1fr);
+  }
+
+  .alarm-active-toggle,
+  .metric-alarm-save-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .metric-config-panel-easy .metric-config-header,
+  .metric-alarm-panel-note,
+  .metric-alarm-card-header {
+    display: grid !important;
+    align-items: stretch !important;
+  }
+
+  .metric-config-card-v3,
+  .metric-alarm-rule-row-easy {
+    grid-template-columns: 1fr !important;
+  }
+
+  .metric-config-card-index,
+  .metric-config-delete-btn,
+  .metric-alarm-save-btn {
+    width: 100% !important;
+  }
+
+  .metric-config-card-index {
+    min-height: 48px;
+  }
+}
+
+/* =========================================================
+   Devices - Hard Remove Alarm Rules Top Bar
+   ซ่อนแถบ Alarm Rules ด้านบนในแท็บ Alarms แบบตรงจุด
+========================================================= */
+
+.metric-alarm-panel-note,
+.devices-v3-tab-panel .metric-alarm-panel-note,
+.devices-v3-alarm-rules-panel .metric-alarm-panel-note {
+  display: none !important;
+}
+
+.devices-v3-alarm-rules-panel,
+.metric-alarm-panel-easy {
+  margin-top: 0 !important;
+}
+
+.metric-alarm-rule-grid-easy {
+  margin-top: 0 !important;
+}
+
+/* =========================================================
+   Devices - Unified Selected Device Tab Headers
+   ทำให้ Overview / Metrics / Alarms / Location / Security ใช้หัวข้อและรายละเอียดแบบเดียวกัน
+========================================================= */
+
+.devices-v3-tab-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 18px;
+  padding: 0;
+}
+
+.devices-v3-tab-header > div {
+  min-width: 0;
+}
+
+.devices-v3-tab-header .page-eyebrow {
+  margin-bottom: 8px;
+}
+
+.devices-v3-tab-header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.devices-v3-tab-header p {
+  margin: 7px 0 0;
+  max-width: 760px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 750;
+}
+
+.devices-v3-tab-header .device-model-badge {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+/* Tab content rhythm */
+.devices-v3-tab-panel {
+  display: grid;
+  gap: 18px;
+}
+
+/* ลดความรู้สึกเหมือนหัวข้อแต่ละแถบคนละแบบ */
+.devices-v3-tab-panel > .dw-section-header,
+.devices-v3-tab-panel > .app-section-title {
+  margin-bottom: 0;
+}
+
+/* Fix OverviewOnline fallback */
+.devices-v3-tabs button b {
+  display: none !important;
+}
+
+/* Card text in Security / Info grid ให้ไปทางเดียวกับ dotWatch */
+.devices-v3-info-grid > div {
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-info-grid label {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.devices-v3-info-grid p {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.devices-v3-info-grid p,
+.devices-v3-info-grid strong {
+  word-break: break-word;
+}
+
+.metric-alarm-panel-note {
+  display: none !important;
+}
+
+@media (max-width: 720px) {
+  .devices-v3-tab-header {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .devices-v3-tab-header h3 {
+    font-size: 20px;
+  }
+
+  .devices-v3-tab-header .device-model-badge {
+    width: fit-content;
+  }
+}
+
+/* =========================================================
+   Devices - Selected Alarms Tab Load Fix
+   แก้แท็บ Alarms ไม่โหลดจากตัวแปร alarmRules และ JSX Location ค้าง
+========================================================= */
+
+.devices-v3-tab-header {
+  min-width: 0;
+}
+
+.devices-v3-tab-header .device-model-badge {
+  white-space: nowrap;
+}
+
+/* =========================================================
+   Devices - Remove Selected Tab Header Divider
+   เอาเส้นคั่นใต้หัวข้อของ Selected Device tabs ออก
+========================================================= */
+
+.devices-v3-tab-panel,
+.devices-v3-tab-header,
+.devices-v3-tab-header > div,
+.metric-alarm-panel-easy,
+.metric-alarm-rule-grid-easy {
+  border-top: 0 !important;
+}
+
+.devices-v3-tab-header {
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+.devices-v3-tab-header::before,
+.devices-v3-tab-header::after,
+.devices-v3-tab-panel::before,
+.devices-v3-tab-panel::after,
+.metric-alarm-panel-easy::before,
+.metric-alarm-panel-easy::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* เส้นที่มักมาจาก hr หรือ border แรกของ panel หลัง header */
+.devices-v3-tab-panel > hr,
+.devices-v3-tab-panel > .divider,
+.devices-v3-tab-panel > .section-divider,
+.devices-v3-tab-panel > .tab-divider,
+.devices-v3-tab-panel > .metric-alarm-panel-easy:first-child {
+  border-top: 0 !important;
+}
+
+/* เฉพาะแท็บ Alarms: ให้ระยะห่างหลัง header ดูสะอาดแทนการใช้เส้น */
+.devices-v3-tab-panel .metric-alarm-panel-easy {
+  padding-top: 0 !important;
+}
+
+/* =========================================================
+   Devices - Clean Metric Display Fit
+   แก้ Metric Display ไม่ให้ซ้อนหัวข้อและไม่ให้ปุ่มล้นขวา
+========================================================= */
+
+.metric-config-panel-clean {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  padding: 16px !important;
+  border-radius: 22px !important;
+}
+
+/* ซ่อน header เดิมถ้า class เก่ายังหลงเหลือ */
+.metric-config-panel-clean .metric-config-header,
+.metric-config-panel-clean .metric-config-table-head-v2,
+.metric-config-panel-clean .metric-config-table-v2 {
+  display: none !important;
+}
+
+.metric-config-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.metric-config-toolbar > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.metric-config-toolbar strong {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 950;
+}
+
+.metric-config-toolbar .ghost-button {
+  flex: 0 0 auto;
+  min-width: 112px;
+}
+
+.metric-config-list-clean {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.metric-config-card-clean {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.035), transparent 58%),
+    var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.metric-config-card-clean-head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.metric-config-card-clean-head > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.metric-config-card-clean-head span {
+  color: var(--primary);
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.metric-config-card-clean-head strong {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 850;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-config-card-clean-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 92px minmax(140px, 160px) minmax(118px, 136px);
+  gap: 12px;
+  align-items: end;
+}
+
+.metric-config-field {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.metric-config-field > span {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.metric-config-field input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.metric-config-field-name input {
+  font-weight: 900;
+}
+
+.metric-config-delete-btn {
+  flex: 0 0 auto;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 14px !important;
+}
+
+/* Icon dropdown */
+.metric-icon-dropdown {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.metric-icon-dropdown[open] {
+  z-index: 180;
+}
+
+.metric-icon-dropdown-summary {
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--input, var(--panel));
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+
+.metric-icon-dropdown-summary::-webkit-details-marker {
+  display: none;
+}
+
+.metric-icon-dropdown-summary::after {
+  content: '⌄';
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  margin-left: 8px;
+}
+
+.metric-icon-dropdown-current,
+.metric-icon-dropdown-option {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metric-icon-dropdown-current svg,
+.metric-icon-dropdown-option svg {
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+
+.metric-icon-dropdown-current span,
+.metric-icon-dropdown-option span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.metric-icon-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 190;
+  max-height: 250px;
+  overflow: auto;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 18px 45px rgba(2, 6, 23, 0.34);
+}
+
+.metric-icon-dropdown-option {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.metric-icon-dropdown-option:hover:not(:disabled),
+.metric-icon-dropdown-option.active {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 13%, transparent);
+}
+
+/* Visible switch */
+.metric-visible-toggle {
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  display: inline-grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 950;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.metric-visible-toggle.active {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.metric-visible-toggle input {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.metric-visible-toggle input::after {
+  content: '';
+  width: 7px;
+  height: 11px;
+  border-right: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.metric-visible-toggle input:checked {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.metric-visible-toggle input:checked::after {
+  border-color: white;
+}
+
+.metric-visible-toggle > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metric-config-footer-actions {
+  width: 100%;
+  max-width: 100%;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-top: 18px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid var(--border) !important;
+  flex-wrap: wrap !important;
+  overflow: hidden !important;
+}
+
+.metric-config-footer-actions button {
+  min-width: 112px !important;
+}
+
+.metric-save-btn {
+  max-width: 180px;
+}
+
+/* จอแคบ/Panel แคบ: แบ่งเป็น 2 แถว ไม่ล้นขวา */
+@media (max-width: 960px) {
+  .metric-config-card-clean-grid {
+    grid-template-columns: minmax(0, 1fr) 92px;
+  }
+
+  .metric-config-field-icon,
+  .metric-config-field-visible {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .metric-config-toolbar,
+  .metric-config-card-clean-head {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .metric-config-toolbar .ghost-button,
+  .metric-config-delete-btn,
+  .metric-config-footer-actions button {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .metric-config-card-clean-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   Devices - Metric Display Narrow Panel Fix
+   บังคับ Metric Display ให้พอดีกับ Selected Device panel
+========================================================= */
+
+.metric-config-panel-clean,
+.devices-v3-tab-panel .metric-config-panel-clean {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* Toolbar ด้านบนไม่ให้ Add Metric ล้นขวา */
+.metric-config-toolbar {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.metric-config-toolbar > div {
+  min-width: 0 !important;
+}
+
+.metric-config-toolbar .ghost-button {
+  min-width: 112px !important;
+  max-width: 150px !important;
+  white-space: nowrap !important;
+}
+
+/* Card list */
+.metric-config-list-clean {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 12px !important;
+  overflow: visible !important;
+}
+
+.metric-config-card-clean {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* เปลี่ยนเป็น 2 แถวเสมอ เพื่อให้พอดีกับ panel ขวา */
+.metric-config-card-clean-grid {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(76px, 92px) !important;
+  grid-template-areas:
+    'name unit'
+    'icon display' !important;
+  gap: 12px !important;
+  align-items: end !important;
+}
+
+.metric-config-field-name {
+  grid-area: name !important;
+}
+
+.metric-config-field-unit {
+  grid-area: unit !important;
+}
+
+.metric-config-field-icon {
+  grid-area: icon !important;
+}
+
+.metric-config-field-visible {
+  grid-area: display !important;
+}
+
+/* ทุกช่องห้ามล้น */
+.metric-config-field,
+.metric-config-field input,
+.metric-icon-dropdown,
+.metric-icon-dropdown-summary,
+.metric-visible-toggle {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.metric-config-field input,
+.metric-icon-dropdown-summary,
+.metric-visible-toggle {
+  width: 100% !important;
+  height: 40px !important;
+  min-height: 40px !important;
+}
+
+/* Icon dropdown ให้ไม่เบียด */
+.metric-icon-dropdown-current span,
+.metric-icon-dropdown-option span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Display pill ปรับให้พอดี ไม่ยื่นออกนอก card */
+.metric-visible-toggle {
+  grid-template-columns: 22px minmax(0, 1fr) !important;
+  gap: 7px !important;
+  padding: 0 10px !important;
+  justify-self: stretch !important;
+  overflow: hidden !important;
+}
+
+.metric-visible-toggle input {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+}
+
+.metric-visible-toggle > span {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 12px !important;
+}
+
+/* หัว card */
+.metric-config-card-clean-head {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.metric-config-card-clean-head > div {
+  min-width: 0 !important;
+}
+
+.metric-config-card-clean-head strong {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Footer actions ไม่ล้นขวา */
+.metric-config-footer-actions {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  overflow: hidden !important;
+}
+
+.metric-config-footer-actions button {
+  min-width: 112px !important;
+  max-width: 160px !important;
+}
+
+.metric-save-btn {
+  max-width: 170px !important;
+  white-space: nowrap !important;
+}
+
+/* จอ/Panel แคบมาก ให้เป็น 1 column */
+@media (max-width: 560px) {
+  .metric-config-toolbar {
+    grid-template-columns: 1fr !important;
+  }
+
+  .metric-config-toolbar .ghost-button,
+  .metric-config-footer-actions button {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .metric-config-card-clean-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      'name'
+      'unit'
+      'icon'
+      'display' !important;
+  }
+}
+
+/* =========================================================
+   Devices - Alarm Rules Narrow Panel Fix
+   บังคับ Alarm Rules ให้พอดีกับ Selected Device panel
+========================================================= */
+
+.metric-alarm-panel-easy,
+.devices-v3-alarm-rules-panel,
+.devices-v3-tab-panel .metric-alarm-panel-easy {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.metric-alarm-rule-grid-easy,
+.metric-alarm-rule-list-easy {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 12px !important;
+  overflow: visible !important;
+}
+
+.metric-alarm-card-easy {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  padding: 14px !important;
+}
+
+.metric-alarm-card-header {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.metric-alarm-card-header > div {
+  min-width: 0 !important;
+}
+
+.metric-alarm-card-header strong,
+.metric-alarm-card-header span:not(.device-model-badge) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+}
+
+/*
+  เดิม rule row เรียงหลาย column ในแถวเดียว:
+  Severity / Condition / Threshold / Active / Save
+  ทำให้ล้นใน panel ขวา
+  แก้เป็น card 2 แถว:
+  แถวบน: Severity + Active
+  แถวล่าง: Condition + Threshold + Save
+*/
+.metric-alarm-rule-row-easy,
+.device-alarm-rule-item.metric-alarm-rule-row-easy {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(104px, 124px) !important;
+  grid-template-areas:
+    'severity active'
+    'condition threshold'
+    'preview preview'
+    'save save' !important;
+  gap: 12px !important;
+  align-items: end !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  padding: 14px !important;
+}
+
+.metric-alarm-severity {
+  grid-area: severity !important;
+  min-width: 0 !important;
+}
+
+.metric-alarm-operator {
+  grid-area: condition !important;
+  min-width: 0 !important;
+}
+
+.metric-alarm-threshold {
+  grid-area: threshold !important;
+  min-width: 0 !important;
+}
+
+.alarm-active-toggle {
+  grid-area: active !important;
+  width: 100% !important;
+  max-width: 124px !important;
+  justify-self: end !important;
+  align-self: start !important;
+}
+
+.metric-alarm-save-btn {
+  grid-area: save !important;
+  width: 100% !important;
+  max-width: 160px !important;
+  justify-self: end !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  white-space: nowrap !important;
+}
+
+.metric-alarm-rule-preview {
+  grid-area: preview !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow-wrap: anywhere !important;
+  margin: 0 !important;
+}
+
+/* Fields ห้ามล้น */
+.metric-alarm-field,
+.metric-alarm-field select,
+.metric-alarm-field input,
+.alarm-active-toggle,
+.metric-alarm-save-btn {
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.metric-alarm-field select,
+.metric-alarm-field input {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 40px !important;
+  min-height: 40px !important;
+}
+
+.metric-alarm-severity .status {
+  max-width: 100% !important;
+  white-space: nowrap !important;
+}
+
+.metric-alarm-severity small {
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* Active pill ไม่ให้ล้น */
+.alarm-active-toggle {
+  grid-template-columns: 22px minmax(0, 1fr) !important;
+  gap: 7px !important;
+  padding: 0 10px !important;
+  overflow: hidden !important;
+}
+
+.alarm-active-toggle input {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+}
+
+.alarm-active-toggle > span {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* จอ/Panel แคบมาก ให้ทุกอย่างลง 1 column */
+@media (max-width: 560px) {
+  .metric-alarm-card-header {
+    display: grid !important;
+    align-items: stretch !important;
+  }
+
+  .metric-alarm-rule-row-easy,
+  .device-alarm-rule-item.metric-alarm-rule-row-easy {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      'severity'
+      'condition'
+      'threshold'
+      'active'
+      'preview'
+      'save' !important;
+  }
+
+  .alarm-active-toggle,
+  .metric-alarm-save-btn {
+    width: 100% !important;
+    max-width: none !important;
+    justify-self: stretch !important;
+  }
+}
+
+/* =========================================================
+   Devices - View Secret With Password
+   เพิ่มส่วนดู Device Secret โดยต้องใส่ Password ก่อน
+========================================================= */
+
+.devices-v3-security-reveal-card {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+  gap: 18px;
+  align-items: start;
+  padding: 18px;
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.055), transparent 64%),
+    var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-secret-viewer {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.devices-v3-secret-password-field {
+  display: grid;
+  gap: 7px;
+}
+
+.devices-v3-secret-password-field > span,
+.devices-v3-secret-output > span {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.devices-v3-secret-password-field > div {
+  height: 42px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-secret-password-field svg {
+  color: var(--muted);
+}
+
+.devices-v3-secret-password-field input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.devices-v3-secret-output {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.devices-v3-secret-output code {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  padding: 12px;
+  border-radius: 14px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px dashed var(--border);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 850;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.devices-v3-secret-message {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 800;
+}
+
+.devices-v3-secret-message.error {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.09);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+}
+
+.devices-v3-secret-message.success {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.09);
+  border: 1px solid rgba(34, 197, 94, 0.18);
+}
+
+.devices-v3-secret-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.devices-v3-secret-actions .ghost-button {
+  min-height: 38px;
+  border-radius: 14px;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .devices-v3-security-reveal-card {
+    grid-template-columns: 1fr;
+  }
+
+  .devices-v3-secret-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .devices-v3-secret-actions .ghost-button {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   Metric Display - Icon Dropdown Front Layer Fix
+   แก้ปัญหาเลือก Icon แล้วเมนูไม่โชว์ด้านหน้า / ถูก card ตัด
+========================================================= */
+
+/*
+  สาเหตุ:
+  patch ก่อนหน้าบางช่วงตั้ง overflow: hidden ที่
+  .metric-config-panel-clean และ .metric-config-card-clean
+  ทำให้ details menu ของ icon dropdown ถูกตัดอยู่ใน card
+*/
+
+.metric-config-panel-clean,
+.devices-v3-tab-panel .metric-config-panel-clean,
+.metric-config-list-clean,
+.metric-config-card-clean,
+.metric-config-card-clean-grid,
+.metric-config-field-icon {
+  overflow: visible !important;
+}
+
+.metric-config-card-clean {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.metric-config-card-clean:has(.metric-icon-dropdown[open]) {
+  z-index: 500 !important;
+}
+
+.metric-config-field-icon {
+  position: relative !important;
+  z-index: 20 !important;
+}
+
+.metric-config-field-icon:has(.metric-icon-dropdown[open]) {
+  z-index: 520 !important;
+}
+
+.metric-icon-dropdown {
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  z-index: 30 !important;
+}
+
+.metric-icon-dropdown[open] {
+  z-index: 600 !important;
+}
+
+.metric-icon-dropdown-summary {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.metric-icon-dropdown-menu {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 700 !important;
+  max-height: 260px !important;
+  overflow: auto !important;
+  display: grid !important;
+  gap: 4px !important;
+  padding: 8px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  background: var(--panel) !important;
+  box-shadow: 0 22px 60px rgba(2, 6, 23, 0.42) !important;
+}
+
+.metric-icon-dropdown-current svg,
+.metric-icon-dropdown-option svg {
+  display: block !important;
+  flex: 0 0 auto !important;
+  color: var(--danger) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.metric-icon-dropdown-current,
+.metric-icon-dropdown-option {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.metric-icon-dropdown-option {
+  width: 100% !important;
+  min-height: 36px !important;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  text-align: left !important;
+  cursor: pointer !important;
+}
+
+.metric-icon-dropdown-option:hover:not(:disabled),
+.metric-icon-dropdown-option.active {
+  color: var(--danger) !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+}
+
+/* Fallback สำหรับ browser ที่ไม่รองรับ :has() */
+.metric-icon-dropdown[open] .metric-icon-dropdown-menu {
+  transform: translateZ(0);
+}
+
+
+/* =========================================================
+   Devices - UX + Performance Polish V5
+   ลด alert แบบ browser, เพิ่ม skeleton/retry, และจัด secret flow ให้ปลอดภัยขึ้น
+========================================================= */
+
+.devices-v3-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 15px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.devices-v3-notice span {
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 850;
+}
+
+.devices-v3-notice button {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.devices-v3-notice.success {
+  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(34, 197, 94, 0.09);
+}
+
+.devices-v3-notice.warning {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.devices-v3-notice.error {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.devices-v3-skeleton-list {
+  display: grid;
+  gap: 10px;
+}
+
+.devices-v3-skeleton-card {
+  min-height: 102px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(148, 163, 184, 0.13),
+      transparent
+    ),
+    var(--panel-2);
+  background-size: 240% 100%;
+  animation: dotwatchSkeleton 1.35s ease-in-out infinite;
+}
+
+@keyframes dotwatchSkeleton {
+  0% {
+    background-position: 120% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+.devices-v3-error-state button {
+  margin-top: 12px;
+}
+
+.devices-v3-item-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.devices-v3-item-metrics span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.devices-v3-item-metrics b {
+  color: var(--muted);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wizard-v2-copy-grid-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.wizard-v2-secret-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--text);
+}
+
+.wizard-v2-secret-note svg {
+  flex: 0 0 auto;
+  color: var(--warning);
+}
+
+.wizard-v2-secret-note span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 800;
+}
+
+.wizard-v2-copy-all-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.devices-v3-reset-secret-result {
+  display: grid;
+  gap: 14px;
+  border-color: rgba(245, 158, 11, 0.24);
+  background:
+    linear-gradient(135deg, rgba(245, 158, 11, 0.1), transparent 58%),
+    var(--panel);
+}
+
+.devices-v3-reset-secret-result h3 {
+  margin: 4px 0 6px;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+}
+
+.devices-v3-reset-secret-result p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 750;
+}
+
+.devices-v3-reset-secret-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.devices-v3-reset-secret-grid label {
+  display: grid;
+  gap: 7px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.devices-v3-reset-secret-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .devices-v3-notice,
+  .devices-v3-reset-secret-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .devices-v3-reset-secret-grid {
+    grid-template-columns: 1fr;
+  }
+}

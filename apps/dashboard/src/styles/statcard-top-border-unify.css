@@ -1,0 +1,91 @@
+/* =========================================================
+   dotWatch - StatCard Top Border Unify
+   แก้เฉพาะแถบสีด้านบนของ StatCard ให้เป็นกรอบบน
+========================================================= */
+
+:root {
+  --dotwatch-stat-card-radius: 20px;
+  --dotwatch-stat-top-border-height: 4px;
+  --dotwatch-stat-top-border-gradient: linear-gradient(
+    90deg,
+    #ff4f67 0%,
+    #8fa6c9 52%,
+    #1fd4ef 100%
+  );
+}
+
+.dw-stat-card,
+.stat-card,
+.summary-card,
+.compact-summary-card,
+.dashboard-stat-card,
+.dashboard-summary-card,
+.history-stat-card,
+.profile-stat-card,
+.settings-stat-card,
+.system-health-stat-card,
+.alarm-stat-card,
+.notification-stat-card,
+.activity-stat-card {
+  position: relative !important;
+  overflow: hidden !important;
+  border-radius: var(--dotwatch-stat-card-radius) !important;
+}
+
+.dw-stat-card::before,
+.stat-card::before,
+.summary-card::before,
+.compact-summary-card::before,
+.dashboard-stat-card::before,
+.dashboard-summary-card::before,
+.history-stat-card::before,
+.profile-stat-card::before,
+.settings-stat-card::before,
+.system-health-stat-card::before,
+.alarm-stat-card::before,
+.notification-stat-card::before,
+.activity-stat-card::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: auto !important;
+  height: var(--dotwatch-stat-top-border-height) !important;
+  min-height: 0 !important;
+  max-height: var(--dotwatch-stat-top-border-height) !important;
+  border-radius:
+    var(--dotwatch-stat-card-radius)
+    var(--dotwatch-stat-card-radius)
+    0
+    0 !important;
+  background: var(--dotwatch-stat-top-border-gradient) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+}
+
+.dw-stat-card > *,
+.stat-card > *,
+.summary-card > *,
+.compact-summary-card > *,
+.dashboard-stat-card > *,
+.dashboard-summary-card > *,
+.history-stat-card > *,
+.profile-stat-card > *,
+.settings-stat-card > *,
+.system-health-stat-card > *,
+.alarm-stat-card > *,
+.notification-stat-card > *,
+.activity-stat-card > * {
+  position: relative;
+  z-index: 3;
+}
+
+@media (max-width: 560px) {
+  :root {
+    --dotwatch-stat-card-radius: 18px;
+    --dotwatch-stat-top-border-height: 4px;
+  }
+}

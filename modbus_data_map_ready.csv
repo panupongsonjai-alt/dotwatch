@@ -1,0 +1,11 @@
+﻿metric_key,metric_name,unit,function,address,data_type,count,scale,offset,round,unit_id,byte_order,word_order,enabled,note
+metric_1,Voltage,V,input,0,uint16,1,0.1,0,1,1,big,big,True,แก้ address/function/data_type/scale ให้ตรง manual ของอุปกรณ์จริง
+metric_2,Current,A,input,1,uint16,1,0.01,0,2,1,big,big,True,แก้ address/function/data_type/scale ให้ตรง manual ของอุปกรณ์จริง
+metric_3,Active Power,W,input,2,int32,2,1,0,0,1,big,big,True,แก้ address/function/data_type/scale ให้ตรง manual ของอุปกรณ์จริง
+metric_4,Energy,kWh,input,4,uint32,2,0.01,0,2,1,big,big,True,แก้ address/function/data_type/scale ให้ตรง manual ของอุปกรณ์จริง
+metric_5,Frequency,Hz,input,6,uint16,1,0.01,0,2,1,big,big,True,แก้ address/function/data_type/scale ให้ตรง manual ของอุปกรณ์จริง
+metric_6,Power Factor,PF,input,7,int16,1,0.001,0,3,1,big,big,True,แก้ address/function/data_type/scale ให้ตรง manual ของอุปกรณ์จริง
+metric_7,Temperature,°C,input,8,int16,1,0.1,0,1,1,big,big,False,แก้ address/function/data_type/scale ให้ตรง manual ของอุปกรณ์จริง
+metric_8,Humidity,%,input,9,uint16,1,0.1,0,1,1,big,big,False,แก้ address/function/data_type/scale ให้ตรง manual ของอุปกรณ์จริง
+metric_9,Run Status,,coil,0,raw,1,1,0,0,1,big,big,False,แก้ address/function/data_type/scale ให้ตรง manual ของอุปกรณ์จริง
+metric_10,Alarm Status,,discrete,0,raw,1,1,0,0,1,big,big,False,แก้ address/function/data_type/scale ให้ตรง manual ของอุปกรณ์จริง

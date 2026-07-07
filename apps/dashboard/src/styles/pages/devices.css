@@ -1,0 +1,1877 @@
+/* =========================================================
+   Devices Page - Master / Detail Layout
+========================================================= */
+
+.device-v2-page {
+  gap: 20px;
+}
+
+.device-v2-header h2 {
+  font-size: 28px;
+}
+
+.devices-v2-shell {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.devices-v2-list {
+  display: grid;
+  gap: 12px;
+}
+
+.devices-v2-list-card {
+  position: sticky;
+  top: 96px;
+  display: grid;
+  gap: 12px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+}
+
+.devices-v2-list-title {
+  margin-bottom: 4px;
+}
+
+.devices-v2-list-scroll {
+  display: grid;
+  gap: 10px;
+}
+
+.devices-v2-item {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel-2);
+  color: var(--text);
+  text-align: left;
+  display: grid;
+  gap: 10px;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.devices-v2-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.devices-v2-item.active {
+  border-color: rgba(37, 99, 235, 0.55);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.devices-v2-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.devices-v2-item-name {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.devices-v2-item-code {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.devices-v2-item-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.devices-v2-item-foot small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.device-model-badge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.devices-v2-config {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.devices-v2-config > .app-card {
+  overflow: hidden;
+}
+
+.devices-v2-selected-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.devices-v2-selected-title {
+  min-width: 0;
+}
+
+.devices-v2-selected-title h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.devices-v2-selected-title p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.devices-v2-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.devices-v2-mini-stat {
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v2-mini-stat span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.devices-v2-mini-stat strong {
+  display: block;
+  margin-top: 7px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 900;
+  word-break: break-word;
+}
+
+.status-text.online {
+  color: var(--success);
+}
+
+.status-text.warning {
+  color: var(--warning);
+}
+
+.status-text.offline {
+  color: var(--danger);
+}
+
+.devices-v2-config-card {
+  display: grid;
+  gap: 14px;
+}
+
+.device-action-row,
+.clean-device-actions,
+.table-actions,
+.rule-actions,
+.alarm-rule-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.device-edit-row.clean,
+.device-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.device-edit-input {
+  flex: 1;
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.device-location-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.device-location-header strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.device-location-header span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.location-save-btn {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.create-location-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.create-location-values span {
+  padding: 8px 10px;
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* Create Device Wizard */
+.device-create-modal,
+.pro-device-modal {
+  width: min(920px, 100%);
+  max-height: 92vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  background: var(--panel);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+}
+
+.pro-device-modal {
+  padding: 0;
+}
+
+.pro-modal-header,
+.modal-header,
+.pro-modal-actions,
+.modal-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pro-modal-header h3,
+.modal-header h3 {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.pro-modal-header p,
+.modal-header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.pro-modal-header > button,
+.modal-header button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 24px;
+}
+
+.pro-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pro-stepper > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--bg);
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.pro-stepper span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--panel);
+  font-weight: 900;
+}
+
+.pro-stepper strong {
+  color: inherit;
+  font-size: 13px;
+}
+
+.pro-stepper small {
+  display: block;
+  color: inherit;
+  font-size: 11px;
+}
+
+.pro-stepper > div.active {
+  color: #ffffff;
+  background: var(--primary);
+}
+
+.pro-wizard-content {
+  padding: 20px;
+}
+
+.pro-device-details {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 16px;
+  align-items: start;
+}
+
+.pro-device-details .pro-form-card {
+  grid-column: 1 / -1;
+}
+
+.pro-form-card,
+.pro-location-card,
+.pro-info-card,
+.confirm-summary-card,
+.device-success-card,
+.confirm-box {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--panel-2);
+}
+
+.pro-form-card {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.pro-form-card label,
+.secret-result-box label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.copy-input,
+.secret-result-box {
+  display: flex;
+  gap: 8px;
+}
+
+.copy-input input,
+.secret-result-box input {
+  min-height: 40px;
+}
+
+.copy-input button {
+  width: 42px;
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  background: var(--primary);
+}
+
+.pro-info-card svg,
+.device-success-card > svg {
+  color: var(--primary);
+}
+
+.device-success-card > svg {
+  color: var(--success);
+}
+
+.pro-info-card h4,
+.confirm-summary-card h4,
+.device-success-card h4 {
+  margin: 10px 0 6px;
+  color: var(--text);
+}
+
+.pro-info-card p,
+.device-success-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.confirm-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.confirm-row span {
+  color: var(--muted);
+}
+
+.confirm-row strong {
+  color: var(--text);
+  text-align: right;
+  word-break: break-all;
+}
+
+.confirm-warning {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  color: #92400e;
+  background: rgba(245, 158, 11, 0.14);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.device-success-card {
+  text-align: center;
+}
+
+.secret-result-box {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  text-align: left;
+}
+
+.pro-modal-actions {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+}
+
+.pro-modal-actions > div,
+.modal-actions > div {
+  display: flex;
+  gap: 10px;
+}
+
+.modal-next-button {
+  min-width: 138px;
+}
+
+@media (max-width: 1100px) {
+  .devices-v2-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .devices-v2-list-card {
+    position: static;
+    max-height: none;
+  }
+
+  .devices-v2-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pro-device-details {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .devices-v2-selected-header,
+  .device-location-header,
+  .pro-modal-actions,
+  .modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pro-stepper,
+  .pro-form-card {
+    grid-template-columns: 1fr;
+  }
+
+  .clean-device-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 560px) {
+  .devices-v2-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .device-action-row button,
+  .clean-device-actions button,
+  .primary-button,
+  .ghost-button,
+  .secondary-button,
+  .danger-button,
+  .rename-btn,
+  .save-btn,
+  .cancel-btn,
+  .delete-btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   Create Device Wizard V2
+========================================================= */
+
+.wizard-v2-backdrop {
+  align-items: center;
+  padding: 24px;
+}
+
+.wizard-v2-modal {
+  width: min(1120px, 100%);
+  max-height: 92vh;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 30px 90px rgba(2, 6, 23, 0.32);
+}
+
+.wizard-v2-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(37, 99, 235, 0.22),
+      transparent 34%
+    ),
+    linear-gradient(180deg, #111827 0%, #020617 100%);
+  color: #ffffff;
+}
+
+.wizard-v2-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.wizard-v2-brand-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.wizard-v2-brand .page-eyebrow {
+  color: #93c5fd;
+}
+
+.wizard-v2-brand h3 {
+  margin: 4px 0 6px;
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.wizard-v2-brand p,
+.wizard-v2-note p,
+.wizard-v2-step small {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.76);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.wizard-v2-steps {
+  display: grid;
+  gap: 10px;
+}
+
+.wizard-v2-step {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.wizard-v2-step.active {
+  background: rgba(37, 99, 235, 0.34);
+  border-color: rgba(147, 197, 253, 0.4);
+}
+
+.wizard-v2-step.done {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.wizard-v2-step > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-weight: 950;
+}
+
+.wizard-v2-step strong {
+  display: block;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.wizard-v2-note {
+  margin-top: auto;
+  display: flex;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  color: #93c5fd;
+  background: rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(147, 197, 253, 0.2);
+}
+
+.wizard-v2-main {
+  min-width: 0;
+  max-height: 92vh;
+  overflow: auto;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--panel);
+}
+
+.wizard-v2-header,
+.wizard-v2-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wizard-v2-header h2 {
+  margin: 4px 0 6px;
+  color: var(--text);
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.wizard-v2-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.wizard-v2-close {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.wizard-v2-content {
+  padding: 24px;
+}
+
+.wizard-v2-section-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+  align-items: start;
+}
+
+.wizard-v2-form-card,
+.wizard-v2-preview-card,
+.wizard-v2-location-card,
+.wizard-v2-help-card,
+.wizard-v2-review-card,
+.wizard-v2-success-card {
+  padding: 20px;
+  border-radius: 22px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.wizard-v2-form-card {
+  display: grid;
+  gap: 18px;
+}
+
+.wizard-v2-field-title {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.wizard-v2-field-title strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.wizard-v2-field-title span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.wizard-v2-model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.wizard-v2-model-card {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  min-height: 128px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.wizard-v2-model-card:hover,
+.wizard-v2-model-card.active {
+  transform: translateY(-1px);
+  border-color: rgba(37, 99, 235, 0.52);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12);
+}
+
+.wizard-v2-model-card.active {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.wizard-v2-model-card svg {
+  color: var(--primary);
+}
+
+.wizard-v2-model-card strong {
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.wizard-v2-model-card span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.wizard-v2-copy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wizard-v2-preview-card {
+  position: sticky;
+  top: 0;
+  min-height: 240px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.1), transparent 50%),
+    var(--panel-2);
+}
+
+.wizard-v2-preview-label {
+  display: inline-flex;
+  margin-bottom: 14px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.wizard-v2-preview-card h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.wizard-v2-preview-card p {
+  margin: 7px 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.wizard-v2-preview-meta {
+  display: grid;
+  gap: 10px;
+}
+
+.wizard-v2-preview-meta div,
+.wizard-v2-review-grid div {
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.wizard-v2-preview-meta span,
+.wizard-v2-review-grid span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.wizard-v2-preview-meta strong,
+.wizard-v2-review-grid strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+  word-break: break-word;
+}
+
+.wizard-v2-location-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 18px;
+  align-items: start;
+}
+
+.wizard-v2-help-card svg {
+  color: var(--primary);
+}
+
+.wizard-v2-help-card h4 {
+  margin: 12px 0 6px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.wizard-v2-help-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.wizard-v2-review-card h3,
+.wizard-v2-success-card h3 {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+.wizard-v2-review-card > p,
+.wizard-v2-success-card > p {
+  margin: 0 0 18px;
+  color: var(--muted);
+}
+
+.wizard-v2-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wizard-v2-warning {
+  margin-top: 16px;
+}
+
+.wizard-v2-success-card {
+  text-align: center;
+}
+
+.wizard-v2-success-icon {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.24);
+}
+
+.wizard-v2-secret-box {
+  max-width: 720px;
+  margin: 20px auto 0;
+}
+
+.wizard-v2-actions {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+}
+
+.wizard-v2-actions > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 980px) {
+  .wizard-v2-modal {
+    grid-template-columns: 1fr;
+    max-height: 94vh;
+  }
+
+  .wizard-v2-sidebar {
+    display: none;
+  }
+
+  .wizard-v2-main {
+    max-height: 94vh;
+  }
+
+  .wizard-v2-section-grid,
+  .wizard-v2-location-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-v2-preview-card {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .wizard-v2-backdrop {
+    align-items: flex-start;
+    padding: 10px;
+  }
+
+  .wizard-v2-modal {
+    border-radius: 22px;
+  }
+
+  .wizard-v2-header,
+  .wizard-v2-content,
+  .wizard-v2-actions {
+    padding: 16px;
+  }
+
+  .wizard-v2-header h2 {
+    font-size: 23px;
+  }
+
+  .wizard-v2-copy-grid,
+  .wizard-v2-review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-v2-actions,
+  .wizard-v2-actions > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .wizard-v2-actions button {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   Devices Operations Center V3 - Phase 11
+   Design System application + tabbed selected device panel
+========================================================= */
+
+.device-v2-page .dw-page-header {
+  margin-bottom: 0;
+}
+
+.devices-ops-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.devices-v3-list-card {
+  padding: 18px;
+}
+
+.devices-v3-list-card .dw-section-header {
+  margin-bottom: 12px;
+}
+
+.devices-v3-create-btn {
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.devices-v3-list-scroll {
+  gap: 10px;
+}
+
+.devices-v3-item {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.04), transparent 54%),
+    var(--panel-2);
+  color: var(--text);
+  text-align: left;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.devices-v3-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.38);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+}
+
+.devices-v3-item.active {
+  border-color: rgba(37, 99, 235, 0.62);
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.14), transparent 58%),
+    var(--panel-2);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.devices-v3-item-top,
+.devices-v3-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.devices-v3-item-name {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.devices-v3-item-code {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  word-break: break-word;
+}
+
+.devices-v3-item-footer {
+  padding-top: 2px;
+}
+
+.devices-v3-item-footer span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.devices-v3-item-footer strong {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 950;
+  text-align: right;
+}
+
+.devices-v3-detail-card {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.devices-v3-health-banner {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+}
+
+.devices-v3-health-banner.healthy {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.22);
+}
+
+.devices-v3-health-banner.warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.26);
+}
+
+.devices-v3-health-banner.offline {
+  background: rgba(239, 68, 68, 0.09);
+  border-color: rgba(239, 68, 68, 0.24);
+}
+
+.devices-v3-health-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: var(--primary);
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-health-banner.healthy .devices-v3-health-icon {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.24);
+}
+
+.devices-v3-health-banner.warning .devices-v3-health-icon {
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.24);
+}
+
+.devices-v3-health-banner.offline .devices-v3-health-icon {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.24);
+}
+
+.devices-v3-health-banner strong {
+  display: block;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.devices-v3-health-banner p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.devices-v3-selected-header {
+  align-items: center;
+}
+
+.devices-v3-action-bar {
+  padding: 8px;
+  border-radius: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 18px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.devices-v3-tabs button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 950;
+  white-space: nowrap;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.devices-v3-tabs button:hover,
+.devices-v3-tabs button.active {
+  color: var(--text);
+  background: var(--panel);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+.devices-v3-tab-panel {
+  display: grid;
+  gap: 16px;
+  padding-top: 2px;
+}
+
+.devices-v3-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.devices-v3-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.devices-v3-info-grid > div {
+  padding: 15px;
+  border-radius: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-info-grid label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.devices-v3-info-grid p {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 850;
+  word-break: break-word;
+}
+
+.devices-v3-location-panel .location-map,
+.devices-v3-location-panel .leaflet-container {
+  min-height: 320px;
+}
+
+.devices-v3-location-panel .location-save-btn {
+  margin-top: 0;
+}
+
+.devices-v3-tab-panel .metric-config-panel,
+.devices-v3-tab-panel .device-metric-config-section,
+.devices-v3-tab-panel .clean-metric-panel {
+  margin-top: 0;
+}
+
+@media (max-width: 1200px) {
+  .devices-ops-stat-grid,
+  .devices-v3-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .devices-v3-health-banner {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .devices-v3-health-banner .dw-status-badge {
+    grid-column: 1 / -1;
+    width: fit-content;
+  }
+
+  .devices-v3-selected-header {
+    align-items: stretch;
+  }
+
+  .devices-v3-action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .devices-v3-action-bar button {
+    width: 100%;
+  }
+
+  .devices-v3-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .devices-ops-stat-grid,
+  .devices-v3-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .devices-v3-detail-card {
+    padding: 16px;
+  }
+}
+
+.devices-v3-rule-list {
+  display: grid;
+  gap: 10px;
+}
+
+.devices-v3-rule-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-rule-card strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.devices-v3-rule-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+@media (max-width: 760px) {
+  .devices-v3-rule-card {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .devices-v3-rule-card .delete-btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   Devices Mobile + Search Polish - Phase 17
+========================================================= */
+
+.devices-v3-search-box {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.devices-v3-search-box input {
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  box-shadow: none;
+}
+
+.devices-v3-search-box input:focus {
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .devices-v2-list-card,
+  .devices-v3-list-card {
+    position: static;
+    max-height: none;
+  }
+
+  .devices-v2-shell {
+    gap: 14px;
+  }
+
+  .devices-v3-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .devices-v3-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .devices-v3-tabs button {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .devices-v3-item,
+  .devices-v2-item {
+    padding: 13px;
+  }
+
+  .devices-v3-item-top,
+  .devices-v2-item-head {
+    display: grid;
+    gap: 10px;
+  }
+
+  .devices-v3-item-top .status,
+  .devices-v2-item-head .status {
+    width: fit-content;
+  }
+}
+
+/* =========================================================
+   Metric Display - Icon Dropdown with SVG Icon
+========================================================= */
+
+.metric-icon-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.metric-icon-dropdown[open] {
+  z-index: 80;
+}
+
+.metric-icon-dropdown-summary {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--input, var(--panel-2));
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.metric-icon-dropdown-summary::-webkit-details-marker {
+  display: none;
+}
+
+.metric-icon-dropdown-summary::after {
+  content: '⌄';
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.18s ease;
+}
+
+.metric-icon-dropdown[open] .metric-icon-dropdown-summary {
+  border-color: rgba(37, 99, 235, 0.68);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.metric-icon-dropdown[open] .metric-icon-dropdown-summary::after {
+  transform: rotate(180deg);
+}
+
+.metric-icon-dropdown-current,
+.metric-icon-dropdown-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.metric-icon-dropdown-current svg,
+.metric-icon-dropdown-option svg {
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+
+.metric-icon-dropdown-current span,
+.metric-icon-dropdown-option span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-icon-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 90;
+  max-height: 260px;
+  overflow: auto;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 18px 45px rgba(2, 6, 23, 0.26);
+}
+
+.metric-icon-dropdown-option {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.metric-icon-dropdown-option:hover:not(:disabled),
+.metric-icon-dropdown-option.active {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.metric-icon-dropdown-option.active {
+  color: var(--primary);
+}
+
+.metric-icon-dropdown-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* =========================================================
+   Device Detail Hard Cleanup
+   dotWatch Dashboard
+
+   ใช้กรณี Device Detail ใช้ component อีกชุดหนึ่งที่ไม่ได้อยู่ใน
+   SelectedDevicePanel.jsx
+
+   เป้าหมาย:
+   1. ซ่อน History Analytics / ChartWidget เฉพาะในหน้า Device Detail
+   2. ซ่อนแถบ Healthy ใต้ tab เฉพาะในหน้า Device Detail
+   3. ลด font Firmware card
+========================================================= */
+
+/* ---------------------------------------------------------
+   Scope helpers
+--------------------------------------------------------- */
+
+.device-page,
+.device-detail-page,
+.device-detail-v2-page,
+.device-detail-page-v2 {
+  --device-detail-firmware-font: clamp(18px, 1.55vw, 23px);
+}
+
+/* ---------------------------------------------------------
+   1) Hide embedded chart/history card in Device Detail only
+   Main History page is not affected.
+--------------------------------------------------------- */
+
+.device-page .dw-chart-card,
+.device-page .history-analytics-card,
+.device-page .history-analytics-panel,
+.device-page .device-history-card,
+.device-page .device-history-panel,
+.device-page .realtime-history-card,
+.device-page .metric-history-card,
+.device-page .analytics-card,
+.device-page [class*='history-analytics'],
+.device-page [class*='device-history'],
+.device-page [class*='metric-history'],
+.device-page [class*='realtime-history'],
+.device-page [class*='analytics-card'],
+.device-detail-page .dw-chart-card,
+.device-detail-v2-page .dw-chart-card,
+.device-detail-page-v2 .dw-chart-card,
+.device-detail-page [class*='history-analytics'],
+.device-detail-v2-page [class*='history-analytics'],
+.device-detail-page-v2 [class*='history-analytics'],
+.device-detail-page [class*='device-history'],
+.device-detail-v2-page [class*='device-history'],
+.device-detail-page-v2 [class*='device-history'] {
+  display: none !important;
+}
+
+/*
+  Fallback สำหรับ card ที่มี filter grid / export button ของกราฟ
+  ซ่อนไว้เฉพาะภายใน device page เท่านั้น
+*/
+.device-page section:has(.dw-chart-actions),
+.device-page article:has(.dw-chart-actions),
+.device-page div:has(> .dw-chart-actions),
+.device-page section:has(.dw-export-button),
+.device-page article:has(.dw-export-button),
+.device-page div:has(> .dw-export-button),
+.device-page section:has(.history-filter-grid),
+.device-page article:has(.history-filter-grid),
+.device-page div:has(> .history-filter-grid) {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   2) Hide Healthy banner under Device Detail tabs
+--------------------------------------------------------- */
+
+/*
+  แบบตรง class
+*/
+.device-page .devices-v3-health-banner,
+.device-page .device-health-banner,
+.device-page .device-status-banner,
+.device-page .device-telemetry-banner,
+.device-page .device-telemetry-status,
+.device-page .device-health-strip,
+.device-page .device-status-strip,
+.device-page .detail-health-banner,
+.device-page .detail-status-banner,
+.device-page [class*='health-banner'],
+.device-page [class*='status-banner'],
+.device-page [class*='telemetry-banner'],
+.device-page [class*='telemetry-status'],
+.device-page [class*='health-strip'],
+.device-page [class*='status-strip'] {
+  display: none !important;
+}
+
+/*
+  แบบตามตำแหน่งจากรูป:
+  tab bar -> healthy banner -> overview card
+
+  ซ่อน element แรกหลัง tablist เฉพาะถ้ามันไม่ใช่ tab panel หลัก
+*/
+.device-page [role='tablist'] + section:not([class*='tab-panel']),
+.device-page [role='tablist'] + div:not([class*='tab-panel']),
+.device-page [role='tablist'] + article:not([class*='tab-panel']),
+.device-detail-page [role='tablist'] + section:not([class*='tab-panel']),
+.device-detail-page [role='tablist'] + div:not([class*='tab-panel']),
+.device-detail-page [role='tablist'] + article:not([class*='tab-panel']),
+.device-detail-v2-page [role='tablist'] + section:not([class*='tab-panel']),
+.device-detail-v2-page [role='tablist'] + div:not([class*='tab-panel']),
+.device-detail-v2-page [role='tablist'] + article:not([class*='tab-panel']) {
+  display: none !important;
+}
+
+/* ถ้า tab bar ไม่ได้ใช้ role=tablist แต่มี class tabs */
+.device-page [class*='tabs'] + section:not([class*='tab-panel']),
+.device-page [class*='tabs'] + div:not([class*='tab-panel']),
+.device-page [class*='tabs'] + article:not([class*='tab-panel']),
+.device-detail-page [class*='tabs'] + section:not([class*='tab-panel']),
+.device-detail-page [class*='tabs'] + div:not([class*='tab-panel']),
+.device-detail-page [class*='tabs'] + article:not([class*='tab-panel']) {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   3) Firmware font smaller
+   From screenshot Firmware is the 5th stat card.
+   Some older layouts use 3rd card.
+--------------------------------------------------------- */
+
+.device-page .dw-page-stat-grid > :nth-child(5) strong,
+.device-page .device-detail-stat-grid > :nth-child(5) strong,
+.device-page .device-detail-state-grid > :nth-child(5) strong,
+.device-page .device-detail-stats-grid > :nth-child(5) strong,
+.device-page .device-detail-status-grid > :nth-child(5) strong,
+.device-page .device-detail-summary-grid > :nth-child(5) strong,
+.device-page .device-detail-overview-grid > :nth-child(5) strong,
+.device-page [class*='stat-grid'] > :nth-child(5) strong,
+.device-page [class*='state-grid'] > :nth-child(5) strong,
+.device-page [class*='summary-grid'] > :nth-child(5) strong,
+.device-page [class*='overview-grid'] > :nth-child(5) strong,
+.device-page .devices-v3-overview-grid > :nth-child(3) strong,
+.device-page .devices-v3-overview-grid > :nth-child(5) strong,
+.device-detail-page [class*='stat-grid'] > :nth-child(5) strong,
+.device-detail-v2-page [class*='stat-grid'] > :nth-child(5) strong,
+.device-detail-page-v2 [class*='stat-grid'] > :nth-child(5) strong {
+  font-size: var(--device-detail-firmware-font) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.035em !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+.device-page .dw-page-stat-grid > :nth-child(5) span,
+.device-page .dw-page-stat-grid > :nth-child(5) small,
+.device-page .dw-page-stat-grid > :nth-child(5) p,
+.device-page [class*='stat-grid'] > :nth-child(5) span,
+.device-page [class*='stat-grid'] > :nth-child(5) small,
+.device-page [class*='stat-grid'] > :nth-child(5) p,
+.device-page [class*='overview-grid'] > :nth-child(5) span,
+.device-page [class*='overview-grid'] > :nth-child(5) small,
+.device-page [class*='overview-grid'] > :nth-child(5) p,
+.device-page .devices-v3-overview-grid > :nth-child(3) span,
+.device-page .devices-v3-overview-grid > :nth-child(3) small,
+.device-page .devices-v3-overview-grid > :nth-child(3) p,
+.device-page .devices-v3-overview-grid > :nth-child(5) span,
+.device-page .devices-v3-overview-grid > :nth-child(5) small,
+.device-page .devices-v3-overview-grid > :nth-child(5) p {
+  font-size: 11px !important;
+}
+
+/* ---------------------------------------------------------
+   4) Tighten gaps after removing cards
+--------------------------------------------------------- */
+
+.device-page .devices-v2-config,
+.device-page .devices-v3-detail-card,
+.device-page [class*='device-detail'],
+.device-detail-page,
+.device-detail-v2-page,
+.device-detail-page-v2 {
+  gap: 16px !important;
+}
+
+@media (max-width: 560px) {
+  .device-page,
+  .device-detail-page,
+  .device-detail-v2-page,
+  .device-detail-page-v2 {
+    --device-detail-firmware-font: 20px;
+  }
+}
+
+/* =========================================================
+   Devices - Selected Device Security Actions
+   Move Reset Secret from selected header to Security tab
+========================================================= */
+
+.devices-v3-security-action-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(245, 158, 11, 0.1), transparent 54%),
+    var(--panel-2);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+}
+
+.devices-v3-security-action-copy {
+  min-width: 0;
+}
+
+.devices-v3-security-action-copy h4 {
+  margin: 6px 0 6px;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+}
+
+.devices-v3-security-action-copy p {
+  margin: 0;
+  max-width: 680px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 750;
+}
+
+.devices-v3-reset-secret-btn {
+  min-width: 152px;
+  white-space: nowrap;
+}
+
+.devices-v3-action-bar {
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .devices-v3-security-action-card {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .devices-v3-reset-secret-btn {
+    width: 100%;
+  }
+}
+

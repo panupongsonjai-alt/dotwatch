@@ -1,0 +1,170 @@
+/* =========================================================
+   dotWatch - StatCard Detail Unify
+   แก้เฉพาะรายละเอียดของ StatCard ให้ทุกใบดูเหมือนกัน
+========================================================= */
+
+:root {
+  --dotwatch-stat-card-min-height: 112px;
+  --dotwatch-stat-card-detail-height: 18px;
+}
+
+.dw-stat-card,
+.stat-card,
+.summary-card,
+.compact-summary-card,
+.dashboard-stat-card,
+.dashboard-summary-card,
+.history-stat-card,
+.profile-stat-card,
+.settings-stat-card,
+.system-health-stat-card,
+.alarm-stat-card,
+.notification-stat-card,
+.activity-stat-card {
+  min-height: var(--dotwatch-stat-card-min-height) !important;
+  display: grid !important;
+  grid-template-rows: auto auto minmax(var(--dotwatch-stat-card-detail-height), auto) !important;
+  align-content: start !important;
+  row-gap: 8px !important;
+}
+
+.dw-stat-card > span:first-child,
+.dw-stat-card > h3:first-child,
+.dw-stat-card > h4:first-child,
+.dw-stat-card > label:first-child,
+.dw-stat-card .stat-label,
+.stat-card > span:first-child,
+.stat-card > h3:first-child,
+.stat-card > h4:first-child,
+.stat-card > label:first-child,
+.stat-card .stat-label,
+.summary-card > span:first-child,
+.summary-card > h3:first-child,
+.summary-card > h4:first-child,
+.summary-card > label:first-child,
+.summary-card .stat-label,
+.compact-summary-card > span:first-child,
+.compact-summary-card > h3:first-child,
+.compact-summary-card > h4:first-child,
+.compact-summary-card > label:first-child,
+.compact-summary-card .stat-label {
+  margin: 0 !important;
+  color: var(--muted) !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.dw-stat-card > strong,
+.dw-stat-card .stat-value,
+.dw-stat-card .summary-value,
+.dw-stat-card .card-value,
+.stat-card > strong,
+.stat-card .stat-value,
+.stat-card .summary-value,
+.stat-card .card-value,
+.summary-card > strong,
+.summary-card .stat-value,
+.summary-card .summary-value,
+.summary-card .card-value,
+.compact-summary-card > strong,
+.compact-summary-card .stat-value,
+.compact-summary-card .summary-value,
+.compact-summary-card .card-value {
+  display: block !important;
+  margin: 0 !important;
+  color: var(--text) !important;
+  font-size: 28px !important;
+  line-height: 1.05 !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.05em !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  overflow: visible !important;
+}
+
+.dw-stat-card > p,
+.dw-stat-card > small,
+.dw-stat-card .stat-hint,
+.dw-stat-card .stat-detail,
+.dw-stat-card .summary-detail,
+.stat-card > p,
+.stat-card > small,
+.stat-card .stat-hint,
+.stat-card .stat-detail,
+.stat-card .summary-detail,
+.summary-card > p,
+.summary-card > small,
+.summary-card .stat-hint,
+.summary-card .stat-detail,
+.summary-card .summary-detail,
+.compact-summary-card > p,
+.compact-summary-card > small,
+.compact-summary-card .stat-hint,
+.compact-summary-card .stat-detail,
+.compact-summary-card .summary-detail {
+  min-height: var(--dotwatch-stat-card-detail-height) !important;
+  margin: 0 !important;
+  color: var(--muted) !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.dw-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
+.stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
+.summary-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
+.compact-summary-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
+.dashboard-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
+.dashboard-summary-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
+.history-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
+.profile-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
+.settings-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
+.system-health-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
+.alarm-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
+.notification-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
+.activity-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after {
+  content: ' ';
+  display: block;
+  min-height: var(--dotwatch-stat-card-detail-height);
+  pointer-events: none;
+}
+
+.compact-summary-card {
+  min-height: 98px !important;
+  grid-template-rows: auto auto minmax(16px, auto) !important;
+}
+
+.compact-summary-card > p,
+.compact-summary-card > small,
+.compact-summary-card .stat-hint,
+.compact-summary-card .stat-detail,
+.compact-summary-card .summary-detail {
+  min-height: 16px !important;
+  font-size: 11px !important;
+}
+
+@media (max-width: 560px) {
+  :root {
+    --dotwatch-stat-card-min-height: 108px;
+  }
+
+  .dw-stat-card > strong,
+  .stat-card > strong,
+  .summary-card > strong,
+  .compact-summary-card > strong,
+  .dw-stat-card .stat-value,
+  .stat-card .stat-value,
+  .summary-card .stat-value,
+  .compact-summary-card .stat-value {
+    font-size: 24px !important;
+  }
+}

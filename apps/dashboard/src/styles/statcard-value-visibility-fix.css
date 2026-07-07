@@ -1,0 +1,250 @@
+/* =========================================================
+   dotWatch - StatCard Value Visibility Fix
+   แก้ตัวเลข/ค่าใน StatCard ถูกตัดหาย หลังปรับความสูงให้เท่ากัน
+========================================================= */
+
+/*
+  สาเหตุ:
+  statcard-height-unify.css รอบก่อนล็อก height / max-height / overflow hidden
+  แรงเกินไป ทำให้ value บางหน้าโดนตัดจนมองไม่เห็น
+
+  รอบนี้:
+  - ยังใช้ min-height กลาง เพื่อให้ card ดูสูงเท่ากัน
+  - ไม่ล็อก max-height
+  - ไม่ซ่อน overflow ของตัวเลข
+  - ให้ grid stretch ทำให้แถวเดียวกันสูงเท่ากันเอง
+*/
+
+:root {
+  --dw-stat-card-height: 112px;
+  --dw-stat-card-compact-height: 104px;
+  --dw-stat-card-padding: 16px;
+}
+
+/* ยกเลิกการตัดตัวเลข */
+.dw-stat-card,
+.stat-card,
+.summary-card,
+.dashboard-stat-card,
+.dashboard-summary-card,
+.history-stat-card,
+.profile-stat-card,
+.settings-stat-card,
+.system-health-stat-card,
+.alarm-stat-card,
+.notification-stat-card,
+.activity-stat-card {
+  min-height: var(--dw-stat-card-height) !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding: var(--dw-stat-card-padding) !important;
+  box-sizing: border-box !important;
+}
+
+/* ให้ card ใน grid ยืดเท่ากันตามแถว */
+.dashboard-style-stat-grid,
+.dashboard-stat-grid,
+.alarms-stat-grid,
+.notifications-stat-grid,
+.activity-stat-grid,
+.history-stat-grid,
+.profile-stat-grid,
+.settings-stat-grid,
+.system-health-stat-grid,
+.device-v2-stat-grid,
+.devices-stat-grid,
+.stat-grid {
+  align-items: stretch !important;
+}
+
+.dashboard-style-stat-grid > *,
+.dashboard-stat-grid > *,
+.alarms-stat-grid > *,
+.notifications-stat-grid > *,
+.activity-stat-grid > *,
+.history-stat-grid > *,
+.profile-stat-grid > *,
+.settings-stat-grid > *,
+.system-health-stat-grid > *,
+.device-v2-stat-grid > *,
+.devices-stat-grid > *,
+.stat-grid > * {
+  min-height: var(--dw-stat-card-height) !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* จัด layout ภายใน card ให้มีพื้นที่สำหรับ value */
+.dw-stat-card,
+.stat-card,
+.summary-card {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+
+/* Label / title ยังตัดได้ถ้ายาว แต่ไม่ดัน value หาย */
+.dw-stat-card h3,
+.dw-stat-card h4,
+.dw-stat-card label,
+.dw-stat-card .stat-label,
+.stat-card h3,
+.stat-card h4,
+.stat-card label,
+.stat-card .stat-label,
+.summary-card h3,
+.summary-card h4,
+.summary-card label,
+.summary-card .stat-label {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
+
+/* Value / ตัวเลข ต้องมองเห็นเสมอ */
+.dw-stat-card strong,
+.dw-stat-card .stat-value,
+.dw-stat-card .summary-value,
+.dw-stat-card .card-value,
+.dw-stat-card [class*='value'],
+.dw-stat-card [class*='Value'],
+.stat-card strong,
+.stat-card .stat-value,
+.stat-card .summary-value,
+.stat-card .card-value,
+.stat-card [class*='value'],
+.stat-card [class*='Value'],
+.summary-card strong,
+.summary-card .stat-value,
+.summary-card .summary-value,
+.summary-card .card-value,
+.summary-card [class*='value'],
+.summary-card [class*='Value'] {
+  display: block !important;
+  flex: 0 0 auto !important;
+  min-height: 28px !important;
+  max-width: 100% !important;
+  color: var(--text) !important;
+  font-size: clamp(24px, 2vw, 30px) !important;
+  line-height: 1.08 !important;
+  font-weight: 950 !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+/* สีของ value สำคัญยังคงตาม status */
+.dw-stat-card .success,
+.dw-stat-card .online,
+.dw-stat-card [class*='success'],
+.stat-card .success,
+.stat-card .online,
+.stat-card [class*='success'] {
+  color: var(--success) !important;
+}
+
+.dw-stat-card .warning,
+.dw-stat-card [class*='warning'],
+.stat-card .warning,
+.stat-card [class*='warning'] {
+  color: var(--warning) !important;
+}
+
+.dw-stat-card .danger,
+.dw-stat-card .critical,
+.dw-stat-card .offline,
+.dw-stat-card [class*='danger'],
+.dw-stat-card [class*='critical'],
+.stat-card .danger,
+.stat-card .critical,
+.stat-card .offline,
+.stat-card [class*='danger'],
+.stat-card [class*='critical'] {
+  color: var(--danger) !important;
+}
+
+/* Hint / detail ตัดได้แต่ต้องไม่กินพื้นที่ value */
+.dw-stat-card p,
+.dw-stat-card small,
+.dw-stat-card .stat-hint,
+.stat-card p,
+.stat-card small,
+.stat-card .stat-hint,
+.summary-card p,
+.summary-card small,
+.summary-card .stat-hint {
+  flex: 0 1 auto !important;
+  min-height: 0 !important;
+  max-height: 34px !important;
+  max-width: 100% !important;
+  color: var(--muted) !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  font-weight: 750 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* ข้อความ value ยาว เช่น Microsoft Edge / Asia/Bangkok ลด font แทนการตัดหาย */
+.profile-v3-page .dw-stat-card strong,
+.profile-v3-page .dw-stat-card [class*='value'],
+.settings-v3-page .dw-stat-card strong,
+.settings-v3-page .dw-stat-card [class*='value'],
+.system-health-page .dw-stat-card strong,
+.system-health-page .dw-stat-card [class*='value'] {
+  font-size: clamp(20px, 1.8vw, 26px) !important;
+  min-height: 26px !important;
+}
+
+/* Alarm Center ยังบังคับ 4 ใบแถวเดียว แต่ไม่ซ่อน value */
+.alarms-page .alarms-stat-grid .dw-stat-card,
+.alarms-page .alarms-stat-grid .stat-card {
+  min-height: var(--dw-stat-card-height) !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Compact / Spacious */
+:root[data-density='compact'] {
+  --dw-stat-card-height: 104px;
+  --dw-stat-card-padding: 14px;
+}
+
+:root[data-density='spacious'] {
+  --dw-stat-card-height: 124px;
+  --dw-stat-card-padding: 18px;
+}
+
+/* จอเล็ก */
+@media (max-width: 720px) {
+  :root {
+    --dw-stat-card-height: 104px;
+    --dw-stat-card-padding: 14px;
+  }
+
+  .dw-stat-card,
+  .stat-card,
+  .summary-card {
+    min-height: var(--dw-stat-card-height) !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .dw-stat-card strong,
+  .dw-stat-card .stat-value,
+  .dw-stat-card [class*='value'],
+  .stat-card strong,
+  .stat-card .stat-value,
+  .stat-card [class*='value'] {
+    font-size: clamp(22px, 6vw, 28px) !important;
+  }
+}

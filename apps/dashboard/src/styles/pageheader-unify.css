@@ -1,0 +1,251 @@
+/* =========================================================
+   dotWatch - PageHeader Unify
+   แก้เฉพาะ PageHeader ให้เหมือนกันทุกหน้า
+========================================================= */
+
+/*
+  Scope:
+  - แก้เฉพาะ PageHeader / Hero Header ของแต่ละหน้า
+  - ไม่แตะ StatCard
+  - ไม่แตะ Card / Table / Map / Alarm logic
+  - ใช้เป็น final override โดย import ท้ายสุดใน styles.css
+*/
+
+:root {
+  --dotwatch-pageheader-radius: 24px;
+  --dotwatch-pageheader-padding-y: 24px;
+  --dotwatch-pageheader-padding-x: 24px;
+  --dotwatch-pageheader-min-height: 128px;
+  --dotwatch-pageheader-title-size: clamp(28px, 2.4vw, 34px);
+  --dotwatch-pageheader-eyebrow-size: 12px;
+  --dotwatch-pageheader-desc-size: 14px;
+}
+
+/* PageHeader หลักที่ใช้หลายหน้า */
+.app-page-header,
+.dw-page-header,
+.page-header,
+.page-hero {
+  position: relative !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  min-height: var(--dotwatch-pageheader-min-height) !important;
+  padding:
+    var(--dotwatch-pageheader-padding-y)
+    var(--dotwatch-pageheader-padding-x) !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  border-radius: var(--dotwatch-pageheader-radius) !important;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 36%),
+    var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-soft, var(--shadow)) !important;
+}
+
+/* วงกลมตกแต่งด้านขวา ให้เหมือนกันทุกหน้า */
+.app-page-header::after,
+.dw-page-header::after,
+.page-header::after,
+.page-hero::after {
+  content: '' !important;
+  position: absolute !important;
+  right: -72px !important;
+  top: -76px !important;
+  width: 180px !important;
+  height: 180px !important;
+  border-radius: 999px !important;
+  background: rgba(37, 99, 235, 0.08) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+/* ป้องกัน content ถูกวงกลมทับ */
+.app-page-header > *,
+.dw-page-header > *,
+.page-header > *,
+.page-hero > * {
+  position: relative !important;
+  z-index: 1 !important;
+  min-width: 0 !important;
+}
+
+/* ฝั่งข้อความ */
+.app-page-header > div:first-child,
+.dw-page-header > div:first-child,
+.page-header > div:first-child,
+.page-hero > div:first-child {
+  min-width: 0 !important;
+  max-width: 760px !important;
+}
+
+/* Eyebrow เช่น ALARM CENTER / DATA CENTER */
+.app-page-header .page-eyebrow,
+.dw-page-header .page-eyebrow,
+.page-header .page-eyebrow,
+.page-hero .page-eyebrow,
+.app-page-header [class*='eyebrow'],
+.dw-page-header [class*='eyebrow'],
+.page-header [class*='eyebrow'],
+.page-hero [class*='eyebrow'] {
+  display: inline-flex !important;
+  margin: 0 0 8px !important;
+  color: var(--danger) !important;
+  font-size: var(--dotwatch-pageheader-eyebrow-size) !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+/* Title */
+.app-page-header h1,
+.app-page-header h2,
+.dw-page-header h1,
+.dw-page-header h2,
+.page-header h1,
+.page-header h2,
+.page-hero h1,
+.page-hero h2 {
+  margin: 0 !important;
+  color: var(--text) !important;
+  font-size: var(--dotwatch-pageheader-title-size) !important;
+  line-height: 1.08 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.055em !important;
+}
+
+/* Description */
+.app-page-header p,
+.dw-page-header p,
+.page-header p,
+.page-hero p {
+  max-width: 760px !important;
+  margin: 10px 0 0 !important;
+  color: var(--muted) !important;
+  font-size: var(--dotwatch-pageheader-desc-size) !important;
+  line-height: 1.6 !important;
+  font-weight: 500 !important;
+}
+
+/* Action area ด้านขวา */
+.app-page-header .app-page-actions,
+.app-page-header .page-header-actions,
+.app-page-header .dw-page-header-actions,
+.app-page-header .alarm-page-actions,
+.dw-page-header .app-page-actions,
+.dw-page-header .page-header-actions,
+.dw-page-header .dw-page-header-actions,
+.dw-page-header .alarm-page-actions,
+.page-header .app-page-actions,
+.page-header .page-header-actions,
+.page-header .dw-page-header-actions,
+.page-header .alarm-page-actions,
+.page-hero .app-page-actions,
+.page-hero .page-header-actions,
+.page-hero .dw-page-header-actions,
+.page-hero .alarm-page-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  min-width: 0 !important;
+}
+
+/* ปุ่มใน PageHeader เท่านั้น */
+.app-page-header .ghost-button,
+.app-page-header .primary-button,
+.app-page-header .secondary-button,
+.app-page-header .save-btn,
+.app-page-header .delete-btn,
+.dw-page-header .ghost-button,
+.dw-page-header .primary-button,
+.dw-page-header .secondary-button,
+.dw-page-header .save-btn,
+.dw-page-header .delete-btn,
+.page-header .ghost-button,
+.page-header .primary-button,
+.page-header .secondary-button,
+.page-header .save-btn,
+.page-header .delete-btn,
+.page-hero .ghost-button,
+.page-hero .primary-button,
+.page-hero .secondary-button,
+.page-hero .save-btn,
+.page-hero .delete-btn {
+  min-height: 40px !important;
+  padding: 0 14px !important;
+  border-radius: 14px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  white-space: nowrap !important;
+}
+
+/* Responsive เฉพาะ PageHeader */
+@media (max-width: 900px) {
+  .app-page-header,
+  .dw-page-header,
+  .page-header,
+  .page-hero {
+    display: grid !important;
+    gap: 16px !important;
+    min-height: auto !important;
+  }
+
+  .app-page-header .app-page-actions,
+  .app-page-header .page-header-actions,
+  .app-page-header .dw-page-header-actions,
+  .app-page-header .alarm-page-actions,
+  .dw-page-header .app-page-actions,
+  .dw-page-header .page-header-actions,
+  .dw-page-header .dw-page-header-actions,
+  .dw-page-header .alarm-page-actions,
+  .page-header .app-page-actions,
+  .page-header .page-header-actions,
+  .page-header .dw-page-header-actions,
+  .page-header .alarm-page-actions,
+  .page-hero .app-page-actions,
+  .page-hero .page-header-actions,
+  .page-hero .dw-page-header-actions,
+  .page-hero .alarm-page-actions {
+    justify-content: flex-start !important;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --dotwatch-pageheader-radius: 20px;
+    --dotwatch-pageheader-padding-y: 18px;
+    --dotwatch-pageheader-padding-x: 18px;
+    --dotwatch-pageheader-title-size: 26px;
+  }
+
+  .app-page-header .ghost-button,
+  .app-page-header .primary-button,
+  .app-page-header .secondary-button,
+  .app-page-header .save-btn,
+  .app-page-header .delete-btn,
+  .dw-page-header .ghost-button,
+  .dw-page-header .primary-button,
+  .dw-page-header .secondary-button,
+  .dw-page-header .save-btn,
+  .dw-page-header .delete-btn,
+  .page-header .ghost-button,
+  .page-header .primary-button,
+  .page-header .secondary-button,
+  .page-header .save-btn,
+  .page-header .delete-btn,
+  .page-hero .ghost-button,
+  .page-hero .primary-button,
+  .page-hero .secondary-button,
+  .page-hero .save-btn,
+  .page-hero .delete-btn {
+    width: auto !important;
+  }
+}

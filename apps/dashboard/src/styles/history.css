@@ -1,0 +1,751 @@
+/* =========================================================
+   History Analytics Page
+========================================================= */
+
+.history-page-v2 {
+  gap: 20px;
+}
+
+.history-hero-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 24px;
+  color: var(--text);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.22), transparent 28%),
+    var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft, var(--shadow));
+}
+
+.history-hero-card h1 {
+  margin: 5px 0 10px;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.06em;
+}
+
+.history-hero-card span {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.section-eyebrow {
+  margin: 0;
+  color: #06b6d4;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.history-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.history-hero-actions span,
+.history-hero-actions button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.history-hero-actions button {
+  cursor: pointer;
+}
+
+.history-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.history-stat-card {
+  position: relative;
+  min-height: 104px;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft, var(--shadow));
+}
+
+.history-stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, #06b6d4, #2563eb);
+}
+
+.history-stat-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.history-stat-card strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.history-stat-card p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.history-section-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.history-section-title h2 {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 950;
+}
+
+.history-section-title p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.history-section-title > span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.history-filter-card {
+  padding: 20px;
+}
+
+.history-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.history-filter-grid label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.history-filter-grid label > span {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.history-filter-grid select,
+.history-filter-grid input,
+.history-search-box {
+  min-height: 44px;
+  width: 100%;
+  padding: 0 14px;
+  border-radius: 14px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 850;
+  outline: none;
+}
+
+.history-search-box {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.history-search-box input {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.history-export-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-radius: 14px;
+  color: white;
+  background: linear-gradient(135deg, #0891b2, #06b6d4);
+  border: 0;
+  font-size: 13px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.history-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.history-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  align-items: start;
+}
+
+.history-chart-card,
+.history-device-card,
+.history-table-card {
+  padding: 20px;
+}
+
+.history-chart-box {
+  height: 390px;
+  padding: 12px 6px 0;
+  border-radius: 20px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.history-empty-box {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  border-radius: 20px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px dashed var(--border);
+  text-align: center;
+  padding: 20px;
+}
+
+.history-empty-box span {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: radial-gradient(circle, #06b6d4 0 12%, rgba(37, 99, 235, 0.2) 13%);
+}
+
+.history-empty-box strong {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.history-empty-box p {
+  max-width: 420px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.history-device-status {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: capitalize;
+}
+
+.history-device-status.online {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.22);
+}
+
+.history-device-card {
+  display: grid;
+  gap: 12px;
+}
+
+.history-device-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle, #06b6d4 0 12%, transparent 13%),
+    rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(37, 99, 235, 0.26);
+}
+
+.history-device-card h2 {
+  margin: 8px 0 0;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 950;
+}
+
+.history-device-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.history-device-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.history-device-meta span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.history-device-meta strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 950;
+  text-align: right;
+  word-break: break-word;
+}
+
+.history-table-wrap {
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+  background: var(--panel-2);
+}
+
+.history-table th,
+.history-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+}
+
+.history-table th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--panel);
+}
+
+.history-table td {
+  font-weight: 780;
+}
+
+.history-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.history-message {
+  padding: 14px 16px;
+  border-radius: 16px;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.history-message.error {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.24);
+}
+
+.history-tooltip {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.history-tooltip span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+@media (max-width: 1180px) {
+  .history-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .history-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .history-hero-card,
+  .history-section-title {
+    flex-direction: column;
+  }
+
+  .history-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .history-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .history-export-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .history-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   History Analytics - Full Width Graph + Table Pagination
+========================================================= */
+
+.history-chart-card-full {
+  width: 100%;
+}
+
+.history-content-grid {
+  display: block;
+}
+
+.history-device-card {
+  display: none !important;
+}
+
+.history-table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.history-pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.history-pagination-actions button,
+.history-pagination-actions span {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  border-radius: 11px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.history-pagination-actions button {
+  cursor: pointer;
+}
+
+.history-pagination-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.history-pagination-actions span {
+  color: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .history-table-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .history-pagination-actions {
+    justify-content: flex-start;
+  }
+}
+
+/* =========================================================
+   History Analytics - Sort + Table Cleanup
+========================================================= */
+
+.history-export-btn {
+  align-self: end;
+}
+
+.history-table th:last-child,
+.history-table td:last-child {
+  text-align: right;
+}
+
+@media (max-width: 760px) {
+  .history-export-btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   History Table Sort Controls
+========================================================= */
+
+.history-table-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.history-table-actions > span {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.history-table-actions label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-table-actions label > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.history-table-actions select {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 11px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 900;
+  outline: none;
+}
+
+@media (max-width: 760px) {
+  .history-table-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* =========================================================
+   History Analytics - All Metrics Chart
+========================================================= */
+
+.history-tooltip {
+  max-width: 260px;
+}
+
+.history-tooltip span {
+  display: block;
+}
+
+.history-chart-box .recharts-legend-wrapper {
+  font-size: 12px;
+}
+
+.history-filter-grid select option[value='all'] {
+  font-weight: 950;
+}
+
+/* =========================================================
+   History Analytics - Persistent Page State
+========================================================= */
+
+.history-table-pagination {
+  scroll-margin-top: 90px;
+}
+
+/* =========================================================
+   History Table - Single Metric and All Metrics Wide Table
+========================================================= */
+
+.history-table {
+  min-width: 560px;
+}
+
+.history-table:not(.history-table-all-metrics) th:nth-child(1),
+.history-table:not(.history-table-all-metrics) td:nth-child(1) {
+  width: 48%;
+}
+
+.history-table:not(.history-table-all-metrics) th:nth-child(2),
+.history-table:not(.history-table-all-metrics) td:nth-child(2) {
+  width: 52%;
+  text-align: left;
+}
+
+.history-table:not(.history-table-all-metrics) td:nth-child(2) {
+  color: var(--text);
+  font-weight: 950;
+}
+
+.history-table-all-metrics {
+  min-width: 980px;
+}
+
+.history-table-all-metrics th,
+.history-table-all-metrics td {
+  white-space: nowrap;
+}
+
+.history-table-all-metrics th:first-child,
+.history-table-all-metrics td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 220px;
+  background: var(--panel-2);
+}
+
+.history-table-all-metrics th:first-child {
+  z-index: 3;
+  background: var(--panel);
+}
+
+.history-table-all-metrics th:not(:first-child),
+.history-table-all-metrics td:not(:first-child) {
+  min-width: 116px;
+  text-align: right;
+}
+
+.history-table-all-metrics td:not(:first-child) {
+  color: var(--text);
+  font-weight: 950;
+}
+
+.history-metric-value-cell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.history-metric-value-cell b {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.history-metric-value-cell span {
+  color: var(--text);
+  font-weight: 950;
+}
+
+@media (max-width: 560px) {
+  .history-table {
+    min-width: 480px;
+  }
+
+  .history-table-all-metrics {
+    min-width: 880px;
+  }
+}
+
+/* =========================================================
+   History Header - Shared PageHeader Alignment
+========================================================= */
+
+.history-page-v2 > .dw-page-header,
+.history-page-v2 > .page-header,
+.history-page-v2 > .app-page-header {
+  margin-bottom: 18px;
+}

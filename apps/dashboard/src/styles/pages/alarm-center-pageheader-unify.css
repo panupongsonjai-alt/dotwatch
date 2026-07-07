@@ -1,0 +1,182 @@
+/* =========================================================
+   Alarm Center - Unified Page Header
+   ปรับ header หน้า Alarm Center ให้เท่ากับหน้าอื่นใน dotWatch
+========================================================= */
+
+/* ใช้ PageHeader design system แทน app-page-header เดิม */
+.alarms-page > .dw-page-header {
+  margin-bottom: 18px !important;
+  min-height: 140px !important;
+  display: flex !important;
+  align-items: center !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+}
+
+.alarms-page > .dw-page-header .page-eyebrow {
+  color: var(--danger) !important;
+}
+
+.alarms-page > .dw-page-header .dw-page-header-main h1 {
+  margin-top: 8px !important;
+  font-size: clamp(30px, 3vw, 42px) !important;
+  line-height: 0.95 !important;
+  letter-spacing: -0.07em !important;
+}
+
+.alarms-page > .dw-page-header .dw-page-header-main p {
+  margin-top: 14px !important;
+  max-width: 760px !important;
+  color: var(--muted) !important;
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  font-weight: 750 !important;
+}
+
+.alarms-page > .dw-page-header .dw-page-header-actions {
+  align-self: flex-start !important;
+  padding-top: 8px !important;
+}
+
+/* ปุ่มให้เหมือน action header หน้า Notifications / Activity */
+.alarm-page-actions-unified,
+.alarm-page-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  max-width: 100% !important;
+}
+
+.alarm-page-actions-unified .ghost-button,
+.alarm-page-actions-unified .delete-btn,
+.alarm-page-actions .ghost-button,
+.alarm-page-actions .delete-btn {
+  min-height: 42px !important;
+  padding: 0 16px !important;
+  border-radius: 16px !important;
+  white-space: nowrap !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+}
+
+.alarm-page-actions-unified .ghost-button,
+.alarm-page-actions .ghost-button {
+  color: var(--text) !important;
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.alarm-clear-button {
+  color: white !important;
+  background: var(--danger) !important;
+  border: 1px solid color-mix(in srgb, var(--danger) 72%, white) !important;
+  box-shadow: 0 16px 36px rgba(239, 68, 68, 0.22) !important;
+}
+
+.alarm-clear-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 42px rgba(239, 68, 68, 0.3) !important;
+}
+
+.alarm-clear-button:disabled {
+  color: color-mix(in srgb, white 68%, transparent) !important;
+  background: color-mix(in srgb, var(--danger) 58%, var(--panel)) !important;
+  border-color: rgba(239, 68, 68, 0.24) !important;
+  box-shadow: none !important;
+  opacity: 0.68 !important;
+  cursor: not-allowed !important;
+}
+
+/* ล้าง style header เดิมที่ทำให้หน้า Alarm สูง/ตำแหน่งไม่เท่าหน้าอื่น */
+.alarms-page > .app-page-header {
+  display: none !important;
+}
+
+/* Section headers ด้านในให้ใช้ pattern เดียวกับ dotWatch */
+.alarms-page .app-card > .dw-section-header {
+  margin-bottom: 16px !important;
+}
+
+.alarms-page .app-card > .dw-section-header h2 {
+  font-size: 22px !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.04em !important;
+}
+
+.alarms-page .app-card > .dw-section-header p {
+  margin-top: 6px !important;
+  color: var(--muted) !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  font-weight: 750 !important;
+}
+
+/* Stat row ยังคง 4 ใบในแถวเดียวบน desktop */
+.alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+.alarms-stat-grid.dashboard-style-stat-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* ให้ header actions ไม่ดันจอเวลา sidebar เปิด */
+.alarms-page > .dw-page-header,
+.alarms-page > .dw-page-header * {
+  box-sizing: border-box !important;
+}
+
+.alarms-page > .dw-page-header .dw-page-header-main,
+.alarms-page > .dw-page-header .dw-page-header-actions {
+  min-width: 0 !important;
+}
+
+@media (max-width: 960px) {
+  .alarms-page > .dw-page-header {
+    display: grid !important;
+    align-items: stretch !important;
+    min-height: unset !important;
+  }
+
+  .alarms-page > .dw-page-header .dw-page-header-actions {
+    justify-content: flex-start !important;
+    padding-top: 0 !important;
+  }
+
+  .alarm-page-actions-unified,
+  .alarm-page-actions {
+    justify-content: flex-start !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .alarm-page-actions-unified .ghost-button,
+  .alarm-page-actions-unified .delete-btn,
+  .alarm-page-actions .ghost-button,
+  .alarm-page-actions .delete-btn {
+    flex: 1 1 150px !important;
+  }
+}
+
+@media (max-width: 460px) {
+  .alarms-page .alarms-stat-grid.dashboard-style-stat-grid,
+  .alarms-stat-grid.dashboard-style-stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .alarm-page-actions-unified .ghost-button,
+  .alarm-page-actions-unified .delete-btn,
+  .alarm-page-actions .ghost-button,
+  .alarm-page-actions .delete-btn {
+    width: 100% !important;
+    flex-basis: 100% !important;
+  }
+}

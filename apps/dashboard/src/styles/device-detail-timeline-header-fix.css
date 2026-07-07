@@ -1,0 +1,101 @@
+/* =========================================================
+   Device Detail - Timeline Header Font Fix
+   ทำให้หัวข้อ Device Timeline เหมือนรูปแรก
+========================================================= */
+
+/*
+  ปัญหาเดิม:
+  device-detail-timeline-font-fix.css ลด font ของ timeline detail
+  แล้ว selector แบบ [class*='timeline'] ไปกระทบ subtitle ของ SectionHeader
+
+  ไฟล์นี้ต้อง import หลัง:
+  - device-detail-timeline-font-fix.css
+  - device-detail-tabs-unify.css
+*/
+
+/* Header ของ Timeline card ให้กลับมาเท่ากับ Overview / รูปแรก */
+.device-detail-page .device-timeline-panel-ds .dw-section-header h2,
+.device-detail-v2-page .device-timeline-panel-ds .dw-section-header h2,
+.device-detail-page-v2 .device-timeline-panel-ds .dw-section-header h2,
+.device-detail-page .device-timeline-panel-ds .dw-section-header h3,
+.device-detail-v2-page .device-timeline-panel-ds .dw-section-header h3,
+.device-detail-page-v2 .device-timeline-panel-ds .dw-section-header h3 {
+  margin: 0 !important;
+  color: var(--text) !important;
+  font-size: 22px !important;
+  line-height: 1.2 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.035em !important;
+}
+
+/* รายละเอียดใต้หัวข้อ Device Timeline ให้เหมือนรูปแรก */
+.device-detail-page .device-timeline-panel-ds .dw-section-header p,
+.device-detail-v2-page .device-timeline-panel-ds .dw-section-header p,
+.device-detail-page-v2 .device-timeline-panel-ds .dw-section-header p {
+  margin: 6px 0 0 !important;
+  color: var(--muted) !important;
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+}
+
+/* Badge มุมขวาให้เท่ากับรูปแรก */
+.device-detail-page .device-timeline-panel-ds .device-detail-section-badge,
+.device-detail-v2-page .device-timeline-panel-ds .device-detail-section-badge,
+.device-detail-page-v2 .device-timeline-panel-ds .device-detail-section-badge {
+  min-height: 30px !important;
+  padding: 0 11px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+}
+
+/*
+  จำกัดผลของ timeline detail font ให้กระทบเฉพาะรายการ event
+  ไม่กระทบ SectionHeader
+*/
+.device-detail-page .device-timeline-panel-ds .device-timeline-list-ds p,
+.device-detail-v2-page .device-timeline-panel-ds .device-timeline-list-ds p,
+.device-detail-page-v2 .device-timeline-panel-ds .device-timeline-list-ds p {
+  font-size: 11.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 700 !important;
+}
+
+.device-detail-page .device-timeline-panel-ds .device-timeline-list-ds h3,
+.device-detail-v2-page .device-timeline-panel-ds .device-timeline-list-ds h3,
+.device-detail-page-v2 .device-timeline-panel-ds .device-timeline-list-ds h3 {
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+  font-weight: 950 !important;
+}
+
+.device-detail-page .device-timeline-panel-ds .device-timeline-list-ds time,
+.device-detail-page .device-timeline-panel-ds .device-timeline-list-ds small,
+.device-detail-v2-page .device-timeline-panel-ds .device-timeline-list-ds time,
+.device-detail-v2-page .device-timeline-panel-ds .device-timeline-list-ds small,
+.device-detail-page-v2 .device-timeline-panel-ds .device-timeline-list-ds time,
+.device-detail-page-v2 .device-timeline-panel-ds .device-timeline-list-ds small {
+  font-size: 10.5px !important;
+  line-height: 1.25 !important;
+  font-weight: 800 !important;
+}
+
+@media (max-width: 560px) {
+  .device-detail-page .device-timeline-panel-ds .dw-section-header h2,
+  .device-detail-v2-page .device-timeline-panel-ds .dw-section-header h2,
+  .device-detail-page-v2 .device-timeline-panel-ds .dw-section-header h2,
+  .device-detail-page .device-timeline-panel-ds .dw-section-header h3,
+  .device-detail-v2-page .device-timeline-panel-ds .dw-section-header h3,
+  .device-detail-page-v2 .device-timeline-panel-ds .dw-section-header h3 {
+    font-size: 22px !important;
+  }
+
+  .device-detail-page .device-timeline-panel-ds .dw-section-header p,
+  .device-detail-v2-page .device-timeline-panel-ds .dw-section-header p,
+  .device-detail-page-v2 .device-timeline-panel-ds .dw-section-header p {
+    font-size: 14px !important;
+  }
+}

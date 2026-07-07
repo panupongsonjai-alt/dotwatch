@@ -1,0 +1,79 @@
+/* =========================================================
+   dotWatch Shared Page System
+   ใช้ร่วมกันทุก Page เพื่อให้ Design ไปทางเดียวกัน
+========================================================= */
+
+.page.app-page {
+  display: grid;
+  gap: 20px;
+}
+
+.dw-page-stat-grid {
+  --dw-stat-card-count: 5;
+  display: grid;
+  grid-template-columns: repeat(var(--dw-stat-card-count), minmax(136px, 1fr)) !important;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.dw-page-stat-grid > * {
+  min-width: 0;
+}
+
+.dashboard-health-kpi-grid.dw-page-stat-grid {
+  --dw-stat-card-count: 5;
+}
+
+.devices-ops-stat-grid.dw-page-stat-grid {
+  --dw-stat-card-count: 4;
+}
+
+.dw-page-stat-grid .stat-card,
+.dw-page-stat-grid .summary-card,
+.dw-page-stat-grid .compact-summary-card {
+  height: 100%;
+  min-height: 88px;
+}
+
+@media (max-width: 900px) {
+  .dw-page-stat-grid {
+    grid-template-columns: repeat(var(--dw-stat-card-count), minmax(136px, 1fr)) !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 6px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dw-page-stat-grid > * {
+    min-width: 136px;
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .dw-page-stat-grid {
+    grid-template-columns: repeat(var(--dw-stat-card-count), minmax(132px, 1fr)) !important;
+  }
+
+  .dw-page-stat-grid > * {
+    min-width: 132px;
+  }
+}
+
+.dw-page-stat-grid::-webkit-scrollbar {
+  height: 7px;
+}
+
+.dw-page-stat-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dw-page-stat-grid::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.35);
+}
+
+.dw-page-stat-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.55);
+}
