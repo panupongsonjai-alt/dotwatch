@@ -1,5 +1,6 @@
-import { memo, useMemo, useState } from 'react'
+﻿import { memo, useMemo, useState } from 'react'
 import { Plus, RefreshCw, Search } from 'lucide-react'
+import { getDeviceMetricPills } from '../../utils/esp32Dht3Utils.js'
 import {
   getDeviceDisplayName,
   getLastSeen,
@@ -67,7 +68,7 @@ const DeviceListItem = memo(function DeviceListItem({
   onSelect,
 }) {
   const status = getStatus(device)
-  const metricEntries = getLatestMetricEntries(device)
+  const metricPills = getDeviceMetricPills(device, 3)
 
   return (
     <button
@@ -93,12 +94,12 @@ const DeviceListItem = memo(function DeviceListItem({
         </span>
       </div>
 
-      {metricEntries.length > 0 && (
+      {metricPills.length > 0 && (
         <div className="devices-v3-item-metrics" aria-label="Latest metrics">
-          {metricEntries.map(([metricKey, value]) => (
-            <span key={metricKey}>
-              <b>{getMetricLabel(metricKey)}</b>
-              {formatMetricValue(value)}
+          {metricPills.map((metric) => (
+            <span key={metric.key}>
+              <b>{metric.label}</b>
+              {metric.displayValue}
             </span>
           ))}
         </div>
@@ -155,7 +156,7 @@ function DeviceList({
     if (errorMessage) {
       return (
         <div className="app-empty-state compact-empty-state devices-v3-error-state">
-          <h3>โหลด Device ไม่สำเร็จ</h3>
+          <h3>à¹‚à¸«à¸¥à¸” Device à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ</h3>
           <p>{errorMessage}</p>
           {onRetry && (
             <button type="button" className="secondary-button" onClick={onRetry}>
@@ -170,8 +171,8 @@ function DeviceList({
     if (!devices.length) {
       return (
         <div className="app-empty-state compact-empty-state">
-          <h3>ยังไม่มี Device</h3>
-          <p>กด Create เพื่อเริ่มต้น</p>
+          <h3>à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µ Device</h3>
+          <p>à¸à¸” Create à¹€à¸žà¸·à¹ˆà¸­à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™</p>
         </div>
       )
     }
@@ -179,8 +180,8 @@ function DeviceList({
     if (!filteredDevices.length) {
       return (
         <div className="app-empty-state compact-empty-state">
-          <h3>ไม่พบ Device</h3>
-          <p>ลองเปลี่ยนคำค้นหาใหม่อีกครั้ง</p>
+          <h3>à¹„à¸¡à¹ˆà¸žà¸š Device</h3>
+          <p>à¸¥à¸­à¸‡à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸„à¸³à¸„à¹‰à¸™à¸«à¸²à¹ƒà¸«à¸¡à¹ˆà¸­à¸µà¸à¸„à¸£à¸±à¹‰à¸‡</p>
         </div>
       )
     }
@@ -235,3 +236,6 @@ function DeviceList({
 }
 
 export default DeviceList
+
+
+

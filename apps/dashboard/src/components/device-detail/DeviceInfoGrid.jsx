@@ -1,4 +1,5 @@
-import { formatDate } from './deviceDetailUtils'
+﻿import { formatDate } from './deviceDetailUtils'
+import { getEsp32DefaultPinHint, isEsp32Dht3Device } from '../../utils/esp32Dht3Utils.js'
 
 function DeviceInfoGrid({ device }) {
   return (
@@ -19,6 +20,19 @@ function DeviceInfoGrid({ device }) {
         <label>Firmware</label>
         <p>{device.firmware_version || '--'}</p>
       </div>
+
+      {isEsp32Dht3Device(device) && (
+        <>
+          <div>
+            <label>Local Admin URL</label>
+            <p>à¸”à¸¹ IP à¸ˆà¸²à¸ Serial Monitor à¹à¸¥à¹‰à¸§à¹€à¸›à¸´à¸” http://ESP32_IP/</p>
+          </div>
+          <div>
+            <label>Default PIN</label>
+            <p>{getEsp32DefaultPinHint(device)}</p>
+          </div>
+        </>
+      )}
       <div>
         <label>Latitude</label>
         <p>
@@ -46,3 +60,5 @@ function DeviceInfoGrid({ device }) {
 }
 
 export default DeviceInfoGrid
+
+
