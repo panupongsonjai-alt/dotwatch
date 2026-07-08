@@ -7,6 +7,11 @@
     metric_1 = Temperature (°C)
     metric_2 = Humidity (%)
     metric_3 = WiFi RSSI (dBm)
+
+  Important:
+    This firmware intentionally does NOT send timestamp by default.
+    The backend will use server time. Sending ESP32 uptime as timestamp
+    would be rejected by the backend because it is not an ISO timestamp.
 */
 
 #include <WiFi.h>
@@ -21,7 +26,7 @@
 #define DEVICE_CODE "DW-CHANGE-ME"
 #define DEVICE_SECRET "CHANGE_ME_DEVICE_SECRET"
 
-#define FIRMWARE_VERSION "esp32-dht3-0.1.0"
+#define FIRMWARE_VERSION "esp32-dht3-0.1.1"
 
 #define DHT_PIN 4
 #define DHT_TYPE DHT11
@@ -49,6 +54,8 @@ void connectWiFi() {
   if (WiFi.status() == WL_CONNECTED) {
     Serial.print("WiFi connected IP=");
     Serial.println(WiFi.localIP());
+    Serial.print("RSSI=");
+    Serial.println(WiFi.RSSI());
   } else {
     Serial.println("WiFi connect timeout");
   }
@@ -75,7 +82,6 @@ bool postIngest(float temperature, float humidity, int rssi) {
 
   StaticJsonDocument<384> doc;
   doc["firmwareVersion"] = FIRMWARE_VERSION;
-  doc["timestamp"] = String("esp32-uptime-ms-") + String(millis());
 
   JsonObject metrics = doc.createNestedObject("metrics");
   metrics["metric_1"] = temperature;

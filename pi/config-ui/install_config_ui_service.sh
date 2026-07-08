@@ -9,7 +9,7 @@ mkdir -p "${PROJECT_DIR}/data" "${PROJECT_DIR}/logs"
 
 if [ ! -f "${PROJECT_DIR}/pi_config_web.py" ]; then
   echo "pi_config_web.py not found in ${PROJECT_DIR}"
-  echo "Upload pi/config-ui/pi_config_web.py to ${PROJECT_DIR}/pi_config_web.py first."
+  echo "Upload pi/agent/pi_config_web.py to ${PROJECT_DIR}/pi_config_web.py first."
   exit 1
 fi
 
@@ -23,7 +23,7 @@ if [ ! -f "${PROJECT_DIR}/.env" ]; then
 DOTWATCH_API_URL=https://dotwatch-backend.onrender.com
 DEVICE_CODE=
 DEVICE_SECRET=
-"${DEVICE_SECRET:-}"
+SEND_INTERVAL_SECONDS=20
 REQUEST_TIMEOUT_SECONDS=15
 FIRMWARE_VERSION=rpi-agent-0.2.0
 SENSOR_SOURCE=dummy
@@ -31,7 +31,7 @@ MODBUS_CONFIG_PATH=/home/pi/dotwatch-pi-agent/modbus_config.json
 OFFLINE_QUEUE_ENABLED=true
 OFFLINE_QUEUE_PATH=/home/pi/dotwatch-pi-agent/data/offline_queue.jsonl
 OFFLINE_QUEUE_MAX_ITEMS=1000
-QUEUE_FLUSH_LIMIT=20
+QUEUE_FLUSH_LIMIT=1
 MAX_BACKOFF_SECONDS=60
 LOG_METRICS=true
 CONFIG_UI_USERNAME=admin
