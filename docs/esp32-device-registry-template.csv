@@ -1,0 +1,2 @@
+device_code,device_name,model_key,location,firmware_version,dht_pin,dht_type,send_interval_seconds,wifi_ssid,install_date,status,notes
+DW-EXAMPLE-001,ESP32 Test 01,esp32_dht3,Office,esp32-dht3-hardening-0.3.0,4,DHT11,20,YourWiFi,2026-07-08,testing,Do not store device_secret here
