@@ -978,3 +978,102 @@ a {
     display: none;
   }
 }
+
+
+/* ==========================================================================
+   Model Manager
+   ========================================================================== */
+
+.admin-models-layout {
+  align-items: start;
+}
+
+.admin-model-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-model-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--admin-muted);
+  font-weight: 800;
+}
+
+.admin-model-form input,
+.admin-model-form select {
+  width: 100%;
+  padding: 12px 14px;
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  outline: 0;
+}
+
+.admin-model-form input:focus,
+.admin-model-form select:focus {
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+}
+
+.admin-model-full,
+.admin-model-metrics,
+.admin-model-check,
+.admin-model-form .table-actions {
+  grid-column: 1 / -1;
+}
+
+.admin-model-check {
+  display: flex !important;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-model-check input {
+  width: 18px;
+  height: 18px;
+}
+
+.admin-model-metrics {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.admin-model-metric-row {
+  display: grid;
+  grid-template-columns: 88px minmax(150px, 1fr) 110px 78px 110px;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-model-metric-row strong {
+  color: var(--admin-heading);
+  font-size: 13px;
+}
+
+@media (max-width: 1180px) {
+  .admin-model-metric-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-model-metric-row strong {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-model-form {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-model-metric-row {
+    grid-template-columns: 1fr;
+  }
+}

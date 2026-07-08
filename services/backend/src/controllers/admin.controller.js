@@ -22,6 +22,37 @@ const updateUserRoleSchema = z.object({
   role: z.enum(['user', 'admin', 'super_admin']),
 })
 
+const deviceModelMetricSchema = z.object({
+  metricKey: z
+    .string()
+    .trim()
+    .regex(/^metric_[1-9][0-9]*$/, 'metricKey must look like metric_1'),
+  defaultName: z.string().trim().min(1).max(80),
+  defaultType: z.string().trim().min(1).max(40).default('custom'),
+  defaultUnit: z.string().trim().max(24).default(''),
+  defaultIcon: z.string().trim().max(40).default('Activity'),
+  sortOrder: z.number().int().min(0).max(999).optional(),
+})
+
+const deviceModelBaseSchema = z.object({
+  modelKey: z
+    .string()
+    .trim()
+    .min(2)
+    .max(60)
+    .regex(/^[a-z0-9_\-]+$/, 'modelKey must use lowercase letters, numbers, dash or underscore'),
+  modelName: z.string().trim().min(2).max(80),
+  metricCount: z.number().int().min(0).max(100),
+  description: z.string().trim().max(500).optional().nullable(),
+  isActive: z.boolean().optional(),
+  metrics: z.array(deviceModelMetricSchema).optional(),
+})
+
+const createDeviceModelSchema = deviceModelBaseSchema
+const updateDeviceModelSchema = deviceModelBaseSchema.partial().extend({
+  metrics: z.array(deviceModelMetricSchema).optional(),
+})
+
 const PLAN_DEVICE_LIMITS = {
   free: 3,
   basic: 10,
@@ -473,6 +504,335 @@ export async function listAdminDevices(req, res) {
   `)
 
   res.json(result.rows)
+}
+
+
+function normalizeDeviceModelPayload(data) {
+  const metricCount = Number(data.metricCount ?? data.metric_count ?? 0)
+  const rawMetrics = Array.isArray(data.metrics) ? data.metrics : []
+  const metrics = rawMetrics.map((metric, index) => ({
+    metricKey: metric.metricKey || metric.metric_key || `metric_${index + 1}`,
+    defaultName:
+      metric.defaultName ||
+      metric.default_name ||
+      metric.metricName ||
+      metric.metric_name ||
+      `Metric ${index + 1}`,
+    defaultType:
+      metric.defaultType || metric.default_type || metric.metricType || 'custom',
+    defaultUnit: metric.defaultUnit || metric.default_unit || metric.unit || '',
+    defaultIcon: metric.defaultIcon || metric.default_icon || metric.icon || 'Activity',
+    sortOrder:
+      metric.sortOrder !== undefined
+        ? Number(metric.sortOrder)
+        : metric.sort_order !== undefined
+          ? Number(metric.sort_order)
+          : index,
+  }))
+
+  return {
+    modelKey: data.modelKey || data.model_key,
+    modelName: data.modelName || data.model_name,
+    metricCount,
+    description: data.description ?? '',
+    isActive:
+      data.isActive !== undefined
+        ? Boolean(data.isActive)
+        : data.is_active !== undefined
+          ? Boolean(data.is_active)
+          : true,
+    metrics,
+  }
+}
+
+function buildDefaultMetrics(metricCount) {
+  return Array.from({ length: Number(metricCount || 0) }, (_, index) => ({
+    metricKey: `metric_${index + 1}`,
+    defaultName: `Metric ${index + 1}`,
+    defaultType: 'custom',
+    defaultUnit: '',
+    defaultIcon: 'Activity',
+    sortOrder: index,
+  }))
+}
+
+async function upsertDeviceModelMetrics(client, modelId, metrics, metricCount) {
+  const rows = metrics?.length ? metrics : buildDefaultMetrics(metricCount)
+  const normalizedRows = rows.slice(0, Math.max(Number(metricCount || rows.length), rows.length))
+
+  for (let index = 0; index < normalizedRows.length; index += 1) {
+    const metric = normalizedRows[index]
+    await client.query(
+      `
+      INSERT INTO device_model_metrics (
+        model_id,
+        metric_key,
+        default_name,
+        default_type,
+        default_unit,
+        default_icon,
+        sort_order,
+        updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+      ON CONFLICT (model_id, metric_key)
+      DO UPDATE SET
+        default_name = EXCLUDED.default_name,
+        default_type = EXCLUDED.default_type,
+        default_unit = EXCLUDED.default_unit,
+        default_icon = EXCLUDED.default_icon,
+        sort_order = EXCLUDED.sort_order,
+        updated_at = NOW()
+      `,
+      [
+        modelId,
+        metric.metricKey,
+        metric.defaultName,
+        metric.defaultType || 'custom',
+        metric.defaultUnit || '',
+        metric.defaultIcon || 'Activity',
+        metric.sortOrder ?? index,
+      ]
+    )
+  }
+
+  const metricKeys = normalizedRows.map((metric) => metric.metricKey)
+  if (metricKeys.length) {
+    await client.query(
+      `
+      DELETE FROM device_model_metrics
+      WHERE model_id = $1
+        AND metric_key <> ALL($2::text[])
+      `,
+      [modelId, metricKeys]
+    )
+  } else {
+    await client.query(`DELETE FROM device_model_metrics WHERE model_id = $1`, [modelId])
+  }
+}
+
+export async function listAdminDeviceModels(req, res) {
+  const includeInactive = String(req.query.includeInactive || 'true') !== 'false'
+
+  const result = await pool.query(
+    `
+    SELECT
+      dm.id,
+      dm.model_key AS "modelKey",
+      dm.model_name AS "modelName",
+      dm.metric_count AS "metricCount",
+      COALESCE(dm.description, '') AS description,
+      COALESCE(dm.is_active, true) AS "isActive",
+      COUNT(DISTINCT d.id)::int AS "deviceCount",
+      COALESCE(
+        jsonb_agg(
+          jsonb_build_object(
+            'id', dmm.id,
+            'metricKey', dmm.metric_key,
+            'defaultName', dmm.default_name,
+            'defaultType', dmm.default_type,
+            'defaultUnit', dmm.default_unit,
+            'defaultIcon', dmm.default_icon,
+            'sortOrder', dmm.sort_order
+          )
+          ORDER BY dmm.sort_order ASC, dmm.metric_key ASC
+        ) FILTER (WHERE dmm.id IS NOT NULL),
+        '[]'::jsonb
+      ) AS metrics
+    FROM device_models dm
+    LEFT JOIN devices d
+      ON d.model_id = dm.id
+      AND d.is_active = true
+    LEFT JOIN device_model_metrics dmm
+      ON dmm.model_id = dm.id
+    WHERE ($1::boolean = true OR dm.is_active = true)
+    GROUP BY dm.id
+    ORDER BY dm.is_active DESC, dm.id ASC
+    `,
+    [includeInactive]
+  )
+
+  res.json(result.rows)
+}
+
+export async function createAdminDeviceModel(req, res) {
+  const parsed = createDeviceModelSchema.parse(normalizeDeviceModelPayload(req.body))
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+
+    const result = await client.query(
+      `
+      INSERT INTO device_models (
+        model_key,
+        model_name,
+        metric_count,
+        description,
+        is_active,
+        updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, NOW())
+      RETURNING
+        id,
+        model_key AS "modelKey",
+        model_name AS "modelName",
+        metric_count AS "metricCount",
+        description,
+        is_active AS "isActive"
+      `,
+      [
+        parsed.modelKey,
+        parsed.modelName,
+        parsed.metricCount,
+        parsed.description || '',
+        parsed.isActive ?? true,
+      ]
+    )
+
+    const model = result.rows[0]
+    await upsertDeviceModelMetrics(client, model.id, parsed.metrics || [], parsed.metricCount)
+
+    await createAdminAuditLog({
+      actorUserId: req.dbUser.id,
+      action: 'device_model.created',
+      detail: `Created device model ${model.modelKey}`,
+      metadata: { modelId: model.id, modelKey: model.modelKey },
+      request: req,
+      client,
+    })
+
+    await client.query('COMMIT')
+    res.status(201).json(model)
+  } catch (error) {
+    await client.query('ROLLBACK')
+
+    if (error?.code === '23505') {
+      return res.status(409).json({ message: 'Model key already exists' })
+    }
+
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function updateAdminDeviceModel(req, res) {
+  const { modelId } = req.params
+  const currentResult = await pool.query(
+    `SELECT id, model_key, model_name, metric_count, description, is_active FROM device_models WHERE id = $1 LIMIT 1`,
+    [modelId]
+  )
+
+  if (!currentResult.rowCount) {
+    return res.status(404).json({ message: 'Device model not found' })
+  }
+
+  const current = currentResult.rows[0]
+  const normalized = normalizeDeviceModelPayload({
+    modelKey: current.model_key,
+    modelName: current.model_name,
+    metricCount: current.metric_count,
+    description: current.description || '',
+    isActive: current.is_active,
+    ...req.body,
+  })
+  const parsed = updateDeviceModelSchema.parse(normalized)
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+
+    const result = await client.query(
+      `
+      UPDATE device_models
+      SET
+        model_key = COALESCE($2, model_key),
+        model_name = COALESCE($3, model_name),
+        metric_count = COALESCE($4, metric_count),
+        description = COALESCE($5, description),
+        is_active = COALESCE($6, is_active),
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING
+        id,
+        model_key AS "modelKey",
+        model_name AS "modelName",
+        metric_count AS "metricCount",
+        description,
+        is_active AS "isActive"
+      `,
+      [
+        modelId,
+        parsed.modelKey,
+        parsed.modelName,
+        parsed.metricCount,
+        parsed.description,
+        parsed.isActive,
+      ]
+    )
+
+    const model = result.rows[0]
+    if (Array.isArray(parsed.metrics)) {
+      await upsertDeviceModelMetrics(client, model.id, parsed.metrics, model.metricCount)
+    }
+
+    await createAdminAuditLog({
+      actorUserId: req.dbUser.id,
+      action: 'device_model.updated',
+      detail: `Updated device model ${model.modelKey}`,
+      metadata: { modelId: model.id, modelKey: model.modelKey },
+      request: req,
+      client,
+    })
+
+    await client.query('COMMIT')
+    res.json(model)
+  } catch (error) {
+    await client.query('ROLLBACK')
+
+    if (error?.code === '23505') {
+      return res.status(409).json({ message: 'Model key already exists' })
+    }
+
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function deleteAdminDeviceModel(req, res) {
+  const { modelId } = req.params
+  const result = await pool.query(
+    `
+    UPDATE device_models
+    SET is_active = false,
+        updated_at = NOW()
+    WHERE id = $1
+    RETURNING
+      id,
+      model_key AS "modelKey",
+      model_name AS "modelName",
+      metric_count AS "metricCount",
+      description,
+      is_active AS "isActive"
+    `,
+    [modelId]
+  )
+
+  if (!result.rowCount) {
+    return res.status(404).json({ message: 'Device model not found' })
+  }
+
+  await createAdminAuditLog({
+    actorUserId: req.dbUser.id,
+    action: 'device_model.deactivated',
+    detail: `Deactivated device model ${result.rows[0].modelKey}`,
+    metadata: { modelId: result.rows[0].id, modelKey: result.rows[0].modelKey },
+    request: req,
+  })
+
+  res.json(result.rows[0])
 }
 
 export async function listAdminAuditLogs(req, res) {

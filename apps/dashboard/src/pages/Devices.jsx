@@ -15,6 +15,7 @@ import {
   deleteAlarmRule,
   deleteDevice,
   getAlarmRules,
+  getDeviceModels,
   getDevices,
   resetDeviceSecret,
   updateAlarmRule,
@@ -23,7 +24,7 @@ import {
 } from '../services/api'
 import '../styles/devices.css'
 import '../styles/page-system.css'
-const DEVICE_MODEL_OPTIONS = [
+const FALLBACK_DEVICE_MODEL_OPTIONS = [
   {
     id: 1,
     modelKey: 'dw_2ch',
@@ -43,6 +44,18 @@ const DEVICE_MODEL_OPTIONS = [
     description: 'Raspberry Pi / 20 Channels',
   },
 ]
+
+function normalizeDeviceModel(model) {
+  return {
+    id: model.id,
+    modelKey: model.modelKey || model.model_key,
+    name: model.name || model.modelName || model.model_name || 'Device Model',
+    description:
+      model.description ||
+      `${model.metricCount || model.metric_count || 0} metrics`,
+    metricCount: model.metricCount || model.metric_count || 0,
+  }
+}
 
 function createDeviceCode() {
   return `DW-${Date.now()}`
@@ -66,6 +79,7 @@ function Devices() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deviceError, setDeviceError] = useState('')
+  const [deviceModelOptions, setDeviceModelOptions] = useState(FALLBACK_DEVICE_MODEL_OPTIONS)
   const [notice, setNotice] = useState(null)
   const [resetSecretResult, setResetSecretResult] = useState(null)
   const noticeTimerRef = useRef(null)
@@ -126,6 +140,37 @@ function Devices() {
     }, 4200)
   }
 
+  async function loadDeviceModels() {
+    try {
+      const data = await getDeviceModels()
+      const nextModels = Array.isArray(data)
+        ? data.map(normalizeDeviceModel).filter((model) => model.id)
+        : []
+
+      if (nextModels.length) {
+        setDeviceModelOptions(nextModels)
+        setCreateForm((current) => {
+          const stillExists = nextModels.some(
+            (model) => Number(model.id) === Number(current.modelId)
+          )
+
+          return stillExists
+            ? current
+            : {
+                ...current,
+                modelId: Number(nextModels[0].id),
+              }
+        })
+      }
+    } catch (error) {
+      console.error('Load device models error:', error)
+      showNotice(
+        'warning',
+        'โหลด Device Model จาก Backend ไม่สำเร็จ ใช้รายการสำรองชั่วคราว'
+      )
+    }
+  }
+
   async function loadDevices() {
     try {
       setLoading(true)
@@ -166,7 +211,7 @@ function Devices() {
   }
 
   async function reloadAll() {
-    await Promise.all([loadDevices(), loadAlarmRules()])
+    await Promise.all([loadDeviceModels(), loadDevices(), loadAlarmRules()])
   }
 
   useEffect(() => {
@@ -182,7 +227,7 @@ function Devices() {
   function openCreateWizard() {
     setCreateForm({
       name: '',
-      modelId: 1,
+      modelId: Number(deviceModelOptions[0]?.id || 1),
       latitude: null,
       longitude: null,
       deviceCode: createDeviceCode(),
@@ -592,7 +637,7 @@ function Devices() {
         createForm={createForm}
         setCreateForm={setCreateForm}
         createdDevice={createdDevice}
-        deviceModelOptions={DEVICE_MODEL_OPTIONS}
+        deviceModelOptions={deviceModelOptions}
         onClose={closeCreateWizard}
         onCopy={copyText}
         onConfirmCreate={handleConfirmCreateDevice}

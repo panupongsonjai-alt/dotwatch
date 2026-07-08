@@ -559,6 +559,13 @@ async function seedDeviceModels() {
       metricCount: 0,
       description: 'กำหนด Metric เอง',
     },
+    {
+      id: 5,
+      modelKey: 'esp32_dht3',
+      modelName: 'ESP32-DHT3',
+      metricCount: 3,
+      description: 'ESP32 Wi-Fi model with DHT temperature/humidity and Wi-Fi RSSI',
+    },
   ]
 
   for (const model of models) {
@@ -618,6 +625,26 @@ async function seedDeviceModels() {
     }),
     ...createMetricRows(2, 10),
     ...createMetricRows(3, 20),
+    ...createMetricRows(5, 3, {
+      metric_1: {
+        defaultName: 'Temperature',
+        defaultType: 'temperature',
+        defaultUnit: '°C',
+        defaultIcon: 'Thermometer',
+      },
+      metric_2: {
+        defaultName: 'Humidity',
+        defaultType: 'humidity',
+        defaultUnit: '%',
+        defaultIcon: 'Droplets',
+      },
+      metric_3: {
+        defaultName: 'WiFi RSSI',
+        defaultType: 'signal',
+        defaultUnit: 'dBm',
+        defaultIcon: 'Wifi',
+      },
+    }),
   ]
 
   for (const row of metricRows) {
@@ -645,100 +672,6 @@ async function seedDeviceModels() {
       `,
       [
         row.modelId,
-        row.metricKey,
-        row.defaultName,
-        row.defaultType,
-        row.defaultUnit,
-        row.defaultIcon,
-        row.sortOrder,
-      ]
-    )
-  }
-}
-
-async function seedEsp32Dht3Model() {
-  const modelResult = await client.query(
-    `
-    INSERT INTO device_models (
-      model_key,
-      model_name,
-      metric_count,
-      description,
-      is_active,
-      updated_at
-    )
-    VALUES ($1, $2, $3, $4, true, NOW())
-    ON CONFLICT (model_key)
-    DO UPDATE SET
-      model_name = EXCLUDED.model_name,
-      metric_count = EXCLUDED.metric_count,
-      description = EXCLUDED.description,
-      is_active = true,
-      updated_at = NOW()
-    RETURNING id
-    `,
-    [
-      'esp32_dht3',
-      'ESP32-DHT3',
-      3,
-      'Additional ESP32 Wi-Fi model with DHT temperature/humidity and Wi-Fi RSSI. Metrics: metric_1 temperature, metric_2 humidity, metric_3 rssi.',
-    ]
-  )
-
-  const modelId = modelResult.rows[0]?.id
-
-  const metricRows = [
-    {
-      metricKey: 'metric_1',
-      defaultName: 'Temperature',
-      defaultType: 'temperature',
-      defaultUnit: '°C',
-      defaultIcon: 'Thermometer',
-      sortOrder: 1,
-    },
-    {
-      metricKey: 'metric_2',
-      defaultName: 'Humidity',
-      defaultType: 'humidity',
-      defaultUnit: '%',
-      defaultIcon: 'Droplets',
-      sortOrder: 2,
-    },
-    {
-      metricKey: 'metric_3',
-      defaultName: 'WiFi RSSI',
-      defaultType: 'signal',
-      defaultUnit: 'dBm',
-      defaultIcon: 'Wifi',
-      sortOrder: 3,
-    },
-  ]
-
-  for (const row of metricRows) {
-    await run(
-      `
-      INSERT INTO device_model_metrics (
-        model_id,
-        metric_key,
-        default_name,
-        default_type,
-        default_unit,
-        default_icon,
-        sort_order,
-        updated_at
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-      ON CONFLICT (model_id, metric_key)
-      DO UPDATE SET
-        default_name = EXCLUDED.default_name,
-        default_type = EXCLUDED.default_type,
-        default_unit = EXCLUDED.default_unit,
-        default_icon = EXCLUDED.default_icon,
-        sort_order = EXCLUDED.sort_order,
-        updated_at = NOW()
-      `,
-      [
-        modelId,
         row.metricKey,
         row.defaultName,
         row.defaultType,
@@ -955,7 +888,6 @@ async function main() {
     await createDemoTables()
     await createIndexes()
     await seedDeviceModels()
-    await seedEsp32Dht3Model()
     await backfillDefaultOrganizations()
     await enableTimescaleIfAvailable()
     await createMetricContinuousAggregatesIfAvailable()

@@ -4,6 +4,7 @@ import AuthGate from './components/auth/AuthGate'
 import AdminOverview from './pages/AdminOverview'
 import AdminUsers from './pages/AdminUsers'
 import AdminDevices from './pages/AdminDevices'
+import AdminModels from './pages/AdminModels'
 import AdminSubscriptions from './pages/AdminSubscriptions'
 import AdminAuditLogs from './pages/AdminAuditLogs'
 import AdminSystem from './pages/AdminSystem'
@@ -12,6 +13,7 @@ import {
   getAdminAuditLogs,
   getAdminCommercialSummary,
   getAdminDevices,
+  getAdminDeviceModels,
   getAdminMe,
   getAdminPlans,
   getAdminUsers,
@@ -23,6 +25,7 @@ const PAGE_COMPONENTS = {
   overview: AdminOverview,
   users: AdminUsers,
   devices: AdminDevices,
+  models: AdminModels,
   subscriptions: AdminSubscriptions,
   audit: AdminAuditLogs,
   system: AdminSystem,
@@ -34,6 +37,7 @@ function App() {
   const [adminUser, setAdminUser] = useState(null)
   const [users, setUsers] = useState([])
   const [devices, setDevices] = useState([])
+  const [deviceModels, setDeviceModels] = useState([])
   const [auditLogs, setAuditLogs] = useState([])
   const [plans, setPlans] = useState([])
   const [commercialSummary, setCommercialSummary] = useState(null)
@@ -54,12 +58,14 @@ function App() {
           nextDevices,
           nextAuditLogs,
           nextPlans,
+          nextDeviceModels,
           nextCommercialSummary,
         ] = await Promise.all([
           getAdminUsers(),
           getAdminDevices(),
           getAdminAuditLogs(),
           getAdminPlans(),
+          getAdminDeviceModels(),
           getAdminCommercialSummary(),
         ])
 
@@ -69,6 +75,7 @@ function App() {
         setDevices(nextDevices)
         setAuditLogs(nextAuditLogs)
         setPlans(nextPlans)
+        setDeviceModels(Array.isArray(nextDeviceModels) ? nextDeviceModels : [])
         setCommercialSummary(nextCommercialSummary)
       } catch (error) {
         console.error(error)
@@ -177,6 +184,7 @@ function App() {
           auditLogs={auditLogs}
           stats={stats}
           plans={plans}
+          deviceModels={deviceModels}
           commercialSummary={commercialSummary}
           loading={loading}
           adminUser={adminUser}

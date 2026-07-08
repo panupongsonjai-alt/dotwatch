@@ -218,3 +218,87 @@ export async function updateAdminUserPlan(userId, data) {
     body: JSON.stringify(data),
   })
 }
+
+
+export async function getAdminDeviceModels() {
+  if (USE_MOCK_ADMIN_API) {
+    await delay()
+
+    return [
+      {
+        id: 1,
+        modelKey: 'dw_2ch',
+        modelName: 'DW2CH',
+        metricCount: 2,
+        description: 'ESP / 2 Channels เช่น Temperature และ Humidity',
+        isActive: true,
+        deviceCount: 0,
+        metrics: [
+          { metricKey: 'metric_1', defaultName: 'Temperature', defaultType: 'temperature', defaultUnit: '°C', defaultIcon: 'Thermometer', sortOrder: 0 },
+          { metricKey: 'metric_2', defaultName: 'Humidity', defaultType: 'humidity', defaultUnit: '%', defaultIcon: 'Droplets', sortOrder: 1 },
+        ],
+      },
+      {
+        id: 3,
+        modelKey: 'dw_20ch',
+        modelName: 'DW20CH',
+        metricCount: 20,
+        description: 'Raspberry Pi / 20 Channels Gateway',
+        isActive: true,
+        deviceCount: 1,
+        metrics: [],
+      },
+      {
+        id: 5,
+        modelKey: 'esp32_dht3',
+        modelName: 'ESP32-DHT3',
+        metricCount: 3,
+        description: 'ESP32 Wi-Fi model with DHT temperature/humidity and Wi-Fi RSSI',
+        isActive: true,
+        deviceCount: 0,
+        metrics: [
+          { metricKey: 'metric_1', defaultName: 'Temperature', defaultType: 'temperature', defaultUnit: '°C', defaultIcon: 'Thermometer', sortOrder: 0 },
+          { metricKey: 'metric_2', defaultName: 'Humidity', defaultType: 'humidity', defaultUnit: '%', defaultIcon: 'Droplets', sortOrder: 1 },
+          { metricKey: 'metric_3', defaultName: 'WiFi RSSI', defaultType: 'signal', defaultUnit: 'dBm', defaultIcon: 'Wifi', sortOrder: 2 },
+        ],
+      },
+    ]
+  }
+
+  return adminFetch('/api/admin/device-models?includeInactive=true')
+}
+
+export async function createAdminDeviceModel(data) {
+  if (USE_MOCK_ADMIN_API) {
+    await delay(150)
+    return { id: Date.now(), ...data, isActive: true, deviceCount: 0 }
+  }
+
+  return adminFetch('/api/admin/device-models', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateAdminDeviceModel(modelId, data) {
+  if (USE_MOCK_ADMIN_API) {
+    await delay(150)
+    return { id: modelId, ...data }
+  }
+
+  return adminFetch(`/api/admin/device-models/${modelId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteAdminDeviceModel(modelId) {
+  if (USE_MOCK_ADMIN_API) {
+    await delay(150)
+    return { id: modelId, isActive: false }
+  }
+
+  return adminFetch(`/api/admin/device-models/${modelId}`, {
+    method: 'DELETE',
+  })
+}

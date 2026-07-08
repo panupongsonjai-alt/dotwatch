@@ -1,6 +1,7 @@
 import {
   Activity,
   Bell,
+  Cpu,
   CreditCard,
   Database,
   LayoutDashboard,
@@ -25,6 +26,11 @@ const MENU_ITEMS = [
     id: 'devices',
     label: 'Devices',
     icon: MonitorSmartphone,
+  },
+  {
+    id: 'models',
+    label: 'Models',
+    icon: Cpu,
   },
   {
     id: 'subscriptions',

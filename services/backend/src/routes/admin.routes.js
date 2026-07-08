@@ -1,12 +1,16 @@
 import { Router } from 'express'
 import {
+  createAdminDeviceModel,
+  deleteAdminDeviceModel,
   getAdminCommercialSummary,
   getAdminMe,
   getAdminStats,
   listAdminAuditLogs,
+  listAdminDeviceModels,
   listAdminDevices,
   listAdminPlans,
   listAdminUsers,
+  updateAdminDeviceModel,
   updateAdminUserPlan,
   updateAdminUserRole,
   updateAdminUserStatus,
@@ -36,4 +40,8 @@ adminRouter.patch(
   asyncHandler(updateAdminUserRole)
 )
 adminRouter.get('/devices', asyncHandler(listAdminDevices))
+adminRouter.get('/device-models', asyncHandler(listAdminDeviceModels))
+adminRouter.post('/device-models', requireSuperAdmin, asyncHandler(createAdminDeviceModel))
+adminRouter.put('/device-models/:modelId', requireSuperAdmin, asyncHandler(updateAdminDeviceModel))
+adminRouter.delete('/device-models/:modelId', requireSuperAdmin, asyncHandler(deleteAdminDeviceModel))
 adminRouter.get('/audit-logs', asyncHandler(listAdminAuditLogs))

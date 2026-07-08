@@ -321,6 +321,10 @@ export function getDevices() {
   return apiFetch('/api/devices')
 }
 
+export function getDeviceModels() {
+  return apiFetch('/api/device-models')
+}
+
 export function getDevice(id) {
   return apiFetch(`/api/devices/${encodeURIComponent(id)}`)
 }
