@@ -7,6 +7,8 @@ import {
   cancelOrganizationInvitation,
   createOrganization,
   getOrganizationOverview,
+  getOrganizationUsage,
+  listOrganizationAuditLogs,
   listOrganizationInvitations,
   listOrganizationMembers,
   listOrganizations,
@@ -21,6 +23,8 @@ organizationsRouter.use(loadUser)
 organizationsRouter.get('/', asyncHandler(listOrganizations))
 organizationsRouter.post('/', asyncHandler(createOrganization))
 organizationsRouter.get('/:id/overview', asyncHandler(getOrganizationOverview))
+organizationsRouter.get('/:id/usage', asyncHandler(getOrganizationUsage))
+organizationsRouter.get('/:id/audit-logs', asyncHandler(listOrganizationAuditLogs))
 organizationsRouter.get('/:id/members', asyncHandler(listOrganizationMembers))
 organizationsRouter.post('/:id/members', asyncHandler(addOrganizationMember))
 organizationsRouter.patch(

@@ -36,3 +36,19 @@ ssh pi@$PiHost "ss -ltnp | grep ':8080' || true"
 ## Secret handling
 
 Do not commit the Pi .env file. Use .env.example as a template only.
+
+## Phase 2 Config UI security default
+
+The Pi Config UI now binds to `127.0.0.1:8080` by default. Access it through an SSH tunnel:
+
+```bash
+ssh -L 8080:127.0.0.1:8080 pi@<PI_IP>
+```
+
+Then open `http://127.0.0.1:8080` on your computer.
+
+Use LAN exposure only when needed:
+
+```bash
+sudo bash install_config_ui_service.sh --project-dir /home/pi/dotwatch-pi-agent --lan --password 'CHANGE_TO_A_LONG_RANDOM_PASSWORD'
+```

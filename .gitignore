@@ -1,4 +1,4 @@
-﻿# dotWatch repository ignore rules
+# dotWatch repository ignore rules
 # Keep source files, docs, migrations and examples. Never commit generated files or secrets.
 
 # Dependencies
@@ -64,7 +64,11 @@ venv/
 .pytest_cache/
 .mypy_cache/
 
+# Local reports / operational output
+_reports/
+
 # Local database / backups / dumps
+_backups/
 *.sqlite
 *.sqlite3
 *.db
@@ -99,3 +103,8 @@ services/**/.env.*
 *.bak-*
 *.pre-*.bak
 fix-*.ps1
+!.env.local.example
+apps/dashboard/.env.local
+services/backend/.env
+services/backend/.env.*
+.pio/

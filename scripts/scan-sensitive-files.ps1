@@ -1,4 +1,4 @@
-﻿param(
+param(
   [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 )
 
@@ -92,7 +92,7 @@ foreach ($file in $files) {
     continue
   }
 
-  if ($relative -match '\.env\.example$' -or $relative -match '\.env\.template$') {
+  if ($relative -match '\.env\.example$' -or $relative -match '\.env\..*\.example$' -or $relative -match '\.env\.template$') {
     continue
   }
 

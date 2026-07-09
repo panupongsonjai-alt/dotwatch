@@ -196,6 +196,22 @@ export const env = {
   ),
   jsonBodyLimit: cleanEnvString(process.env.JSON_BODY_LIMIT) || '128kb',
 
+  logLevel: cleanEnvString(process.env.LOG_LEVEL) || (nodeEnv === 'production' ? 'info' : 'debug'),
+  httpLogEnabled: parseBoolean(process.env.HTTP_LOG_ENABLED, true),
+  slowRequestMs: parsePositiveInteger(
+    process.env.SLOW_REQUEST_MS,
+    1000,
+    { min: 0, max: 120_000 }
+  ),
+  opsSummaryIntervalSeconds: parsePositiveInteger(
+    process.env.OPS_SUMMARY_INTERVAL_SECONDS,
+    0,
+    { min: 0, max: 86_400 }
+  ),
+  releaseVersion: cleanEnvString(process.env.RELEASE_VERSION) || cleanEnvString(process.env.RENDER_GIT_COMMIT),
+  renderServiceName: cleanEnvString(process.env.RENDER_SERVICE_NAME),
+  renderInstanceId: cleanEnvString(process.env.RENDER_INSTANCE_ID),
+
   wsSubscribeTimeoutMs: parsePositiveInteger(
     process.env.WS_SUBSCRIBE_TIMEOUT_MS,
     15_000,
@@ -290,6 +306,12 @@ export function getPublicRuntimeConfig() {
     apiRateLimitPerMinute: env.apiRateLimitPerMinute,
     ingestRateLimitPerMinute: env.ingestRateLimitPerMinute,
     jsonBodyLimit: env.jsonBodyLimit,
+    logLevel: env.logLevel,
+    httpLogEnabled: env.httpLogEnabled,
+    slowRequestMs: env.slowRequestMs,
+    opsSummaryIntervalSeconds: env.opsSummaryIntervalSeconds,
+    releaseVersion: env.releaseVersion,
+    renderServiceName: env.renderServiceName,
     wsSubscribeTimeoutMs: env.wsSubscribeTimeoutMs,
     wsMaxClientsPerUser: env.wsMaxClientsPerUser,
     deviceWarningAfterSeconds: env.deviceWarningAfterSeconds,

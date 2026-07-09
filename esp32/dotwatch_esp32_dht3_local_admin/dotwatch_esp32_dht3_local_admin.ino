@@ -46,7 +46,7 @@
 #define FIRMWARE_VERSION "esp32-dht3-local-admin-0.4.0"
 
 static const char *SETUP_AP_SSID = "dotWatch-ESP32-Setup";
-static const char *SETUP_AP_PASSWORD = "";
+static const char *SETUP_AP_PASSWORD = "dotwatch-setup";
 static const byte DNS_PORT = 53;
 
 static const int DEFAULT_DHT_PIN = 4;

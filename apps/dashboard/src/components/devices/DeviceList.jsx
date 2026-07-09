@@ -1,5 +1,5 @@
-﻿import { memo, useMemo, useState } from 'react'
-import { Plus, RefreshCw, Search } from 'lucide-react'
+import { memo, useMemo, useState } from 'react'
+import { Plus, RefreshCw, Search, Wifi } from 'lucide-react'
 import { getDeviceMetricPills } from '../../utils/esp32Dht3Utils.js'
 import {
   getDeviceDisplayName,
@@ -62,6 +62,22 @@ function formatMetricValue(value) {
   return Number.isInteger(numberValue) ? String(numberValue) : numberValue.toFixed(1)
 }
 
+function getSignalQuality(device = {}) {
+  const metricPills = getDeviceMetricPills(device, 3)
+  const signalMetric = metricPills.find((metric) =>
+    String(metric.key || '').toLowerCase().includes('3') ||
+    String(metric.label || '').toLowerCase().includes('rssi') ||
+    String(metric.name || '').toLowerCase().includes('wifi')
+  )
+
+  const value = Number(signalMetric?.value ?? device.rssi ?? device.metric_3)
+
+  if (!Number.isFinite(value)) return 'Signal --'
+  if (value >= -55) return 'Signal strong'
+  if (value >= -70) return 'Signal good'
+  return 'Signal weak'
+}
+
 const DeviceListItem = memo(function DeviceListItem({
   device,
   active,
@@ -94,6 +110,14 @@ const DeviceListItem = memo(function DeviceListItem({
         </span>
       </div>
 
+      <div className="devices-v3-device-meta-line">
+        <span className="device-model-badge">{getModelLabel(device)}</span>
+        <span className="devices-v3-signal-chip">
+          <Wifi size={13} />
+          {getSignalQuality(device)}
+        </span>
+      </div>
+
       {metricPills.length > 0 && (
         <div className="devices-v3-item-metrics" aria-label="Latest metrics">
           {metricPills.map((metric) => (
@@ -106,8 +130,7 @@ const DeviceListItem = memo(function DeviceListItem({
       )}
 
       <div className="devices-v2-item-foot devices-v3-item-footer">
-        <span className="device-model-badge">{getModelLabel(device)}</span>
-        <small>{getLastSeen(device)}</small>
+        <small>Last seen {getLastSeen(device)}</small>
       </div>
     </button>
   )
@@ -156,7 +179,7 @@ function DeviceList({
     if (errorMessage) {
       return (
         <div className="app-empty-state compact-empty-state devices-v3-error-state">
-          <h3>à¹‚à¸«à¸¥à¸” Device à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ</h3>
+          <h3>โหลด Device ไม่สำเร็จ</h3>
           <p>{errorMessage}</p>
           {onRetry && (
             <button type="button" className="secondary-button" onClick={onRetry}>
@@ -171,8 +194,8 @@ function DeviceList({
     if (!devices.length) {
       return (
         <div className="app-empty-state compact-empty-state">
-          <h3>à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µ Device</h3>
-          <p>à¸à¸” Create à¹€à¸žà¸·à¹ˆà¸­à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™</p>
+          <h3>ยังไม่มี Device</h3>
+          <p>กด Create Device เพื่อเริ่มเชื่อมต่อ ESP32 หรือ Gateway ตัวแรก</p>
         </div>
       )
     }
@@ -180,8 +203,8 @@ function DeviceList({
     if (!filteredDevices.length) {
       return (
         <div className="app-empty-state compact-empty-state">
-          <h3>à¹„à¸¡à¹ˆà¸žà¸š Device</h3>
-          <p>à¸¥à¸­à¸‡à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸„à¸³à¸„à¹‰à¸™à¸«à¸²à¹ƒà¸«à¸¡à¹ˆà¸­à¸µà¸à¸„à¸£à¸±à¹‰à¸‡</p>
+          <h3>ไม่พบ Device</h3>
+          <p>ลองเปลี่ยนคำค้นหา หรือค้นจาก Device Code / ชื่ออุปกรณ์</p>
         </div>
       )
     }
@@ -201,8 +224,8 @@ function DeviceList({
       <div className="app-card devices-v2-list-card devices-v3-list-card">
         <div className="app-section-title devices-v2-list-title">
           <div>
-            <h3>Devices</h3>
-            <p>{devices.length} devices registered</p>
+            <h3>Device List</h3>
+            <p>{devices.length} registered devices</p>
           </div>
 
           <div className="device-v2-header-actions">
@@ -223,11 +246,11 @@ function DeviceList({
           <input
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
-            placeholder="Search device..."
+            placeholder="Search name, code, model..."
           />
         </div>
 
-        <div className="devices-v2-list-scroll devices-v3-list-scroll">
+        <div className="devices-v2-list-scroll devices-v3-list-scroll" role="list">
           {renderList()}
         </div>
       </div>

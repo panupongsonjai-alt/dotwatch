@@ -6,27 +6,138 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
+const MIGRATION_LOCK_KEY = 1783359069
+
 const { Client } = pg
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const databaseUrl = process.env.DATABASE_URL
+const rawDatabaseUrl = process.env.DATABASE_URL
 
-if (!databaseUrl) {
-  console.error('Missing required environment variable: DATABASE_URL')
+function maskDatabaseUrl(value) {
+  try {
+    const url = new URL(value)
+    const auth = url.username || url.password ? '***:***@' : ''
+    const port = url.port ? `:${url.port}` : ''
+    const query = url.search ? '?***' : ''
+    return `${url.protocol}//${auth}${url.hostname}${port}${url.pathname}${query}`
+  } catch {
+    return '***invalid DATABASE_URL***'
+  }
+}
+
+function looksLikePlaceholder(value) {
+  if (!value || !String(value).trim()) return true
+
+  return [
+    /วาง/i,
+    /ตรงนี้/i,
+    /Render External Database URL/i,
+    /YOUR_/i,
+    /your_/i,
+    /REPLACE/i,
+    /CHANGE_ME/i,
+    /example\.com/i,
+    /<[^>]+>/,
+    /\{[^}]+\}/,
+    /postgres(?:ql)?:\/\/user:password@host/i,
+  ].some((pattern) => pattern.test(String(value)))
+}
+
+function validateDatabaseUrl(value) {
+  if (looksLikePlaceholder(value)) {
+    throw new Error(
+      'DATABASE_URL still looks like a placeholder. Copy the real Render External Database URL before running migrations.'
+    )
+  }
+
+  let parsed
+  try {
+    parsed = new URL(value)
+  } catch {
+    throw new Error('DATABASE_URL is not a valid absolute PostgreSQL URL.')
+  }
+
+  if (!['postgres:', 'postgresql:'].includes(parsed.protocol)) {
+    throw new Error(
+      `DATABASE_URL scheme must be postgres:// or postgresql://, got '${parsed.protocol}'.`
+    )
+  }
+
+  if (!parsed.hostname) {
+    throw new Error('DATABASE_URL host is empty.')
+  }
+
+  const placeholderHosts = new Set([
+    'base',
+    'host',
+    'hostname',
+    'db-host',
+    'your-host',
+    'render-host',
+  ])
+
+  if (placeholderHosts.has(parsed.hostname.toLowerCase())) {
+    throw new Error(
+      `DATABASE_URL host '${parsed.hostname}' looks like a placeholder. Use the real Render PostgreSQL host.`
+    )
+  }
+
+  const databaseName = parsed.pathname.replace(/^\//, '')
+  if (!databaseName) {
+    throw new Error('DATABASE_URL database name is empty.')
+  }
+
+  return { value, parsed, databaseName, masked: maskDatabaseUrl(value) }
+}
+
+let databaseUrlInfo
+try {
+  if (!rawDatabaseUrl) {
+    throw new Error('Missing required environment variable: DATABASE_URL')
+  }
+  databaseUrlInfo = validateDatabaseUrl(rawDatabaseUrl)
+} catch (error) {
+  console.error(`dotWatch migration blocked: ${error.message}`)
+  console.error('Set DATABASE_URL to the real Render External Database URL. Do not paste the placeholder text from the instructions.')
   process.exit(1)
 }
+
+const databaseUrl = databaseUrlInfo.value
+
+console.log(`DB URL: ${databaseUrlInfo.masked}`)
 
 const isRenderDb =
   databaseUrl.includes('render.com') || databaseUrl.includes('render.internal')
 
+function parseBoolean(value, fallback = false) {
+  if (value === undefined || value === null || value === '') return fallback
+
+  const normalized = String(value).trim().toLowerCase()
+  if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) return true
+  if (['false', '0', 'no', 'n', 'off'].includes(normalized)) return false
+
+  return fallback
+}
+
+function getDatabaseSslConfig() {
+  if (parseBoolean(process.env.DATABASE_SSL_DISABLED, false)) return false
+
+  const rejectUnauthorized = parseBoolean(
+    process.env.DATABASE_SSL_REJECT_UNAUTHORIZED,
+    false
+  )
+
+  if (isRenderDb || databaseUrl.includes('sslmode=require')) {
+    return { rejectUnauthorized }
+  }
+
+  return false
+}
+
 const client = new Client({
   connectionString: databaseUrl,
-  ssl: isRenderDb
-    ? {
-        rejectUnauthorized: false,
-      }
-    : false,
+  ssl: getDatabaseSslConfig(),
 })
 
 async function run(sql, params = []) {
@@ -61,6 +172,67 @@ async function runOptional(label, sql) {
   } catch (error) {
     console.warn(`SKIP optional: ${label} - ${error.message}`)
     return false
+  }
+}
+
+async function acquireMigrationLock() {
+  const result = await client.query(
+    'SELECT pg_try_advisory_lock($1::integer) AS locked',
+    [MIGRATION_LOCK_KEY]
+  )
+
+  if (!result.rows[0]?.locked) {
+    throw new Error(
+      'Another dotWatch migration appears to be running. Stop the duplicate deploy/run and try again.'
+    )
+  }
+
+  console.log('OK migration lock acquired')
+}
+
+async function releaseMigrationLock() {
+  try {
+    await client.query('SELECT pg_advisory_unlock($1::integer)', [MIGRATION_LOCK_KEY])
+  } catch (error) {
+    console.warn(`WARN migration lock release failed: ${error.message}`)
+  }
+}
+
+async function getRelationKind(relationName) {
+  const result = await client.query(
+    `
+    SELECT c.relkind
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relname = $1
+    LIMIT 1
+    `,
+    [relationName]
+  )
+
+  return result.rows[0]?.relkind || null
+}
+
+async function assertSafeDatabaseTarget() {
+  const result = await client.query(`
+    SELECT
+      current_database() AS database_name,
+      current_user AS database_user,
+      inet_server_addr()::text AS server_addr,
+      version() AS version
+  `)
+
+  const row = result.rows[0]
+  console.log(
+    `DB target: database=${row.database_name}, user=${row.database_user}, server=${row.server_addr || 'local/hidden'}`
+  )
+
+  if (!/dotwatch/i.test(row.database_name || '') && process.env.DOTWATCH_ALLOW_NON_DOTWATCH_DB !== '1') {
+    throw new Error(
+      `Refusing to migrate database '${row.database_name}'. ` +
+        'Set DOTWATCH_ALLOW_NON_DOTWATCH_DB=1 only if you are certain this is the correct dotWatch database.'
+    )
   }
 }
 
@@ -249,6 +421,18 @@ async function createCoreTables() {
 }
 
 async function createMetricLatestTable() {
+  const relationKind = await getRelationKind('device_metric_latest')
+
+  if (relationKind === 'v') {
+    console.warn('WARN device_metric_latest is a VIEW. Dropping it and recreating as TABLE for ingest compatibility.')
+    await run('DROP VIEW public.device_metric_latest CASCADE;')
+  } else if (relationKind === 'm') {
+    console.warn('WARN device_metric_latest is a MATERIALIZED VIEW. Dropping it and recreating as TABLE for ingest compatibility.')
+    await run('DROP MATERIALIZED VIEW public.device_metric_latest CASCADE;')
+  } else if (relationKind && relationKind !== 'r') {
+    throw new Error(`Unsupported public.device_metric_latest relation type: ${relationKind}`)
+  }
+
   await run(`
     CREATE TABLE IF NOT EXISTS device_metric_latest (
       device_id BIGINT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -280,7 +464,53 @@ async function createMetricLatestTable() {
       value,
       now()
     FROM device_metric_readings
+    WHERE device_id IS NOT NULL
+      AND metric_key IS NOT NULL
+      AND time IS NOT NULL
+      AND value IS NOT NULL
     ORDER BY device_id, metric_key, time DESC
+    ON CONFLICT (device_id, metric_key)
+    DO UPDATE SET
+      time = EXCLUDED.time,
+      value = EXCLUDED.value,
+      updated_at = now()
+    WHERE EXCLUDED.time >= device_metric_latest.time;
+  `)
+
+  await run(`
+    WITH legacy_rows AS (
+      SELECT device_id, 'metric_1'::text AS metric_key, time, temperature::double precision AS value
+      FROM sensor_readings
+      WHERE temperature IS NOT NULL
+      UNION ALL
+      SELECT device_id, 'metric_2'::text AS metric_key, time, humidity::double precision AS value
+      FROM sensor_readings
+      WHERE humidity IS NOT NULL
+      UNION ALL
+      SELECT device_id, 'metric_3'::text AS metric_key, time, rssi::double precision AS value
+      FROM sensor_readings
+      WHERE rssi IS NOT NULL
+    ), latest_rows AS (
+      SELECT DISTINCT ON (device_id, metric_key)
+        device_id,
+        metric_key,
+        time,
+        value
+      FROM legacy_rows
+      WHERE device_id IS NOT NULL
+        AND time IS NOT NULL
+        AND value IS NOT NULL
+      ORDER BY device_id, metric_key, time DESC
+    )
+    INSERT INTO device_metric_latest (
+      device_id,
+      metric_key,
+      time,
+      value,
+      updated_at
+    )
+    SELECT device_id, metric_key, time, value, now()
+    FROM latest_rows
     ON CONFLICT (device_id, metric_key)
     DO UPDATE SET
       time = EXCLUDED.time,
@@ -879,12 +1109,16 @@ async function main() {
   await client.connect()
 
   try {
+    await acquireMigrationLock()
+    await assertSafeDatabaseTarget()
     await assertCompatibleBaseSchema()
     await createCoreTables()
     await createMetricLatestTable()
     await createAlarmAndActivityTables()
     await createOrganizationTables()
     await runSqlFileIfExists('017_phase5_commercial_foundation.sql')
+    await runSqlFileIfExists('019_phase7_multi_tenant_access_control.sql')
+    await runSqlFileIfExists('020_phase9f_required_nullability_normalization.sql')
     await createDemoTables()
     await createIndexes()
     await seedDeviceModels()
@@ -894,6 +1128,7 @@ async function main() {
 
     console.log('dotWatch migration completed')
   } finally {
+    await releaseMigrationLock()
     await client.end()
   }
 }

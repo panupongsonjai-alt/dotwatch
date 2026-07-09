@@ -1,0 +1,14 @@
+# Production-style example for self-hosting.
+# Render deployment should use Render environment variables instead of this file.
+
+services:
+  backend:
+    build:
+      context: ./services/backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./services/backend/.env.production
+    ports:
+      - "4000:4000"
+    command: sh -c "npm run migrate && npm run start"

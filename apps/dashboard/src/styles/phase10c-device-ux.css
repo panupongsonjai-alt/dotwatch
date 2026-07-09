@@ -1,0 +1,308 @@
+/* =========================================================
+   Phase 10C - Device UX Dashboard Tone
+   Scope: Devices page only. Keeps existing layout, improves readability.
+========================================================= */
+
+.device-v2-page .dw-page-header {
+  background:
+    radial-gradient(circle at 92% 8%, rgba(37, 99, 235, 0.16), transparent 28%),
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.04) 42%, transparent),
+    var(--panel);
+}
+
+.device-v2-page .dw-page-header-main h1 {
+  letter-spacing: -0.055em;
+}
+
+.devices-ops-stat-grid .dw-stat-card,
+.devices-v3-list-card,
+.devices-v3-detail-card {
+  border-radius: 22px;
+  box-shadow: var(--shadow-soft, 0 18px 45px rgba(15, 23, 42, 0.08));
+}
+
+.devices-v2-shell {
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.devices-v3-list-card {
+  background:
+    linear-gradient(180deg, rgba(37, 99, 235, 0.045), transparent 170px),
+    var(--panel);
+}
+
+.devices-v3-list-card .app-section-title h3 {
+  font-size: 18px;
+  letter-spacing: -0.035em;
+}
+
+.devices-v3-list-card .app-section-title p {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.devices-v3-create-btn {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.18);
+}
+
+.devices-v3-search-box {
+  min-height: 42px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.devices-v3-search-box input {
+  font-weight: 800;
+}
+
+.devices-v3-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent),
+    var(--panel-2);
+}
+
+.devices-v3-item::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: transparent;
+  transition: background-color 0.18s ease;
+}
+
+.devices-v3-item.active::before {
+  background: linear-gradient(180deg, var(--primary), #06b6d4);
+}
+
+.devices-v3-item-name {
+  font-size: 15px;
+  letter-spacing: -0.025em;
+}
+
+.devices-v3-item-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: -0.02em;
+}
+
+.devices-v3-device-meta-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.devices-v3-signal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 25px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(14, 165, 233, 0.24);
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--info, #0ea5e9);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.devices-v3-item-metrics span {
+  background: rgba(37, 99, 235, 0.07);
+  border-color: rgba(37, 99, 235, 0.15);
+}
+
+.devices-v3-health-banner {
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.09), transparent 58%),
+    var(--panel-2);
+}
+
+.devices-v3-health-banner.warning {
+  background:
+    linear-gradient(135deg, rgba(245, 158, 11, 0.12), transparent 58%),
+    var(--panel-2);
+}
+
+.devices-v3-health-banner.offline {
+  background:
+    linear-gradient(135deg, rgba(239, 68, 68, 0.1), transparent 58%),
+    var(--panel-2);
+}
+
+.devices-v4-quick-panel {
+  display: grid;
+  gap: 14px;
+  margin: 14px 0 16px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 45%),
+    var(--panel-2);
+}
+
+.devices-v4-quick-main h4 {
+  margin: 5px 0 5px;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.devices-v4-quick-main p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 750;
+}
+
+.devices-v4-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.devices-v4-quick-card {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 13px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.devices-v4-quick-card svg {
+  color: var(--primary);
+}
+
+.devices-v4-quick-card span,
+.devices-v4-quick-card small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.devices-v4-quick-card strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.1;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.devices-v4-quick-card .signal-success {
+  color: var(--success);
+}
+
+.devices-v4-quick-card .signal-info {
+  color: var(--info, #0ea5e9);
+}
+
+.devices-v4-quick-card .signal-warning {
+  color: var(--warning);
+}
+
+.devices-v4-esp32-helper {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 13px;
+  border-radius: 16px;
+  border: 1px solid rgba(14, 165, 233, 0.22);
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.devices-v4-esp32-helper span {
+  flex: 0 0 auto;
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.devices-v4-esp32-helper p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  font-weight: 800;
+}
+
+.devices-v3-tabs {
+  padding: 5px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-tabs button {
+  border-radius: 999px;
+  font-weight: 950;
+}
+
+.devices-v3-tab-panel {
+  border-radius: 22px;
+}
+
+.devices-v3-info-grid > div,
+.devices-v3-rule-card,
+.devices-v3-security-reveal-card,
+.devices-v3-security-action-card {
+  border-radius: 18px;
+}
+
+@media (max-width: 1180px) {
+  .devices-v4-quick-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .devices-v2-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .devices-v2-list-card {
+    position: static;
+    max-height: none;
+  }
+
+  .devices-v3-list-scroll {
+    max-height: 440px;
+    overflow: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .devices-v4-quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .devices-v4-esp32-helper,
+  .devices-v3-device-meta-line {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

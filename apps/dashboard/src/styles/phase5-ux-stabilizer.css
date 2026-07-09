@@ -1,0 +1,229 @@
+/* ==========================================================================
+   Phase 5 UX Stabilizer
+   - Safe loading/error/notice primitives for dashboard workspace.
+   - Keep this file last in styles.css so it can normalize legacy overrides.
+   ========================================================================== */
+
+.dw-loading-state,
+.dw-error-boundary,
+.dw-api-status-banner,
+.dw-notice-banner {
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.18));
+  background: var(--surface, rgba(15, 23, 42, 0.76));
+  color: var(--text, #e5e7eb);
+  box-shadow: var(--shadow, 0 20px 70px rgba(0, 0, 0, 0.22));
+}
+
+.dw-loading-state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  width: 100%;
+  min-height: 148px;
+  padding: 22px;
+  border-radius: 24px;
+}
+
+.dw-loading-state.compact {
+  min-height: 96px;
+  padding: 18px;
+}
+
+.dw-loading-state strong,
+.dw-error-boundary h2,
+.dw-notice-banner strong,
+.dw-api-status-banner strong {
+  color: var(--heading, #f8fafc);
+}
+
+.dw-loading-state p,
+.dw-error-boundary p,
+.dw-notice-banner span,
+.dw-api-status-banner span {
+  margin: 4px 0 0;
+  color: var(--muted, #94a3b8);
+}
+
+.dw-loading-spinner {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border: 2px solid rgba(148, 163, 184, 0.28);
+  border-top-color: var(--accent, #ef4444);
+  border-radius: 999px;
+  animation: dw-spin 0.85s linear infinite;
+}
+
+.dw-loading-skeleton-list {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.dw-loading-skeleton {
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.12),
+    rgba(148, 163, 184, 0.28),
+    rgba(148, 163, 184, 0.12)
+  );
+  background-size: 220% 100%;
+  animation: dw-skeleton 1.4s ease-in-out infinite;
+}
+
+.dw-loading-skeleton:nth-child(2) {
+  width: 78%;
+}
+
+.dw-loading-skeleton:nth-child(3) {
+  width: 58%;
+}
+
+.dw-error-boundary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  margin: 18px 0;
+  padding: 22px;
+  border-color: rgba(239, 68, 68, 0.32);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top left, rgba(239, 68, 68, 0.16), transparent 26rem),
+    var(--surface, rgba(15, 23, 42, 0.84));
+}
+
+.dw-error-boundary-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(239, 68, 68, 0.16);
+  color: #fecaca;
+  font-weight: 900;
+}
+
+.dw-error-boundary h2,
+.dw-error-boundary p {
+  margin: 0;
+}
+
+.dw-error-boundary-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.dw-error-boundary details {
+  max-width: 100%;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.38);
+}
+
+.dw-error-boundary pre {
+  max-width: 100%;
+  margin: 8px 0 0;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.dw-error-boundary-actions,
+.dw-api-status-banner,
+.dw-notice-banner {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dw-error-boundary-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.dw-api-status-banner,
+.dw-notice-banner {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-radius: 18px;
+}
+
+.dw-api-status-banner.warning,
+.dw-notice-banner.warning {
+  border-color: rgba(245, 158, 11, 0.34);
+  background: rgba(245, 158, 11, 0.11);
+}
+
+.dw-api-status-banner.error,
+.dw-notice-banner.error {
+  border-color: rgba(239, 68, 68, 0.34);
+  background: rgba(239, 68, 68, 0.11);
+}
+
+.dw-api-status-banner.success,
+.dw-notice-banner.success {
+  border-color: rgba(34, 197, 94, 0.34);
+  background: rgba(34, 197, 94, 0.11);
+}
+
+.dw-api-status-banner button,
+.dw-notice-banner button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+}
+
+.dw-notice-action {
+  margin-left: auto;
+}
+
+@keyframes dw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dw-skeleton {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .dw-error-boundary,
+  .dw-loading-state {
+    grid-template-columns: 1fr;
+  }
+
+  .dw-api-status-banner,
+  .dw-notice-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dw-api-status-banner button,
+  .dw-notice-banner button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dw-loading-spinner,
+  .dw-loading-skeleton {
+    animation: none;
+  }
+}

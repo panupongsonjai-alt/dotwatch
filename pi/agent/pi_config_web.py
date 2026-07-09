@@ -6,6 +6,7 @@ Designed to run on Raspberry Pi with Python standard library only.
 """
 
 import base64
+import hmac
 import html
 import json
 import os
@@ -21,13 +22,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-APP_VERSION = "1.2.1-ui-cleanup"
+APP_VERSION = "1.2.2-phase2-security"
 
 PROJECT_DIR = Path(os.getenv("DOTWATCH_AGENT_DIR", "/home/pi/dotwatch-pi-agent"))
 ENV_PATH = PROJECT_DIR / ".env"
 MODBUS_CONFIG_PATH = PROJECT_DIR / "modbus_config.json"
 LAST_TEST_PATH = PROJECT_DIR / "modbus_last_test_result.json"
-HOST = os.getenv("DOTWATCH_CONFIG_HOST", "0.0.0.0")
+HOST = os.getenv("DOTWATCH_CONFIG_HOST", "127.0.0.1")
 PORT = int(os.getenv("DOTWATCH_CONFIG_PORT", "8080"))
 
 DEFAULTS = {
@@ -46,7 +47,7 @@ DEFAULTS = {
     "MAX_BACKOFF_SECONDS": "60",
     "LOG_METRICS": "true",
     "CONFIG_UI_USERNAME": "admin",
-    "CONFIG_UI_PASSWORD": "change-this-config-password",
+    "CONFIG_UI_PASSWORD": "",
 }
 
 ENV_KEYS = [
@@ -81,6 +82,52 @@ def checked(value):
     return "checked" if bool(value) else ""
 
 
+UNSAFE_CONFIG_UI_PASSWORDS = {
+    "",
+    "admin",
+    "password",
+    "123456",
+    "12345678",
+    "change-this-config-password",
+    "change-this",
+}
+
+
+def is_loopback_host(host):
+    value = str(host or "").strip().lower()
+    return value in ("127.0.0.1", "localhost", "::1")
+
+
+def is_lan_exposed_host(host):
+    value = str(host or "").strip().lower()
+    return value in ("", "0.0.0.0", "::") or value.startswith("192.168.") or value.startswith("10.") or value.startswith("172.")
+
+
+def is_unsafe_config_ui_password(password):
+    value = str(password or "").strip()
+    return len(value) < 12 or value.lower() in UNSAFE_CONFIG_UI_PASSWORDS
+
+
+def security_notice():
+    cfg = read_env()
+    password = cfg.get("CONFIG_UI_PASSWORD", "")
+    if is_unsafe_config_ui_password(password):
+        return "Config UI password is missing/weak. Run install_config_ui_service.sh again or set CONFIG_UI_PASSWORD in .env."
+    if is_lan_exposed_host(HOST):
+        return "Config UI is exposed on the LAN. Keep this only for trusted local networks and use a strong password."
+    return "Config UI is bound to localhost by default. Use SSH tunnel for safer access."
+
+
+def validate_config_ui_runtime_security():
+    cfg = read_env()
+    password = cfg.get("CONFIG_UI_PASSWORD", "")
+    if is_lan_exposed_host(HOST) and is_unsafe_config_ui_password(password):
+        raise RuntimeError(
+            "Unsafe Pi Config UI configuration: LAN exposure requires CONFIG_UI_PASSWORD with at least 12 characters and not the default value. "
+            "Use install_config_ui_service.sh --password '<strong-password>' or keep DOTWATCH_CONFIG_HOST=127.0.0.1."
+        )
+
+
 def read_env(path=ENV_PATH):
     data = DEFAULTS.copy()
     if not path.exists():
@@ -106,6 +153,10 @@ def write_env(values, path=ENV_PATH):
         lines.append(f"{key}={str(values.get(key, DEFAULTS.get(key, ''))).strip()}")
     lines.append("")
     path.write_text("\n".join(lines), encoding="utf-8")
+    try:
+        os.chmod(path, 0o600)
+    except Exception:
+        pass
 
 
 def default_register(index):
@@ -615,6 +666,7 @@ def setup_page(message="", message_type="info"):
               <div class="stat-card"><small>Interval</small><strong>{esc(cfg.get('SEND_INTERVAL_SECONDS'))}s</strong></div>
               <div class="stat-card"><small>Queue</small><strong>{esc(st['offline_queue_count'])}</strong></div>
             </div>
+            <div class="notice warning">{esc(security_notice())}</div>
             <div class="button-row">
               <a class="button-link secondary" href="/diagnostics">Run Diagnostics</a>
               <a class="button-link secondary" href="/status">View Logs</a>
@@ -886,15 +938,19 @@ class Handler(BaseHTTPRequestHandler):
 
     def is_authorized(self):
         cfg = read_env()
-        username = cfg.get("CONFIG_UI_USERNAME", "admin")
-        password = cfg.get("CONFIG_UI_PASSWORD", "change-this-config-password")
+        username = str(cfg.get("CONFIG_UI_USERNAME", "admin") or "admin")
+        password = str(cfg.get("CONFIG_UI_PASSWORD", "") or "")
+
+        if is_unsafe_config_ui_password(password):
+            return False
+
         header = self.headers.get("Authorization", "")
         if not header.startswith("Basic "):
             return False
         try:
             decoded = base64.b64decode(header.split(" ", 1)[1].strip()).decode("utf-8")
             supplied_username, supplied_password = decoded.split(":", 1)
-            return supplied_username == username and supplied_password == password
+            return hmac.compare_digest(supplied_username, username) and hmac.compare_digest(supplied_password, password)
         except Exception:
             return False
 
@@ -1066,6 +1122,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    validate_config_ui_runtime_security()
     print(f"dotWatch Pi Config UI started on http://{HOST}:{PORT}")
     print(f"Version: {APP_VERSION}")
     print(f"Agent dir: {PROJECT_DIR}")

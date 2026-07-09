@@ -1,9 +1,0 @@
-dotWatch Raspberry Pi production baseline
-Created: 2026-07-07T23:49:52
-RepoRoot: D:\IoT Project\dotwatch
-Pi: pi@192.168.50.2
-AgentDir: /home/pi/dotwatch-pi-agent
-
-============================================================
-2. dotWatch service status
-============================================================

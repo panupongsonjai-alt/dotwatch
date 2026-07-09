@@ -14,6 +14,7 @@ import { markOfflineDevices } from './services/deviceStatus.service.js'
 import { alarmsRouter } from './routes/alarms.routes.js'
 import alarmRulesRouter from './routes/alarmRules.routes.js'
 import { demoRouter } from './routes/demo.routes.js'
+import { demoGeneratorRouter } from './routes/demoGenerator.routes.js'
 import deviceMetricsRoutes from './routes/deviceMetricsRoutes.js'
 import deviceModelsRoutes from './routes/deviceModelsRoutes.js'
 import { adminRouter } from './routes/admin.routes.js'
@@ -27,6 +28,8 @@ import { organizationsRouter } from './routes/organizations.routes.js'
 import { sitesRouter } from './routes/sites.routes.js'
 import { deviceGroupsRouter } from './routes/deviceGroups.routes.js'
 import { billingRouter } from './routes/billing.routes.js'
+import { tenantRouter } from './routes/tenant.routes.js'
+import { createHttpLogger, logger, logStartupSummary, startOpsHeartbeat } from './utils/logger.js'
 
 const app = express()
 const server = http.createServer(app)
@@ -38,16 +41,7 @@ app.disable('x-powered-by')
 const clients = new Map()
 let isShuttingDown = false
 
-console.log('dotWatch backend starting:', {
-  nodeEnv: env.nodeEnv,
-  port: env.port,
-  corsOrigins: env.isDevelopment ? env.corsOrigins : env.corsOrigins.length,
-  databaseConfigured: Boolean(env.databaseUrl),
-  apiRateLimitPerMinute: env.apiRateLimitPerMinute,
-  ingestRateLimitPerMinute: env.ingestRateLimitPerMinute,
-  deviceWarningAfterSeconds: env.deviceWarningAfterSeconds,
-  deviceOfflineAfterSeconds: env.deviceOfflineAfterSeconds,
-})
+logStartupSummary()
 
 function getSocketStateLabel(ws) {
   if (ws.readyState === ws.CONNECTING) return 'CONNECTING'
@@ -291,6 +285,11 @@ app.set('wss', wss)
 app.set('broadcastToUser', broadcastToUser)
 app.set('broadcastToAll', broadcastToAll)
 
+const opsHeartbeatInterval = startOpsHeartbeat(() => ({
+  websocket: getWebSocketSummary(),
+  shuttingDown: isShuttingDown,
+}))
+
 const apiLimiter = rateLimit({
   windowMs: 60_000,
   limit: env.apiRateLimitPerMinute,
@@ -306,6 +305,7 @@ const ingestLimiter = rateLimit({
 })
 
 app.use(requestContext)
+app.use(createHttpLogger())
 
 app.use((req, res, next) => {
   if (!isShuttingDown) {
@@ -422,12 +422,14 @@ app.get('/debug/ws', requireDevelopment, (req, res) => {
 
 app.use('/api/devices', apiLimiter, devicesRouter)
 app.use('/api/demo', apiLimiter, requireDevelopment, demoRouter)
+app.use('/api/demo-generator', apiLimiter, requireDevelopment, demoGeneratorRouter)
 app.use('/api/ingest', ingestLimiter, ingestRouter)
 app.use('/api/alarms', apiLimiter, alarmsRouter)
 app.use('/api/alarm-rules', apiLimiter, alarmRulesRouter)
 app.use('/api/alarm-states', apiLimiter, alarmStateRouter)
 app.use('/api/admin', apiLimiter, adminRouter)
 app.use('/api/billing', apiLimiter, billingRouter)
+app.use('/api/tenant', apiLimiter, tenantRouter)
 app.use('/api/organizations', apiLimiter, organizationsRouter)
 app.use('/api/sites', apiLimiter, sitesRouter)
 app.use('/api/device-groups', apiLimiter, deviceGroupsRouter)
@@ -520,20 +522,21 @@ app.use(notFoundHandler)
 app.use(errorHandler)
 
 const listeningServer = server.listen(env.port, () => {
-  console.log(`dotWatch backend running on port ${env.port}`)
+  logger.info({ event: 'listening', port: env.port }, `dotWatch backend running on port ${env.port}`)
 })
 
 async function shutdown(signal) {
   if (isShuttingDown) return
 
   isShuttingDown = true
-  console.log(`Received ${signal}. Shutting down dotWatch backend...`)
+  logger.info({ event: 'shutdown_start', signal }, `Received ${signal}. Shutting down dotWatch backend...`)
 
   clearInterval(heartbeatInterval)
   clearInterval(offlineDetectionInterval)
+  if (opsHeartbeatInterval) clearInterval(opsHeartbeatInterval)
 
   const forceExitTimer = setTimeout(() => {
-    console.error('Graceful shutdown timeout. Forcing exit.')
+    logger.error({ event: 'shutdown_timeout' }, 'Graceful shutdown timeout. Forcing exit.')
     process.exit(1)
   }, env.shutdownTimeoutMs)
   forceExitTimer.unref?.()
@@ -553,12 +556,21 @@ async function shutdown(signal) {
   try {
     await pool.end()
   } catch (error) {
-    console.error('Postgres pool shutdown failed:', error.message)
+    logger.error({ event: 'postgres_pool_shutdown_failed', err: error }, 'Postgres pool shutdown failed')
   }
 
   clearTimeout(forceExitTimer)
-  console.log('dotWatch backend shutdown complete')
+  logger.info({ event: 'shutdown_complete' }, 'dotWatch backend shutdown complete')
 }
+
+process.on('unhandledRejection', (reason) => {
+  logger.error({ event: 'unhandled_rejection', reason }, 'Unhandled promise rejection')
+})
+
+process.on('uncaughtException', (error) => {
+  logger.fatal({ event: 'uncaught_exception', err: error }, 'Uncaught exception')
+  process.exit(1)
+})
 
 process.on('SIGTERM', () => {
   shutdown('SIGTERM').finally(() => process.exit(0))

@@ -6,11 +6,19 @@ import {
   encryptDeviceSecret,
 } from '../utils/deviceSecretCrypto.js'
 import { env } from '../config/env.js'
-import {
-  assertUserCanCreateDevice,
-  resolveDevicePlacement,
-} from '../services/commercial.service.js'
+import { resolveDevicePlacement } from '../services/commercial.service.js'
 import { createAdminAuditLog } from '../services/adminAudit.service.js'
+import {
+  ORG_ADMIN_ROLES,
+  ORG_MANAGE_DEVICE_ROLES,
+  ORG_READ_ROLES,
+  ORG_SECRET_ROLES,
+  buildTenantDeviceAccessJoin,
+  buildTenantDeviceAccessWhere,
+  requireDeviceAccess,
+} from '../services/organizationAccess.service.js'
+import { createOrganizationAuditLog } from '../services/organizationAudit.service.js'
+import { assertOrganizationCanCreateDevice } from '../services/organizationUsage.service.js'
 
 const HISTORY_METRIC_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_:-]{0,63}$/
 const HISTORY_RESOLUTIONS = new Set(['auto', 'raw', '1m', '5m', '15m', '1h', '1d'])
@@ -116,6 +124,7 @@ export async function listDevices(req, res) {
       COALESCE(metric_config.metric_configs, '[]'::jsonb) AS metric_configs
 
     FROM devices d
+    ${buildTenantDeviceAccessJoin('$1')}
     LEFT JOIN device_models dm
       ON dm.id = d.model_id
     LEFT JOIN organizations o
@@ -165,7 +174,7 @@ export async function listDevices(req, res) {
         AND dm_cfg.visible = true
     ) metric_config ON true
 
-    WHERE d.user_id = $1
+    WHERE ${buildTenantDeviceAccessWhere('$1')}
     ORDER BY d.created_at DESC
     `,
     [user.id]
@@ -198,14 +207,17 @@ export async function createDevice(req, res) {
   try {
     await client.query('BEGIN')
 
-    await assertUserCanCreateDevice({ userId: user.id, client })
-
     const placement = await resolveDevicePlacement({
       client,
       user,
       organizationId,
       siteId,
       deviceGroupId,
+    })
+
+    await assertOrganizationCanCreateDevice({
+      organizationId: placement?.organizationId,
+      client,
     })
 
     const modelCheck = await client.query(
@@ -317,6 +329,22 @@ export async function createDevice(req, res) {
       client,
     })
 
+    await createOrganizationAuditLog({
+      organizationId: placement?.organizationId || null,
+      actorUserId: user.id,
+      action: 'device.created',
+      detail: `Created device ${device.device_code}`,
+      metadata: {
+        deviceId: device.id,
+        deviceCode,
+        modelId,
+        siteId: placement?.siteId || null,
+        deviceGroupId: placement?.deviceGroupId || null,
+      },
+      request: req,
+      client,
+    })
+
     await client.query('COMMIT')
 
     res.status(201).json({
@@ -334,6 +362,12 @@ export async function createDevice(req, res) {
 export async function getDevice(req, res) {
   const user = req.dbUser
   const { id } = req.params
+
+  await requireDeviceAccess({
+    userId: user.id,
+    deviceId: id,
+    allowedRoles: ORG_READ_ROLES,
+  })
 
   const result = await pool.query(
     `
@@ -369,6 +403,7 @@ export async function getDevice(req, res) {
       COALESCE(metric_config.metric_configs, '[]'::jsonb) AS metric_configs
 
     FROM devices d
+    ${buildTenantDeviceAccessJoin('$2')}
     LEFT JOIN device_models dm
       ON dm.id = d.model_id
     LEFT JOIN organizations o
@@ -419,7 +454,7 @@ export async function getDevice(req, res) {
     ) metric_config ON true
 
     WHERE d.id = $1
-      AND d.user_id = $2
+      AND ${buildTenantDeviceAccessWhere('$2')}
     LIMIT 1
     `,
     [id, user.id]
@@ -459,6 +494,12 @@ export async function updateDevice(req, res) {
     requestedOrganizationId || requestedSiteId || requestedDeviceGroupId
   )
 
+  await requireDeviceAccess({
+    userId: user.id,
+    deviceId: id,
+    allowedRoles: ORG_MANAGE_DEVICE_ROLES,
+  })
+
   let placement = {
     organizationId: requestedOrganizationId,
     siteId: requestedSiteId,
@@ -471,10 +512,10 @@ export async function updateDevice(req, res) {
       SELECT organization_id, site_id, device_group_id
       FROM devices
       WHERE id = $1
-        AND user_id = $2
+        AND is_active = true
       LIMIT 1
       `,
-      [id, user.id]
+      [id]
     )
 
     if (!currentDeviceResult.rows.length) {
@@ -508,7 +549,7 @@ export async function updateDevice(req, res) {
       site_id = COALESCE($7, site_id),
       device_group_id = COALESCE($8, device_group_id)
     WHERE id = $9
-      AND user_id = $10
+      AND is_active = true
     RETURNING
       id,
       device_code,
@@ -532,11 +573,10 @@ export async function updateDevice(req, res) {
       latitude ?? null,
       longitude ?? null,
       mapUrl ?? null,
-      requestedOrganizationId,
-      requestedSiteId,
-      requestedDeviceGroupId,
+      placement?.organizationId || null,
+      placement?.siteId || null,
+      placement?.deviceGroupId || null,
       id,
-      user.id,
     ]
   )
 
@@ -553,6 +593,12 @@ export async function getDeviceSecret(req, res) {
   const user = req.dbUser
   const { id } = req.params
 
+  const access = await requireDeviceAccess({
+    userId: user.id,
+    deviceId: id,
+    allowedRoles: ORG_SECRET_ROLES,
+  })
+
   const result = await pool.query(
     `
     SELECT
@@ -563,11 +609,10 @@ export async function getDeviceSecret(req, res) {
       secret_encrypted_at
     FROM devices
     WHERE id = $1
-      AND user_id = $2
       AND is_active = true
     LIMIT 1
     `,
-    [id, user.id]
+    [id]
   )
 
   if (!result.rows.length) {
@@ -589,6 +634,15 @@ export async function getDeviceSecret(req, res) {
   try {
     const deviceSecret = decryptDeviceSecret(device.secret_encrypted)
 
+    await createOrganizationAuditLog({
+      organizationId: access.organization_id || null,
+      actorUserId: user.id,
+      action: 'device.secret_viewed',
+      detail: `Viewed secret for device ${device.device_code}`,
+      metadata: { deviceId: device.id, deviceCode: device.device_code },
+      request: req,
+    })
+
     res.json({
       id: device.id,
       device_code: device.device_code,
@@ -609,6 +663,12 @@ export async function resetDeviceSecret(req, res) {
   const user = req.dbUser
   const { id } = req.params
 
+  const access = await requireDeviceAccess({
+    userId: user.id,
+    deviceId: id,
+    allowedRoles: ORG_SECRET_ROLES,
+  })
+
   const deviceSecret = crypto.randomBytes(18).toString('hex')
   const secretHash = await bcrypt.hash(deviceSecret, 10)
   const secretEncrypted = encryptDeviceSecret(deviceSecret)
@@ -621,10 +681,10 @@ export async function resetDeviceSecret(req, res) {
       secret_encrypted = $2,
       secret_encrypted_at = now()
     WHERE id = $3
-      AND user_id = $4
+      AND is_active = true
     RETURNING id, device_code, name
     `,
-    [secretHash, secretEncrypted, id, user.id]
+    [secretHash, secretEncrypted, id]
   )
 
   if (!result.rows.length) {
@@ -632,6 +692,15 @@ export async function resetDeviceSecret(req, res) {
       message: 'Device not found',
     })
   }
+
+  await createOrganizationAuditLog({
+    organizationId: access.organization_id || null,
+    actorUserId: user.id,
+    action: 'device.secret_reset',
+    detail: `Reset secret for device ${result.rows[0].device_code}`,
+    metadata: { deviceId: result.rows[0].id, deviceCode: result.rows[0].device_code },
+    request: req,
+  })
 
   res.json({
     ...result.rows[0],
@@ -643,14 +712,20 @@ export async function deleteDevice(req, res) {
   const user = req.dbUser
   const { id } = req.params
 
+  const access = await requireDeviceAccess({
+    userId: user.id,
+    deviceId: id,
+    allowedRoles: ORG_ADMIN_ROLES,
+  })
+
   const result = await pool.query(
     `
     DELETE FROM devices
     WHERE id = $1
-      AND user_id = $2
-    RETURNING id
+      AND is_active = true
+    RETURNING id, device_code
     `,
-    [id, user.id]
+    [id]
   )
 
   if (!result.rows.length) {
@@ -658,6 +733,15 @@ export async function deleteDevice(req, res) {
       message: 'Device not found',
     })
   }
+
+  await createOrganizationAuditLog({
+    organizationId: access.organization_id || null,
+    actorUserId: user.id,
+    action: 'device.deleted',
+    detail: `Deleted device ${result.rows[0].device_code}`,
+    metadata: { deviceId: result.rows[0].id, deviceCode: result.rows[0].device_code },
+    request: req,
+  })
 
   res.json({
     ok: true,
@@ -736,22 +820,11 @@ export async function getHistory(req, res) {
     }
   }
 
-  const deviceCheck = await pool.query(
-    `
-    SELECT id
-    FROM devices
-    WHERE id = $1
-      AND user_id = $2
-    LIMIT 1
-    `,
-    [id, user.id]
-  )
-
-  if (!deviceCheck.rows.length) {
-    return res.status(404).json({
-      message: 'Device not found',
-    })
-  }
+  await requireDeviceAccess({
+    userId: user.id,
+    deviceId: id,
+    allowedRoles: ORG_READ_ROLES,
+  })
 
   const { fromDate, toDate } = parseHistoryRange(req.query)
 

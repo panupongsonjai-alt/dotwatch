@@ -514,8 +514,8 @@ function Devices() {
     <div className="page app-page device-page device-v2-page">
       <PageHeader
         eyebrow="Devices"
-        title="Device Operations Center"
-        description="จัดการอุปกรณ์, Metric Display, Location, Secret และ Alarm Rules ของ dotWatch"
+        title="Device Center"
+        description="ดูสถานะอุปกรณ์จริงแบบเข้าใจง่าย จัดการ ESP32 / Gateway, Metric, Location, Secret และ Alarm Rules ในที่เดียว"
       />
 
       {notice && (
@@ -573,24 +573,24 @@ function Devices() {
         <StatCard
           label="Total Devices"
           value={devices.length}
-          hint="Registered"
+          hint="All devices"
         />
         <StatCard
           label="Online"
           value={onlineCount}
-          hint="Active now"
+          hint="Sending data"
           tone="success"
         />
         <StatCard
           label="Warning"
           value={warningCount}
-          hint="Needs attention"
+          hint="Review alarms"
           tone="warning"
         />
         <StatCard
           label="Offline"
           value={offlineCount}
-          hint="No recent data"
+          hint="Check connection"
           tone="danger"
         />
       </section>

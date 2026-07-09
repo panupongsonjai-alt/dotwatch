@@ -1,21 +1,45 @@
-# dotWatch Pi Config UI V8 / Phase 2
+# dotWatch Pi Config UI - Phase 2 Security Hardened
 
-Local web UI for Raspberry Pi Gateway.
+Local web UI for Raspberry Pi Gateway setup and operation.
 
-Default URL after install:
+## Security default
 
-```text
-http://<PI_IP>:8080
-```
-
-Default login:
+From this phase, the Config UI binds to localhost by default:
 
 ```text
-Username: admin
-Password: change-this-config-password
+http://127.0.0.1:8080
 ```
 
-Pages:
+Recommended access from Windows PowerShell:
+
+```powershell
+ssh -L 8080:127.0.0.1:8080 pi@<PI_IP>
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8080
+```
+
+The installer generates a strong `CONFIG_UI_PASSWORD` when `.env` is missing, empty, or still uses the old default password.
+
+## Install service
+
+Safe local-only install:
+
+```bash
+cd /home/pi/dotwatch-pi-agent
+sudo bash install_config_ui_service.sh --project-dir /home/pi/dotwatch-pi-agent
+```
+
+LAN access is allowed only when explicitly requested and should be used only on a trusted network:
+
+```bash
+sudo bash install_config_ui_service.sh --project-dir /home/pi/dotwatch-pi-agent --lan --password 'CHANGE_TO_A_LONG_RANDOM_PASSWORD'
+```
+
+## Pages
 
 - Setup: Backend URL, Device Code/Secret, sensor source, queue/retry behavior, UI password
 - Live: Modbus TCP/RTU setup, 20 metric mapping, read-once and continuous live preview
@@ -30,13 +54,3 @@ modbus
 modbus_tcp
 modbus_rtu
 ```
-
-Recommended flow:
-
-1. Start with `SENSOR_SOURCE=dummy`.
-2. Confirm Dashboard receives `metric_1`, `metric_2`, `metric_3`.
-3. Open Live page and configure Modbus.
-4. Use Read Once / Start to verify values.
-5. Switch Agent Source to `Modbus`, `Force Modbus TCP`, or `Force Modbus RTU`.
-6. Save and restart Agent.
-7. Check Status page for queue count and logs.

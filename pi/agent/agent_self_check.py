@@ -23,11 +23,27 @@ def run_check(send_test=False):
     def add(name, ok, detail=""):
         checks.append({"name": name, "ok": bool(ok), "detail": str(detail)})
 
+    try:
+        settings.validate()
+        add("Settings validation", True, "required settings and safety checks passed")
+    except Exception as error:
+        add("Settings validation", False, str(error).replace(settings.device_secret, "********") if settings.device_secret else str(error))
+
     add("DOTWATCH_API_URL", bool(settings.api_url), settings.api_url or "missing")
     add("DEVICE_CODE", bool(settings.device_code), settings.device_code or "missing")
     add("DEVICE_SECRET", bool(settings.device_secret), settings.masked_device_secret)
     add("SEND_INTERVAL_SECONDS", settings.send_interval_seconds >= 1, settings.send_interval_seconds)
     add("SENSOR_SOURCE", settings.sensor_source in {"dummy", "modbus", "modbus_tcp", "modbus_rtu"}, settings.sensor_source)
+
+    if settings.is_modbus:
+        try:
+            from sensors.modbus_sensor import load_modbus_config
+
+            modbus_config = load_modbus_config(settings.modbus_config_path)
+            register_count = len(modbus_config.get("registers", []))
+            add("Modbus config", bool(modbus_config.get("enabled")) and register_count > 0, f"enabled={modbus_config.get('enabled')} registers={register_count}")
+        except Exception as error:
+            add("Modbus config", False, str(error))
 
     health = backend_health(settings)
     add("Backend health", bool(health.get("ok")), health.get("error") or health.get("status") or health)
@@ -48,15 +64,7 @@ def run_check(send_test=False):
         "platform": platform.platform(),
         "python": platform.python_version(),
         "settings": {
-            "apiUrl": settings.api_url,
-            "deviceCode": settings.device_code,
-            "deviceSecret": settings.masked_device_secret,
-            "sendIntervalSeconds": settings.send_interval_seconds,
-            "requestTimeoutSeconds": settings.request_timeout_seconds,
-            "firmwareVersion": settings.firmware_version,
-            "sensorSource": settings.sensor_source,
-            "modbusConfigPath": settings.modbus_config_path,
-            "offlineQueueEnabled": settings.offline_queue_enabled,
+            **settings.safe_summary(),
             "offlineQueue": queue.describe(),
         },
         "files": {

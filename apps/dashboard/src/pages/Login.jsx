@@ -4,6 +4,10 @@ import {
   registerWithEmail,
   resetPassword,
 } from '../services/auth'
+import {
+  firebaseConfigHelp,
+  isFirebaseConfigured,
+} from '../services/firebase'
 
 function Login() {
   const [mode, setMode] = useState('login')
@@ -55,7 +59,11 @@ function Login() {
     } catch (err) {
       console.error(err)
 
-      if (err.code === 'auth/invalid-credential') {
+      if (!isFirebaseConfigured) {
+        setError(
+          'ยังไม่ได้ตั้งค่า Firebase สำหรับ Dashboard ให้ตรวจไฟล์ apps/dashboard/.env.local'
+        )
+      } else if (err.code === 'auth/invalid-credential') {
         setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
       } else if (err.code === 'auth/email-already-in-use') {
         setError('อีเมลนี้ถูกใช้งานแล้ว')
@@ -98,6 +106,19 @@ function Login() {
           {isForgot && 'Enter your email to receive a reset link.'}
         </p>
 
+        {!isFirebaseConfigured && (
+          <div className="auth-config-warning" role="alert">
+            <strong>Dashboard auth is not configured</strong>
+            <span>
+              Create <code>{firebaseConfigHelp.localEnvFile}</code> and restart
+              the dashboard dev server.
+            </span>
+            <small>
+              Required: {firebaseConfigHelp.requiredEnvNames.join(', ')}
+            </small>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <label>
             Email
@@ -131,7 +152,7 @@ function Login() {
           <button
             type="submit"
             className="primary-button full"
-            disabled={submitting}
+            disabled={submitting || !isFirebaseConfigured}
           >
             {submitting && 'Processing...'}
             {!submitting && isLogin && 'Login'}

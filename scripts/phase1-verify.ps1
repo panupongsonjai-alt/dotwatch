@@ -19,6 +19,12 @@ node --check services/backend/src/services/deviceStatus.service.js
 node --check services/backend/src/utils/health.js
 node --check services/backend/src/server.js
 node --check scripts/check-production-env.mjs
+node --check services/backend/src/routes/demoGenerator.routes.js
+node --check services/backend/src/controllers/demoGenerator.controller.js
+node --check services/backend/repair-device-metric-latest-table.cjs
+node --check services/backend/check-device-metric-latest.cjs
+node --check services/backend/create-device-metric-latest-view.cjs
+node --check services/backend/repair-device-metric-latest-view.cjs
 
 Write-Host 'Running sensitive file scan...' -ForegroundColor Cyan
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/scan-sensitive-files.ps1

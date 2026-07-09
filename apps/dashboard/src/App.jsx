@@ -19,6 +19,9 @@ import { useAuth } from './context/AuthContext'
 import { applyUiPreferences, UI_PREFERENCE_EVENT } from './utils/uiPreferences'
 
 import AlarmToast from './components/AlarmToast.jsx'
+import ApiStatusBanner from './components/ApiStatusBanner.jsx'
+import AppErrorBoundary from './components/AppErrorBoundary.jsx'
+import { LoadingState } from './components/common'
 import Sidebar from './components/Sidebar'
 import Navbar from './components/Navbar'
 import {
@@ -350,10 +353,12 @@ function CommandPalette({ open, page, onClose, onNavigate }) {
 
 function PageLoading({ title = 'Loading page...' }) {
   return (
-    <div className="loading page-loading">
-      <strong>{title}</strong>
-      <span>Preparing workspace...</span>
-    </div>
+    <LoadingState
+      title={title}
+      description="Preparing workspace..."
+      rows={2}
+      compact
+    />
   )
 }
 
@@ -519,7 +524,7 @@ function App() {
   }, [sidebarOpen])
 
   useEffect(() => {
-    document.title = 'dotWatch'
+    document.title = `${currentPageMeta.title} · dotWatch`
   }, [currentPageMeta.title])
 
   useEffect(() => {
@@ -586,7 +591,7 @@ function App() {
   }
 
   if (authLoading) {
-    return <div className="loading">Loading...</div>
+    return <PageLoading title="Loading dotWatch..." />
   }
 
   if (!user) {
@@ -622,6 +627,8 @@ function App() {
           setTheme={setTheme}
         />
 
+        <ApiStatusBanner />
+
         <WorkspaceRouteBar
           page={page}
           onNavigate={handleSetPage}
@@ -629,29 +636,35 @@ function App() {
           onOpenHelp={() => setWorkspaceHelpOpen(true)}
         />
 
-        <Suspense fallback={<PageLoading title={`Loading ${currentPageMeta.title}...`} />}>
-          {page === 'dashboard' && <Dashboard onOpenDevice={openDeviceDetail} />}
+        <AppErrorBoundary
+          key={page}
+          title={`${currentPageMeta.title} failed to load`}
+          onReset={backToDashboard}
+        >
+          <Suspense fallback={<PageLoading title={`Loading ${currentPageMeta.title}...`} />}>
+            {page === 'dashboard' && <Dashboard onOpenDevice={openDeviceDetail} />}
 
-          {page === 'devices' && <Devices />}
+            {page === 'devices' && <Devices />}
 
-          {page === 'history' && <History />}
+            {page === 'history' && <History />}
 
-          {page === 'alarms' && <Alarms />}
+            {page === 'alarms' && <Alarms />}
 
-          {page === 'notifications' && <NotificationCenter />}
+            {page === 'notifications' && <NotificationCenter />}
 
-          {page === 'activity' && <ActivityCenter />}
+            {page === 'activity' && <ActivityCenter />}
 
-          {page === 'system-health' && <SystemHealth />}
+            {page === 'system-health' && <SystemHealth />}
 
-          {page === 'device-detail' && (
-            <DeviceDetail deviceId={selectedDeviceId} onBack={backToDashboard} />
-          )}
+            {page === 'device-detail' && (
+              <DeviceDetail deviceId={selectedDeviceId} onBack={backToDashboard} />
+            )}
 
-          {page === 'profile' && <Profile />}
+            {page === 'profile' && <Profile />}
 
-          {page === 'settings' && <Settings />}
-        </Suspense>
+            {page === 'settings' && <Settings />}
+          </Suspense>
+        </AppErrorBoundary>
 
         <CommandPalette
           open={commandPaletteOpen}

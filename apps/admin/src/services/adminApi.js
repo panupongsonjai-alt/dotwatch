@@ -6,8 +6,18 @@ import {
   MOCK_AUDIT_LOGS,
 } from '../data/adminMockData'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+const API_URL = normalizeApiUrl(
+  import.meta.env.VITE_API_URL || 'http://localhost:4000'
+)
 const USE_MOCK_ADMIN_API = import.meta.env.VITE_USE_MOCK_ADMIN_API === 'true'
+const DEFAULT_ADMIN_REQUEST_TIMEOUT_MS = 20000
+const ADMIN_REQUEST_TIMEOUT_MS = Math.max(
+  Number(
+    import.meta.env.VITE_ADMIN_REQUEST_TIMEOUT_MS ||
+      DEFAULT_ADMIN_REQUEST_TIMEOUT_MS
+  ),
+  15000
+)
 
 async function delay(ms = 200) {
   return new Promise((resolve) => {
@@ -15,44 +25,151 @@ async function delay(ms = 200) {
   })
 }
 
-async function getToken() {
+function normalizeApiUrl(value) {
+  const rawValue = String(value || '').trim().replace(/\/$/, '')
+
+  if (!rawValue) {
+    throw new Error('Missing VITE_API_URL')
+  }
+
+  if (!/^https?:\/\//.test(rawValue)) {
+    throw new Error('VITE_API_URL must start with http:// or https://')
+  }
+
+  if (
+    window.location.protocol === 'https:' &&
+    rawValue.startsWith('http://') &&
+    !rawValue.includes('localhost') &&
+    !rawValue.includes('127.0.0.1')
+  ) {
+    throw new Error('Insecure admin API URL is blocked on HTTPS pages')
+  }
+
+  return rawValue
+}
+
+function assertAdminApiPath(path) {
+  if (typeof path !== 'string' || !path.startsWith('/api/admin/')) {
+    throw new Error('Invalid admin API path')
+  }
+
+  if (/^https?:\/\//i.test(path)) {
+    throw new Error('Absolute admin API paths are not allowed')
+  }
+}
+
+function createRequestId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+
+  return `dw-admin-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+async function getToken({ forceRefresh = false } = {}) {
   const user = auth.currentUser
 
   if (!user) {
     throw new Error('Admin user not logged in')
   }
 
-  return user.getIdToken()
+  return user.getIdToken(forceRefresh)
+}
+
+async function parseResponseBody(response) {
+  const text = await response.text()
+
+  if (!text) return null
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { message: text }
+  }
+}
+
+function dispatchAdminApiEvent(name, detail) {
+  window.dispatchEvent(
+    new CustomEvent(name, {
+      detail,
+    })
+  )
 }
 
 async function adminFetch(path, options = {}) {
-  const token = await getToken()
+  assertAdminApiPath(path)
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
-    },
-  })
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(
+    () => controller.abort(),
+    ADMIN_REQUEST_TIMEOUT_MS
+  )
 
-  const text = await response.text()
+  async function sendRequest({ forceRefresh = false } = {}) {
+    const token = await getToken({ forceRefresh })
+    const headers = new Headers(options.headers || {})
 
-  let data = null
+    if (!headers.has('Content-Type') && options.body) {
+      headers.set('Content-Type', 'application/json')
+    }
+
+    headers.set('Accept', 'application/json')
+    headers.set('Authorization', `Bearer ${token}`)
+    headers.set('X-dotWatch-Client', 'admin')
+    headers.set('X-Request-ID', createRequestId())
+
+    return fetch(`${API_URL}${path}`, {
+      ...options,
+      credentials: 'omit',
+      cache: 'no-store',
+      headers,
+      signal: controller.signal,
+    })
+  }
+
   try {
-    data = text ? JSON.parse(text) : null
-  } catch {
-    data = { message: text }
-  }
+    let response = await sendRequest()
+    let data = await parseResponseBody(response)
 
-  if (!response.ok) {
-    throw new Error(
-      data?.message || data?.error || `Admin API failed: ${response.status}`
-    )
-  }
+    if (response.status === 401) {
+      response = await sendRequest({ forceRefresh: true })
+      data = await parseResponseBody(response)
+    }
 
-  return data
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        dispatchAdminApiEvent('dotwatchAdminApiAuthError', {
+          status: response.status,
+          message: data?.message || data?.error || 'Admin authentication error',
+        })
+      }
+
+      throw new Error(
+        data?.message || data?.error || `Admin API failed: ${response.status}`
+      )
+    }
+
+    return data
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      dispatchAdminApiEvent('dotwatchAdminApiTimeout', {
+        path,
+        timeout: ADMIN_REQUEST_TIMEOUT_MS,
+        message:
+          'Admin backend ตอบช้ากว่าที่กำหนด กรุณาตรวจสอบ backend หรือกด Refresh อีกครั้ง',
+      })
+
+      throw new Error(
+        `Admin API timeout after ${Math.round(
+          ADMIN_REQUEST_TIMEOUT_MS / 1000
+        )} seconds`
+      )
+    }
+
+    throw error
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
 }
 
 export async function getAdminMe() {

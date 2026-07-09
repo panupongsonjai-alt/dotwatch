@@ -1,4 +1,4 @@
-﻿param(
+param(
   [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path,
   [string]$OutputDir = '_export',
   [string]$Name = 'dotwatch-clean',
@@ -7,15 +7,31 @@
 
 $ErrorActionPreference = 'Stop'
 
-function Test-IgnoredPath {
+function Get-RelativePathCompat {
   param(
-    [string]$RelativePath,
-    [bool]$IsDirectory
+    [Parameter(Mandatory = $true)][string]$BasePath,
+    [Parameter(Mandatory = $true)][string]$TargetPath
   )
 
-  $path = $RelativePath -replace '\\', '/'
+  $base = [System.IO.Path]::GetFullPath($BasePath).TrimEnd([char[]]@('\', '/'))
+  $target = [System.IO.Path]::GetFullPath($TargetPath)
+
+  if ($target.StartsWith($base, [System.StringComparison]::OrdinalIgnoreCase)) {
+    return $target.Substring($base.Length).TrimStart([char[]]@('\', '/')).Replace('\', '/')
+  }
+
+  return $target.Replace('\', '/')
+}
+
+function Test-IgnoredPath {
+  param(
+    [Parameter(Mandatory = $true)][string]$RelativePath
+  )
+
+  $path = $RelativePath.Replace('\', '/')
   $parts = $path -split '/'
   $leaf = Split-Path $path -Leaf
+  $extension = [System.IO.Path]::GetExtension($leaf).ToLowerInvariant()
 
   $ignoredDirectoryNames = @(
     '.git',
@@ -24,13 +40,21 @@ function Test-IgnoredPath {
     'build',
     'coverage',
     '.vite',
+    '.pio',
     '__pycache__',
     '.pytest_cache',
     '.mypy_cache',
     '.venv',
     'venv',
     '.idea',
-    '_export'
+    '_archive',
+    '_backups',
+    '_export',
+    '_reports',
+    'diagnostics',
+    'logs',
+    'tmp',
+    'temp'
   )
 
   foreach ($part in $parts) {
@@ -50,7 +74,9 @@ function Test-IgnoredPath {
     '.env.development',
     '.DS_Store',
     'Thumbs.db',
-    'desktop.ini'
+    'desktop.ini',
+    'modbus_last_test_result.json',
+    'offline_queue.jsonl'
   )
 
   if ($ignoredLeafNames -contains $leaf) {
@@ -63,6 +89,8 @@ function Test-IgnoredPath {
     '.7z',
     '.rar',
     '.gz',
+    '.tgz',
+    '.tar',
     '.bak',
     '.backup',
     '.dump',
@@ -74,10 +102,16 @@ function Test-IgnoredPath {
     '.pem',
     '.key',
     '.p8',
-    '.p12'
+    '.p12',
+    '.crt',
+    '.cer'
   )
 
-  if ($ignoredExtensions -contains [System.IO.Path]::GetExtension($leaf)) {
+  if ($ignoredExtensions -contains $extension) {
+    return $true
+  }
+
+  if ($leaf -like '*.bak-*' -or $leaf -like '*.pre-*.bak') {
     return $true
   }
 
@@ -85,8 +119,15 @@ function Test-IgnoredPath {
     return $true
   }
 
-  if ($path -like 'pi/agent/data/*' -or $leaf -eq 'offline_queue.jsonl' -or $leaf -eq 'modbus_last_test_result.json') {
+  if ($path -like 'pi/agent/data/*') {
     return $true
+  }
+
+  # Root-level one-off repair/snapshot files are intentionally left out of clean exports.
+  if ($path -notlike '*/*') {
+    if ($leaf -like 'fix-*.ps1' -or $leaf -like '*.fixed.*' -or $leaf -like '*.pi.current*' -or $leaf -like 'main.pi-*' -or $leaf -like 'main.rpi-*') {
+      return $true
+    }
   }
 
   return $false
@@ -110,12 +151,12 @@ if (Test-Path $stagingRoot) {
 New-Item -ItemType Directory -Path $stagingProject | Out-Null
 
 $files = Get-ChildItem -Path $projectRootPath -Recurse -Force -File | Where-Object {
-  $relative = ($_.FullName.Substring($projectRootPath.TrimEnd([char[]]@('\', '/')).Length + 1))
-  -not (Test-IgnoredPath -RelativePath $relative -IsDirectory:$false)
+  $relative = Get-RelativePathCompat -BasePath $projectRootPath -TargetPath $_.FullName
+  -not (Test-IgnoredPath -RelativePath $relative)
 }
 
 foreach ($file in $files) {
-  $relative = $file.FullName.Substring($projectRootPath.TrimEnd([char[]]@('\', '/')).Length + 1)
+  $relative = Get-RelativePathCompat -BasePath $projectRootPath -TargetPath $file.FullName
   $target = Join-Path $stagingProject $relative
   $targetDir = Split-Path $target -Parent
 
@@ -144,9 +185,8 @@ Write-Host "Source size  : $sourceSizeMb MB"
 Write-Host "Zip size     : $zipSizeMb MB"
 Write-Host "Output zip   : $zipPath" -ForegroundColor Cyan
 Write-Host ''
-Write-Host 'Excluded: .git, node_modules, dist/build, .env real files, logs, caches, backups, compressed files.' -ForegroundColor Yellow
+Write-Host 'Excluded: .git, node_modules, .pio, dist/build, .env real files, reports, diagnostics, logs, caches, backups, compressed files, private keys.' -ForegroundColor Yellow
 
 if (-not $KeepOutputFolder) {
   Remove-Item -Recurse -Force $stagingRoot
 }
-

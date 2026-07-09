@@ -30,3 +30,7 @@
 @import './styles/statcard-detail-unify.css';
 @import './styles/pageheader-unify.css';
 @import './styles/phase3-ui-stabilizer.css';
+@import './styles/phase5-ux-stabilizer.css';
+@import './styles/phase10c-device-ux.css';
+@import './styles/phase10d-device-operations.css';
+@import './styles/phase10e-dashboard-auth-env.css';

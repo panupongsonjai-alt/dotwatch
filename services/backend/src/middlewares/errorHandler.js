@@ -1,5 +1,6 @@
 import { ZodError } from 'zod'
 import { env } from '../config/env.js'
+import { logger } from '../utils/logger.js'
 
 function getSafeErrorMessage(error, status) {
   const isServerError = status >= 500
@@ -33,12 +34,12 @@ export function errorHandler(error, req, res, next) {
   }
 
   if (env.isDevelopment || isServerError) {
-    console.error({
+    logger.error({
       ...logPayload,
-      stack: error.stack,
-    })
+      err: error,
+    }, 'Request failed')
   } else {
-    console.warn(logPayload)
+    logger.warn(logPayload, 'Request warning')
   }
 
   const responsePayload = {

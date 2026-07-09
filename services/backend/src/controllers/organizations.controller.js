@@ -2,6 +2,11 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { pool } from '../db/pool.js'
 import { createAdminAuditLog } from '../services/adminAudit.service.js'
+import {
+  createOrganizationAuditLog,
+  listOrganizationAuditLogs as listTenantAuditLogs,
+} from '../services/organizationAudit.service.js'
+import { getOrganizationUsage as getOrganizationUsageReport } from '../services/organizationUsage.service.js'
 import { normalizeOrganizationRole } from '../services/commercial.service.js'
 
 const memberSchema = z.object({
@@ -212,6 +217,16 @@ export async function createOrganization(req, res) {
       client,
     })
 
+    await createOrganizationAuditLog({
+      organizationId: organization.id,
+      actorUserId: user.id,
+      action: 'organization.created',
+      detail: `Created organization ${name}`,
+      metadata: { organizationId: organization.id, name },
+      request: req,
+      client,
+    })
+
     await client.query('COMMIT')
 
     res.status(201).json(organization)
@@ -405,6 +420,15 @@ export async function addOrganizationMember(req, res) {
       request: req,
     })
 
+    await createOrganizationAuditLog({
+      organizationId,
+      actorUserId: actor.id,
+      action: 'organization.member_added',
+      detail: `Added ${input.email} as ${input.role}`,
+      metadata: { targetUserId: targetUser.id, role: input.role },
+      request: req,
+    })
+
     return res.status(201).json({
       type: 'member',
       member: {
@@ -453,6 +477,15 @@ export async function addOrganizationMember(req, res) {
       email: input.email,
       role: input.role,
     },
+    request: req,
+  })
+
+  await createOrganizationAuditLog({
+    organizationId,
+    actorUserId: actor.id,
+    action: 'organization.invitation_created',
+    detail: `Invited ${input.email} as ${input.role}`,
+    metadata: { email: input.email, role: input.role },
     request: req,
   })
 
@@ -530,6 +563,15 @@ export async function updateOrganizationMember(req, res) {
       role: data.role || null,
       isActive: nextIsActive ?? null,
     },
+    request: req,
+  })
+
+  await createOrganizationAuditLog({
+    organizationId,
+    actorUserId: actor.id,
+    action: 'organization.member_updated',
+    detail: `Updated member ${memberId}`,
+    metadata: { memberId, role: data.role || null, isActive: nextIsActive ?? null },
     request: req,
   })
 
@@ -616,5 +658,56 @@ export async function cancelOrganizationInvitation(req, res) {
     request: req,
   })
 
+  await createOrganizationAuditLog({
+    organizationId,
+    actorUserId: actor.id,
+    action: 'organization.invitation_cancelled',
+    detail: `Cancelled invitation ${invitationId}`,
+    metadata: { invitationId },
+    request: req,
+  })
+
   res.json(result.rows[0])
+}
+
+
+export async function getOrganizationUsage(req, res) {
+  const actor = req.dbUser
+  const organizationId = req.params.id
+
+  const member = await ensureOrganizationAccess(actor.id, organizationId)
+
+  if (!member) {
+    return res.status(404).json({ message: 'Organization not found' })
+  }
+
+  const usage = await getOrganizationUsageReport({ organizationId })
+
+  if (!usage) {
+    return res.status(404).json({ message: 'Organization usage not found' })
+  }
+
+  res.json({
+    ...usage,
+    role: member.role,
+  })
+}
+
+export async function listOrganizationAuditLogs(req, res) {
+  const actor = req.dbUser
+  const organizationId = req.params.id
+  const limit = req.query.limit
+
+  const member = await ensureOrganizationAccess(actor.id, organizationId, [
+    'owner',
+    'admin',
+  ])
+
+  if (!member) {
+    return res.status(403).json({ message: 'Permission denied' })
+  }
+
+  const logs = await listTenantAuditLogs({ organizationId, limit })
+
+  res.json(logs)
 }

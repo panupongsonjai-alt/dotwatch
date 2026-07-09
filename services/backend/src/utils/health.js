@@ -49,6 +49,8 @@ export async function buildHealthResponse({ includeDatabase = true, websocketSum
       ok: ready,
       service: 'dotwatch-backend',
       environment: env.nodeEnv,
+      release: env.releaseVersion || 'local',
+      renderService: env.renderServiceName || undefined,
       database: database.status,
       databaseLatencyMs: database.latencyMs,
       firebase,

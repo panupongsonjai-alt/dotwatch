@@ -4,7 +4,11 @@ import {
   reauthenticateWithCredential,
 } from 'firebase/auth'
 import {
+  Activity,
+  AlertTriangle,
   BellRing,
+  Clock3,
+  CheckCircle2,
   Edit3,
   Copy,
   Eye,
@@ -13,6 +17,9 @@ import {
   Lock,
   MapPin,
   Save,
+  Thermometer,
+  Radio,
+  Wifi,
   ShieldCheck,
   Trash2,
   X,
@@ -21,6 +28,11 @@ import LocationPicker from '../LocationPicker.jsx'
 import MetricConfigPanel from '../MetricConfigPanel.jsx'
 import { auth } from '../../services/firebase'
 import { getDeviceSecret } from '../../services/api'
+import {
+  getDeviceMetricPills,
+  getEsp32DefaultPinHint,
+  isEsp32Dht3Device,
+} from '../../utils/esp32Dht3Utils.js'
 import { useDeviceMetrics } from '../../hooks/useDeviceMetrics'
 import { EmptyState, StatCard, StatusBadge } from '../common'
 import {
@@ -34,6 +46,7 @@ import {
 
 const DETAIL_TABS = [
   { key: 'overview', label: 'Overview' },
+  { key: 'ops', label: 'Operations' },
   { key: 'metrics', label: 'Metrics' },
   { key: 'alarms', label: 'Alarms' },
   { key: 'location', label: 'Location' },
@@ -387,6 +400,346 @@ function maskSecret(secret = '') {
   return `${secret.slice(0, 4)}••••••••••••${secret.slice(-4)}`
 }
 
+
+function getSignalTone(metricPills = [], device = {}) {
+  const signalMetric = metricPills.find((metric) =>
+    String(metric.key || '').toLowerCase().includes('3') ||
+    String(metric.label || '').toLowerCase().includes('rssi') ||
+    String(metric.name || '').toLowerCase().includes('wifi')
+  )
+
+  const value = Number(signalMetric?.value ?? device.rssi ?? device.metric_3)
+
+  if (!Number.isFinite(value)) {
+    return {
+      label: 'Signal unknown',
+      tone: 'muted',
+    }
+  }
+
+  if (value >= -55) {
+    return {
+      label: 'Strong signal',
+      tone: 'success',
+    }
+  }
+
+  if (value >= -70) {
+    return {
+      label: 'Good signal',
+      tone: 'info',
+    }
+  }
+
+  return {
+    label: 'Weak signal',
+    tone: 'warning',
+  }
+}
+
+function getLatestDeviceTimestamp(device = {}) {
+  return (
+    device.latest_time ||
+    device.last_ingest_at ||
+    device.last_seen_at ||
+    device.updated_at ||
+    null
+  )
+}
+
+function getFreshnessInfo(device = {}) {
+  const timestamp = getLatestDeviceTimestamp(device)
+
+  if (!timestamp) {
+    return {
+      label: 'No ingest yet',
+      detail: 'ยังไม่พบเวลาส่งข้อมูลล่าสุด',
+      tone: 'warning',
+      ageSeconds: null,
+    }
+  }
+
+  const time = new Date(timestamp).getTime()
+
+  if (!Number.isFinite(time)) {
+    return {
+      label: 'Unknown freshness',
+      detail: String(timestamp),
+      tone: 'warning',
+      ageSeconds: null,
+    }
+  }
+
+  const ageSeconds = Math.max(0, Math.round((Date.now() - time) / 1000))
+
+  if (ageSeconds <= 90) {
+    return {
+      label: 'Live ingest',
+      detail: `${ageSeconds}s ago`,
+      tone: 'success',
+      ageSeconds,
+    }
+  }
+
+  if (ageSeconds <= 300) {
+    return {
+      label: 'Recently updated',
+      detail: `${Math.round(ageSeconds / 60)}m ago`,
+      tone: 'info',
+      ageSeconds,
+    }
+  }
+
+  return {
+    label: 'Stale data',
+    detail: `${Math.round(ageSeconds / 60)}m ago`,
+    tone: 'warning',
+    ageSeconds,
+  }
+}
+
+function getFirmwareInfo(device = {}) {
+  const firmware = device.firmware_version || ''
+  const isEsp32 = isEsp32Dht3Device(device)
+
+  if (!firmware) {
+    return {
+      label: 'Firmware unknown',
+      detail: 'ยังไม่มี firmware version ใน latest ingest',
+      tone: 'warning',
+    }
+  }
+
+  if (isEsp32 && firmware.includes('0.8.0')) {
+    return {
+      label: 'ESP32 TLS ready',
+      detail: firmware,
+      tone: 'success',
+    }
+  }
+
+  if (isEsp32 && firmware.includes('0.7.0')) {
+    return {
+      label: 'Wi-Fi memory ready',
+      detail: `${firmware} · ควรอัปเดตเป็น 0.8.0 เพื่อ Root CA E2E`,
+      tone: 'info',
+    }
+  }
+
+  return {
+    label: 'Firmware reported',
+    detail: firmware,
+    tone: 'info',
+  }
+}
+
+function getProductionReadiness(device = {}, status = 'offline', alarmRules = []) {
+  const metricPills = getDeviceMetricPills(device, 3)
+  const signal = getSignalTone(metricPills, device)
+  const freshness = getFreshnessInfo(device)
+  const firmware = getFirmwareInfo(device)
+  const hasMetricData = metricPills.length > 0
+  const activeAlarmCount = alarmRules.filter((rule) => rule.is_active !== false).length
+  const isOnline = status === 'online'
+
+  const checks = [
+    {
+      key: 'connection',
+      title: 'Device connection',
+      description: isOnline
+        ? 'Backend เห็นอุปกรณ์เป็น Online'
+        : 'ยังไม่ Online ให้เช็ค Wi-Fi, power, backend URL และ device secret',
+      tone: isOnline ? 'success' : 'warning',
+      icon: isOnline ? CheckCircle2 : AlertTriangle,
+    },
+    {
+      key: 'ingest',
+      title: 'Latest ingest',
+      description: `${freshness.label} · ${freshness.detail}`,
+      tone: freshness.tone,
+      icon: freshness.tone === 'success' ? CheckCircle2 : Clock3,
+    },
+    {
+      key: 'metrics',
+      title: 'Metric payload',
+      description: hasMetricData
+        ? `${metricPills.length} latest metrics available`
+        : 'ยังไม่พบ latest metric จากอุปกรณ์นี้',
+      tone: hasMetricData ? 'success' : 'warning',
+      icon: hasMetricData ? Activity : AlertTriangle,
+    },
+    {
+      key: 'signal',
+      title: 'Wi-Fi signal',
+      description: signal.label,
+      tone: signal.tone === 'warning' ? 'warning' : 'success',
+      icon: Wifi,
+    },
+    {
+      key: 'firmware',
+      title: 'Firmware / TLS',
+      description: firmware.detail,
+      tone: firmware.tone,
+      icon: ShieldCheck,
+    },
+    {
+      key: 'alarms',
+      title: 'Alarm readiness',
+      description: activeAlarmCount
+        ? `${activeAlarmCount} active alarm rules`
+        : 'ยังไม่มี active alarm rule สำหรับ device นี้',
+      tone: activeAlarmCount ? 'success' : 'info',
+      icon: BellRing,
+    },
+  ]
+
+  const blockingChecks = checks.filter((check) => check.tone === 'warning')
+
+  return {
+    checks,
+    score: checks.length - blockingChecks.length,
+    total: checks.length,
+    ready: blockingChecks.length === 0,
+    nextAction: blockingChecks[0]?.title || 'Ready for production monitoring',
+  }
+}
+
+function DeviceOperationsPanel({ device, status, alarmRules = [] }) {
+  const readiness = getProductionReadiness(device, status, alarmRules)
+  const metricPills = getDeviceMetricPills(device, 3)
+  const isEsp32 = isEsp32Dht3Device(device)
+  const pinHint = isEsp32 ? getEsp32DefaultPinHint(device) : null
+
+  return (
+    <section className="devices-v5-ops-panel" aria-label="Production operations checklist">
+      <div className="devices-v5-ops-hero">
+        <div>
+          <span className="page-eyebrow">Production Operations</span>
+          <h4>
+            {readiness.ready
+              ? 'พร้อมใช้งานจริงและกำลังส่งข้อมูล'
+              : 'มีจุดที่ควรตรวจเพิ่มก่อนใช้งานจริง'}
+          </h4>
+          <p>
+            ใช้หน้านี้ตรวจ device จริงหลัง flash firmware: Wi-Fi, ingest, Root CA/TLS,
+            metric ล่าสุด และ alarm readiness ในมุมเดียว
+          </p>
+        </div>
+
+        <div className={`devices-v5-readiness ${readiness.ready ? 'ready' : 'attention'}`}>
+          <strong>{readiness.score}/{readiness.total}</strong>
+          <span>{readiness.ready ? 'Ready' : 'Needs check'}</span>
+        </div>
+      </div>
+
+      <div className="devices-v5-check-grid">
+        {readiness.checks.map((check) => {
+          const Icon = check.icon
+
+          return (
+            <article className={`devices-v5-check-card ${check.tone}`} key={check.key}>
+              <div className="devices-v5-check-icon">
+                <Icon size={18} />
+              </div>
+              <div>
+                <strong>{check.title}</strong>
+                <p>{check.description}</p>
+              </div>
+            </article>
+          )
+        })}
+      </div>
+
+      <div className="devices-v5-ops-bottom">
+        <div className="devices-v5-action-card">
+          <span className="page-eyebrow">Next action</span>
+          <strong>{readiness.nextAction}</strong>
+          <p>
+            {readiness.ready
+              ? 'สามารถปล่อยให้อุปกรณ์ทำงานต่อและใช้ Dashboard/Alarms ติดตามสถานะได้'
+              : 'แก้รายการแรกที่ขึ้นเตือน แล้วรอรอบส่งข้อมูลถัดไปประมาณ 20-60 วินาที'}
+          </p>
+        </div>
+
+        <div className="devices-v5-action-card">
+          <span className="page-eyebrow">Field notes</span>
+          <strong>{isEsp32 ? 'ESP32-DHT3 production device' : getModelLabel(device)}</strong>
+          <p>
+            {isEsp32
+              ? `Local Admin PIN เริ่มต้นคือท้าย Device Code 6 ตัว (${pinHint}) และควรเปลี่ยน PIN หลังติดตั้งจริง`
+              : 'ตรวจสอบ power, network, device secret และตำแหน่งติดตั้งก่อนส่งมอบ'}
+          </p>
+        </div>
+      </div>
+
+      {metricPills.length > 0 && (
+        <div className="devices-v5-live-strip">
+          <Radio size={16} />
+          <span>Latest metrics</span>
+          {metricPills.map((metric) => (
+            <strong key={metric.key}>{metric.label}: {metric.displayValue}</strong>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function DeviceQuickStatusPanel({ device, status }) {
+  const metricPills = getDeviceMetricPills(device, 3)
+  const signal = getSignalTone(metricPills, device)
+  const isEsp32 = isEsp32Dht3Device(device)
+  const pinHint = isEsp32 ? getEsp32DefaultPinHint(device) : null
+
+  return (
+    <section className="devices-v4-quick-panel" aria-label="Device quick summary">
+      <div className="devices-v4-quick-main">
+        <span className="page-eyebrow">Live Device Snapshot</span>
+        <h4>{status === 'online' ? 'Receiving data now' : 'Waiting for latest data'}</h4>
+        <p>
+          {status === 'online'
+            ? 'อุปกรณ์เชื่อมต่อและส่งข้อมูลเข้า Render backend แล้ว'
+            : 'ถ้าเพิ่งเปิดเครื่อง ให้รอรอบส่งข้อมูลถัดไป หรือเช็ค Wi-Fi / Root CA'}
+        </p>
+      </div>
+
+      <div className="devices-v4-quick-grid">
+        <div className="devices-v4-quick-card">
+          <Wifi size={18} />
+          <span>Connection</span>
+          <strong>{getStatusLabel(status)}</strong>
+          <small className={`signal-${signal.tone}`}>{signal.label}</small>
+        </div>
+
+        {metricPills.map((metric) => (
+          <div className="devices-v4-quick-card" key={metric.key}>
+            {metric.key === 'metric_1' ? <Thermometer size={18} /> : <Activity size={18} />}
+            <span>{metric.label}</span>
+            <strong>{metric.displayValue}</strong>
+            <small>{metric.name || metric.key}</small>
+          </div>
+        ))}
+
+        <div className="devices-v4-quick-card">
+          <Clock3 size={18} />
+          <span>Last Seen</span>
+          <strong>{getLastSeen(device)}</strong>
+          <small>{device.firmware_version || 'Firmware --'}</small>
+        </div>
+      </div>
+
+      {isEsp32 && (
+        <div className="devices-v4-esp32-helper">
+          <span>ESP32-DHT3</span>
+          <p>
+            Local Admin: ใช้ PIN เริ่มต้นท้าย Device Code 6 ตัว ({pinHint}) แล้วเปลี่ยนเป็น PIN ส่วนตัวหลังติดตั้งจริง
+          </p>
+        </div>
+      )}
+    </section>
+  )
+}
+
 function SelectedDevicePanel({
   selectedDevice,
   selectedRules,
@@ -609,6 +962,8 @@ function SelectedDevicePanel({
         </div>
       </div>
 
+      <DeviceQuickStatusPanel device={selectedDevice} status={status} />
+
       <div
         className="devices-v3-tabs"
         role="tablist"
@@ -678,6 +1033,29 @@ function SelectedDevicePanel({
               </p>
             </div>
           </section>
+
+          <DeviceOperationsPanel
+            device={selectedDevice}
+            status={status}
+            alarmRules={Array.isArray(selectedRules) ? selectedRules : []}
+          />
+        </div>
+      )}
+
+      {activeTab === 'ops' && (
+        <div className="devices-v3-tab-panel">
+          <DeviceTabHeader
+            eyebrow="Production Checklist"
+            title="Operations"
+            description="ตรวจความพร้อมของอุปกรณ์จริงหลังติดตั้ง: ingest, signal, firmware, TLS และ alarm readiness"
+            meta={getStatusLabel(status)}
+          />
+
+          <DeviceOperationsPanel
+            device={selectedDevice}
+            status={status}
+            alarmRules={Array.isArray(selectedRules) ? selectedRules : []}
+          />
         </div>
       )}
 

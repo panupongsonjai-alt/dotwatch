@@ -1,0 +1,102 @@
+﻿[
+    {
+        "Relative":  ".pio",
+        "Reason":  "generated/report/cache directory",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/.pio"
+    },
+    {
+        "Relative":  "_reports",
+        "Reason":  "generated/report/cache directory",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/_reports"
+    },
+    {
+        "Relative":  "apps/admin/dist",
+        "Reason":  "generated/report/cache directory",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/apps/admin/dist"
+    },
+    {
+        "Relative":  "apps/dashboard/dist",
+        "Reason":  "generated/report/cache directory",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/apps/dashboard/dist"
+    },
+    {
+        "Relative":  "apps/dashboard/src/components/device-detail/DeviceInfoGrid.jsx.bak-20260708-205829",
+        "Reason":  "backup file from previous patch",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/apps/dashboard/src/components/device-detail/DeviceInfoGrid.jsx.bak-20260708-205829"
+    },
+    {
+        "Relative":  "apps/dashboard/src/components/device-detail/DeviceMetricsTab.jsx.bak-20260708-205829",
+        "Reason":  "backup file from previous patch",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/apps/dashboard/src/components/device-detail/DeviceMetricsTab.jsx.bak-20260708-205829"
+    },
+    {
+        "Relative":  "apps/dashboard/src/components/devices/DeviceList.jsx.bak-20260708-205829",
+        "Reason":  "backup file from previous patch",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/apps/dashboard/src/components/devices/DeviceList.jsx.bak-20260708-205829"
+    },
+    {
+        "Relative":  "config.pi.current-after-429.py",
+        "Reason":  "root-level scratch/snapshot file",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/config.pi.current-after-429.py"
+    },
+    {
+        "Relative":  "diagnostics",
+        "Reason":  "generated/report/cache directory",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/diagnostics"
+    },
+    {
+        "Relative":  "dotwatch_api.fixed.py",
+        "Reason":  "root-level scratch/snapshot file",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/dotwatch_api.fixed.py"
+    },
+    {
+        "Relative":  "dotwatch_api.pi.current.py",
+        "Reason":  "root-level scratch/snapshot file",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/dotwatch_api.pi.current.py"
+    },
+    {
+        "Relative":  "errorHandler.fixed.js",
+        "Reason":  "root-level scratch/snapshot file",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/errorHandler.fixed.js"
+    },
+    {
+        "Relative":  "esp32/dotwatch_esp32_dht3_local_admin/dotwatch_esp32_dht3_local_admin.ino.bak-20260708-203637",
+        "Reason":  "backup file from previous patch",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/esp32/dotwatch_esp32_dht3_local_admin/dotwatch_esp32_dht3_local_admin.ino.bak-20260708-203637"
+    },
+    {
+        "Relative":  "esp32/dotwatch_esp32_dht3_local_admin/src/main.cpp.bak-20260708-203637",
+        "Reason":  "backup file from previous patch",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/esp32/dotwatch_esp32_dht3_local_admin/src/main.cpp.bak-20260708-203637"
+    },
+    {
+        "Relative":  "esp32/dotwatch_esp32_dht3_tls_hardened/.pio",
+        "Reason":  "generated/report/cache directory",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/esp32/dotwatch_esp32_dht3_tls_hardened/.pio"
+    },
+    {
+        "Relative":  "ingest.controller.fixed.js",
+        "Reason":  "root-level scratch/snapshot file",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/ingest.controller.fixed.js"
+    },
+    {
+        "Relative":  "main.pi.current-after-429.py",
+        "Reason":  "root-level scratch/snapshot file",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/main.pi.current-after-429.py"
+    },
+    {
+        "Relative":  "main.pi-final-queue-safe.py",
+        "Reason":  "root-level scratch/snapshot file",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/main.pi-final-queue-safe.py"
+    },
+    {
+        "Relative":  "main.rpi-agent-429-fixed.py",
+        "Reason":  "root-level scratch/snapshot file",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/main.rpi-agent-429-fixed.py"
+    },
+    {
+        "Relative":  "pi_header_probe.py",
+        "Reason":  "root-level scratch/snapshot file",
+        "ArchivedTo":  "_archive/phase0-20260708-232943/pi_header_probe.py"
+    }
+]
