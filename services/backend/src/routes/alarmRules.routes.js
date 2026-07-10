@@ -9,7 +9,7 @@ const router = Router()
 router.use(authUser)
 router.use(loadUser)
 
-const ALLOWED_ALARM_OPERATORS = new Set(['>', '>=', '<', '<=', '==', '!='])
+const ALLOWED_ALARM_OPERATORS = new Set(['>', '>=', '<', '<=', '=', '==', '!='])
 const ALLOWED_ALARM_SEVERITIES = new Set(['warning', 'critical'])
 
 function normalizeAlarmPayload(payload = {}) {

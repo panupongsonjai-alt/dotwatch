@@ -43,8 +43,7 @@ import {
 
 const DETAIL_TABS = [
   { key: 'overview', label: 'Overview' },
-  { key: 'metrics', label: 'Metrics' },
-  { key: 'alarms', label: 'Alarms' },
+  { key: 'metrics', label: 'Metrics & Alarms' },
   { key: 'location', label: 'Location' },
   { key: 'security', label: 'Security' },
 ]
@@ -1035,26 +1034,24 @@ function SelectedDevicePanel({
       )}
 
       {activeTab === 'metrics' && (
-        <div className="devices-v3-tab-panel">
+        <div className="devices-v3-tab-panel devices-v3-metrics-alarms-panel">
           <DeviceTabHeader
-            eyebrow="Metric Display"
-            title="Metrics"
-            description="ตั้งชื่อ Metric, หน่วย, Icon และเลือกข้อมูลที่ต้องการแสดงบน Dashboard และ Device Detail"
+            eyebrow="Metric & Alarm Configuration"
+            title="Metrics & Alarms"
+            description="ตั้งชื่อ Metric, หน่วย, Icon, การแสดงผล และกำหนด Warning / Critical Threshold ได้จากหน้าเดียว"
             meta={`${selectedDevice.metric_count || 0} Channels`}
           />
 
           <MetricConfigPanel deviceId={selectedDevice.id} />
-        </div>
-      )}
 
-      {activeTab === 'alarms' && (
-        <div className="devices-v3-tab-panel">
-          <DeviceTabHeader
-            eyebrow="Alarm Rules"
-            title="Alarms"
-            description="ตั้งค่า Warning และ Critical แยกตาม Metric เพื่อให้ระบบแจ้งเตือนอัตโนมัติ"
-            meta={`${selectedAlarmRuleCount} Rules`}
-          />
+          <div className="metric-alarm-section-divider">
+            <DeviceTabHeader
+              eyebrow="Alarm Thresholds"
+              title="Alarm Rules"
+              description="ตั้งค่า Condition, Threshold, ข้อความแจ้งเตือน และสถานะ Active แยกตาม Metric"
+              meta={`${selectedAlarmRuleCount} Rules`}
+            />
+          </div>
 
           <DeviceAlarmRulesPanel
             deviceId={selectedDevice.id}

@@ -184,27 +184,11 @@ export default function MetricConfigPanel({ deviceId }) {
   async function handleReset() {
     setOpenIconPickerKey(null)
     await resetMetrics()
-
-    window.dispatchEvent(
-      new CustomEvent('dotwatchMetricConfigChanged', {
-        detail: { deviceId },
-      })
-    )
   }
 
   async function handleSave() {
     setOpenIconPickerKey(null)
-    const success = await saveDraftMetrics(reindexMetrics(draftMetrics))
-
-    if (success !== false) {
-      window.dispatchEvent(
-        new CustomEvent('dotwatchMetricConfigChanged', {
-          detail: { deviceId },
-        })
-      )
-    }
-
-    return success
+    return saveDraftMetrics(reindexMetrics(draftMetrics))
   }
 
   const visibleMetricCount = draftMetrics.filter(

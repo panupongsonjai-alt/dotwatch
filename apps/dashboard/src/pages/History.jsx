@@ -4,6 +4,7 @@ import {
   AreaChart,
   CartesianGrid,
   ResponsiveContainer,
+  ReferenceLine,
   Tooltip,
   XAxis,
   YAxis,
@@ -16,6 +17,7 @@ import {
   getDevices,
   getDeviceMetrics,
   getHistoryByDate,
+  getAlarmRules,
 } from '../services/api'
 import '../styles/history.css'
 import '../styles/page-system.css'
@@ -461,6 +463,150 @@ function formatHistoryTableValue(row, metricMap, selectedUnit = '') {
   return value
 }
 
+const ALARM_SEVERITY_PRIORITY = {
+  critical: 2,
+  warning: 1,
+}
+
+function normalizeAlarmRule(rule = {}) {
+  const metricKey = rule.metric || rule.metric_key || rule.metricKey
+  const threshold = Number(rule.threshold)
+
+  if (!metricKey || !Number.isFinite(threshold)) return null
+
+  return {
+    id: rule.id,
+    deviceId: rule.device_id ?? rule.deviceId,
+    metricKey: String(metricKey),
+    operator: String(rule.operator || '>').trim(),
+    threshold,
+    severity: rule.severity === 'critical' ? 'critical' : 'warning',
+    isActive: rule.is_active !== false && rule.isActive !== false,
+    notificationMessage:
+      rule.notification_message || rule.notificationMessage || '',
+  }
+}
+
+function alarmRuleMatchesValue(rule, value) {
+  const numericValue = Number(value)
+
+  if (!rule || !Number.isFinite(numericValue)) return false
+
+  switch (rule.operator) {
+    case '>':
+      return numericValue > rule.threshold
+    case '>=':
+      return numericValue >= rule.threshold
+    case '<':
+      return numericValue < rule.threshold
+    case '<=':
+      return numericValue <= rule.threshold
+    case '=':
+    case '==':
+      return numericValue === rule.threshold
+    case '!=':
+      return numericValue !== rule.threshold
+    default:
+      return false
+  }
+}
+
+function getAlarmEvaluation(value, metricKey, alarmRules = []) {
+  const metricRules = alarmRules.filter(
+    (rule) => rule.isActive && String(rule.metricKey) === String(metricKey)
+  )
+
+  if (!metricRules.length) {
+    return {
+      hasRules: false,
+      severity: 'none',
+      label: 'No Rule',
+      rule: null,
+    }
+  }
+
+  const matchedRule = metricRules
+    .filter((rule) => alarmRuleMatchesValue(rule, value))
+    .sort(
+      (a, b) =>
+        (ALARM_SEVERITY_PRIORITY[b.severity] || 0) -
+        (ALARM_SEVERITY_PRIORITY[a.severity] || 0)
+    )[0]
+
+  if (matchedRule) {
+    return {
+      hasRules: true,
+      severity: matchedRule.severity,
+      label: matchedRule.severity === 'critical' ? 'Critical' : 'Warning',
+      rule: matchedRule,
+    }
+  }
+
+  return {
+    hasRules: true,
+    severity: 'normal',
+    label: 'Normal',
+    rule: null,
+  }
+}
+
+function getAlarmRuleColor(severity) {
+  return severity === 'critical' ? '#ef4444' : '#f59e0b'
+}
+
+function formatAlarmRuleSummary(rule, metricMap, includeMetricName = false) {
+  const metricName = getMetricName(metricMap, rule.metricKey)
+  const unit = getMetricUnit(metricMap, rule.metricKey)
+  const severityLabel = rule.severity === 'critical' ? 'Critical' : 'Warning'
+  const condition = `${rule.operator} ${formatNumber(rule.threshold, unit)}`
+
+  return `${includeMetricName ? `${metricName} • ` : ''}${severityLabel} ${condition}`
+}
+
+function HistoryAlarmBadge({ evaluation, compact = false }) {
+  if (!evaluation?.hasRules) {
+    return (
+      <span className="history-alarm-badge no-rule" title="Metric นี้ยังไม่มี Active Alarm Rule">
+        {compact ? '—' : 'No Rule'}
+      </span>
+    )
+  }
+
+  const title = evaluation.rule
+    ? `${evaluation.label}: ${evaluation.rule.operator} ${evaluation.rule.threshold}${
+        evaluation.rule.notificationMessage
+          ? ` • ${evaluation.rule.notificationMessage}`
+          : ''
+      }`
+    : 'ค่าปกติ ไม่เข้าเงื่อนไข Alarm'
+
+  return (
+    <span
+      className={`history-alarm-badge ${evaluation.severity} ${
+        compact ? 'compact' : ''
+      }`}
+      title={title}
+    >
+      {compact && evaluation.severity === 'critical'
+        ? 'C'
+        : compact && evaluation.severity === 'warning'
+          ? 'W'
+          : compact && evaluation.severity === 'normal'
+            ? 'OK'
+            : evaluation.label}
+    </span>
+  )
+}
+
+function HistoryMetricAlarmValue({ value, unit, evaluation }) {
+  return (
+    <div className={`history-metric-alarm-value ${evaluation?.severity || 'none'}`}>
+      <span>{formatNumber(value, unit)}</span>
+      <HistoryAlarmBadge evaluation={evaluation} compact />
+    </div>
+  )
+}
+
 function HistoryStatCard({ label, value, hint }) {
   return <StatCard label={label} value={value} hint={hint} />
 }
@@ -492,6 +638,7 @@ function History() {
   const dateInputRef = useRef(null)
   const [devices, setDevices] = useState([])
   const [metrics, setMetrics] = useState([])
+  const [alarmRules, setAlarmRules] = useState([])
   const [selectedDeviceId, setSelectedDeviceId] = useState(initialHistoryState.deviceId)
   const [selectedDate, setSelectedDate] = useState(initialHistoryState.date)
   const [selectedMetricKey, setSelectedMetricKey] = useState(initialHistoryState.metricKey)
@@ -572,6 +719,29 @@ function History() {
       },
     ]
   }, [metrics, rows, selectedMetric, selectedMetricKey])
+
+  const activeAlarmRules = useMemo(
+    () => alarmRules.filter((rule) => rule.isActive),
+    [alarmRules]
+  )
+
+  const alarmReferenceRules = useMemo(() => {
+    const visibleMetricKeys =
+      selectedMetricKey === 'all'
+        ? new Set(chartSeries.map((series) => series.dataKey))
+        : new Set([selectedMetricKey])
+
+    return activeAlarmRules
+      .filter((rule) => visibleMetricKeys.has(rule.metricKey))
+      .sort((a, b) => {
+        const metricCompare = a.metricKey.localeCompare(b.metricKey)
+
+        if (metricCompare !== 0) return metricCompare
+
+        return (ALARM_SEVERITY_PRIORITY[a.severity] || 0) -
+          (ALARM_SEVERITY_PRIORITY[b.severity] || 0)
+      })
+  }, [activeAlarmRules, chartSeries, selectedMetricKey])
 
   const filteredRows = useMemo(() => {
     return [...rows].sort((a, b) => {
@@ -682,6 +852,28 @@ function History() {
 
       return nextMetrics.length ? 'all' : ''
     })
+  }
+
+  async function loadAlarmRules(deviceId) {
+    if (!deviceId) {
+      setAlarmRules([])
+      return
+    }
+
+    try {
+      const result = await getAlarmRules()
+      const nextRules = toArray(result)
+        .map(normalizeAlarmRule)
+        .filter(Boolean)
+        .filter(
+          (rule) => String(rule.deviceId) === String(deviceId)
+        )
+
+      setAlarmRules(nextRules)
+    } catch (err) {
+      console.warn('History alarm rules unavailable:', err)
+      setAlarmRules([])
+    }
   }
 
   async function loadHistory() {
@@ -871,6 +1063,7 @@ function History() {
 
     setRows([])
     loadMetrics(selectedDeviceId)
+    loadAlarmRules(selectedDeviceId)
   }, [selectedDeviceId, devices])
 
   useEffect(() => {
@@ -1122,6 +1315,24 @@ function History() {
             </span>
           </div>
 
+          {alarmReferenceRules.length > 0 && (
+            <div className="history-alarm-rule-summary" aria-label="Active alarm thresholds">
+              {alarmReferenceRules.map((rule) => (
+                <span
+                  key={`alarm-summary-${rule.id || `${rule.metricKey}-${rule.severity}`}`}
+                  className={`history-alarm-rule-chip ${rule.severity}`}
+                >
+                  <i aria-hidden="true" />
+                  {formatAlarmRuleSummary(
+                    rule,
+                    metricMap,
+                    selectedMetricKey === 'all'
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
+
           {loadingHistory ? (
             <div className="history-empty-box">กำลังโหลดข้อมูลย้อนหลัง...</div>
           ) : chartData.length === 0 ? (
@@ -1192,6 +1403,33 @@ function History() {
                       strokeDasharray: '3 3',
                     }}
                   />
+                  {alarmReferenceRules.map((rule) => {
+                    const color = getAlarmRuleColor(rule.severity)
+
+                    return (
+                      <ReferenceLine
+                        key={`alarm-line-${rule.id || `${rule.metricKey}-${rule.severity}`}`}
+                        y={rule.threshold}
+                        stroke={color}
+                        strokeWidth={1.8}
+                        strokeDasharray={
+                          rule.severity === 'critical' ? '4 3' : '7 4'
+                        }
+                        ifOverflow="extendDomain"
+                        label={{
+                          value: formatAlarmRuleSummary(
+                            rule,
+                            metricMap,
+                            selectedMetricKey === 'all'
+                          ),
+                          position: 'insideTopRight',
+                          fill: color,
+                          fontSize: 10,
+                          fontWeight: 800,
+                        }}
+                      />
+                    )
+                  })}
                   {chartSeries.map((series, index) => (
                     <Area
                       key={series.dataKey}
@@ -1217,7 +1455,7 @@ function History() {
         <div className="history-section-title">
           <div>
             <h2>History Table</h2>
-            <p>รายการข้อมูลย้อนหลังตามตัวกรองที่เลือก</p>
+            <p>รายการข้อมูลย้อนหลังพร้อมสถานะ Warning / Critical ตาม Alarm Rule</p>
           </div>
 
           <div className="history-table-actions">
@@ -1273,6 +1511,7 @@ function History() {
                 <tr>
                   <th>Time</th>
                   <th>{selectedMetric?.metricName || 'Name'}</th>
+                  <th>Alarm Status</th>
                 </tr>
               )}
             </thead>
@@ -1282,7 +1521,7 @@ function History() {
                 <tr>
                   <td
                     colSpan={
-                      selectedMetricKey === 'all' ? metrics.length + 1 : 2
+                      selectedMetricKey === 'all' ? metrics.length + 1 : 3
                     }
                   >
                     ยังไม่มีข้อมูลย้อนหลัง
@@ -1292,24 +1531,57 @@ function History() {
                 paginatedHistoryTableRows.map((row) => (
                   <tr key={row.id}>
                     <td>{formatDateTime(row.time)}</td>
-                    {metrics.map((metric) => (
-                      <td key={metric.metricKey}>
-                        {row.values?.[metric.metricKey] == null
-                          ? '--'
-                          : formatNumber(row.values[metric.metricKey], metric.unit || '')}
-                      </td>
-                    ))}
+                    {metrics.map((metric) => {
+                      const value = row.values?.[metric.metricKey]
+
+                      if (value == null) {
+                        return <td key={metric.metricKey}>--</td>
+                      }
+
+                      const evaluation = getAlarmEvaluation(
+                        value,
+                        metric.metricKey,
+                        activeAlarmRules
+                      )
+
+                      return (
+                        <td
+                          key={metric.metricKey}
+                          className={`history-alarm-value-cell ${evaluation.severity}`}
+                        >
+                          <HistoryMetricAlarmValue
+                            value={value}
+                            unit={metric.unit || ''}
+                            evaluation={evaluation}
+                          />
+                        </td>
+                      )
+                    })}
                   </tr>
                 ))
               ) : (
-                paginatedHistoryTableRows.map((row) => (
-                  <tr key={row.id}>
-                    <td>{formatDateTime(row.time)}</td>
-                    <td>
-                      {formatHistoryTableValue(row, metricMap, selectedUnit)}
-                    </td>
-                  </tr>
-                ))
+                paginatedHistoryTableRows.map((row) => {
+                  const evaluation = getAlarmEvaluation(
+                    row.value,
+                    row.metricKey || selectedMetricKey,
+                    activeAlarmRules
+                  )
+
+                  return (
+                    <tr
+                      key={row.id}
+                      className={`history-alarm-row ${evaluation.severity}`}
+                    >
+                      <td>{formatDateTime(row.time)}</td>
+                      <td>
+                        {formatHistoryTableValue(row, metricMap, selectedUnit)}
+                      </td>
+                      <td className="history-alarm-status-cell">
+                        <HistoryAlarmBadge evaluation={evaluation} />
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>

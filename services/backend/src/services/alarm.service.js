@@ -11,7 +11,8 @@ function compareValue(value, operator, threshold) {
   if (operator === '>=') return value >= threshold
   if (operator === '<') return value < threshold
   if (operator === '<=') return value <= threshold
-  if (operator === '=') return value === threshold
+  if (operator === '=' || operator === '==') return value === threshold
+  if (operator === '!=') return value !== threshold
   return false
 }
 
