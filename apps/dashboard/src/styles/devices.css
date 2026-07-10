@@ -4387,3 +4387,107 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   Metric Display - Single Row Layout
+   1) ซ่อนหัว Metric # / metric key จากหน้าจอ
+   2) จัด Name, Unit, Icon, Display และ Delete ให้อยู่ในแถวเดียว
+   3) ให้สีไอคอนตรงกับสีชื่อไอคอนในทุกสถานะ
+========================================================= */
+
+.metric-config-row-clean {
+  padding: 13px 14px !important;
+  gap: 0 !important;
+  overflow: visible !important;
+}
+
+.metric-config-row-clean .metric-config-card-clean-grid {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns:
+    minmax(180px, 1fr)
+    minmax(78px, 92px)
+    minmax(132px, 158px)
+    minmax(104px, 120px)
+    38px !important;
+  grid-template-areas: 'name unit icon display action' !important;
+  gap: 10px !important;
+  align-items: end !important;
+  overflow: visible !important;
+}
+
+.metric-config-row-clean .metric-config-field-name {
+  grid-area: name !important;
+}
+
+.metric-config-row-clean .metric-config-field-unit {
+  grid-area: unit !important;
+}
+
+.metric-config-row-clean .metric-config-field-icon {
+  grid-area: icon !important;
+}
+
+.metric-config-row-clean .metric-config-field-visible {
+  grid-area: display !important;
+}
+
+.metric-config-row-action {
+  grid-area: action !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: flex-end !important;
+}
+
+.metric-config-row-clean .metric-config-delete-btn {
+  margin: 0 !important;
+  align-self: end !important;
+}
+
+.metric-config-row-clean .metric-icon-dropdown-current,
+.metric-config-row-clean .metric-icon-dropdown-option {
+  color: var(--text) !important;
+}
+
+.metric-config-row-clean .metric-icon-dropdown-current svg,
+.metric-config-row-clean .metric-icon-dropdown-option svg {
+  color: currentColor !important;
+}
+
+.metric-config-row-clean .metric-icon-dropdown-option:hover:not(:disabled),
+.metric-config-row-clean .metric-icon-dropdown-option.active {
+  color: var(--primary) !important;
+}
+
+@media (max-width: 760px) {
+  .metric-config-row-clean .metric-config-card-clean-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(78px, 92px) !important;
+    grid-template-areas:
+      'name unit'
+      'icon display'
+      'action action' !important;
+  }
+
+  .metric-config-row-action {
+    justify-content: flex-end !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .metric-config-row-clean .metric-config-card-clean-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      'name'
+      'unit'
+      'icon'
+      'display'
+      'action' !important;
+  }
+
+  .metric-config-row-action,
+  .metric-config-row-clean .metric-config-delete-btn {
+    width: 100% !important;
+  }
+}
