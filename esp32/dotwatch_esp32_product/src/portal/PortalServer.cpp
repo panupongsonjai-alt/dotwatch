@@ -104,17 +104,35 @@ void PortalServer::handleRoot() {
   }
 
   String body;
-  body.reserve(24000);
+  body.reserve(30000);
 
-  body += "<section class='card'>";
-  body += "<div class='hero'><div><div class='kicker'>Device console</div>";
-  body += "<h1>ตั้งค่า ESP32 แบบ Product</h1>";
-  body += "<p class='muted'>หน้าเดียวสำหรับดูสถานะ เปลี่ยน Wi-Fi และตรวจการเชื่อมต่อ โดยซ่อนค่าทางเทคนิคไว้ใน Advanced.</p></div>";
-  body += "<span class='badge " + statusBadgeClass() + "'>";
+  body += "<section id='overview' class='dashboard-page is-active' data-page-title='ESP32 Overview'>";
+  body += "<div class='card overview-hero'>";
+  body += "<div class='hero'><div><div class='kicker'>Device Overview</div>";
+  body += "<h1>ESP32 พร้อมสำหรับ dotWatch</h1>";
+  body += "<p class='muted'>ดูสถานะ Wi-Fi, Backend, Sensor และความพร้อมของอุปกรณ์จากหน้าเดียว</p></div>";
+  body += "<span id='appStateBadge' class='badge " + statusBadgeClass() + "'>";
   body += StringUtils::appStateText(status_->state);
   body += "</span></div>";
   body += statusCardsHtml();
-  body += "</section>";
+  body += "</div>";
+
+  body += "<div class='overview-grid'>";
+  body += "<div class='card'><div class='card-head'><div><div class='kicker'>Quick Access</div><h2>การตั้งค่าที่ใช้บ่อย</h2><p class='muted'>เปิดเฉพาะส่วนที่ต้องการโดยไม่ต้องเลื่อนหาหน้ายาว</p></div></div>";
+  body += "<div class='quick-actions'>";
+  body += "<button class='quick-action' type='button' data-page-target='wifi'><b>เปลี่ยน Wi-Fi</b><span>สแกน เลือก และทดสอบเครือข่ายใหม่</span></button>";
+  body += "<button class='quick-action' type='button' data-page-target='device'><b>Device Settings</b><span>ตรวจ Backend URL, Device Code และ Secret</span></button>";
+  body += "<button class='quick-action' type='button' data-page-target='sensor'><b>ดูค่า Sensor</b><span>Temperature, Humidity และ Send Interval</span></button>";
+  body += "<button class='quick-action' type='button' data-page-target='system'><b>System Operations</b><span>ดู JSON หรือ Restart อุปกรณ์</span></button>";
+  body += "</div></div>";
+
+  const bool backendOk = status_->lastHttpStatus >= 200 && status_->lastHttpStatus < 300;
+  body += "<div class='card'><div class='card-head'><div><div class='kicker'>Health Check</div><h2>สถานะระบบหลัก</h2><p class='muted'>รายละเอียดอ้างอิงจากสถานะเดิมของ Firmware</p></div></div><div class='health-list'>";
+  body += "<div class='health-row'><i class='health-dot " + String(wifi_->isConnected() ? "ok" : "bad") + "'></i><strong>Wi-Fi Connection</strong><span id='healthWifi'>" + String(wifi_->isConnected() ? "Connected" : "Disconnected") + "</span></div>";
+  body += "<div class='health-row'><i class='health-dot " + String(backendOk ? "ok" : "bad") + "'></i><strong>Backend Connection</strong><span id='healthBackend'>" + StringUtils::htmlEscape(lastSendLabel()) + "</span></div>";
+  body += "<div class='health-row'><i class='health-dot " + String(status_->sensorReadingAvailable ? "ok" : "warn") + "'></i><strong>Sensor Reading</strong><span id='healthSensor'>" + String(status_->sensorReadingAvailable ? "Available" : "Waiting") + "</span></div>";
+  body += "<div class='health-row'><i class='health-dot " + String(backend_->hasEffectiveCa() ? "ok" : "warn") + "'></i><strong>TLS Certificate</strong><span id='healthTls'>" + StringUtils::htmlEscape(backend_->tlsCaSourceText()) + "</span></div>";
+  body += "</div></div></div></section>";
 
   body += wifiSectionHtml();
   body += deviceSectionHtml();
@@ -391,6 +409,17 @@ void PortalServer::handleJson() {
   document["dhtType"] = sensors_->profileName(*config_);
   document["sendIntervalSeconds"] = config_->sendIntervalMs / 1000UL;
   document["fallbackDummy"] = config_->fallbackDummy;
+  document["sensorReadingAvailable"] = status_->sensorReadingAvailable;
+  if (status_->sensorReadingAvailable) {
+    document["temperature"] = status_->lastTemperature;
+    document["humidity"] = status_->lastHumidity;
+    document["sensorReadingAgeSeconds"] =
+        (millis() - status_->lastSensorReadAtMs) / 1000UL;
+  } else {
+    document["temperature"] = nullptr;
+    document["humidity"] = nullptr;
+    document["sensorReadingAgeSeconds"] = nullptr;
+  }
   document["uptime"] = StringUtils::uptimeText();
   document["lastSendStatus"] = status_->lastSendStatus;
   document["lastSendError"] = status_->lastSendError;
@@ -512,17 +541,17 @@ String PortalServer::effectiveAdminPin() const {
   return defaultAdminPin();
 }
 
-String PortalServer::currentPinValue() const {
+String PortalServer::currentPinValue() {
   if (setupMode_ || !server_.hasArg("pin")) return "";
   return StringUtils::htmlEscape(server_.arg("pin"));
 }
 
-String PortalServer::pinHiddenInput() const {
+String PortalServer::pinHiddenInput() {
   if (setupMode_) return "";
   return "<input type='hidden' name='pin' value='" + currentPinValue() + "'>";
 }
 
-String PortalServer::authQuery() const {
+String PortalServer::authQuery() {
   if (setupMode_ || !server_.hasArg("pin")) return "";
   return "?pin=" + currentPinValue();
 }
@@ -530,17 +559,17 @@ String PortalServer::authQuery() const {
 void PortalServer::sendLocalAdminLogin(int statusCode,
                                        const String &message) {
   String body;
-  body += "<div class='login'><section class='card'><div class='login-logo'>⚙</div><div class='kicker'>Protected setup</div><h1>เข้าสู่ ESP32 Device Console</h1>";
-  body += "<p class='muted'>กรอก Local Admin PIN เพื่อเปลี่ยน Wi-Fi ดูสถานะ และตั้งค่าอุปกรณ์.</p>";
+  body += "<section class='card login-card'><div class='login-logo'>⚙</div><div class='kicker'>Protected setup</div><h1>เข้าสู่ ESP32 Device Console</h1>";
+  body += "<p class='muted'>กรอก Local Admin PIN เพื่อเปิด Dashboard, เปลี่ยน Wi-Fi และตรวจสถานะอุปกรณ์</p>";
 
   if (config_->adminPin.length() == 0) {
-    body += "<div class='notice info'>ค่าเริ่มต้นคือ 6 ตัวท้ายของ Device Code จนกว่าจะตั้ง Custom PIN</div>";
+    body += "<div class='notice info' style='margin-top:12px'>ค่าเริ่มต้นคือ 6 ตัวท้ายของ Device Code จนกว่าจะตั้ง Custom PIN</div>";
   }
   if (message.length() > 0) {
     body += "<div class='notice' style='margin-top:10px'>" + StringUtils::htmlEscape(message) + "</div>";
   }
 
-  body += "<form method='GET' action='/' style='margin-top:15px'><div class='field'><label>Local Admin PIN</label><input type='password' name='pin' inputmode='numeric' autocomplete='current-password' placeholder='เช่น 123456'></div><div class='button-row'><button class='btn-primary' type='submit'>เปิดหน้าตั้งค่า</button><a class='btn btn-secondary' href='/json'>ดู Public Status</a></div></form></section></div>";
+  body += "<form method='GET' action='/' style='margin-top:16px'><div class='field'><label>Local Admin PIN</label><input type='password' name='pin' inputmode='numeric' autocomplete='current-password' placeholder='เช่น 123456'></div><div class='button-row'><button class='btn-primary' type='submit'>เปิด ESP32 Dashboard</button><a class='btn btn-secondary' href='/json'>ดู Public Status</a></div></form></section>";
 
   server_.send(
       statusCode,
@@ -549,25 +578,52 @@ void PortalServer::sendLocalAdminLogin(int statusCode,
 }
 
 String PortalServer::pageShell(const String &title,
-                               const String &body) const {
+                               const String &body) {
   String html;
-  html.reserve(body.length() + 15000);
+  html.reserve(body.length() + 22000);
   html += "<!doctype html><html lang='th'><head><meta charset='utf-8'>";
   html += "<meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'>";
-  html += "<meta name='theme-color' content='#111c2f'>";
+  html += "<meta name='theme-color' content='#020617'>";
   html += "<title>" + StringUtils::htmlEscape(title) + "</title><style>";
   html += DOTWATCH_PORTAL_CSS;
-  html += "</style></head><body><div class='shell'>";
-  html += "<header class='topbar'><div class='brand'><div class='logo'>dW</div><div><strong>dotWatch ESP32</strong><span>";
+  html += "</style></head><body>";
+
+  if (title == "ESP32 Local Admin") {
+    html += "<div class='login-shell'><aside class='login-brand-panel'><div class='login-brand'><div class='brand-mark'>dW</div><div><h1>dotWatch</h1><p>ESP32 Product Console</p></div></div><div class='login-brand-copy'><div class='kicker'>Local Device Management</div><h2>จัดการ ESP32 ในรูปแบบเดียวกับ Dashboard</h2><p>ใช้รายละเอียดและระบบเดิมของ Firmware แต่จัดโครงสร้างใหม่ให้อ่านง่าย แยกเมนูชัดเจน และเหมาะกับการใช้งานจริง</p></div><div class='help'>";
+    html += DOTWATCH_MODEL_NAME;
+    html += " · ";
+    html += DOTWATCH_FIRMWARE_VERSION;
+    html += "</div></aside><main class='login-main'>";
+    html += body;
+    html += "</main></div></body></html>";
+    return html;
+  }
+
+  html += "<div class='portal-layout'><aside class='portal-sidebar'>";
+  html += "<div class='portal-brand'><div class='brand-mark'>dW</div><div class='brand-copy'><strong>dotWatch</strong><span>";
   html += DOTWATCH_FIRMWARE_VERSION;
-  html += "</span></div></div><div class='top-actions'>";
-  html += "<a class='btn btn-secondary' href='/" + authQuery() + "'>Refresh</a>";
-  html += "<a class='btn btn-secondary' href='/json" + authQuery() + "'>JSON</a>";
-  html += "</div></header><main class='main'>";
+  html += "</span></div></div>";
+  html += "<div class='portal-nav-label'>Device Console</div><nav class='portal-nav'>";
+  html += "<a class='portal-nav-item is-active' href='#overview' data-page-target='overview' data-page-title='ESP32 Overview' data-page-subtitle='ภาพรวมสถานะอุปกรณ์และการเชื่อมต่อ'><span class='nav-icon'>▦</span><span>Overview</span></a>";
+  html += "<a class='portal-nav-item' href='#wifi' data-page-target='wifi' data-page-title='Wi-Fi Setup' data-page-subtitle='เปลี่ยนเครือข่ายด้วยระบบทดสอบและ Rollback'><span class='nav-icon'>⌁</span><span>Wi-Fi</span></a>";
+  html += "<a class='portal-nav-item' href='#device' data-page-target='device' data-page-title='Device Connection' data-page-subtitle='เชื่อม Device Code และ Backend ของ dotWatch'><span class='nav-icon'>◇</span><span>Device</span></a>";
+  html += "<a class='portal-nav-item' href='#sensor' data-page-target='sensor' data-page-title='Sensor Monitor' data-page-subtitle='ดูค่าปัจจุบันและกำหนดรอบส่งข้อมูล'><span class='nav-icon'>∿</span><span>Sensor</span></a>";
+  html += "<a class='portal-nav-item' href='#security' data-page-target='security' data-page-title='Security' data-page-subtitle='จัดการ Local Admin PIN และ Root CA'><span class='nav-icon'>◆</span><span>Security</span></a>";
+  html += "<a class='portal-nav-item' href='#system' data-page-target='system' data-page-title='System Operations' data-page-subtitle='ดู JSON, Restart และ Factory Reset'><span class='nav-icon'>⚙</span><span>System</span></a>";
+  html += "</nav><div class='portal-sidebar-status'><div class='sidebar-status-head'><small>Device Status</small><i id='sidebarStateDot' class='sidebar-status-dot " + statusBadgeClass() + "'></i></div><strong id='sidebarDeviceCode'>";
+  html += StringUtils::htmlEscape(config_->deviceCode.length() ? config_->deviceCode : String("ยังไม่ได้ตั้ง Device"));
+  html += "</strong><span id='sidebarDeviceIp'>" + StringUtils::htmlEscape(wifi_->currentIp()) + "</span></div></aside>";
+  html += "<button id='portalOverlay' class='portal-overlay' type='button' aria-label='ปิดเมนู'></button>";
+
+  html += "<div class='portal-workspace'><header class='portal-header'><div class='portal-header-main'><button id='portalMenuButton' class='portal-menu-button' type='button' aria-label='เปิดเมนู'>☰</button><div class='portal-header-copy'><small>ESP32 Product Console</small><h1 id='portalPageTitle'>ESP32 Overview</h1><p id='portalPageSubtitle'>ภาพรวมสถานะอุปกรณ์และการเชื่อมต่อ</p></div></div><div class='portal-header-actions'>";
+  html += "<span id='headerStateBadge' class='badge " + statusBadgeClass() + "'>" + StringUtils::appStateText(status_->state) + "</span>";
+  html += "<a class='btn btn-secondary' href='/" + authQuery() + "#overview'><span class='header-label'>Refresh</span> ↻</a>";
+  html += "<a class='btn btn-secondary' href='/json" + authQuery() + "'><span class='header-label'>JSON</span> { }</a>";
+  html += "</div></header><main class='portal-content'>";
   html += body;
-  html += "</main><footer class='footer'>";
+  html += "</main><footer class='portal-footer'>";
   html += DOTWATCH_MODEL_NAME;
-  html += " · Modular Product Core · Hold BOOT 6 seconds for Factory Reset</footer></div><script>";
+  html += " · Modular Product Core · Hold BOOT 6 seconds for Factory Reset</footer></div></div><script>";
   html += DOTWATCH_PORTAL_JS;
   html += "</script></body></html>";
   return html;
@@ -605,14 +661,14 @@ String PortalServer::statusCardsHtml() const {
   const int rssi = wifi_->currentRssi();
   String html;
   html += "<div class='status-grid'>";
-  html += "<div class='stat'><small>Readiness</small><strong>" + readinessLabel() + "</strong></div>";
-  html += "<div class='stat'><small>Wi-Fi</small><strong>" + StringUtils::htmlEscape(wifi_->currentSsid().length() ? wifi_->currentSsid() : String("ยังไม่เชื่อมต่อ")) + "</strong></div>";
-  html += "<div class='stat'><small>IP Address</small><strong>" + StringUtils::htmlEscape(wifi_->currentIp()) + "</strong></div>";
-  html += "<div class='stat'><small>Signal</small><strong>" + String(wifi_->isConnected() ? StringUtils::signalQualityText(rssi) : String("Setup Mode")) + "</strong></div>";
-  html += "<div class='stat'><small>Device Code</small><strong>" + StringUtils::htmlEscape(config_->deviceCode.length() ? config_->deviceCode : String("ยังไม่ได้ตั้ง")) + "</strong></div>";
-  html += "<div class='stat'><small>Sensor</small><strong>" + sensors_->profileName(*config_) + " · GPIO " + String(config_->dhtPin) + "</strong></div>";
-  html += "<div class='stat'><small>Last Send</small><strong>" + lastSendLabel() + " · HTTP " + String(status_->lastHttpStatus) + "</strong></div>";
-  html += "<div class='stat'><small>Uptime</small><strong>" + StringUtils::uptimeText() + "</strong></div>";
+  html += "<div class='stat'><small>Readiness</small><strong id='statusReadiness'>" + readinessLabel() + "</strong></div>";
+  html += "<div class='stat'><small>Wi-Fi</small><strong id='statusWifi'>" + StringUtils::htmlEscape(wifi_->currentSsid().length() ? wifi_->currentSsid() : String("ยังไม่เชื่อมต่อ")) + "</strong></div>";
+  html += "<div class='stat'><small>IP Address</small><strong id='statusIp'>" + StringUtils::htmlEscape(wifi_->currentIp()) + "</strong></div>";
+  html += "<div class='stat'><small>Signal</small><strong id='statusSignal'>" + String(wifi_->isConnected() ? StringUtils::signalQualityText(rssi) + " · " + String(rssi) + " dBm" : String("Setup Mode")) + "</strong></div>";
+  html += "<div class='stat'><small>Device Code</small><strong id='statusDeviceCode'>" + StringUtils::htmlEscape(config_->deviceCode.length() ? config_->deviceCode : String("ยังไม่ได้ตั้ง")) + "</strong></div>";
+  html += "<div class='stat'><small>Backend</small><strong id='statusBackend'>" + StringUtils::htmlEscape(lastSendLabel()) + "</strong></div>";
+  html += "<div class='stat'><small>Last Send</small><strong id='statusLastSend'>HTTP " + String(status_->lastHttpStatus) + "</strong></div>";
+  html += "<div class='stat'><small>Uptime</small><strong id='statusUptime'>" + StringUtils::uptimeText() + "</strong></div>";
   html += "</div>";
 
   if (status_->lastSendError.length() > 0) {
@@ -621,24 +677,24 @@ String PortalServer::statusCardsHtml() const {
   return html;
 }
 
-String PortalServer::wifiSectionHtml() const {
+String PortalServer::wifiSectionHtml() {
   String html;
-  html.reserve(7000);
+  html.reserve(7200);
 
-  html += "<section id='wifi' class='card'><div class='section-head'><div><div class='kicker'>Step 1 · Network</div><h2>เปลี่ยน Wi-Fi อย่างปลอดภัย</h2><p class='muted'>เลือกเครือข่ายใหม่แล้ว Restart ระบบจะทดสอบก่อนบันทึกจริง หากไม่สำเร็จจะย้อนกลับ Wi-Fi เดิม.</p></div><span class='badge ";
+  html += "<section id='wifi' class='dashboard-page' data-page-title='Wi-Fi Setup'><div class='card'><div class='section-head'><div><div class='kicker'>Network Setup</div><h2>เปลี่ยน Wi-Fi อย่างปลอดภัย</h2><p class='muted'>ระบบเก็บค่าใหม่ไว้ทดสอบก่อนบันทึกจริง หากเชื่อมไม่สำเร็จจะย้อนกลับ Wi-Fi เดิม</p></div><span id='wifiBadge' class='badge ";
   html += wifi_->isConnected() ? "ok'>Connected" : "warn'>Setup";
   html += "</span></div>";
 
   html += "<div class='current-wifi'>";
-  html += "<div><small>Wi-Fi ปัจจุบัน</small><strong>" + StringUtils::htmlEscape(wifi_->currentSsid().length() ? wifi_->currentSsid() : String("ยังไม่ได้ตั้ง")) + "</strong></div>";
-  html += "<div><small>IP Address</small><strong>" + StringUtils::htmlEscape(wifi_->currentIp()) + "</strong></div>";
-  html += "<div><small>Remembered</small><strong>" + String(store_->knownWiFiProfileCount(*config_)) + " networks</strong></div>";
+  html += "<div><small>Wi-Fi ปัจจุบัน</small><strong id='currentWifi'>" + StringUtils::htmlEscape(wifi_->currentSsid().length() ? wifi_->currentSsid() : String("ยังไม่ได้ตั้ง")) + "</strong></div>";
+  html += "<div><small>IP Address</small><strong id='currentIp'>" + StringUtils::htmlEscape(wifi_->currentIp()) + "</strong></div>";
+  html += "<div><small>Remembered</small><strong id='rememberedWifi'>" + String(store_->knownWiFiProfileCount(*config_)) + " networks</strong></div>";
   html += "</div>";
 
   html += "<div class='steps'>";
-  html += "<div class='step'><b>1</b><div><strong>สแกนและเลือก</strong><span>แตะชื่อ Wi-Fi จากรายการ</span></div></div>";
-  html += "<div class='step'><b>2</b><div><strong>ใส่รหัสผ่าน</strong><span>เว้นว่างได้สำหรับ Open Wi-Fi</span></div></div>";
-  html += "<div class='step'><b>3</b><div><strong>Restart และ Rollback</strong><span>ไม่ทำให้ Wi-Fi เดิมหายเมื่อรหัสผิด</span></div></div>";
+  html += "<div class='step'><b>1</b><div><strong>สแกนและเลือก</strong><span>เลือกชื่อ Wi-Fi จากรายการ</span></div></div>";
+  html += "<div class='step'><b>2</b><div><strong>ใส่รหัสผ่าน</strong><span>เว้นว่างสำหรับ Open Wi-Fi</span></div></div>";
+  html += "<div class='step'><b>3</b><div><strong>Restart และ Rollback</strong><span>Wi-Fi เดิมไม่หายเมื่อรหัสผิด</span></div></div>";
   html += "</div>";
 
   if (setupMode_) {
@@ -649,68 +705,79 @@ String PortalServer::wifiSectionHtml() const {
   html += "<form method='POST' action='/wifi-save' onsubmit='return confirmWifiChange()'>" + pinHiddenInput();
   html += "<div class='form-grid'>";
   html += "<div class='field full'><label>ชื่อ Wi-Fi (SSID)</label><input id='wifiSsid' name='wifiSsid' maxlength='32' autocomplete='off' value='" + StringUtils::htmlEscape(config_->wifiSsid) + "' placeholder='เลือกจากรายการ หรือพิมพ์เอง'></div>";
-  html += "<div class='field full'><label>รหัสผ่าน Wi-Fi</label><div class='password-row'><input id='wifiPassword' type='password' name='wifiPassword' maxlength='63' autocomplete='new-password' placeholder='เว้นว่างไว้เมื่อใช้ Wi-Fi เดิม'><button id='passwordToggle' class='btn-secondary' type='button' onclick='togglePassword()'>แสดง</button></div><div id='selectedWifi' class='help'>เลือก Wi-Fi จากรายการด้านขวาเพื่อกรอกชื่ออัตโนมัติ</div></div>";
+  html += "<div class='field full'><label>รหัสผ่าน Wi-Fi</label><div class='password-row'><input id='wifiPassword' type='password' name='wifiPassword' maxlength='63' autocomplete='new-password' placeholder='เว้นว่างไว้เมื่อใช้ Wi-Fi เดิม'><button id='passwordToggle' class='btn-secondary' type='button' onclick='togglePassword()'>แสดง</button></div><div id='selectedWifi' class='help'>เลือก Wi-Fi จากรายการเพื่อกรอกชื่ออัตโนมัติ</div></div>";
   html += "</div><label class='check'><input type='checkbox' name='keepWifiBackups' value='true' checked><span>เก็บ Wi-Fi เดิมเป็นเครือข่ายสำรอง</span></label>";
   html += "<button class='btn-primary' type='submit' style='width:100%'>บันทึกและทดสอบหลัง Restart</button></form>";
   html += "<form method='POST' action='/wifi-clear' onsubmit='return confirm(\"ล้าง Wi-Fi ที่จำไว้ทั้งหมดหรือไม่?\")' style='margin-top:9px'>" + pinHiddenInput() + "<button class='btn-danger' type='submit' style='width:100%'>ล้างเฉพาะ Wi-Fi</button></form>";
   html += "</div>";
 
   html += "<div class='panel'><div class='scan-head'><div><h3>Wi-Fi ใกล้เคียง</h3><div class='help'>รายชื่อที่ ESP32 มองเห็นจริง</div></div><button id='scanButton' class='btn-secondary' type='button' onclick='scanWifi()'>สแกนใหม่</button></div><div id='scanStatus' class='scan-status'>กำลังเตรียมสแกน...</div><div id='networkList' class='network-list'><div class='empty'>กำลังโหลดรายชื่อ Wi-Fi</div></div></div></div>";
-  html += "</section>";
+  html += "</div></section>";
   return html;
 }
 
-String PortalServer::deviceSectionHtml() const {
+String PortalServer::deviceSectionHtml() {
   String html;
-  html += "<section id='device' class='card'><div class='section-head'><div><div class='kicker'>Step 2 · Device</div><h2>เชื่อม dotWatch Backend</h2><p class='muted'>แก้เฉพาะเมื่อเปลี่ยน Backend หรือผูก ESP32 กับ Device ใหม่.</p></div><span class='badge ";
+  html += "<section id='device' class='dashboard-page' data-page-title='Device Connection'><div class='card'><div class='section-head'><div><div class='kicker'>Device Settings</div><h2>เชื่อม dotWatch Backend</h2><p class='muted'>แก้เฉพาะเมื่อเปลี่ยน Backend หรือผูก ESP32 กับ Device ใหม่</p></div><span id='deviceBadge' class='badge ";
   html += store_->hasDeviceCredentials(*config_) ? "ok'>Configured" : "warn'>Required";
   html += "</span></div>";
   html += "<form method='POST' action='/device-save'>" + pinHiddenInput();
   html += "<div class='form-grid'>";
-  html += "<div class='field full'><label>Backend API URL</label><input name='apiUrl' value='" + StringUtils::htmlEscape(config_->apiUrl) + "' placeholder='https://dotwatch-backend.onrender.com'></div>";
-  html += "<div class='field'><label>Device Code</label><input name='deviceCode' value='" + StringUtils::htmlEscape(config_->deviceCode) + "' placeholder='DW-ESP32-...'></div>";
+  html += "<div class='field full'><label>Backend API URL</label><input id='apiUrl' name='apiUrl' value='" + StringUtils::htmlEscape(config_->apiUrl) + "' placeholder='https://dotwatch-backend.onrender.com'></div>";
+  html += "<div class='field'><label>Device Code</label><input id='deviceCode' name='deviceCode' value='" + StringUtils::htmlEscape(config_->deviceCode) + "' placeholder='DW-ESP32-...'></div>";
   html += "<div class='field'><label>Device Secret</label><input type='password' name='deviceSecret' value='' placeholder='เว้นว่างเพื่อใช้ Secret เดิม'></div>";
-  html += "</div><div class='help' style='margin-top:8px'>Secret ปัจจุบัน: " + StringUtils::htmlEscape(StringUtils::maskSecret(config_->deviceSecret)) + "</div>";
+  html += "</div><div id='deviceSecretMasked' class='help' style='margin-top:8px'>Secret ปัจจุบัน: " + StringUtils::htmlEscape(StringUtils::maskSecret(config_->deviceSecret)) + "</div>";
   html += "<div class='button-row'><button class='btn-primary' type='submit'>บันทึก Device Settings</button></div>";
-  html += "</form></section>";
+  html += "</form></div></section>";
   return html;
 }
 
-String PortalServer::advancedSectionsHtml() const {
+String PortalServer::advancedSectionsHtml() {
   String html;
 
-  html += "<details><summary>Advanced · Sensor และรอบส่งข้อมูล</summary><div class='details-body'><form method='POST' action='/device-save'>" + pinHiddenInput();
+  const String temperatureText = status_->sensorReadingAvailable
+                                     ? String(status_->lastTemperature, 1)
+                                     : String("--");
+  const String humidityText = status_->sensorReadingAvailable
+                                  ? String(status_->lastHumidity, 1)
+                                  : String("--");
+
+  html += "<section id='sensor' class='dashboard-page' data-page-title='Sensor Monitor'><div class='card'><div class='section-head'><div><div class='kicker'>Live Sensor</div><h2>Temperature และ Humidity</h2><p class='muted'>แสดงค่าล่าสุดจาก Sensor และตั้งรอบส่งข้อมูลเข้า dotWatch</p></div><span class='badge " + String(status_->sensorReadingAvailable ? "ok'>Live" : "warn'>Waiting") + "</span></div>";
+  html += "<form method='POST' action='/device-save'>" + pinHiddenInput();
   html += "<input type='hidden' name='apiUrl' value='" + StringUtils::htmlEscape(config_->apiUrl) + "'><input type='hidden' name='deviceCode' value='" + StringUtils::htmlEscape(config_->deviceCode) + "'>";
-  html += "<div class='form-grid'>";
-  html += "<div class='field'><label>DHT Pin</label><input type='number' name='dhtPin' min='0' max='39' value='" + String(config_->dhtPin) + "'></div>";
-  html += "<div class='field'><label>DHT Type</label><select name='dhtType'><option value='11'" + String(config_->dhtType == 11 ? " selected" : "") + ">DHT11</option><option value='22'" + String(config_->dhtType == 22 ? " selected" : "") + ">DHT22</option></select></div>";
-  html += "<div class='field'><label>Send Interval</label><select name='sendIntervalSec'>";
+  html += "<div class='sensor-live-grid'>";
+  html += "<div class='sensor-live-card'><div class='sensor-live-name'>Temperature</div><div class='sensor-live-value'><strong id='sensorTemperature'>" + temperatureText + "</strong><span>°C</span></div></div>";
+  html += "<div class='sensor-live-card'><div class='sensor-live-name'>Humidity</div><div class='sensor-live-value'><strong id='sensorHumidity'>" + humidityText + "</strong><span>%</span></div></div>";
+  html += "</div>";
+  html += "<div id='sensorLiveStatus' class='sensor-live-status'>";
+  html += status_->sensorReadingAvailable ? "ค่าล่าสุดจาก Sensor · อัปเดตอัตโนมัติ" : "กำลังรอค่าจาก Sensor";
+  html += "</div>";
+  html += "<div class='form-grid sensor-settings-grid'><div class='field'><label>Send Interval</label><select id='sendInterval' name='sendIntervalSec'>";
   const int intervals[] = {10, 20, 30, 60, 120};
   for (int index = 0; index < 5; index++) {
     html += "<option value='" + String(intervals[index]) + "'";
-    if (config_->sendIntervalMs / 1000UL == static_cast<unsigned long>(intervals[index])) {
-      html += " selected";
-    }
+    if (config_->sendIntervalMs / 1000UL == static_cast<unsigned long>(intervals[index])) html += " selected";
     html += ">" + String(intervals[index]) + " sec</option>";
   }
-  html += "</select></div>";
-  html += "<div class='field'><label>Dummy Fallback</label><select name='fallbackDummy'><option value='true'" + String(config_->fallbackDummy ? " selected" : "") + ">Enabled</option><option value='false'" + String(!config_->fallbackDummy ? " selected" : "") + ">Disabled</option></select></div>";
-  html += "</div><div class='button-row'><button class='btn-primary' type='submit'>บันทึก Sensor Settings</button><a class='btn btn-secondary' href='/test" + authQuery() + "'>ทดสอบอ่านค่า</a></div></form></div></details>";
+  html += "</select></div></div><div class='button-row'><button class='btn-primary' type='submit'>บันทึกรอบส่งข้อมูล</button></div></form></div></section>";
 
-  html += "<details><summary>Advanced · Security, Root CA และ Admin PIN</summary><div class='details-body'><form method='POST' action='/device-save'>" + pinHiddenInput();
+  html += "<section id='security' class='dashboard-page' data-page-title='Security'><div class='card'><div class='section-head'><div><div class='kicker'>Local Security</div><h2>Admin PIN และ Root CA</h2><p class='muted'>รายละเอียดเดิมถูกจัดใหม่ให้แยกจากการตั้งค่าทั่วไปและอ่านง่ายขึ้น</p></div></div>";
+  html += "<form method='POST' action='/device-save'>" + pinHiddenInput();
   html += "<input type='hidden' name='apiUrl' value='" + StringUtils::htmlEscape(config_->apiUrl) + "'><input type='hidden' name='deviceCode' value='" + StringUtils::htmlEscape(config_->deviceCode) + "'>";
-  html += "<div class='form-grid'><div class='field full'><label>Local Admin PIN ใหม่</label><input type='password' name='adminPin' value='' placeholder='เว้นว่างเพื่อใช้ PIN เดิม'></div>";
-  html += "<div class='field full'><label>Root CA Certificate</label><textarea name='tlsCaCert' placeholder='เว้นว่างเพื่อใช้ค่าเดิม/Embedded CA · พิมพ์ CLEAR เพื่อลบ Portal CA'></textarea><div class='help'>TLS: " + StringUtils::htmlEscape(backend_->tlsModeText()) + " · Source: " + StringUtils::htmlEscape(backend_->tlsCaSourceText()) + "</div></div></div>";
-  html += "<div class='button-row'><button class='btn-primary' type='submit'>บันทึก Security Settings</button></div></form></div></details>";
+  html += "<div class='security-grid'><div class='panel'><div class='field'><label>Local Admin PIN ใหม่</label><input type='password' name='adminPin' value='' placeholder='เว้นว่างเพื่อใช้ PIN เดิม'><div class='help'>ใช้สำหรับเปิด Local Device Console เมื่อ ESP32 เชื่อม Wi-Fi แล้ว</div></div></div>";
+  html += "<div class='panel'><div class='field'><label>Root CA Certificate</label><textarea name='tlsCaCert' placeholder='เว้นว่างเพื่อใช้ค่าเดิม/Embedded CA · พิมพ์ CLEAR เพื่อลบ Portal CA'></textarea><div id='tlsInfo' class='help'>TLS: " + StringUtils::htmlEscape(backend_->tlsModeText()) + " · Source: " + StringUtils::htmlEscape(backend_->tlsCaSourceText()) + "</div></div></div></div>";
+  html += "<div class='button-row'><button class='btn-primary' type='submit'>บันทึก Security Settings</button></div></form></div></section>";
 
   return html;
 }
 
-String PortalServer::operationsHtml() const {
+String PortalServer::operationsHtml() {
   String html;
-  html += "<section class='card'><div class='kicker'>Operations</div><h2>ตรวจสอบและดูแลอุปกรณ์</h2><p class='muted'>ใช้เมื่อตรวจงานติดตั้งหรือแก้ปัญหา ไม่จำเป็นสำหรับการเปลี่ยน Wi-Fi ปกติ.</p><div class='button-row'><a class='btn btn-secondary' href='/test" + authQuery() + "'>ทดสอบ Sensor</a><a class='btn btn-secondary' href='/json" + authQuery() + "'>ดู Status JSON</a><form method='POST' action='/restart' style='display:inline'>" + pinHiddenInput() + "<button class='btn-secondary' type='submit'>Restart ESP32</button></form></div></section>";
-
-  html += "<details class='danger-zone'><summary>Danger Zone · Factory Reset</summary><div class='details-body'><div class='notice'>ล้าง Wi-Fi, Backend, Device Code/Secret, PIN และ Sensor Settings ทั้งหมด ใช้เมื่อเริ่มติดตั้งใหม่เท่านั้น.</div><form method='POST' action='/reset' onsubmit='return confirm(\"ล้างการตั้งค่าทั้งหมดของ ESP32 หรือไม่?\")' style='margin-top:12px'>" + pinHiddenInput() + "<button class='btn-danger' type='submit'>Factory Reset Config</button></form></div></details>";
+  html += "<section id='system' class='dashboard-page' data-page-title='System Operations'><div class='card'><div class='section-head'><div><div class='kicker'>Operations</div><h2>ตรวจสอบและดูแลอุปกรณ์</h2><p class='muted'>เครื่องมือสำหรับตรวจงานติดตั้ง แก้ปัญหา และเริ่มตั้งค่าใหม่</p></div></div><div class='system-grid'>";
+  html += "<div class='operation-card'><h3>Status JSON</h3><p>เปิดข้อมูลสถานะจาก Firmware สำหรับตรวจสอบ Wi-Fi, Backend, TLS และ Sensor</p><div class='button-row'><a class='btn btn-secondary' href='/json" + authQuery() + "'>ดู Status JSON</a></div></div>";
+  html += "<div class='operation-card'><h3>Restart ESP32</h3><p>Restart อุปกรณ์โดยไม่ล้าง Wi-Fi, Device Code หรือการตั้งค่าเดิม</p><form method='POST' action='/restart' class='button-row'>" + pinHiddenInput() + "<button class='btn-secondary' type='submit'>Restart ESP32</button></form></div>";
+  html += "<div class='operation-card danger-card' style='grid-column:1/-1'><h3>Factory Reset</h3><p>ล้าง Wi-Fi, Backend, Device Code/Secret, PIN และ Sensor Settings ทั้งหมด ใช้เมื่อเริ่มติดตั้งใหม่เท่านั้น</p><form method='POST' action='/reset' onsubmit='return confirm(\"ล้างการตั้งค่าทั้งหมดของ ESP32 หรือไม่?\")' class='button-row'>" + pinHiddenInput() + "<button class='btn-danger' type='submit'>Factory Reset Config</button></form></div>";
+  html += "</div></div></section>";
   return html;
 }
 
