@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-} from 'firebase/auth'
+import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth'
 import {
   Activity,
   AlertTriangle,
@@ -46,7 +43,6 @@ import {
 
 const DETAIL_TABS = [
   { key: 'overview', label: 'Overview' },
-  { key: 'ops', label: 'Operations' },
   { key: 'metrics', label: 'Metrics' },
   { key: 'alarms', label: 'Alarms' },
   { key: 'location', label: 'Location' },
@@ -231,8 +227,6 @@ function DeviceAlarmRulesPanel({
 
   return (
     <div className="alarm-rules-panel-v2 devices-v3-alarm-rules-panel metric-alarm-panel metric-alarm-panel-easy">
-
-
       <div className="metric-alarm-rule-grid metric-alarm-rule-grid-easy">
         {visibleMetrics.map((metric) => {
           const metricKey = metric.metric_key
@@ -306,7 +300,9 @@ function DeviceAlarmRulesPanel({
                       </label>
 
                       <label className="metric-alarm-field metric-alarm-threshold">
-                        <span>Threshold {metricUnit ? `(${metricUnit})` : ''}</span>
+                        <span>
+                          Threshold {metricUnit ? `(${metricUnit})` : ''}
+                        </span>
                         <input
                           type="number"
                           value={draft.threshold}
@@ -375,7 +371,6 @@ function DeviceAlarmRulesPanel({
   )
 }
 
-
 async function reauthenticateCurrentUser(password) {
   const user = auth.currentUser
 
@@ -400,12 +395,18 @@ function maskSecret(secret = '') {
   return `${secret.slice(0, 4)}••••••••••••${secret.slice(-4)}`
 }
 
-
 function getSignalTone(metricPills = [], device = {}) {
-  const signalMetric = metricPills.find((metric) =>
-    String(metric.key || '').toLowerCase().includes('3') ||
-    String(metric.label || '').toLowerCase().includes('rssi') ||
-    String(metric.name || '').toLowerCase().includes('wifi')
+  const signalMetric = metricPills.find(
+    (metric) =>
+      String(metric.key || '')
+        .toLowerCase()
+        .includes('3') ||
+      String(metric.label || '')
+        .toLowerCase()
+        .includes('rssi') ||
+      String(metric.name || '')
+        .toLowerCase()
+        .includes('wifi')
   )
 
   const value = Number(signalMetric?.value ?? device.rssi ?? device.metric_3)
@@ -533,13 +534,19 @@ function getFirmwareInfo(device = {}) {
   }
 }
 
-function getProductionReadiness(device = {}, status = 'offline', alarmRules = []) {
+function getProductionReadiness(
+  device = {},
+  status = 'offline',
+  alarmRules = []
+) {
   const metricPills = getDeviceMetricPills(device, 3)
   const signal = getSignalTone(metricPills, device)
   const freshness = getFreshnessInfo(device)
   const firmware = getFirmwareInfo(device)
   const hasMetricData = metricPills.length > 0
-  const activeAlarmCount = alarmRules.filter((rule) => rule.is_active !== false).length
+  const activeAlarmCount = alarmRules.filter(
+    (rule) => rule.is_active !== false
+  ).length
   const isOnline = status === 'online'
 
   const checks = [
@@ -611,7 +618,10 @@ function DeviceOperationsPanel({ device, status, alarmRules = [] }) {
   const pinHint = isEsp32 ? getEsp32DefaultPinHint(device) : null
 
   return (
-    <section className="devices-v5-ops-panel" aria-label="Production operations checklist">
+    <section
+      className="devices-v5-ops-panel"
+      aria-label="Production operations checklist"
+    >
       <div className="devices-v5-ops-hero">
         <div>
           <span className="page-eyebrow">Production Operations</span>
@@ -621,13 +631,17 @@ function DeviceOperationsPanel({ device, status, alarmRules = [] }) {
               : 'มีจุดที่ควรตรวจเพิ่มก่อนใช้งานจริง'}
           </h4>
           <p>
-            ใช้หน้านี้ตรวจ device จริงหลัง flash firmware: Wi-Fi, ingest, Root CA/TLS,
-            metric ล่าสุด และ alarm readiness ในมุมเดียว
+            ใช้หน้านี้ตรวจ device จริงหลัง flash firmware: Wi-Fi, ingest, Root
+            CA/TLS, metric ล่าสุด และ alarm readiness ในมุมเดียว
           </p>
         </div>
 
-        <div className={`devices-v5-readiness ${readiness.ready ? 'ready' : 'attention'}`}>
-          <strong>{readiness.score}/{readiness.total}</strong>
+        <div
+          className={`devices-v5-readiness ${readiness.ready ? 'ready' : 'attention'}`}
+        >
+          <strong>
+            {readiness.score}/{readiness.total}
+          </strong>
           <span>{readiness.ready ? 'Ready' : 'Needs check'}</span>
         </div>
       </div>
@@ -637,7 +651,10 @@ function DeviceOperationsPanel({ device, status, alarmRules = [] }) {
           const Icon = check.icon
 
           return (
-            <article className={`devices-v5-check-card ${check.tone}`} key={check.key}>
+            <article
+              className={`devices-v5-check-card ${check.tone}`}
+              key={check.key}
+            >
               <div className="devices-v5-check-icon">
                 <Icon size={18} />
               </div>
@@ -663,7 +680,9 @@ function DeviceOperationsPanel({ device, status, alarmRules = [] }) {
 
         <div className="devices-v5-action-card">
           <span className="page-eyebrow">Field notes</span>
-          <strong>{isEsp32 ? 'ESP32-DHT3 production device' : getModelLabel(device)}</strong>
+          <strong>
+            {isEsp32 ? 'ESP32-DHT3 production device' : getModelLabel(device)}
+          </strong>
           <p>
             {isEsp32
               ? `Local Admin PIN เริ่มต้นคือท้าย Device Code 6 ตัว (${pinHint}) และควรเปลี่ยน PIN หลังติดตั้งจริง`
@@ -671,16 +690,6 @@ function DeviceOperationsPanel({ device, status, alarmRules = [] }) {
           </p>
         </div>
       </div>
-
-      {metricPills.length > 0 && (
-        <div className="devices-v5-live-strip">
-          <Radio size={16} />
-          <span>Latest metrics</span>
-          {metricPills.map((metric) => (
-            <strong key={metric.key}>{metric.label}: {metric.displayValue}</strong>
-          ))}
-        </div>
-      )}
     </section>
   )
 }
@@ -690,54 +699,6 @@ function DeviceQuickStatusPanel({ device, status }) {
   const signal = getSignalTone(metricPills, device)
   const isEsp32 = isEsp32Dht3Device(device)
   const pinHint = isEsp32 ? getEsp32DefaultPinHint(device) : null
-
-  return (
-    <section className="devices-v4-quick-panel" aria-label="Device quick summary">
-      <div className="devices-v4-quick-main">
-        <span className="page-eyebrow">Live Device Snapshot</span>
-        <h4>{status === 'online' ? 'Receiving data now' : 'Waiting for latest data'}</h4>
-        <p>
-          {status === 'online'
-            ? 'อุปกรณ์เชื่อมต่อและส่งข้อมูลเข้า Render backend แล้ว'
-            : 'ถ้าเพิ่งเปิดเครื่อง ให้รอรอบส่งข้อมูลถัดไป หรือเช็ค Wi-Fi / Root CA'}
-        </p>
-      </div>
-
-      <div className="devices-v4-quick-grid">
-        <div className="devices-v4-quick-card">
-          <Wifi size={18} />
-          <span>Connection</span>
-          <strong>{getStatusLabel(status)}</strong>
-          <small className={`signal-${signal.tone}`}>{signal.label}</small>
-        </div>
-
-        {metricPills.map((metric) => (
-          <div className="devices-v4-quick-card" key={metric.key}>
-            {metric.key === 'metric_1' ? <Thermometer size={18} /> : <Activity size={18} />}
-            <span>{metric.label}</span>
-            <strong>{metric.displayValue}</strong>
-            <small>{metric.name || metric.key}</small>
-          </div>
-        ))}
-
-        <div className="devices-v4-quick-card">
-          <Clock3 size={18} />
-          <span>Last Seen</span>
-          <strong>{getLastSeen(device)}</strong>
-          <small>{device.firmware_version || 'Firmware --'}</small>
-        </div>
-      </div>
-
-      {isEsp32 && (
-        <div className="devices-v4-esp32-helper">
-          <span>ESP32-DHT3</span>
-          <p>
-            Local Admin: ใช้ PIN เริ่มต้นท้าย Device Code 6 ตัว ({pinHint}) แล้วเปลี่ยนเป็น PIN ส่วนตัวหลังติดตั้งจริง
-          </p>
-        </div>
-      )}
-    </section>
-  )
 }
 
 function SelectedDevicePanel({
@@ -835,7 +796,6 @@ function SelectedDevicePanel({
     setSecretCopied(false)
   }
 
-
   if (!selectedDevice) {
     return (
       <section className="app-card">
@@ -853,7 +813,6 @@ function SelectedDevicePanel({
   const selectedAlarmRuleCount = Array.isArray(selectedRules)
     ? selectedRules.length
     : 0
-
 
   return (
     <section className="app-card devices-v3-detail-card">
@@ -1014,31 +973,6 @@ function SelectedDevicePanel({
               />
             </div>
           </section>
-
-          <section className="devices-v3-info-grid">
-            <div>
-              <label>Device Code</label>
-              <p>{selectedDevice.device_code}</p>
-            </div>
-            <div>
-              <label>Device ID</label>
-              <p>{selectedDevice.id}</p>
-            </div>
-            <div>
-              <label>Created / Latest</label>
-              <p>
-                {formatDate(
-                  selectedDevice.created_at || selectedDevice.latest_time
-                )}
-              </p>
-            </div>
-          </section>
-
-          <DeviceOperationsPanel
-            device={selectedDevice}
-            status={status}
-            alarmRules={Array.isArray(selectedRules) ? selectedRules : []}
-          />
         </div>
       )}
 
@@ -1061,8 +995,6 @@ function SelectedDevicePanel({
 
       {activeTab === 'metrics' && (
         <div className="devices-v3-tab-panel">
-
-
           <DeviceTabHeader
             eyebrow="Metric Display"
             title="Metrics"
@@ -1076,8 +1008,6 @@ function SelectedDevicePanel({
 
       {activeTab === 'alarms' && (
         <div className="devices-v3-tab-panel">
-
-
           <DeviceTabHeader
             eyebrow="Alarm Rules"
             title="Alarms"
@@ -1200,7 +1130,9 @@ function SelectedDevicePanel({
               </label>
 
               <div className="devices-v3-secret-output">
-                <span>{revealedSecret ? 'Device Secret' : 'Hidden Secret'}</span>
+                <span>
+                  {revealedSecret ? 'Device Secret' : 'Hidden Secret'}
+                </span>
                 <code>
                   {revealedSecret
                     ? secretVisible
@@ -1211,9 +1143,7 @@ function SelectedDevicePanel({
               </div>
 
               {secretError && (
-                <p className="devices-v3-secret-message error">
-                  {secretError}
-                </p>
+                <p className="devices-v3-secret-message error">{secretError}</p>
               )}
 
               {secretCopied && (

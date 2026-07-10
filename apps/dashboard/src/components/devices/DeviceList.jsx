@@ -28,7 +28,9 @@ function getLatestMetricEntries(device = {}, limit = 3) {
   }
 
   return Object.entries(latestMetrics)
-    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .filter(
+      ([, value]) => value !== null && value !== undefined && value !== ''
+    )
     .sort(([keyA], [keyB]) => getMetricIndex(keyA) - getMetricIndex(keyB))
     .slice(0, limit)
 }
@@ -59,15 +61,24 @@ function formatMetricValue(value) {
   if (!Number.isFinite(numberValue)) return String(value)
   if (Math.abs(numberValue) >= 1000) return numberValue.toFixed(0)
 
-  return Number.isInteger(numberValue) ? String(numberValue) : numberValue.toFixed(1)
+  return Number.isInteger(numberValue)
+    ? String(numberValue)
+    : numberValue.toFixed(1)
 }
 
 function getSignalQuality(device = {}) {
   const metricPills = getDeviceMetricPills(device, 3)
-  const signalMetric = metricPills.find((metric) =>
-    String(metric.key || '').toLowerCase().includes('3') ||
-    String(metric.label || '').toLowerCase().includes('rssi') ||
-    String(metric.name || '').toLowerCase().includes('wifi')
+  const signalMetric = metricPills.find(
+    (metric) =>
+      String(metric.key || '')
+        .toLowerCase()
+        .includes('3') ||
+      String(metric.label || '')
+        .toLowerCase()
+        .includes('rssi') ||
+      String(metric.name || '')
+        .toLowerCase()
+        .includes('wifi')
   )
 
   const value = Number(signalMetric?.value ?? device.rssi ?? device.metric_3)
@@ -98,39 +109,12 @@ const DeviceListItem = memo(function DeviceListItem({
           <div className="devices-v2-item-name devices-v3-item-name">
             {getDeviceDisplayName(device)}
           </div>
-
-          <div className="devices-v2-item-code devices-v3-item-code">
-            {device.device_code}
-          </div>
         </div>
 
         <span className={`status ${status}`}>
           {getStatusIcon(status)}
           {getStatusLabel(status)}
         </span>
-      </div>
-
-      <div className="devices-v3-device-meta-line">
-        <span className="device-model-badge">{getModelLabel(device)}</span>
-        <span className="devices-v3-signal-chip">
-          <Wifi size={13} />
-          {getSignalQuality(device)}
-        </span>
-      </div>
-
-      {metricPills.length > 0 && (
-        <div className="devices-v3-item-metrics" aria-label="Latest metrics">
-          {metricPills.map((metric) => (
-            <span key={metric.key}>
-              <b>{metric.label}</b>
-              {metric.displayValue}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div className="devices-v2-item-foot devices-v3-item-footer">
-        <small>Last seen {getLastSeen(device)}</small>
       </div>
     </button>
   )
@@ -182,7 +166,11 @@ function DeviceList({
           <h3>โหลด Device ไม่สำเร็จ</h3>
           <p>{errorMessage}</p>
           {onRetry && (
-            <button type="button" className="secondary-button" onClick={onRetry}>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={onRetry}
+            >
               <RefreshCw size={16} />
               Retry
             </button>
@@ -241,16 +229,10 @@ function DeviceList({
           </div>
         </div>
 
-        <div className="devices-v3-search-box">
-          <Search size={16} />
-          <input
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-            placeholder="Search name, code, model..."
-          />
-        </div>
-
-        <div className="devices-v2-list-scroll devices-v3-list-scroll" role="list">
+        <div
+          className="devices-v2-list-scroll devices-v3-list-scroll"
+          role="list"
+        >
           {renderList()}
         </div>
       </div>
@@ -259,6 +241,3 @@ function DeviceList({
 }
 
 export default DeviceList
-
-
-
