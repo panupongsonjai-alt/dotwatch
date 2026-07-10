@@ -1,0 +1,97 @@
+# dotWatch Cleanup Report - 2026-07-10
+## Summary
+- Original files: 553
+- Cleaned files: 461
+- Removed files: 92
+- Original source size: 3,122,945 bytes
+- Cleaned source size: 2,568,060 bytes
+
+## Modified files
+- `README.md` — rewritten to current clean source-of-truth overview
+- `docs/SOURCE_OF_TRUTH.md` — updated cleanup source-of-truth notes
+
+- `scripts/phase3-verify.ps1` — removed stale check for deleted `pi/config-ui/.env` path
+- `scripts/phase10a-esp32-wifi-memory-verify.mjs` — updated version check to accept current Phase 10B+ firmware versions
+
+## Removed files/folders
+- `AUDIT_LATEST_ZIP_20260708.md` — historical root README/audit duplicate; current docs live in docs/
+- `AUDIT_PHASE4B_MODEL_ADMIN.md` — historical root README/audit duplicate; current docs live in docs/
+- `AUDIT_REPORT.md` — historical root README/audit duplicate; current docs live in docs/
+- `dotwatch_latest_audit_report.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_CLEANUP.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_DEVICE_MAP_DASHBOARD_STYLE_V8.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_FIX_PHASE3_INGEST_DIAGNOSTIC_V3.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE0_START_HERE.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE1_START_HERE.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE2_START_HERE.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE3_AUDIT_NEXT_STEPS.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE3_START_HERE.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE4A_ESP32_ADD_ONLY.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE4A_ESP32_BASELINE_FIX.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE4B_MODEL_ADMIN.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE4C_ESP32_E2E_VERIFY.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE4E_ESP32_CONFIG_PORTAL.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE4F_PLATFORMIO_FINAL.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE4G_ESP32_COMMISSIONING.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE4H_ESP32_LOCAL_ADMIN.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE4K_PRODUCTION_RELEASE.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE4_START_HERE.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE5A_ESP32_TLS_HARDENING.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE5B_TLS_CA_HELPER.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_PHASE5_START_HERE.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_RASPBERRY_PI_DASHBOARD_UI_V7_2.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_RASPBERRY_PI_UX_UI_V7.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_RASPBERRY_PI_V6.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_RENDER_500_FIX.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_UI_PERFORMANCE_V5.md` — historical root README/audit duplicate; current docs live in docs/
+- `README_WHITE_SCREEN_FIX.md` — historical root README/audit duplicate; current docs live in docs/
+- `dotwatch-phase5a-esp32-tls-hardening.ps1` — old pack installer; canonical ESP32 firmware already lives under esp32/dotwatch_esp32_dht3_tls_hardened
+- `dotwatch-phase5b-fetch-tls-ca.v2.ps1` — identical duplicate; phase10b uses dotwatch-phase5b-fetch-tls-ca.ps1
+- `dotwatch_esp32_dht3_tls_hardened.ino` — duplicate root sketch; canonical sketch is under esp32/dotwatch_esp32_dht3_tls_hardened
+- `main.cpp` — duplicate root firmware source; canonical source is esp32/dotwatch_esp32_dht3_tls_hardened/src/main.cpp
+- `platformio.ini` — duplicate root PlatformIO config; canonical config is esp32/dotwatch_esp32_dht3_tls_hardened/platformio.ini
+- `pi-ingest-diagnostic.ps1` — duplicate root diagnostic; package uses scripts/pi-ingest-diagnostic.ps1
+- `pi_header_probe.py` — old probe helper from earlier diagnostics
+- `modbus_data_map_ready.csv` — unreferenced one-off mapping export
+- `use-render-db.ps1` — local helper placeholder for production DB URL; removed to avoid accidental secret edits/commits
+- `esp32/dotwatch_esp32_dht3/` — removed 2 files; legacy ESP32 variant; production source is esp32/dotwatch_esp32_dht3_tls_hardened
+- `esp32/dotwatch_esp32_dht3_config_portal/` — removed 2 files; legacy ESP32 variant; production source is esp32/dotwatch_esp32_dht3_tls_hardened
+- `esp32/dotwatch_esp32_dht3_hardened/` — removed 3 files; legacy ESP32 variant; production source is esp32/dotwatch_esp32_dht3_tls_hardened
+- `esp32/dotwatch_esp32_dht3_local_admin/` — removed 3 files; legacy ESP32 variant; production source is esp32/dotwatch_esp32_dht3_tls_hardened
+- `pi/config-ui/` — removed 3 files; duplicate Pi Config UI; canonical files are pi/agent/pi_config_web.py and pi/agent/install_config_ui_service.sh
+- `apps/dashboard/src/components/ChartWidget.jsx` — dashboard static import graph shows no active import/reference
+- `apps/dashboard/src/components/DeviceMetricCell.jsx` — dashboard static import graph shows no active import/reference
+- `apps/dashboard/src/components/MetricValueList.jsx` — dashboard static import graph shows no active import/reference
+- `apps/dashboard/src/components/device-detail/DeviceInformationTab.jsx` — dashboard static import graph shows no active import/reference
+- `apps/dashboard/src/styles/pages/alarm-center-pageheader-unify.css` — dashboard static import graph shows no active import/reference
+- `apps/dashboard/src/styles/statcard-height-unify.css` — dashboard static import graph shows no active import/reference
+- `apps/dashboard/src/styles/statcard-value-visibility-fix.css` — dashboard static import graph shows no active import/reference
+- `apps/dashboard/src/utils/parseGoogleMapLink.js` — dashboard static import graph shows no active import/reference
+- `apps/dashboard/docs/` — removed 11 files; dashboard one-off audit notes; consolidated project docs remain in docs/
+- `apps/admin/src/App.css` — admin static import graph shows no active import/reference
+- `apps/admin/src/index.css` — admin static import graph shows no active import/reference
+- `apps/admin/src/assets/hero.png` — admin static import graph shows no active import/reference
+- `apps/admin/src/assets/react.svg` — admin static import graph shows no active import/reference
+- `apps/admin/src/assets/vite.svg` — admin static import graph shows no active import/reference
+- `apps/admin/src/components/common/EmptyState.jsx` — admin static import graph shows no active import/reference
+- `apps/admin/src/pages/AdminDashboard.jsx` — admin static import graph shows no active import/reference
+- `apps/admin/src/pages/Users.jsx` — admin static import graph shows no active import/reference
+- `services/backend/src/controllers/alarmRules.controller.js` — backend static import graph and package scripts show no active import/reference
+- `services/backend/src/db/migrations/20260624_admin_console.sql` — backend static import graph and package scripts show no active import/reference
+- `services/backend/src/db/migrations/20260708_add_esp32_dht3_model_add_only.sql` — backend static import graph and package scripts show no active import/reference
+- `services/backend/src/scripts/check-device-models.cjs` — backend static import graph and package scripts show no active import/reference
+- `services/backend/src/scripts/checkDb.js` — backend static import graph and package scripts show no active import/reference
+- `services/backend/src/scripts/createDeviceMetrics.js` — backend static import graph and package scripts show no active import/reference
+- `services/backend/src/scripts/createMetricReadings.js` — backend static import graph and package scripts show no active import/reference
+- `services/backend/src/scripts/fixAlarmEvents.js` — backend static import graph and package scripts show no active import/reference
+- `services/backend/src/scripts/seed-esp32-dht3-model-add-only.cjs` — backend static import graph and package scripts show no active import/reference
+- `services/backend/src/services/demoGenerator.service.js` — backend static import graph and package scripts show no active import/reference
+- `services/backend/src/services/deviceHealth.service.js` — backend static import graph and package scripts show no active import/reference
+- `services/backend/src/websocket.js` — backend static import graph and package scripts show no active import/reference
+
+## Kept intentionally
+- `services/backend/create-device-metric-latest-view.cjs` and `repair-device-metric-latest-view.cjs` compatibility wrappers
+- `dotwatch-phase5b-fetch-tls-ca.ps1` because Phase 10B Root CA installer calls it
+- `docs/` because it is the project documentation source of truth
+- `scripts/` current verification/ops scripts used by package.json
+- `pi/scripts/` setup and field helper scripts

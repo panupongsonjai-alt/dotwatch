@@ -44,8 +44,13 @@ for (const marker of requiredMarkers) {
   if (!ino.includes(marker)) fail(`Missing ESP32 Wi-Fi memory marker in .ino: ${marker}`)
 }
 
-if (!main.includes('#define FIRMWARE_VERSION "esp32-dht3-security-0.7.0"')) {
-  fail('Firmware version was not updated to esp32-dht3-security-0.7.0')
+const versionMatch = main.match(/#define\s+FIRMWARE_VERSION\s+"esp32-dht3-security-(\d+)\.(\d+)\.(\d+)"/)
+if (!versionMatch) {
+  fail('Firmware version marker is missing or malformed')
+}
+const [, major, minor] = versionMatch.map(Number)
+if (major < 0 || (major === 0 && minor < 7)) {
+  fail('Firmware version must be esp32-dht3-security-0.7.0 or newer')
 }
 
 const duplicateWifiJson = (main.match(/doc\["rememberedWifiProfiles"\]/g) || []).length

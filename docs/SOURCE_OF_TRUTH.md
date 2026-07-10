@@ -1,6 +1,6 @@
 # dotWatch Source of Truth
 
-Last updated: 2026-07-08
+Last updated: 2026-07-10
 
 This file defines which folders/files are the canonical source for the project. Use it before editing, exporting, or deploying dotWatch.
 
@@ -122,3 +122,9 @@ The clean export excludes generated files, reports, diagnostics, backups, real e
 - Firmware remembers up to 5 Wi-Fi profiles and auto-connects to the strongest remembered SSID found during scan.
 - Factory Reset Config clears remembered Wi-Fi profiles together with device/backend/TLS settings.
 - Do not print or expose Wi-Fi passwords in portal, JSON, logs, or screenshots.
+
+## Phase 10F cleanup rules
+
+- Legacy root sketches and old ESP32 variants are removed from the clean repository.
+- Pi Config UI source is canonical under `pi/agent`; `pi/config-ui` is no longer exported.
+- Dashboard/Admin unused starter files and one-off audit notes are not exported.

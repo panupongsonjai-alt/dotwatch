@@ -1,37 +1,59 @@
-# dotWatch Phase 3 Pi ingest headers hotfix
+# dotWatch
 
-This package fixes the Raspberry Pi agent when Render backend `/api/ingest` returns:
+Production-ready dotWatch IoT monitoring monorepo.
 
-```text
-401 Missing device credentials
-```
+## Source of truth
 
-The hotfix updates `/home/pi/dotwatch-pi-agent/main.py` so it sends:
+| Area | Path |
+|---|---|
+| Dashboard | `apps/dashboard` |
+| Admin console | `apps/admin` |
+| Backend API | `services/backend` |
+| Raspberry Pi agent | `pi/agent` |
+| ESP32 production firmware | `esp32/dotwatch_esp32_dht3_tls_hardened` |
+| Operations scripts | `scripts` |
+| Project documentation | `docs` |
 
-- `x-device-code`
-- `x-device-secret`
-
-as HTTP headers. It also provides an updated `scripts/pi-ingest-diagnostic.ps1` that sends the probe in the same format.
-
-## Install
-
-From the dotWatch project root:
+## Common commands
 
 ```powershell
 cd "D:\IoT Project\dotwatch"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File .\fix-phase3-pi-agent-ingest-headers.ps1
-
-Copy-Item ".\scripts\pi-ingest-diagnostic.ps1" ".\scripts\pi-ingest-diagnostic.ps1.bak-before-headers" -Force
-Copy-Item ".\pi-ingest-diagnostic.ps1" ".\scripts\pi-ingest-diagnostic.ps1" -Force
+npm run install:all
+npm run dashboard:dev
+npm run admin:dev
+npm run backend:dev
 ```
 
-## Test
+## Production/ops checks
 
 ```powershell
-npm run check:pi:ingest
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pi-ingest-diagnostic.ps1 -SendProbe
-npm run check:pi
+npm run check:backend
+npm run verify:phase10e:dashboard-auth
+npm run ops:health -- -BackendUrl "https://dotwatch-backend.onrender.com" -AllowReady503
+npm run db:parity:compat -- -LocalDatabaseUrl "$LocalDbUrl" -RenderDatabaseUrl "$RenderDbUrl"
 ```
 
-Do not delete the offline queue until ingest returns 200/201 consistently.
+## ESP32 production firmware
+
+```powershell
+cd "D:\IoT Project\dotwatch\esp32\dotwatch_esp32_dht3_tls_hardened"
+py -m platformio run
+py -m platformio run -t upload
+py -m platformio device monitor
+```
+
+## Local/Render database parity
+
+Render is the production source. Local `localhost:5432` can be used as a Render clone after restoring a Render backup into the local TimescaleDB/PostgreSQL 18 container.
+
+The latest confirmed parity target is:
+
+```text
+Core compatibility parity: OK
+Full core column signature parity: OK
+```
+
+## Secrets
+
+Do not commit real `.env`, Firebase service account JSON, private keys, database dumps, or backup files. Use the included `.env.example` / `.env.local.example` files only.

@@ -105,8 +105,7 @@ $forbiddenEnvFiles = @(
   'services/backend/.env',
   'services/backend/.env.local',
   'services/backend/.env.production',
-  'pi/agent/.env',
-  'pi/config-ui/.env'
+  'pi/agent/.env'
 )
 foreach ($relative in $forbiddenEnvFiles) {
   if (Test-Path -LiteralPath (Join-Path $ProjectRoot $relative)) {
