@@ -264,9 +264,7 @@ function getDeviceMetricCards(device = {}) {
   return configuredMetrics
     .map((metricConfig) => {
       const metricKey =
-        metricConfig.metric_key ||
-        metricConfig.source_key ||
-        metricConfig.key
+        metricConfig.metric_key || metricConfig.source_key || metricConfig.key
 
       if (!metricKey) return null
 
@@ -564,8 +562,8 @@ function Dashboard({ onOpenDevice }) {
           </div>
 
           <span className="device-count-badge live-metrics-count-badge">
-            {dataOverviewGroups.length} Devices ·{' '}
-            {dataOverviewMetricCount} Metrics
+            {dataOverviewGroups.length} Devices · {dataOverviewMetricCount}{' '}
+            Metrics
           </span>
         </div>
 
@@ -626,10 +624,6 @@ function Dashboard({ onOpenDevice }) {
                       <div className="live-metric-overview-value">
                         <strong>{metric.value}</strong>
                         {metric.unit && <span>{metric.unit}</span>}
-                      </div>
-
-                      <div className="live-metric-overview-device">
-                        {metric.deviceName}
                       </div>
                     </article>
                   ))}
