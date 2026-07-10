@@ -21,6 +21,7 @@ export async function listAlarms(req, res) {
       ae.value,
       ae.severity,
       ae.status,
+      ae.notification_message,
       ae.triggered_at,
       ae.acknowledged_at
     FROM alarm_events ae
@@ -63,6 +64,7 @@ export async function listActiveAlarms(req, res) {
       ast.rule_id,
       ast.operator,
       ast.threshold,
+      ar.notification_message,
       ast.current_value,
       ast.triggered_at,
       ast.recovered_at,
@@ -75,6 +77,8 @@ export async function listActiveAlarms(req, res) {
     LEFT JOIN device_metrics dm
       ON dm.device_id = ast.device_id
       AND dm.metric_key = ast.metric
+    LEFT JOIN alarm_rules ar
+      ON ar.id = ast.rule_id
     WHERE ast.user_id = $1
       AND ast.state <> 'normal'
     ORDER BY

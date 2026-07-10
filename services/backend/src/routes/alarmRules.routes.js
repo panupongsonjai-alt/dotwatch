@@ -17,6 +17,7 @@ function normalizeAlarmPayload(payload = {}) {
   const operator = String(payload.operator || '').trim()
   const severity = String(payload.severity || 'warning').trim()
   const threshold = Number(payload.threshold)
+  const notificationMessage = String(payload.notification_message || '').trim()
 
   if (!metric) {
     return {
@@ -42,12 +43,19 @@ function normalizeAlarmPayload(payload = {}) {
     }
   }
 
+  if (notificationMessage.length > 300) {
+    return {
+      error: 'Notification message must not exceed 300 characters',
+    }
+  }
+
   return {
     value: {
       metric,
       operator,
       threshold,
       severity,
+      notificationMessage,
     },
   }
 }
@@ -127,7 +135,15 @@ router.post(
       })
     }
 
-    const { metric, operator, threshold, severity } = normalized.value
+    const {
+      metric,
+      operator,
+      threshold,
+      severity,
+      notificationMessage,
+    } = normalized.value
+    const isActive =
+      typeof req.body.is_active === 'boolean' ? req.body.is_active : true
 
     const result = await pool.query(
       `
@@ -138,12 +154,22 @@ router.post(
         operator,
         threshold,
         severity,
+        notification_message,
         is_active
       )
-      VALUES ($1,$2,$3,$4,$5,$6,true)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       RETURNING *
       `,
-      [req.dbUser.id, device_id, metric, operator, threshold, severity]
+      [
+        req.dbUser.id,
+        device_id,
+        metric,
+        operator,
+        threshold,
+        severity,
+        notificationMessage || null,
+        isActive,
+      ]
     )
 
     res.status(201).json(result.rows[0])
@@ -164,7 +190,13 @@ router.put(
       })
     }
 
-    const { metric, operator, threshold, severity } = normalized.value
+    const {
+      metric,
+      operator,
+      threshold,
+      severity,
+      notificationMessage,
+    } = normalized.value
     const isActive =
       typeof req.body.is_active === 'boolean' ? req.body.is_active : undefined
 
@@ -176,9 +208,11 @@ router.put(
         operator = $2,
         threshold = $3,
         severity = $4,
-        is_active = COALESCE($5, is_active)
-      WHERE id = $6
-        AND user_id = $7
+        notification_message = $5,
+        is_active = COALESCE($6, is_active),
+        updated_at = NOW()
+      WHERE id = $7
+        AND user_id = $8
       RETURNING *
       `,
       [
@@ -186,6 +220,7 @@ router.put(
         operator,
         threshold,
         severity,
+        notificationMessage || null,
         isActive,
         req.params.id,
         req.dbUser.id,

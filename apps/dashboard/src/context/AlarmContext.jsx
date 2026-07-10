@@ -7,7 +7,14 @@ export function AlarmProvider({ children }) {
 
   function addAlarm(alarm) {
     if (alarm.severity === 'critical') {
-      alert(`🚨 Critical Alarm\n\n${alarm.metric}\nValue: ${alarm.value}`)
+      const notificationMessage = String(
+        alarm.notification_message || ''
+      ).trim()
+
+      alert(
+        notificationMessage ||
+          `🚨 Critical Alarm\n\n${alarm.metric}\nValue: ${alarm.value}`
+      )
     }
 
     setAlarms((prev) =>

@@ -121,10 +121,14 @@ function LatestActiveAlarms({ limit = 6 }) {
                 </div>
 
                 <p>
-                  {alarm.metric_name || alarm.metric}
-                  {alarm.operator && alarm.threshold != null
-                    ? ` ${alarm.operator} ${formatValue(alarm.threshold, alarm.unit)}`
-                    : ''}
+                  {alarm.notification_message || (
+                    <>
+                      {alarm.metric_name || alarm.metric}
+                      {alarm.operator && alarm.threshold != null
+                        ? ` ${alarm.operator} ${formatValue(alarm.threshold, alarm.unit)}`
+                        : ''}
+                    </>
+                  )}
                 </p>
 
                 <small>

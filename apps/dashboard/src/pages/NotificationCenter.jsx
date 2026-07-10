@@ -78,6 +78,7 @@ function buildAlarmNotification(alarm) {
   const unit = alarm.unit || ''
   const valueText = alarm.value != null ? `${alarm.value}${unit ? ` ${unit}` : ''}` : '--'
   const thresholdText = alarm.threshold != null ? `${alarm.operator || ''} ${alarm.threshold}${unit ? ` ${unit}` : ''}` : '--'
+  const notificationMessage = String(alarm.notification_message || '').trim()
 
   return {
     id,
@@ -85,7 +86,9 @@ function buildAlarmNotification(alarm) {
     severity: alarm.severity || 'warning',
     status: alarm.status || 'active',
     title: getAlarmTitle(alarm),
-    description: `${metric} value ${valueText} matched rule ${thresholdText}`,
+    description:
+      notificationMessage ||
+      `${metric} value ${valueText} matched rule ${thresholdText}`,
     source: alarm.device_name || alarm.device_code || 'Unknown Device',
     time: alarm.triggered_at || alarm.acknowledged_at,
     icon: ShieldAlert,

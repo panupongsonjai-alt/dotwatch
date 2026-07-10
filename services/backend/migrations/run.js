@@ -537,6 +537,11 @@ async function createAlarmAndActivityTables() {
   `)
 
   await run(`
+    ALTER TABLE alarm_rules
+      ADD COLUMN IF NOT EXISTS notification_message TEXT;
+  `)
+
+  await run(`
     CREATE TABLE IF NOT EXISTS alarm_events (
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -548,6 +553,7 @@ async function createAlarmAndActivityTables() {
       value DOUBLE PRECISION,
       severity TEXT NOT NULL DEFAULT 'warning',
       status TEXT NOT NULL DEFAULT 'active',
+      notification_message TEXT,
       triggered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       acknowledged_at TIMESTAMPTZ,
       resolved_at TIMESTAMPTZ,
@@ -558,6 +564,7 @@ async function createAlarmAndActivityTables() {
   await run(`
     ALTER TABLE alarm_events
       ADD COLUMN IF NOT EXISTS rule_id BIGINT REFERENCES alarm_rules(id) ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS notification_message TEXT,
       ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ,
       ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
   `)

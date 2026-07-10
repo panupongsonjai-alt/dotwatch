@@ -201,13 +201,16 @@ export async function createAlarmActivity({ userId, deviceId, alarm }) {
 
   const metricName = alarm.metric_name || alarm.metric || 'Metric'
   const severity = alarm.severity === 'critical' ? 'critical' : 'warning'
+  const notificationMessage = String(alarm.notification_message || '').trim()
 
   return createActivityLog({
     userId,
     deviceId,
     activityType: 'alarm.triggered',
     title: `${severity === 'critical' ? 'Critical' : 'Warning'} alarm triggered`,
-    description: `${metricName} ${alarm.operator || ''} ${alarm.threshold ?? ''} · Current ${alarm.value ?? '--'}${alarm.unit ? ` ${alarm.unit}` : ''}`,
+    description:
+      notificationMessage ||
+      `${metricName} ${alarm.operator || ''} ${alarm.threshold ?? ''} · Current ${alarm.value ?? '--'}${alarm.unit ? ` ${alarm.unit}` : ''}`,
     severity,
     metadata: alarm,
     createdAt: alarm.triggered_at || new Date().toISOString(),

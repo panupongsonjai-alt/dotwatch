@@ -4740,3 +4740,164 @@
       'display display' !important;
   }
 }
+
+/* =========================================================
+   Devices - Alarm Rule Inline Editor
+   Desktop: Condition / Threshold / Trigger / Message / Active / Save
+========================================================= */
+
+.metric-alarm-card-easy {
+  container-type: inline-size;
+}
+
+.metric-alarm-rule-row-easy,
+.device-alarm-rule-item.metric-alarm-rule-row-easy {
+  grid-template-columns:
+    minmax(82px, 0.58fr)
+    minmax(104px, 0.72fr)
+    minmax(190px, 1.22fr)
+    minmax(230px, 1.42fr)
+    minmax(104px, 0.68fr)
+    86px !important;
+  grid-template-areas:
+    'severity severity severity severity severity severity'
+    'condition threshold trigger message active save' !important;
+  gap: 10px !important;
+  align-items: end !important;
+  overflow: visible !important;
+}
+
+.metric-alarm-severity {
+  grid-area: severity !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+.metric-alarm-severity small {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.metric-alarm-operator {
+  grid-area: condition !important;
+}
+
+.metric-alarm-threshold {
+  grid-area: threshold !important;
+}
+
+.metric-alarm-trigger {
+  grid-area: trigger !important;
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 7px !important;
+}
+
+.metric-alarm-message {
+  grid-area: message !important;
+  min-width: 0 !important;
+}
+
+.metric-alarm-active-field {
+  grid-area: active !important;
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 7px !important;
+}
+
+.metric-alarm-trigger > span,
+.metric-alarm-active-field > span {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.metric-alarm-rule-preview {
+  grid-area: auto !important;
+  width: 100% !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  border-style: solid !important;
+}
+
+.metric-alarm-message input {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.metric-alarm-active-field .alarm-active-toggle {
+  grid-area: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  justify-self: stretch !important;
+  align-self: end !important;
+}
+
+.metric-alarm-save-btn {
+  grid-area: save !important;
+  width: 86px !important;
+  min-width: 86px !important;
+  max-width: 86px !important;
+  justify-self: stretch !important;
+  align-self: end !important;
+}
+
+@container (max-width: 920px) {
+  .metric-alarm-rule-row-easy,
+  .device-alarm-rule-item.metric-alarm-rule-row-easy {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-areas:
+      'severity severity'
+      'condition threshold'
+      'trigger trigger'
+      'message message'
+      'active save' !important;
+  }
+
+  .metric-alarm-save-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+}
+
+@container (max-width: 560px) {
+  .metric-alarm-rule-row-easy,
+  .device-alarm-rule-item.metric-alarm-rule-row-easy {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      'severity'
+      'condition'
+      'threshold'
+      'trigger'
+      'message'
+      'active'
+      'save' !important;
+  }
+
+  .metric-alarm-severity {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+
+  .metric-alarm-severity small {
+    white-space: normal !important;
+  }
+}

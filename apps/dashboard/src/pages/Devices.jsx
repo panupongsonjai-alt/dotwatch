@@ -446,6 +446,8 @@ function Devices() {
         operator: draft.operator || '>',
         threshold: Number(draft.threshold),
         severity: draft.severity || 'warning',
+        is_active: draft.is_active !== false,
+        notification_message: String(draft.notification_message || '').trim(),
       })
 
       await loadAlarmRules()
@@ -473,6 +475,9 @@ function Devices() {
         threshold: Number(nextRule.threshold),
         severity: nextRule.severity || 'warning',
         is_active: nextRule.is_active,
+        notification_message: String(
+          nextRule.notification_message || ''
+        ).trim(),
       })
 
       await loadAlarmRules()

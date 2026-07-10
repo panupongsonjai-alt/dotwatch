@@ -78,6 +78,11 @@ function getMetricUnit(metrics, metricKey, rule = {}) {
   return metric?.unit || rule.unit || ''
 }
 
+function getMetricKeyDisplay(metricKey = '') {
+  const normalizedKey = String(metricKey || '').trim()
+  return normalizedKey.replace(/^metric_/i, '') || '--'
+}
+
 function DeviceTabHeader({ eyebrow, title, description, meta }) {
   return (
     <div className="devices-v3-tab-header">
@@ -152,6 +157,10 @@ function DeviceAlarmRulesPanel({
             is_active:
               currentDraft?.is_active ??
               (existingRule ? existingRule.is_active !== false : true),
+            notification_message:
+              currentDraft?.notification_message ??
+              existingRule?.notification_message ??
+              '',
           }
         })
       })
@@ -191,6 +200,7 @@ function DeviceAlarmRulesPanel({
       threshold: Number(draft.threshold),
       severity,
       is_active: draft.is_active !== false,
+      notification_message: String(draft.notification_message || '').trim(),
     }
 
     if (draft.id) {
@@ -243,7 +253,7 @@ function DeviceAlarmRulesPanel({
                 <div>
                   <strong>{metricName}</strong>
                   <span>
-                    {metricKey}
+                    {getMetricKeyDisplay(metricKey)}
                     {metricUnit ? ` • ${metricUnit}` : ''}
                   </span>
                 </div>
@@ -257,6 +267,7 @@ function DeviceAlarmRulesPanel({
                     operator: severity === 'critical' ? '>' : '>=',
                     threshold: '',
                     is_active: true,
+                    notification_message: '',
                   }
                   const severityLabel =
                     severity === 'critical' ? 'Critical' : 'Warning'
@@ -319,30 +330,65 @@ function DeviceAlarmRulesPanel({
                         />
                       </label>
 
-                      <label
-                        className={
-                          draft.is_active !== false
-                            ? 'metric-visible-toggle alarm-active-toggle active'
-                            : 'metric-visible-toggle alarm-active-toggle'
-                        }
-                      >
+                      <div className="metric-alarm-trigger">
+                        <span>Trigger</span>
+                        <p
+                          className="metric-alarm-rule-preview"
+                          title={`Trigger when ${metricName} ${
+                            draft.operator || '>'
+                          } ${formatThreshold(draft.threshold, metricUnit)}`}
+                        >
+                          Trigger when {metricName} {draft.operator || '>'}{' '}
+                          {formatThreshold(draft.threshold, metricUnit)}
+                        </p>
+                      </div>
+
+                      <label className="metric-alarm-field metric-alarm-message">
+                        <span>ข้อความแจ้งเตือน</span>
                         <input
-                          type="checkbox"
-                          checked={draft.is_active !== false}
+                          type="text"
+                          value={draft.notification_message || ''}
+                          placeholder="เช่น กรุณาตรวจสอบอุณหภูมิทันที"
+                          maxLength={300}
                           onChange={(event) =>
                             updateAlarmDraft(
                               metricKey,
                               severity,
-                              'is_active',
-                              event.target.checked
+                              'notification_message',
+                              event.target.value
                             )
                           }
                           disabled={saving}
                         />
-                        <span>
-                          {draft.is_active !== false ? 'Active' : 'Paused'}
-                        </span>
                       </label>
+
+                      <div className="metric-alarm-active-field">
+                        <span>Active</span>
+                        <label
+                          className={
+                            draft.is_active !== false
+                              ? 'metric-visible-toggle alarm-active-toggle active'
+                              : 'metric-visible-toggle alarm-active-toggle'
+                          }
+                        >
+                          <input
+                            type="checkbox"
+                            checked={draft.is_active !== false}
+                            onChange={(event) =>
+                              updateAlarmDraft(
+                                metricKey,
+                                severity,
+                                'is_active',
+                                event.target.checked
+                              )
+                            }
+                            disabled={saving}
+                          />
+                          <span>
+                            {draft.is_active !== false ? 'Active' : 'Paused'}
+                          </span>
+                        </label>
+                      </div>
 
                       <button
                         type="button"
@@ -354,11 +400,6 @@ function DeviceAlarmRulesPanel({
                       >
                         Save
                       </button>
-
-                      <p className="metric-alarm-rule-preview">
-                        Trigger when {metricName} {draft.operator || '>'}{' '}
-                        {formatThreshold(draft.threshold, metricUnit)}
-                      </p>
                     </div>
                   )
                 })}

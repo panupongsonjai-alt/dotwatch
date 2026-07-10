@@ -237,6 +237,7 @@ function Alarms() {
         threshold: rule.threshold,
         severity: rule.severity,
         is_active: !rule.is_active,
+        notification_message: rule.notification_message || '',
       })
 
       await loadData()

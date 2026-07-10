@@ -153,9 +153,10 @@ async function createAlarmEvent({
       value,
       severity,
       status,
+      notification_message,
       triggered_at
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING *
     `,
     [
@@ -168,6 +169,7 @@ async function createAlarmEvent({
       value,
       rule?.severity || status,
       status,
+      rule?.notification_message || null,
       time ? new Date(time) : new Date(),
     ]
   )
@@ -184,6 +186,7 @@ export async function checkAlarms({ userId, deviceId, reading }) {
       ar.operator,
       ar.threshold,
       ar.severity,
+      ar.notification_message,
       dm.metric_name,
       dm.unit
     FROM alarm_rules ar

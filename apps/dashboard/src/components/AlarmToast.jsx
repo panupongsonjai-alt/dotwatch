@@ -25,7 +25,8 @@ function AlarmToast() {
           </strong>
 
           <p>
-            {alarm.metric}: {alarm.value} {alarm.operator} {alarm.threshold}
+            {alarm.notification_message ||
+              `${alarm.metric}: ${alarm.value} ${alarm.operator} ${alarm.threshold}`}
           </p>
 
           <small>
