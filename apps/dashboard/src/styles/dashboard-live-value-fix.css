@@ -48,7 +48,7 @@
   min-width: 0 !important;
   max-width: 100% !important;
   color: var(--text) !important;
-  font-size: clamp(40px, 5vw, 70px) !important;
+  font-size: clamp(40px, 4vw, 60px) !important;
   line-height: 1.08 !important;
   font-weight: 950 !important;
   letter-spacing: -0.07em !important;
@@ -62,9 +62,9 @@
 
 .live-metric-overview-value span {
   flex: 0 0 auto;
-  padding-bottom: 6px;
+  padding-bottom: 10px;
   color: var(--muted) !important;
-  font-size: 17px !important;
+  font-size: 25px !important;
   line-height: 1 !important;
   font-weight: 950 !important;
 }

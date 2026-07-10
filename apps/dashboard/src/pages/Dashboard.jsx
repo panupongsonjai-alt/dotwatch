@@ -593,13 +593,6 @@ function Dashboard({ onOpenDevice }) {
 
                     <div>
                       <h3>{group.deviceName}</h3>
-                      {(group.modelName || group.deviceCode) && (
-                        <p>
-                          {[group.modelName, group.deviceCode]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </p>
-                      )}
                     </div>
                   </div>
 
