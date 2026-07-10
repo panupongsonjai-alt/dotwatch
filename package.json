@@ -79,7 +79,11 @@
     "verify:phase11a:admin-structure": "node scripts/phase11a-admin-dashboard-structure-verify.mjs",
     "verify:phase11b:esp32-structure": "node scripts/phase11b-esp32-dashboard-structure-verify.mjs",
     "verify:phase11c:esp32-friendly-portal": "node scripts/phase11c-esp32-friendly-portal-verify.mjs",
-    "verify:phase11d:admin-sidebar": "node scripts/phase11d-admin-sidebar-parity-verify.mjs"
+    "verify:phase11d:admin-sidebar": "node scripts/phase11d-admin-sidebar-parity-verify.mjs",
+    "verify:phase11g:admin-dashboard-parity": "node scripts/phase11g-admin-dashboard-parity-verify.mjs",
+    "verify:phase11h:dashboard-sidebar-vertical": "node scripts/phase11h-dashboard-sidebar-vertical-verify.mjs",
+    "verify:phase11i:admin-dashboard-comfort": "node scripts/phase11i-admin-dashboard-comfort-verify.mjs",
+    "verify:phase11j:dashboard-sidebar-spacing": "node scripts/phase11j-dashboard-sidebar-admin-spacing-verify.mjs"
   },
   "engines": {
     "node": ">=20"

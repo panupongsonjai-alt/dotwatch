@@ -35,3 +35,7 @@
 @import './styles/phase10d-device-operations.css';
 @import './styles/phase10e-dashboard-auth-env.css';
 @import './styles/phase11e-dashboard-sidebar-icon-center.css';
+@import './styles/phase11g-dashboard-parity-lock.css';
+@import './styles/phase11h-dashboard-sidebar-vertical-restore.css';
+@import './styles/phase11i-dashboard-comfort-parity.css';
+@import './styles/phase11j-dashboard-sidebar-admin-spacing.css';

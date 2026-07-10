@@ -1,0 +1,14 @@
+/* =========================================================
+   Phase 11H - Dashboard collapsed sidebar vertical restore
+   Scope: Dashboard collapsed sidebar only.
+   Purpose: keep icons horizontally centered, but restore the
+   menu list lower so it does not jump upward after icon centering.
+========================================================= */
+
+.sidebar.collapsed .menu {
+  margin-top: 12px;
+}
+
+.sidebar.collapsed .menu-section:first-child {
+  margin-top: 0;
+}

@@ -1,0 +1,219 @@
+/* =========================================================
+   Phase 11I - Dashboard / Admin comfort parity lock
+   Scope: Dashboard visual shell only.
+   Purpose: keep Dashboard as the reference for spacing, font,
+   controls, cards, and collapsed sidebar geometry without changing
+   page data, routes, API calls, or business logic.
+========================================================= */
+
+:root {
+  --dw-font-sans: 'Inter', 'Prompt', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --dw-shell-sidebar-width: 280px;
+  --dw-shell-sidebar-collapsed-width: 88px;
+  --dw-shell-sidebar-padding-x: 16px;
+  --dw-shell-sidebar-collapsed-padding-x: 14px;
+  --dw-shell-topbar-height: 76px;
+  --dw-shell-page-x: 28px;
+  --dw-shell-page-bottom: 28px;
+  --dw-shell-gap: 18px;
+  --dw-shell-section-gap: 14px;
+  --dw-shell-nav-gap: 14px;
+  --dw-shell-nav-collapsed-gap: 10px;
+  --dw-shell-nav-item: 48px;
+  --dw-shell-nav-radius: 16px;
+  --dw-shell-card-radius: 22px;
+  --dw-shell-control-radius: 13px;
+  --dw-shell-soft-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
+  --dw-shell-soft-shadow-dark: 0 18px 45px rgba(0, 0, 0, 0.26);
+  --dw-shell-focus: 0 0 0 4px rgba(37, 99, 235, 0.14);
+  --dw-shell-line-height: 1.55;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--dw-font-sans);
+}
+
+body {
+  line-height: var(--dw-shell-line-height);
+}
+
+.main {
+  padding: 0 var(--dw-shell-page-x) var(--dw-shell-page-bottom);
+}
+
+.page,
+.app-page,
+.dashboard-page,
+.device-v2-page,
+.profile-page,
+.settings-page,
+.unified-page {
+  gap: var(--dw-shell-gap);
+}
+
+.sidebar {
+  width: var(--dw-shell-sidebar-width);
+  padding: 22px var(--dw-shell-sidebar-padding-x);
+  background: linear-gradient(180deg, #111827 0%, #020617 100%);
+}
+
+.sidebar.collapsed {
+  width: var(--dw-shell-sidebar-collapsed-width);
+  padding: 22px var(--dw-shell-sidebar-collapsed-padding-x);
+}
+
+.brand {
+  height: 58px;
+  margin: 0 0 26px;
+}
+
+.menu {
+  gap: var(--dw-shell-nav-gap);
+}
+
+.menu-section {
+  gap: 7px;
+}
+
+.menu-section + .menu-section {
+  margin-top: 4px;
+  padding-top: var(--dw-shell-section-gap);
+}
+
+.menu-item {
+  height: var(--dw-shell-nav-item);
+  border-radius: var(--dw-shell-nav-radius);
+  line-height: 1;
+}
+
+.menu-icon,
+.menu-icon svg {
+  flex: 0 0 auto;
+}
+
+.sidebar.collapsed .menu {
+  gap: var(--dw-shell-nav-collapsed-gap);
+  margin-top: 12px;
+}
+
+.sidebar.collapsed .menu-section {
+  justify-items: center;
+}
+
+.sidebar.collapsed .menu-section + .menu-section {
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.sidebar.collapsed .menu-item {
+  width: var(--dw-shell-nav-item);
+  min-width: var(--dw-shell-nav-item);
+  max-width: var(--dw-shell-nav-item);
+  height: var(--dw-shell-nav-item);
+  padding: 0;
+  margin-inline: auto;
+  display: grid;
+  place-items: center;
+  gap: 0;
+}
+
+.sidebar.collapsed .menu-icon {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.sidebar.collapsed .menu-icon svg {
+  width: 20px;
+  height: 20px;
+  margin: 0 auto;
+}
+
+.sidebar.collapsed .menu-item.active::before {
+  left: -1px;
+}
+
+.top-header {
+  min-height: var(--dw-shell-topbar-height);
+  height: var(--dw-shell-topbar-height);
+  margin: 0 calc(var(--dw-shell-page-x) * -1) 24px;
+  padding: 0 var(--dw-shell-page-x);
+}
+
+.panel-card,
+.table-card,
+.dw-page-header,
+.page-header,
+.summary-card,
+.stat-card,
+.dw-stat-card,
+.device-map-card,
+.chart-card,
+.settings-panel,
+.profile-card,
+.alarm-card,
+.notification-card,
+.activity-card {
+  border-radius: var(--dw-shell-card-radius);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+button,
+.primary-button,
+.secondary-button,
+.ghost-button,
+.text-button,
+.danger-button,
+input,
+select,
+textarea {
+  border-radius: var(--dw-shell-control-radius);
+}
+
+button:focus-visible,
+.menu-item:focus-visible,
+.icon-button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--dw-shell-focus);
+}
+
+:root[data-theme='dark'] .panel-card,
+:root[data-theme='dark'] .table-card,
+:root[data-theme='dark'] .dw-page-header,
+:root[data-theme='dark'] .page-header,
+:root[data-theme='dark'] .summary-card,
+:root[data-theme='dark'] .stat-card,
+:root[data-theme='dark'] .dw-stat-card,
+:root[data-theme='dark'] .device-map-card,
+:root[data-theme='dark'] .chart-card,
+:root[data-theme='dark'] .settings-panel,
+:root[data-theme='dark'] .profile-card,
+:root[data-theme='dark'] .alarm-card,
+:root[data-theme='dark'] .notification-card,
+:root[data-theme='dark'] .activity-card {
+  box-shadow: var(--dw-shell-soft-shadow-dark);
+}
+
+@media (max-width: 900px) {
+  .main {
+    padding: 0 16px 22px;
+  }
+
+  .top-header {
+    margin: 0 -16px 18px;
+    padding: 0 16px;
+  }
+}

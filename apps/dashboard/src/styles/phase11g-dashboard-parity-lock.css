@@ -1,0 +1,40 @@
+/* =========================================================
+   Phase 11G - Dashboard parity source lock
+   Scope: dashboard visual constants only. This keeps Dashboard as the
+   reference pattern used by Admin without changing page details.
+========================================================= */
+
+:root {
+  --dw-sidebar-width: 280px;
+  --dw-sidebar-collapsed-width: 88px;
+  --dw-sidebar-padding-x: 16px;
+  --dw-sidebar-collapsed-padding-x: 14px;
+  --dw-topbar-height: 76px;
+  --dw-page-gap: 18px;
+  --dw-card-radius: 22px;
+  --dw-control-radius: 13px;
+  --dw-nav-pill-size: 48px;
+}
+
+.sidebar {
+  width: var(--dw-sidebar-width);
+  padding-left: var(--dw-sidebar-padding-x);
+  padding-right: var(--dw-sidebar-padding-x);
+}
+
+.sidebar.collapsed {
+  width: var(--dw-sidebar-collapsed-width);
+  padding-left: var(--dw-sidebar-collapsed-padding-x);
+  padding-right: var(--dw-sidebar-collapsed-padding-x);
+}
+
+.top-header {
+  height: var(--dw-topbar-height);
+  min-height: var(--dw-topbar-height);
+}
+
+.sidebar.collapsed .menu-item {
+  width: var(--dw-nav-pill-size);
+  min-width: var(--dw-nav-pill-size);
+  max-width: var(--dw-nav-pill-size);
+}

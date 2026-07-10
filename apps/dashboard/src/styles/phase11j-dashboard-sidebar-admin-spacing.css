@@ -1,0 +1,99 @@
+/* =========================================================
+   Phase 11J - Dashboard collapsed sidebar spacing match Admin
+   Scope: Dashboard collapsed sidebar only.
+   Purpose: keep Admin sidebar spacing as the approved reference and
+   align Dashboard collapsed sidebar vertical rhythm to the same geometry.
+   No admin/backend/database/ESP32/page logic changes.
+========================================================= */
+
+/* Match the approved Admin collapsed rail width and padding. */
+.sidebar.collapsed {
+  width: 88px;
+  padding: 22px 14px;
+}
+
+/* Match Admin header/collapse area exactly so the first menu item starts
+   at the same visual point after the collapse button. */
+.sidebar.collapsed .brand {
+  height: 58px;
+  margin: 0 0 26px;
+  padding: 10px 0;
+  justify-content: center;
+}
+
+.sidebar.collapsed .brand-left,
+.sidebar.collapsed .brand-text,
+.sidebar.collapsed .menu-section-label,
+.sidebar.collapsed .menu-label,
+.sidebar.collapsed .alarm-badge {
+  display: none;
+}
+
+.sidebar.collapsed .collapse-btn {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto;
+}
+
+/* Approved Admin collapsed rhythm:
+   - nav top offset: 12px
+   - item gap: 10px
+   - section item gap: 7px
+   - divider top/bottom: 10px
+*/
+.sidebar.collapsed .menu {
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.sidebar.collapsed .menu-section {
+  display: grid;
+  gap: 7px;
+  justify-items: center;
+}
+
+.sidebar.collapsed .menu-section + .menu-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.sidebar.collapsed .menu-item {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  height: 48px;
+  padding: 0;
+  margin-inline: auto;
+  display: grid;
+  place-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.sidebar.collapsed .menu-icon {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.sidebar.collapsed .menu-icon svg {
+  width: 20px;
+  height: 20px;
+  margin: 0 auto;
+  stroke-width: 2.3;
+}
+
+/* Use the same approved indicator offset as Admin so the active pill does
+   not look shifted differently from the Admin reference. */
+.sidebar.collapsed .menu-item.active::before {
+  left: 5px;
+  top: 11px;
+  bottom: 11px;
+  width: 3px;
+}

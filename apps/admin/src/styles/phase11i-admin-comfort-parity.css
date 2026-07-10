@@ -1,0 +1,275 @@
+/* =========================================================
+   Phase 11I - Admin / Dashboard comfort parity lock
+   Scope: Admin visual shell only.
+   Purpose: make Admin feel like Dashboard for structure, spacing,
+   font, CSS rhythm, and control comfort while keeping Admin pages,
+   API, permissions, and data independent.
+========================================================= */
+
+:root {
+  --dw-font-sans: 'Inter', 'Prompt', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --dw-shell-sidebar-width: 280px;
+  --dw-shell-sidebar-collapsed-width: 88px;
+  --dw-shell-sidebar-padding-x: 16px;
+  --dw-shell-sidebar-collapsed-padding-x: 14px;
+  --dw-shell-topbar-height: 76px;
+  --dw-shell-page-x: 28px;
+  --dw-shell-page-bottom: 28px;
+  --dw-shell-gap: 18px;
+  --dw-shell-section-gap: 14px;
+  --dw-shell-nav-gap: 14px;
+  --dw-shell-nav-collapsed-gap: 10px;
+  --dw-shell-nav-item: 48px;
+  --dw-shell-nav-radius: 16px;
+  --dw-shell-card-radius: 22px;
+  --dw-shell-control-radius: 13px;
+  --dw-shell-focus: 0 0 0 4px rgba(37, 99, 235, 0.14);
+  --dw-shell-line-height: 1.55;
+
+  --admin-sidebar-width: var(--dw-shell-sidebar-width);
+  --admin-topbar-height: var(--dw-shell-topbar-height);
+  --admin-radius: 16px;
+  --admin-radius-lg: var(--dw-shell-card-radius);
+  --admin-radius-xl: 28px;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--dw-font-sans);
+}
+
+body {
+  line-height: var(--dw-shell-line-height);
+  background: var(--bg);
+}
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.admin-main {
+  padding: 0 var(--dw-shell-page-x) var(--dw-shell-page-bottom);
+  background: var(--bg);
+}
+
+.admin-content,
+.admin-page,
+.app-page,
+.unified-page {
+  gap: var(--dw-shell-gap);
+}
+
+.admin-sidebar {
+  width: var(--dw-shell-sidebar-width);
+  min-height: 100vh;
+  height: 100vh;
+  padding: 22px var(--dw-shell-sidebar-padding-x);
+  background: linear-gradient(180deg, #111827 0%, #020617 100%);
+  border-right: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 12px 0 30px rgba(2, 6, 23, 0.2);
+}
+
+.admin-sidebar.collapsed,
+.admin-layout.sidebar-collapsed .admin-sidebar {
+  width: var(--dw-shell-sidebar-collapsed-width);
+  padding: 22px var(--dw-shell-sidebar-collapsed-padding-x);
+}
+
+.admin-brand.brand {
+  height: 58px;
+  margin: 0 0 26px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.admin-nav.menu {
+  gap: var(--dw-shell-nav-gap);
+}
+
+.admin-menu-section.menu-section {
+  gap: 7px;
+}
+
+.admin-menu-section.menu-section + .admin-menu-section.menu-section {
+  margin-top: 4px;
+  padding-top: var(--dw-shell-section-gap);
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.admin-menu-section-label.menu-section-label {
+  padding: 0 14px 2px;
+  color: rgba(148, 163, 184, 0.72);
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-nav-item.menu-item {
+  height: var(--dw-shell-nav-item);
+  border-radius: var(--dw-shell-nav-radius);
+  line-height: 1;
+}
+
+.admin-menu-icon.menu-icon,
+.admin-menu-icon.menu-icon svg {
+  flex: 0 0 auto;
+}
+
+.admin-sidebar.collapsed .admin-menu-section-label,
+.admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-section-label,
+.admin-sidebar.collapsed .admin-menu-label,
+.admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-label,
+.admin-sidebar.collapsed .admin-sidebar-card,
+.admin-layout.sidebar-collapsed .admin-sidebar .admin-sidebar-card {
+  display: none;
+}
+
+.admin-sidebar.collapsed .admin-nav.menu,
+.admin-layout.sidebar-collapsed .admin-sidebar .admin-nav.menu {
+  gap: var(--dw-shell-nav-collapsed-gap);
+  margin-top: 12px;
+}
+
+.admin-sidebar.collapsed .admin-menu-section,
+.admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-section {
+  justify-items: center;
+}
+
+.admin-sidebar.collapsed .admin-menu-section + .admin-menu-section,
+.admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-section + .admin-menu-section {
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.admin-sidebar.collapsed .admin-nav-item.menu-item,
+.admin-layout.sidebar-collapsed .admin-sidebar .admin-nav-item.menu-item {
+  width: var(--dw-shell-nav-item);
+  min-width: var(--dw-shell-nav-item);
+  max-width: var(--dw-shell-nav-item);
+  height: var(--dw-shell-nav-item);
+  padding: 0;
+  margin-inline: auto;
+  display: grid;
+  place-items: center;
+  gap: 0;
+}
+
+.admin-sidebar.collapsed .admin-menu-icon.menu-icon,
+.admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-icon.menu-icon {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.admin-sidebar.collapsed .admin-menu-icon.menu-icon svg,
+.admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-icon.menu-icon svg {
+  width: 20px;
+  height: 20px;
+  margin: 0 auto;
+}
+
+.admin-sidebar.collapsed .admin-nav-item.menu-item.active::before,
+.admin-layout.sidebar-collapsed .admin-sidebar .admin-nav-item.menu-item.active::before {
+  left: -1px;
+}
+
+.admin-topbar.top-header {
+  min-height: var(--dw-shell-topbar-height);
+  height: var(--dw-shell-topbar-height);
+  margin: 0 calc(var(--dw-shell-page-x) * -1) 24px;
+  padding: 0 var(--dw-shell-page-x);
+}
+
+.dw-page-header,
+.page-header,
+.admin-page-header,
+.panel-card,
+.table-card,
+.admin-panel,
+.settings-panel,
+.admin-stat-card,
+.dw-stat-card,
+.admin-card,
+.workspace-help-card,
+.command-palette,
+.workspace-route-bar {
+  border-radius: var(--dw-shell-card-radius);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+.panel-card,
+.table-card,
+.admin-panel,
+.settings-panel,
+.admin-card,
+.workspace-help-card {
+  padding: 24px;
+}
+
+.primary-button,
+.ghost-button,
+.secondary-button,
+.text-button,
+.danger-button,
+.admin-toolbar button,
+.admin-page-toolbar button,
+input,
+select,
+textarea,
+.admin-toolbar input,
+.admin-toolbar select,
+.settings-panel input {
+  border-radius: var(--dw-shell-control-radius);
+}
+
+button:focus-visible,
+.admin-nav-item.menu-item:focus-visible,
+.icon-button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--dw-shell-focus);
+}
+
+.admin-page-header h1,
+.dw-page-header h1,
+.page-header h1,
+.admin-topbar-title h1 {
+  letter-spacing: -0.04em;
+}
+
+.admin-page-header p,
+.dw-page-header p,
+.page-header p,
+.admin-section-description,
+.admin-muted-text {
+  line-height: var(--dw-shell-line-height);
+}
+
+@media (max-width: 900px) {
+  .admin-main {
+    padding: 0 16px 22px;
+  }
+
+  .admin-topbar.top-header {
+    margin: 0 -16px 18px;
+    padding: 0 16px;
+  }
+}

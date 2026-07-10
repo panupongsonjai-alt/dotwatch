@@ -53,7 +53,6 @@ function AdminTopbar({ activePage, adminUser, theme, setTheme }) {
           title="Sign out"
         >
           <LogOut size={16} />
-          <span>Sign out</span>
         </button>
       </div>
     </header>

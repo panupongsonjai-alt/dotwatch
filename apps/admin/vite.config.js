@@ -12,6 +12,7 @@ function manualChunks(id) {
 
 export default defineConfig({
   plugins: [react()],
+  base: '/',
   build: {
     target: 'es2020',
     cssCodeSplit: true,
