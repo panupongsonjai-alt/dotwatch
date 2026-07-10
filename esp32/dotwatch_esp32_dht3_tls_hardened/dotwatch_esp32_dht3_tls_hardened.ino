@@ -56,7 +56,7 @@
 #include <string.h>
 #include "dotwatch_root_ca.h"
 
-#define FIRMWARE_VERSION "esp32-dht3-security-0.9.0"
+#define FIRMWARE_VERSION "esp32-dht3-security-0.9.1"
 
 static const char *SETUP_AP_SSID = "dotWatch-ESP32-Setup";
 static const char *SETUP_AP_PASSWORD = "dotwatch-setup";
@@ -461,11 +461,11 @@ String pinHiddenInput() {
 
 void sendLocalAdminLogin(int statusCode = 200, String message = "") {
   String body;
-  body += "<section class='card'><h2>Local Admin Login</h2>";
-  body += "<p class='muted'>ESP32 is online on your local Wi-Fi. Enter Local Admin PIN to edit Wi-Fi/backend/device settings.</p>";
+  body += "<section class='card simple-card'><div class='section-kicker'>Protected setup</div><h2>เข้าสู่หน้าตั้งค่า ESP32</h2>";
+  body += "<p class='muted'>อุปกรณ์ออนไลน์แล้ว กรอก Local Admin PIN เพื่อเปิดหน้าตั้งค่า Wi-Fi, Backend และ Device ของ ESP32 ตัวนี้.</p>";
 
   if (cfg.adminPin.length() == 0) {
-    body += "<div class='notice'>ยังไม่ได้ตั้ง Custom PIN ค่าเริ่มต้นคือ 6 ตัวท้ายของ Device Code จนกว่าจะตั้ง PIN ใหม่ในหน้านี้</div>";
+    body += "<div class='notice info'>ยังไม่ได้ตั้ง Custom PIN ค่าเริ่มต้นคือ 6 ตัวท้ายของ Device Code จนกว่าจะตั้ง PIN ใหม่</div>";
   }
 
   if (message.length() > 0) {
@@ -473,8 +473,8 @@ void sendLocalAdminLogin(int statusCode = 200, String message = "") {
   }
 
   body += "<form method='GET' action='/'><div class='form'>";
-  body += "<label class='full'>Local Admin PIN<input type='password' name='pin' inputmode='numeric' autocomplete='current-password' placeholder='Enter PIN'></label>";
-  body += "</div><div class='row'><button type='submit'>Unlock</button><a class='btn btn2' href='/json'>Status JSON</a></div></form>";
+  body += "<label class='full'>Local Admin PIN<input type='password' name='pin' inputmode='numeric' autocomplete='current-password' placeholder='เช่น 123456'></label>";
+  body += "</div><div class='row'><button type='submit'>เปิดหน้าตั้งค่า</button><a class='btn btn2' href='/json'>ดูสถานะ JSON</a></div></form>";
   body += "</section>";
 
   server.send(statusCode, "text/html; charset=utf-8", pageShell("ESP32 Local Admin", body));
@@ -725,13 +725,13 @@ String pageShell(const String &title, const String &body) {
   html += "*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:radial-gradient(circle at 18% -10%,rgba(239,68,68,.18),transparent 28rem),radial-gradient(circle at 88% 10%,rgba(56,189,248,.12),transparent 25rem),linear-gradient(135deg,#0b1220,#111827 48%,#0f172a);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}";
   html += "a{color:inherit}.app-shell{max-width:1180px;margin:0 auto;padding:22px}.portal-frame{display:grid;grid-template-columns:270px minmax(0,1fr);gap:18px}.portal-sidebar{position:sticky;top:18px;height:calc(100vh - 36px);display:flex;flex-direction:column;gap:14px}.brand-card,.nav-card,.status-card,.card,.section-card,.page-hero{border:1px solid var(--border2);border-radius:24px;background:linear-gradient(180deg,rgba(30,41,59,.92),rgba(15,23,42,.92));box-shadow:var(--shadow);backdrop-filter:blur(10px)}";
   html += ".brand-card{padding:18px}.brand{display:flex;gap:12px;align-items:center}.logo{width:46px;height:46px;border-radius:16px;background:radial-gradient(circle at 28% 26%,#fff 0 7%,transparent 8%),linear-gradient(135deg,var(--primary),var(--primary2));box-shadow:0 16px 35px rgba(239,68,68,.24)}.brand-title{font-size:18px;font-weight:950;letter-spacing:-.04em}.brand-subtitle{color:var(--muted);font-size:12px;margin-top:2px;line-height:1.4}.nav-card{padding:12px}.nav-title{padding:8px 10px;color:var(--muted);font-size:11px;font-weight:950;letter-spacing:.12em;text-transform:uppercase}.side-nav{display:grid;gap:7px}.side-nav a{display:flex;align-items:center;justify-content:space-between;min-height:40px;padding:0 12px;border-radius:14px;text-decoration:none;color:var(--soft);font-size:13px;font-weight:900;border:1px solid transparent}.side-nav a:hover{border-color:var(--border2);background:rgba(148,163,184,.08)}.side-nav span{color:var(--muted);font-size:11px}.status-card{padding:14px;margin-top:auto}.status-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.status-label{color:var(--muted);font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.10em}.badge{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:0 11px;border-radius:999px;border:1px solid var(--border2);background:rgba(15,23,42,.72);color:var(--muted);font-size:12px;font-weight:950;white-space:nowrap}.dot{width:8px;height:8px;border-radius:999px;background:var(--warn)}.ok .dot{background:var(--accent)}.bad .dot{background:var(--danger)}.tiny{color:var(--muted);font-size:12px;line-height:1.5;word-break:break-word}";
-  html += ".portal-main{min-width:0}.page-hero{padding:22px;margin-bottom:18px;display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.eyebrow{display:inline-flex;align-items:center;gap:8px;color:#fecaca;font-size:12px;font-weight:950;letter-spacing:.10em;text-transform:uppercase}.page-hero h1{font-size:32px;line-height:1.08;margin:8px 0 8px;letter-spacing:-.055em}.page-hero p{margin:0;color:var(--muted);font-size:14px;line-height:1.55}.hero-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.85fr);gap:18px}.card,.section-card{padding:20px;margin-bottom:18px}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}.section-kicker{color:var(--muted);font-size:11px;font-weight:950;letter-spacing:.12em;text-transform:uppercase}.section-card h2,.card h2{margin:0;color:var(--text);font-size:20px;letter-spacing:-.035em}.section-desc,.muted{color:var(--muted);font-size:13px;line-height:1.55}.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}.stat{min-height:86px;padding:13px;border:1px solid var(--border2);border-radius:18px;background:rgba(15,23,42,.62)}.stat small{display:block;color:var(--muted);font-size:11px;font-weight:950;letter-spacing:.04em;text-transform:uppercase}.stat strong{display:block;margin-top:7px;font-size:17px;line-height:1.25;word-break:break-word}.stat.good{border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.08)}.stat.warn{border-color:rgba(245,158,11,.26);background:rgba(245,158,11,.08)}.stat.bad{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.08)}.form-section{border:1px solid var(--border2);border-radius:20px;padding:16px;background:rgba(15,23,42,.48);margin-top:12px}.form-section h3{margin:0 0 12px;font-size:15px;letter-spacing:-.02em}.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}label{display:grid;gap:7px;color:var(--soft);font-size:13px;font-weight:900}input,select,textarea{width:100%;border:1px solid var(--border2);border-radius:14px;background:#0b1220;color:var(--text);padding:12px 13px;outline:none}input:focus,select:focus,textarea:focus{border-color:rgba(239,68,68,.55);box-shadow:0 0 0 4px rgba(239,68,68,.12)}textarea{min-height:160px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}button,.btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 15px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:white;font-weight:950;text-decoration:none;cursor:pointer;box-shadow:0 14px 28px rgba(239,68,68,.16)}.btn2{background:rgba(15,23,42,.45);border:1px solid var(--border2);box-shadow:none;color:var(--soft)}.danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.28);color:#fecaca;box-shadow:none}.notice{padding:13px 14px;border-radius:17px;border:1px solid rgba(245,158,11,.28);background:rgba(245,158,11,.10);color:#fde68a;margin-bottom:16px;font-size:13px;line-height:1.55}.notice.info{border-color:rgba(56,189,248,.26);background:rgba(56,189,248,.08);color:#bae6fd}.ops-list{display:grid;gap:10px}.ops-item{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:16px;border:1px solid var(--border2);background:rgba(15,23,42,.45)}.ops-icon{width:28px;height:28px;border-radius:10px;background:rgba(239,68,68,.14);display:flex;align-items:center;justify-content:center;color:#fecaca;font-weight:950}.footer{text-align:center;color:var(--muted);font-size:12px;margin:18px 0 4px}";
-  html += "@media(max-width:980px){.portal-frame{grid-template-columns:1fr}.portal-sidebar{position:relative;top:auto;height:auto}.side-nav{grid-template-columns:repeat(3,minmax(0,1fr))}.status-card{margin-top:0}.grid{grid-template-columns:1fr}.page-hero{display:block}.hero-actions{justify-content:flex-start;margin-top:14px}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.app-shell{padding:12px}.side-nav{grid-template-columns:1fr}.form,.stat-grid{grid-template-columns:1fr}.page-hero h1{font-size:26px}.brand-card,.nav-card,.status-card,.card,.section-card,.page-hero{border-radius:20px;padding:16px}}";
+  html += ".portal-main{min-width:0}.page-hero{padding:22px;margin-bottom:18px;display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.eyebrow{display:inline-flex;align-items:center;gap:8px;color:#fecaca;font-size:12px;font-weight:950;letter-spacing:.10em;text-transform:uppercase}.page-hero h1{font-size:32px;line-height:1.08;margin:8px 0 8px;letter-spacing:-.055em}.page-hero p{margin:0;color:var(--muted);font-size:14px;line-height:1.55}.hero-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.85fr);gap:18px}.card,.section-card{padding:20px;margin-bottom:18px}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}.section-kicker{color:var(--muted);font-size:11px;font-weight:950;letter-spacing:.12em;text-transform:uppercase}.section-card h2,.card h2{margin:0;color:var(--text);font-size:20px;letter-spacing:-.035em}.section-desc,.muted{color:var(--muted);font-size:13px;line-height:1.55}.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}.stat{min-height:86px;padding:13px;border:1px solid var(--border2);border-radius:18px;background:rgba(15,23,42,.62)}.stat small{display:block;color:var(--muted);font-size:11px;font-weight:950;letter-spacing:.04em;text-transform:uppercase}.stat strong{display:block;margin-top:7px;font-size:17px;line-height:1.25;word-break:break-word}.stat.good{border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.08)}.stat.warn{border-color:rgba(245,158,11,.26);background:rgba(245,158,11,.08)}.stat.bad{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.08)}.form-section{border:1px solid var(--border2);border-radius:20px;padding:16px;background:rgba(15,23,42,.48);margin-top:12px}.form-section h3{margin:0 0 12px;font-size:15px;letter-spacing:-.02em}.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}label{display:grid;gap:7px;color:var(--soft);font-size:13px;font-weight:900}input,select,textarea{width:100%;border:1px solid var(--border2);border-radius:14px;background:#0b1220;color:var(--text);padding:12px 13px;outline:none}input:focus,select:focus,textarea:focus{border-color:rgba(239,68,68,.55);box-shadow:0 0 0 4px rgba(239,68,68,.12)}textarea{min-height:160px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}button,.btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 15px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:white;font-weight:950;text-decoration:none;cursor:pointer;box-shadow:0 14px 28px rgba(239,68,68,.16)}.btn2{background:rgba(15,23,42,.45);border:1px solid var(--border2);box-shadow:none;color:var(--soft)}.danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.28);color:#fecaca;box-shadow:none}.notice{padding:13px 14px;border-radius:17px;border:1px solid rgba(245,158,11,.28);background:rgba(245,158,11,.10);color:#fde68a;margin-bottom:16px;font-size:13px;line-height:1.55}.notice.info{border-color:rgba(56,189,248,.26);background:rgba(56,189,248,.08);color:#bae6fd}.ops-list{display:grid;gap:10px}.ops-item{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:16px;border:1px solid var(--border2);background:rgba(15,23,42,.45)}.ops-icon{width:28px;height:28px;border-radius:10px;background:rgba(239,68,68,.14);display:flex;align-items:center;justify-content:center;color:#fecaca;font-weight:950}.footer{text-align:center;color:var(--muted);font-size:12px;margin:18px 0 4px}.quick-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}.quick-step{border:1px solid var(--border2);border-radius:18px;background:rgba(15,23,42,.55);padding:14px;display:flex;gap:12px;align-items:flex-start}.step-number{width:30px;height:30px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(239,68,68,.16);color:#fecaca;font-weight:950;flex:0 0 auto}.quick-step strong{display:block;font-size:14px;margin-bottom:4px}.quick-step span{display:block;color:var(--muted);font-size:12px;line-height:1.45}.setup-summary{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;padding:16px;border:1px solid var(--border2);border-radius:20px;background:rgba(15,23,42,.45);margin-bottom:14px}.setup-summary h2{margin:4px 0 4px}.stat em{display:block;margin-top:6px;color:var(--muted);font-size:11px;font-style:normal;line-height:1.35}.field-help{color:var(--muted);font-size:12px;line-height:1.45;margin-top:-2px}.friendly-list{grid-template-columns:repeat(2,minmax(0,1fr))}.advanced-card{border:1px solid var(--border2);border-radius:20px;background:rgba(15,23,42,.42);padding:0;margin-top:12px;overflow:hidden}.advanced-card>summary{list-style:none;cursor:pointer;padding:15px 16px;font-weight:950;color:var(--soft);display:flex;align-items:center;justify-content:space-between;gap:12px}.advanced-card>summary::-webkit-details-marker{display:none}.advanced-card>summary:after{content:'เปิด';font-size:11px;color:var(--muted);border:1px solid var(--border2);border-radius:999px;padding:5px 9px}.advanced-card[open]>summary:after{content:'ปิด'}.advanced-card .advanced-body{padding:0 16px 16px}.primary-action{min-width:220px}.danger-note{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.07)}";
+  html += "@media(max-width:980px){.portal-frame{grid-template-columns:1fr}.quick-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.friendly-list{grid-template-columns:1fr}.portal-sidebar{position:relative;top:auto;height:auto}.side-nav{grid-template-columns:repeat(3,minmax(0,1fr))}.status-card{margin-top:0}.grid{grid-template-columns:1fr}.page-hero{display:block}.hero-actions{justify-content:flex-start;margin-top:14px}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.app-shell{padding:12px}.side-nav{grid-template-columns:1fr}.form,.stat-grid,.quick-steps{grid-template-columns:1fr}.page-hero h1{font-size:26px}.brand-card,.nav-card,.status-card,.card,.section-card,.page-hero{border-radius:20px;padding:16px}}";
   html += "</style></head><body><div class='app-shell'><div class='portal-frame'>";
   html += "<aside class='portal-sidebar'><section class='brand-card'><div class='brand'><div class='logo'></div><div><div class='brand-title'>dotWatch ESP32</div><div class='brand-subtitle'>DHT3 Local Device Console<br>";
   html += FIRMWARE_VERSION;
   html += "</div></div></div></section>";
-  html += "<section class='nav-card'><div class='nav-title'>Workspace</div><nav class='side-nav'><a href='#overview'>Overview <span>01</span></a><a href='#network'>Network <span>02</span></a><a href='#security'>Security <span>03</span></a><a href='#device'>Device <span>04</span></a><a href='#sensor'>Sensor <span>05</span></a><a href='#operations'>Operations <span>06</span></a></nav></section>";
+  html += "<section class='nav-card'><div class='nav-title'>Setup menu</div><nav class='side-nav'><a href='#overview'>ภาพรวม <span>01</span></a><a href='#network'>Wi-Fi <span>02</span></a><a href='#device'>Device <span>03</span></a><a href='#security'>ความปลอดภัย <span>04</span></a><a href='#sensor'>เซนเซอร์ <span>05</span></a><a href='#operations'>บันทึก <span>06</span></a></nav></section>";
   html += "<section class='status-card'><div class='status-row'><div><div class='status-label'>Status</div><div class='tiny'>";
   html += htmlEscape(activeIp);
   html += "</div></div><span class='badge " + connectionClass + "'><span class='dot'></span>" + connectionText + "</span></div><div class='tiny'>Model: ESP32-DHT3 · TLS: ";
@@ -739,37 +739,66 @@ String pageShell(const String &title, const String &body) {
   html += "</div></section></aside>";
   html += "<main class='portal-main'><section class='page-hero'><div><div class='eyebrow'>Local Portal</div><h1>";
   html += htmlEscape(title);
-  html += "</h1><p>โครงสร้างหน้า ESP32 ถูกจัดให้อยู่ในโทนเดียวกับ Dashboard แต่ยังแยก logic, route และข้อมูลของ firmware ไว้เฉพาะ ESP32.</p></div><div class='hero-actions'><a class='btn btn2' href='/json'>Status JSON</a><a class='btn btn2' href='/test'>Read Test</a></div></section>";
+  html += "</h1><p>ตั้งค่า ESP32 แบบง่ายสำหรับใช้งานจริง โดยคงโทนเดียวกับ Dashboard และยังแยกข้อมูลของอุปกรณ์ไว้เฉพาะ ESP32 ตัวนี้.</p></div><div class='hero-actions'><a class='btn' href='/test'>ทดสอบอ่านค่า</a><a class='btn btn2' href='/json'>ดูสถานะ JSON</a></div></section>";
   html += body;
-  html += "<div class='footer'>dotWatch ESP32 Config Portal · Local-only UI · ไม่แทนที่ Raspberry Pi / DW20CH</div></main>";
+  html += "<div class='footer'>dotWatch ESP32 Local Portal · ใช้ตั้งค่าเฉพาะอุปกรณ์ตัวนี้</div></main>";
   html += "</div></div></body></html>";
   return html;
 }
 
+String signalQualityText(int rssi) {
+  if (WiFi.status() != WL_CONNECTED) return "ยังไม่เชื่อมต่อ";
+  if (rssi >= -60) return "ดีมาก";
+  if (rssi >= -70) return "ดี";
+  if (rssi >= -80) return "พอใช้";
+  return "สัญญาณอ่อน";
+}
+
+String lastSendLabel() {
+  if (lastSendStatus == "ok") return "ส่งข้อมูลสำเร็จ";
+  if (lastSendStatus == "error") return "ส่งไม่สำเร็จ";
+  return "ยังไม่เคยส่ง";
+}
+
+String readyChecklistText() {
+  int ready = 0;
+  if (WiFi.status() == WL_CONNECTED) ready++;
+  if (cfg.apiUrl.length() > 0) ready++;
+  if (cfg.deviceCode.length() > 0 && cfg.deviceSecret.length() > 0) ready++;
+  if (hasEffectiveTlsCaCert()) ready++;
+  if (lastSendStatus == "ok") ready++;
+  return String(ready) + "/5 พร้อมใช้งาน";
+}
+
 String currentStatusHtml() {
   String html;
-  String wifiLabel = WiFi.status() == WL_CONNECTED ? WiFi.SSID() : "Not connected";
+  String wifiLabel = WiFi.status() == WL_CONNECTED ? WiFi.SSID() : "ยังไม่เชื่อมต่อ";
   String ipLabel = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : WiFi.softAPIP().toString();
+  int rssi = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0;
   String sendClass = lastSendStatus == "ok" ? "good" : (lastSendStatus == "error" ? "bad" : "warn");
   String tlsClass = hasEffectiveTlsCaCert() ? "good" : "warn";
 
-  html += "<div class='stat-grid'>";
-  html += "<div class='stat " + String(WiFi.status() == WL_CONNECTED ? "good" : "warn") + "'><small>Wi-Fi</small><strong>" + htmlEscape(wifiLabel) + "</strong></div>";
-  html += "<div class='stat'><small>IP Address</small><strong>" + htmlEscape(ipLabel) + "</strong></div>";
-  html += "<div class='stat'><small>RSSI</small><strong>" + String(WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0) + " dBm</strong></div>";
-  html += "<div class='stat'><small>Device Code</small><strong>" + htmlEscape(cfg.deviceCode.length() ? cfg.deviceCode : "Not set") + "</strong></div>";
-  html += "<div class='stat " + tlsClass + "'><small>TLS Mode</small><strong>" + htmlEscape(tlsModeText()) + "</strong></div>";
-  html += "<div class='stat " + sendClass + "'><small>Last Send</small><strong>" + htmlEscape(lastSendStatus) + " · HTTP " + String(lastHttpStatus) + "</strong></div>";
+  html += "<div class='setup-summary'>";
+  html += "<div><div class='section-kicker'>พร้อมใช้งาน</div><h2>" + readyChecklistText() + "</h2><p class='muted'>ดูสถานะสำคัญของ ESP32 ตัวนี้ในมุมมองเดียว ไม่ต้องเปิดหลายหน้า.</p></div>";
+  html += "<span class='badge " + String(WiFi.status() == WL_CONNECTED ? "ok" : "bad") + "'><span class='dot'></span>" + String(WiFi.status() == WL_CONNECTED ? "ออนไลน์" : "Setup Mode") + "</span>";
   html += "</div>";
 
-  html += "<div class='ops-list'>";
-  html += "<div class='ops-item'><div class='ops-icon'>W</div><div><strong>Remembered Wi-Fi</strong><div class='muted'>" + htmlEscape(knownWiFiProfileSummary()) + "</div></div></div>";
-  html += "<div class='ops-item'><div class='ops-icon'>B</div><div><strong>Backend</strong><div class='muted'>" + htmlEscape(cfg.apiUrl) + "</div></div></div>";
-  html += "<div class='ops-item'><div class='ops-icon'>S</div><div><strong>Device Secret</strong><div class='muted'>" + htmlEscape(maskSecret(cfg.deviceSecret)) + "</div></div></div>";
-  html += "<div class='ops-item'><div class='ops-icon'>P</div><div><strong>Local Admin</strong><div class='muted'>" + String(cfg.adminPin.length() >= 4 ? "Custom PIN set" : "Default PIN = last 6 chars of Device Code") + "</div></div></div>";
-  html += "<div class='ops-item'><div class='ops-icon'>D</div><div><strong>DHT Sensor</strong><div class='muted'>Pin " + String(cfg.dhtPin) + " · " + String(cfg.dhtType == DHT22 ? "DHT22" : "DHT11") + " · interval " + String(cfg.sendIntervalMs / 1000) + "s</div></div></div>";
-  html += "<div class='ops-item'><div class='ops-icon'>U</div><div><strong>Uptime</strong><div class='muted'>" + uptimeText() + " · OK " + String(totalSendOk) + " · FAIL " + String(totalSendFail) + "</div></div></div>";
-  html += "<div class='ops-item'><div class='ops-icon'>!</div><div><strong>Last Error</strong><div class='muted'>" + htmlEscape(lastSendError.length() ? lastSendError : "None") + "</div></div></div>";
+  html += "<div class='stat-grid'>";
+  html += "<div class='stat " + String(WiFi.status() == WL_CONNECTED ? "good" : "warn") + "'><small>Wi-Fi</small><strong>" + htmlEscape(wifiLabel) + "</strong><em>เครือข่ายที่อุปกรณ์ใช้อยู่</em></div>";
+  html += "<div class='stat'><small>IP Address</small><strong>" + htmlEscape(ipLabel) + "</strong><em>ใช้เปิดหน้านี้ในวง Wi-Fi เดียวกัน</em></div>";
+  html += "<div class='stat'><small>Signal</small><strong>" + signalQualityText(rssi) + "</strong><em>RSSI " + String(rssi) + " dBm</em></div>";
+  html += "<div class='stat'><small>Device Code</small><strong>" + htmlEscape(cfg.deviceCode.length() ? cfg.deviceCode : "ยังไม่ได้ตั้ง") + "</strong><em>รหัสอุปกรณ์บน dotWatch</em></div>";
+  html += "<div class='stat " + tlsClass + "'><small>HTTPS / TLS</small><strong>" + htmlEscape(tlsCaCertSourceText()) + "</strong><em>" + htmlEscape(tlsModeText()) + "</em></div>";
+  html += "<div class='stat " + sendClass + "'><small>ส่งข้อมูลล่าสุด</small><strong>" + lastSendLabel() + "</strong><em>HTTP " + String(lastHttpStatus) + " · OK " + String(totalSendOk) + " · FAIL " + String(totalSendFail) + "</em></div>";
+  html += "</div>";
+
+  html += "<div class='ops-list friendly-list'>";
+  html += "<div class='ops-item'><div class='ops-icon'>1</div><div><strong>Wi-Fi ที่จำไว้</strong><div class='muted'>" + htmlEscape(knownWiFiProfileSummary()) + "</div></div></div>";
+  html += "<div class='ops-item'><div class='ops-icon'>2</div><div><strong>Backend ปลายทาง</strong><div class='muted'>" + htmlEscape(cfg.apiUrl.length() ? cfg.apiUrl : "ยังไม่ได้ตั้ง Backend URL") + "</div></div></div>";
+  html += "<div class='ops-item'><div class='ops-icon'>3</div><div><strong>Device Secret</strong><div class='muted'>" + htmlEscape(maskSecret(cfg.deviceSecret)) + "</div></div></div>";
+  html += "<div class='ops-item'><div class='ops-icon'>4</div><div><strong>Local Admin PIN</strong><div class='muted'>" + String(cfg.adminPin.length() >= 4 ? "ตั้ง Custom PIN แล้ว" : "ใช้ค่าเริ่มต้น 6 ตัวท้ายของ Device Code") + "</div></div></div>";
+  html += "<div class='ops-item'><div class='ops-icon'>5</div><div><strong>เซนเซอร์</strong><div class='muted'>Pin " + String(cfg.dhtPin) + " · " + String(cfg.dhtType == DHT22 ? "DHT22" : "DHT11") + " · ส่งทุก " + String(cfg.sendIntervalMs / 1000) + " วินาที</div></div></div>";
+  html += "<div class='ops-item'><div class='ops-icon'>!</div><div><strong>ปัญหาล่าสุด</strong><div class='muted'>" + htmlEscape(lastSendError.length() ? lastSendError : "ยังไม่พบปัญหา") + "</div></div></div>";
   html += "</div>";
   return html;
 }
@@ -876,41 +905,49 @@ void handleRoot() {
 
   String body;
   if (!hasRequiredConfig()) {
-    body += "<div class='notice'>ยังตั้งค่าไม่ครบ ให้กรอก Wi‑Fi, Backend, Device Code และ Device Secret ของ ESP32 device ใหม่ ไม่ใช้ของ Raspberry Pi</div>";
+    body += "<div class='notice'>ยังตั้งค่าไม่ครบ ให้ทำตาม 4 ขั้นตอนด้านล่าง: Wi-Fi → Backend → Device Code/Secret → Save & Restart</div>";
   }
 
-  body += "<section id='overview' class='section-card'><div class='section-head'><div><div class='section-kicker'>Overview</div><h2>Live Device Snapshot</h2><div class='section-desc'>ภาพรวมแบบเดียวกับ Dashboard สำหรับดูสถานะอุปกรณ์จริงก่อนแก้ค่า.</div></div><span class='badge " + String(WiFi.status() == WL_CONNECTED ? "ok" : "bad") + "'><span class='dot'></span>" + String(WiFi.status() == WL_CONNECTED ? "Online" : "Setup") + "</span></div>";
+  body += "<section id='overview' class='section-card'><div class='section-head'><div><div class='section-kicker'>เริ่มต้นใช้งาน</div><h2>ตั้งค่า ESP32 ให้ง่ายเหมือนเปิด Dashboard</h2><div class='section-desc'>หน้านี้จัดใหม่สำหรับผู้ใช้งานทั่วไป: เห็นสถานะก่อน แก้เฉพาะช่องที่จำเป็น และเก็บตัวเลือกขั้นสูงไว้ด้านล่าง.</div></div><span class='badge " + String(WiFi.status() == WL_CONNECTED ? "ok" : "bad") + "'><span class='dot'></span>" + String(WiFi.status() == WL_CONNECTED ? "Online" : "Setup") + "</span></div>";
+  body += "<div class='quick-steps'>";
+  body += "<div class='quick-step'><div class='step-number'>1</div><div><strong>ต่อ Wi-Fi</strong><span>ใส่ชื่อ Wi-Fi และรหัสผ่านของสถานที่ใช้งาน</span></div></div>";
+  body += "<div class='quick-step'><div class='step-number'>2</div><div><strong>เชื่อม Backend</strong><span>ใช้ URL ของ dotWatch backend ที่รับข้อมูล</span></div></div>";
+  body += "<div class='quick-step'><div class='step-number'>3</div><div><strong>ใส่ Device</strong><span>กรอก Device Code และ Secret ของ ESP32 ตัวนี้</span></div></div>";
+  body += "<div class='quick-step'><div class='step-number'>4</div><div><strong>บันทึก</strong><span>กด Save & Restart แล้วรออุปกรณ์ส่งค่า</span></div></div>";
+  body += "</div>";
   body += currentStatusHtml();
   body += "</section>";
 
   body += "<form method='POST' action='/save'>" + pinHiddenInput();
 
-  body += "<section id='network' class='section-card'><div class='section-head'><div><div class='section-kicker'>Network</div><h2>Wi-Fi & Backend</h2><div class='section-desc'>ตั้งค่าเครือข่ายและปลายทาง API สำหรับส่ง metric เข้า dotWatch backend.</div></div></div>";
-  body += "<div class='form-section'><h3>Wi‑Fi Profiles</h3><div class='form'>";
-  body += "<label>Wi‑Fi SSID<input name='wifiSsid' value='" + htmlEscape(cfg.wifiSsid) + "' placeholder='Your Wi-Fi'></label>";
-  body += "<label>Wi‑Fi Password<input type='password' name='wifiPassword' value='' placeholder='เว้นว่างเพื่อใช้ค่าเดิม · ถ้าเปลี่ยน SSID ให้ใส่รหัสใหม่'></label>";
-  body += "<div class='notice info full'>ESP32 จะจำ Wi‑Fi ที่เคยบันทึกและต่อสำเร็จไว้สูงสุด " + String(WIFI_PROFILE_MAX) + " เครือข่าย เมื่อเปิดเครื่องหรือเน็ตกลับมา จะสแกนหาเครือข่ายที่จำไว้และต่ออัตโนมัติ โดยเลือกสัญญาณแรงที่สุดก่อน</div>";
-  body += "</div></div>";
-  body += "<div class='form-section'><h3>Backend Endpoint</h3><div class='form'>";
-  body += "<label class='full'>Backend API URL<input name='apiUrl' value='" + htmlEscape(cfg.apiUrl) + "' placeholder='https://dotwatch-backend.onrender.com'></label>";
-  body += "</div></div></section>";
+  body += "<section id='network' class='section-card'><div class='section-head'><div><div class='section-kicker'>ขั้นที่ 1</div><h2>เชื่อมต่อ Wi-Fi</h2><div class='section-desc'>ตั้งค่าเครือข่ายที่ ESP32 จะใช้ส่งข้อมูล อุปกรณ์จะจำ Wi-Fi ที่เคยต่อสำเร็จและกลับมาต่อเองเมื่อเจอสัญญาณ.</div></div></div>";
+  body += "<div class='form'>";
+  body += "<label>ชื่อ Wi-Fi<input name='wifiSsid' value='" + htmlEscape(cfg.wifiSsid) + "' placeholder='เช่น Home-WiFi'></label>";
+  body += "<label>รหัสผ่าน Wi-Fi<input type='password' name='wifiPassword' value='' placeholder='เว้นว่างไว้ถ้าไม่เปลี่ยนรหัสเดิม'></label>";
+  body += "<div class='field-help full'>ถ้าเปลี่ยนชื่อ Wi-Fi ให้กรอกรหัสผ่านใหม่ด้วย ถ้าใช้ Wi-Fi เดิมสามารถเว้นรหัสผ่านว่างไว้ได้.</div>";
+  body += "</div></section>";
 
-  body += "<section id='security' class='section-card'><div class='section-head'><div><div class='section-kicker'>Security</div><h2>TLS & Local Admin</h2><div class='section-desc'>คงแนวทาง production security เดิม: HTTPS ต้องมี Root CA และการแก้ค่า Local Admin ต้องใช้ PIN.</div></div><span class='badge " + String(hasEffectiveTlsCaCert() ? "ok" : "bad") + "'><span class='dot'></span>" + htmlEscape(tlsCaCertSourceText()) + "</span></div>";
+  body += "<section id='device' class='section-card'><div class='section-head'><div><div class='section-kicker'>ขั้นที่ 2</div><h2>เชื่อม dotWatch Backend และ Device</h2><div class='section-desc'>ส่วนนี้คือข้อมูลที่ทำให้ ESP32 ส่งค่าเข้า dashboard ได้ถูกอุปกรณ์.</div></div></div>";
+  body += "<div class='form'>";
+  body += "<label class='full'>Backend API URL<input name='apiUrl' value='" + htmlEscape(cfg.apiUrl) + "' placeholder='https://dotwatch-backend.onrender.com'></label>";
+  body += "<label>Device Code<input name='deviceCode' value='" + htmlEscape(cfg.deviceCode) + "' placeholder='DW-ESP32-...'></label>";
+  body += "<label>Device Secret<input type='password' name='deviceSecret' value='' placeholder='เว้นว่างไว้ถ้าไม่เปลี่ยน Secret เดิม'></label>";
+  body += "<div class='field-help full'>Device Code/Secret ควรเป็นของ ESP32-DHT3 ตัวนี้เท่านั้น ไม่ใช้ร่วมกับ Raspberry Pi หรืออุปกรณ์อื่น.</div>";
+  body += "</div></section>";
+
+  body += "<details id='security' class='advanced-card'><summary>ตั้งค่าความปลอดภัย / Root CA / Local Admin PIN</summary><div class='advanced-body'>";
+  body += "<div class='section-desc'>โดยปกติไม่ต้องแก้ส่วนนี้ ถ้า Backend ใช้ HTTPS ระบบต้องมี Root CA จาก embedded firmware หรือจากช่องด้านล่าง.</div>";
   body += "<div class='form-section'><h3>Root CA</h3><div class='form'>";
-  body += "<label class='full'>Root CA Certificate (optional override)<textarea name='tlsCaCert' placeholder='วาง Root CA PEM ที่นี่เพื่อ override embedded CA · เว้นว่างเพื่อใช้ค่าเดิม/embedded CA · พิมพ์ CLEAR เพื่อลบ CA ที่บันทึกใน portal'></textarea></label>";
-  body += "<div class='notice full'>TLS Mode ปัจจุบัน: " + htmlEscape(tlsModeText()) + " · Source: " + htmlEscape(tlsCaCertSourceText()) + " · Production default ต้องมี Root CA จาก embedded header หรือ portal ก่อนส่ง HTTPS</div>";
+  body += "<label class='full'>Root CA Certificate (optional)<textarea name='tlsCaCert' placeholder='เว้นว่างเพื่อใช้ค่าเดิม/embedded CA · พิมพ์ CLEAR เพื่อลบ CA ที่บันทึกใน portal'></textarea></label>";
+  body += "<div class='notice info full'>TLS ปัจจุบัน: " + htmlEscape(tlsModeText()) + " · Source: " + htmlEscape(tlsCaCertSourceText()) + "</div>";
   body += "</div></div>";
   body += "<div class='form-section'><h3>Local Admin PIN</h3><div class='form'>";
-  body += "<label class='full'>Local Admin PIN<input type='password' name='adminPin' value='' placeholder='เว้นว่างเพื่อใช้ค่าเดิม'></label>";
-  body += "</div></div></section>";
+  body += "<label class='full'>ตั้ง PIN ใหม่<input type='password' name='adminPin' value='' placeholder='เว้นว่างเพื่อใช้ PIN เดิม'></label>";
+  body += "<div class='field-help full'>ใช้สำหรับเปิดหน้านี้เมื่อ ESP32 ออนไลน์อยู่ในวง Wi-Fi เดียวกัน.</div>";
+  body += "</div></div></div></details>";
 
-  body += "<section id='device' class='section-card'><div class='section-head'><div><div class='section-kicker'>Device Identity</div><h2>Device Credentials</h2><div class='section-desc'>ค่าเฉพาะของ ESP32-DHT3 ตัวนี้ ใช้สำหรับ ingest เข้า backend และไม่ใช้ร่วมกับ Raspberry Pi.</div></div></div>";
-  body += "<div class='form-section'><h3>Backend Device</h3><div class='form'>";
-  body += "<label>Device Code<input name='deviceCode' value='" + htmlEscape(cfg.deviceCode) + "' placeholder='DW-ESP32-...'></label>";
-  body += "<label>Device Secret<input type='password' name='deviceSecret' value='' placeholder='เว้นว่างเพื่อใช้ค่าเดิม'></label>";
-  body += "</div></div></section>";
-
-  body += "<section id='sensor' class='section-card'><div class='section-head'><div><div class='section-kicker'>Sensor</div><h2>DHT & Metric Payload</h2><div class='section-desc'>metric_1 = Temperature, metric_2 = Humidity, metric_3 = Wi-Fi RSSI.</div></div></div>";
+  body += "<details id='sensor' class='advanced-card'><summary>ตั้งค่าเซนเซอร์ DHT และรอบส่งข้อมูล</summary><div class='advanced-body'>";
+  body += "<div class='section-desc'>ค่าเริ่มต้นเหมาะกับ ESP32-DHT3 แล้ว ส่วนนี้มีไว้สำหรับเปลี่ยนชนิด DHT หรือรอบส่งข้อมูล.</div>";
   body += "<div class='form-section'><h3>DHT Settings</h3><div class='form'>";
   body += "<label>DHT Pin<input type='number' name='dhtPin' value='" + String(cfg.dhtPin) + "'></label>";
   body += "<label>DHT Type<select name='dhtType'>";
@@ -928,16 +965,18 @@ void handleRoot() {
   body += "<option value='true'" + String(cfg.fallbackDummy ? " selected" : "") + ">Enabled</option>";
   body += "<option value='false'" + String(!cfg.fallbackDummy ? " selected" : "") + ">Disabled</option>";
   body += "</select></label>";
-  body += "</div></div></section>";
+  body += "</div></div></div></details>";
 
-  body += "<section id='operations' class='section-card'><div class='section-head'><div><div class='section-kicker'>Operations</div><h2>Save, Test & Reset</h2><div class='section-desc'>คำสั่งใช้งานจริงของ ESP32 แยกจาก Dashboard/Admin แต่ใช้ visual pattern เดียวกัน.</div></div></div>";
-  body += "<div class='row'><button type='submit'>Save & Restart</button><a class='btn btn2' href='/test'>Read Test</a><a class='btn btn2' href='/json'>Status JSON</a></div>";
+  body += "<section id='operations' class='section-card'><div class='section-head'><div><div class='section-kicker'>ขั้นสุดท้าย</div><h2>บันทึกและทดสอบ</h2><div class='section-desc'>กดบันทึกแล้ว ESP32 จะ restart เพื่อใช้ค่าใหม่ จากนั้นใช้ Read Test เพื่อตรวจค่า sensor ได้.</div></div></div>";
+  body += "<div class='row'><button class='primary-action' type='submit'>Save & Restart ESP32</button><a class='btn btn2' href='/test'>ทดสอบอ่านค่า</a><a class='btn btn2' href='/json'>ดูสถานะ JSON</a></div>";
   body += "</section></form>";
 
-  body += "<section class='section-card'><div class='section-head'><div><div class='section-kicker'>Danger zone</div><h2>Factory Reset Config</h2><div class='section-desc'>ล้างเฉพาะ config ที่บันทึกใน ESP32 Preferences/NVS แล้ว restart เข้าสู่ setup AP ใหม่.</div></div></div>";
-  body += "<form method='POST' action='/reset' onsubmit='return confirm(\"Clear ESP32 config?\")'>" + pinHiddenInput() + "<button class='danger' type='submit'>Factory Reset Config</button></form></section>";
+  body += "<details class='advanced-card danger-note'><summary>ล้างการตั้งค่าอุปกรณ์</summary><div class='advanced-body'>";
+  body += "<div class='section-desc'>ใช้เมื่อย้าย Wi-Fi, เปลี่ยนเจ้าของอุปกรณ์ หรือเริ่มตั้งค่าใหม่ทั้งหมด ระบบจะล้างเฉพาะ config ใน ESP32 Preferences/NVS.</div>";
+  body += "<form method='POST' action='/reset' onsubmit='return confirm(\"Clear ESP32 config?\")'>" + pinHiddenInput() + "<button class='danger' type='submit'>Factory Reset Config</button></form>";
+  body += "</div></details>";
 
-  server.send(200, "text/html; charset=utf-8", pageShell("ESP32 Setup Center", body));
+  server.send(200, "text/html; charset=utf-8", pageShell("ESP32 Setup", body));
 }
 
 void handleSave() {

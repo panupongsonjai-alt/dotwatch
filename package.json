@@ -77,7 +77,8 @@
     "verify:phase10d:device-ops": "node scripts/phase10d-device-operations-verify.mjs",
     "verify:phase10e:dashboard-auth": "node scripts/phase10e-dashboard-auth-env-verify.mjs",
     "verify:phase11a:admin-structure": "node scripts/phase11a-admin-dashboard-structure-verify.mjs",
-    "verify:phase11b:esp32-structure": "node scripts/phase11b-esp32-dashboard-structure-verify.mjs"
+    "verify:phase11b:esp32-structure": "node scripts/phase11b-esp32-dashboard-structure-verify.mjs",
+    "verify:phase11c:esp32-friendly-portal": "node scripts/phase11c-esp32-friendly-portal-verify.mjs"
   },
   "engines": {
     "node": ">=20"
