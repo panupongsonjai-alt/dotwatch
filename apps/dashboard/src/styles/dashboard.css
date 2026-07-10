@@ -892,11 +892,27 @@
   display: none !important;
 }
 
+/* Theme-aware Leaflet UI surfaces */
+.dashboard-map {
+  --device-map-ui-surface: color-mix(in srgb, var(--panel, #ffffff) 94%, transparent);
+  --device-map-ui-surface-muted: color-mix(in srgb, var(--panel-2, #f8fafc) 96%, transparent);
+  --device-map-ui-text: var(--text, #102033);
+  --device-map-ui-muted: var(--muted, #64748b);
+  --device-map-ui-border: color-mix(in srgb, var(--border, #e2e8f0) 90%, transparent);
+  --device-map-ui-shadow: rgba(15, 23, 42, 0.16);
+}
+
+:root[data-theme='dark'] .dashboard-map {
+  --device-map-ui-shadow: rgba(2, 6, 23, 0.38);
+}
+
 .dashboard-map .leaflet-control-zoom {
   overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  border: 1px solid var(--device-map-ui-border) !important;
   border-radius: 14px !important;
-  box-shadow: 0 16px 34px rgba(2, 6, 23, 0.24) !important;
+  background: var(--device-map-ui-surface) !important;
+  box-shadow: 0 14px 32px var(--device-map-ui-shadow) !important;
+  backdrop-filter: blur(12px);
 }
 
 .dashboard-map .leaflet-control-zoom a {
@@ -904,26 +920,34 @@
   height: 34px !important;
   display: grid !important;
   place-items: center;
-  color: var(--text, #f8fafc) !important;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent),
-    rgba(15, 23, 42, 0.92) !important;
+  color: var(--device-map-ui-text) !important;
+  background: var(--device-map-ui-surface) !important;
   border: 0 !important;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.22) !important;
+  border-bottom: 1px solid var(--device-map-ui-border) !important;
   font-size: 20px !important;
   font-weight: 850 !important;
   line-height: 1 !important;
   text-decoration: none !important;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
 }
 
 .dashboard-map .leaflet-control-zoom a:last-child {
   border-bottom: 0 !important;
 }
 
-.dashboard-map .leaflet-control-zoom a:hover,
-.dashboard-map .leaflet-control-zoom a:focus-visible {
+.dashboard-map .leaflet-control-zoom a:not(.leaflet-disabled):hover,
+.dashboard-map .leaflet-control-zoom a:not(.leaflet-disabled):focus-visible {
   color: #ffffff !important;
-  background: rgba(37, 99, 235, 0.94) !important;
+  background: var(--primary, #2563eb) !important;
+  outline: none;
+}
+
+.dashboard-map .leaflet-control-zoom a.leaflet-disabled {
+  color: var(--device-map-ui-muted) !important;
+  background: var(--device-map-ui-surface-muted) !important;
+  opacity: 0.72;
 }
 
 .dashboard-map .leaflet-control-attribution {
@@ -982,19 +1006,28 @@
 .leaflet-tooltip.device-map-label {
   padding: 6px 10px !important;
   border-radius: 10px !important;
-  border: 1px solid rgba(148, 163, 184, 0.28) !important;
-  color: #f8fafc !important;
-  background: rgba(15, 23, 42, 0.9) !important;
-  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.22) !important;
-  backdrop-filter: blur(8px);
+  border: 1px solid var(--device-map-ui-border) !important;
+  color: var(--device-map-ui-text) !important;
+  background: var(--device-map-ui-surface) !important;
+  box-shadow: 0 10px 24px var(--device-map-ui-shadow) !important;
+  backdrop-filter: blur(10px);
   pointer-events: auto !important;
 }
 
-.leaflet-tooltip-top.device-map-label::before,
-.leaflet-tooltip-bottom.device-map-label::before,
-.leaflet-tooltip-left.device-map-label::before,
+.leaflet-tooltip-top.device-map-label::before {
+  border-top-color: var(--device-map-ui-surface) !important;
+}
+
+.leaflet-tooltip-bottom.device-map-label::before {
+  border-bottom-color: var(--device-map-ui-surface) !important;
+}
+
+.leaflet-tooltip-left.device-map-label::before {
+  border-left-color: var(--device-map-ui-surface) !important;
+}
+
 .leaflet-tooltip-right.device-map-label::before {
-  border-top-color: rgba(15, 23, 42, 0.92) !important;
+  border-right-color: var(--device-map-ui-surface) !important;
 }
 
 .device-map-label-content {
@@ -1007,7 +1040,7 @@
   display: block;
   max-width: 168px;
   overflow: hidden;
-  color: #f8fafc;
+  color: var(--device-map-ui-text, var(--text, #102033));
   font-size: 12px;
   line-height: 1.2;
   font-weight: 900;
