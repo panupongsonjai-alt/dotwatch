@@ -286,40 +286,55 @@ function buildMetricCard(device, metricKey, value, metricConfig = null) {
   }
 }
 
-function getDeviceMetricCards(devices = [], limit = Infinity) {
-  return devices
-    .flatMap((device) => {
-      const latestMetrics = device.latest_metrics || device.metrics || {}
-      const configuredMetrics = getConfiguredMetrics(device)
+function getDeviceMetricCards(device = {}) {
+  const latestMetrics = device.latest_metrics || device.metrics || {}
+  const configuredMetrics = getConfiguredMetrics(device)
 
-      if (!configuredMetrics.length) return []
+  if (!configuredMetrics.length) return []
 
-      return configuredMetrics
-        .map((metricConfig) => {
-          const metricKey =
-            metricConfig.metric_key ||
-            metricConfig.source_key ||
-            metricConfig.key
+  return configuredMetrics
+    .map((metricConfig) => {
+      const metricKey =
+        metricConfig.metric_key ||
+        metricConfig.source_key ||
+        metricConfig.key
 
-          if (!metricKey) return null
+      if (!metricKey) return null
 
-          const value = latestMetrics[metricKey]
-
-          return buildMetricCard(device, metricKey, value, metricConfig)
-        })
-        .filter(Boolean)
+      return buildMetricCard(
+        device,
+        metricKey,
+        latestMetrics[metricKey],
+        metricConfig
+      )
     })
+    .filter(Boolean)
     .sort((a, b) => {
-      const deviceA = String(a.deviceName || '')
-      const deviceB = String(b.deviceName || '')
-
-      if (deviceA !== deviceB) return deviceA.localeCompare(deviceB)
-
       if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder
 
       return getMetricIndex(a.metricKey) - getMetricIndex(b.metricKey)
     })
-    .slice(0, Number.isFinite(limit) ? limit : undefined)
+}
+
+function getDeviceMetricGroups(devices = []) {
+  return devices
+    .map((device) => {
+      const metrics = getDeviceMetricCards(device)
+
+      if (!metrics.length) return null
+
+      return {
+        id: String(device.id || device.device_code),
+        deviceId: device.id,
+        deviceName: device.name || device.device_code || 'Unnamed Device',
+        deviceCode: device.device_code || '',
+        modelName: device.model_name || device.model_key || '',
+        healthStatus: getHealthStatus(device),
+        metrics,
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.deviceName.localeCompare(b.deviceName))
 }
 
 function Dashboard({ onOpenDevice }) {
@@ -512,9 +527,18 @@ function Dashboard({ onOpenDevice }) {
     (device) => getHealthStatus(device) === 'critical'
   ).length
 
-  const dataOverviewMetrics = useMemo(
-    () => getDeviceMetricCards(devices),
+  const dataOverviewGroups = useMemo(
+    () => getDeviceMetricGroups(devices),
     [devices]
+  )
+
+  const dataOverviewMetricCount = useMemo(
+    () =>
+      dataOverviewGroups.reduce(
+        (total, group) => total + group.metrics.length,
+        0
+      ),
+    [dataOverviewGroups]
   )
 
   const mapStatusSummary = useMemo(
@@ -567,11 +591,12 @@ function Dashboard({ onOpenDevice }) {
         <div className="app-section-title dashboard-section-title-row live-metrics-overview-header">
           <div>
             <h2>Data Overview</h2>
-            <p>แสดงเฉพาะ Metric ที่เปิด Visible ไว้ใน Metric Display</p>
+            <p>แยก Metric ตาม Device และแสดงเฉพาะรายการที่เปิด Visible</p>
           </div>
 
           <span className="device-count-badge live-metrics-count-badge">
-            {dataOverviewMetrics.length} Metrics
+            {dataOverviewGroups.length} Devices ·{' '}
+            {dataOverviewMetricCount} Metrics
           </span>
         </div>
 
@@ -580,34 +605,67 @@ function Dashboard({ onOpenDevice }) {
             title="กำลังโหลดข้อมูล"
             description="กำลังดึงค่าล่าสุดจาก Device"
           />
-        ) : dataOverviewMetrics.length === 0 ? (
+        ) : dataOverviewGroups.length === 0 ? (
           <EmptyState
             title="ยังไม่มี Metric ที่ตั้งค่าให้แสดง"
             description="ตรวจสอบ Metric Display ว่าเปิด Visible แล้ว และ Backend ส่ง metric_configs มาครบ"
           />
         ) : (
-          <div className="live-metrics-overview-grid">
-            {dataOverviewMetrics.map((metric) => (
-              <article
-                key={metric.id}
-                className={`live-metric-overview-card ${metric.healthStatus}`}
+          <div className="live-metrics-device-groups">
+            {dataOverviewGroups.map((group) => (
+              <section
+                key={group.id}
+                className={`live-metric-device-group ${group.healthStatus}`}
               >
-                <span className="live-metric-bg-shape" />
+                <header className="live-metric-device-header">
+                  <div className="live-metric-device-identity">
+                    <span
+                      className={`live-metric-device-status ${group.healthStatus}`}
+                      aria-hidden="true"
+                    />
 
-                <div className="live-metric-overview-title">
-                  <MetricOverviewIcon iconName={metric.icon} />
-                  <strong>{metric.metricName}</strong>
-                </div>
+                    <div>
+                      <h3>{group.deviceName}</h3>
+                      {(group.modelName || group.deviceCode) && (
+                        <p>
+                          {[group.modelName, group.deviceCode]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
-                <div className="live-metric-overview-value">
-                  <strong>{metric.value}</strong>
-                  {metric.unit && <span>{metric.unit}</span>}
-                </div>
+                  <span className="live-metric-device-count">
+                    {group.metrics.length} Metrics
+                  </span>
+                </header>
 
-                <div className="live-metric-overview-device">
-                  {metric.deviceName}
+                <div className="live-metrics-overview-grid">
+                  {group.metrics.map((metric) => (
+                    <article
+                      key={metric.id}
+                      className={`live-metric-overview-card ${metric.healthStatus}`}
+                    >
+                      <span className="live-metric-bg-shape" />
+
+                      <div className="live-metric-overview-title">
+                        <MetricOverviewIcon iconName={metric.icon} />
+                        <strong>{metric.metricName}</strong>
+                      </div>
+
+                      <div className="live-metric-overview-value">
+                        <strong>{metric.value}</strong>
+                        {metric.unit && <span>{metric.unit}</span>}
+                      </div>
+
+                      <div className="live-metric-overview-device">
+                        {metric.deviceName}
+                      </div>
+                    </article>
+                  ))}
                 </div>
-              </article>
+              </section>
             ))}
           </div>
         )}
