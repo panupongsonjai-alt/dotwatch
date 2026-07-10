@@ -1,9 +1,9 @@
+import { useEffect, useRef, useState } from 'react'
 import { RotateCcw, Save, Trash2 } from 'lucide-react'
 import { useDeviceMetrics } from '../hooks/useDeviceMetrics'
 import { createBlankMetric } from '../utils/metricDisplayConfig'
 import { METRIC_ICON_OPTIONS, MetricIcon } from '../utils/metricIcons'
 import { confirmDeleteAction } from '../utils/typedConfirm'
-
 
 function updateMetricList(metrics = [], metricIndex, key, value) {
   return metrics.map((metric, index) => {
@@ -24,25 +24,48 @@ function reindexMetrics(metrics = []) {
   }))
 }
 
-function MetricIconPicker({ value, disabled, onChange }) {
+function MetricIconPicker({
+  value,
+  disabled,
+  isOpen,
+  onOpenChange,
+  onChange,
+}) {
   const selectedIcon = value || 'Activity'
+  const selectedOptionRef = useRef(null)
 
-  function handleSelect(iconName, event) {
+  useEffect(() => {
+    if (!isOpen || typeof window === 'undefined') return undefined
+
+    const frameId = window.requestAnimationFrame(() => {
+      selectedOptionRef.current?.scrollIntoView({
+        block: 'nearest',
+      })
+    })
+
+    return () => window.cancelAnimationFrame(frameId)
+  }, [isOpen, selectedIcon])
+
+  function handleSummaryClick(event) {
+    event.preventDefault()
+    if (disabled) return
+    onOpenChange(!isOpen)
+  }
+
+  function handleSelect(iconName) {
     if (disabled) return
 
     onChange(iconName)
-
-    const dropdown = event.currentTarget.closest('details')
-    if (dropdown) {
-      dropdown.removeAttribute('open')
-    }
+    onOpenChange(false)
   }
 
   return (
-    <details className="metric-icon-dropdown">
+    <details className="metric-icon-dropdown" open={isOpen}>
       <summary
         className="metric-icon-dropdown-summary"
         aria-label="Select metric icon"
+        aria-expanded={isOpen}
+        onClick={handleSummaryClick}
       >
         <span className="metric-icon-dropdown-current">
           <MetricIcon name={selectedIcon} size={16} />
@@ -50,20 +73,23 @@ function MetricIconPicker({ value, disabled, onChange }) {
         </span>
       </summary>
 
-      <div className="metric-icon-dropdown-menu">
+      <div className="metric-icon-dropdown-menu" role="listbox">
         {METRIC_ICON_OPTIONS.map((iconName) => {
           const isActive = selectedIcon === iconName
 
           return (
             <button
               key={iconName}
+              ref={isActive ? selectedOptionRef : null}
               type="button"
+              role="option"
+              aria-selected={isActive}
               className={
                 isActive
                   ? 'metric-icon-dropdown-option active'
                   : 'metric-icon-dropdown-option'
               }
-              onClick={(event) => handleSelect(iconName, event)}
+              onClick={() => handleSelect(iconName)}
               disabled={disabled}
             >
               <MetricIcon name={iconName} size={16} />
@@ -77,6 +103,8 @@ function MetricIconPicker({ value, disabled, onChange }) {
 }
 
 export default function MetricConfigPanel({ deviceId }) {
+  const [openIconPickerKey, setOpenIconPickerKey] = useState(null)
+
   const {
     draftMetrics = [],
     setDraftMetrics,
@@ -87,7 +115,36 @@ export default function MetricConfigPanel({ deviceId }) {
     resetMetrics,
   } = useDeviceMetrics(deviceId)
 
+  useEffect(() => {
+    if (!openIconPickerKey) return undefined
+
+    function closePickerFromOutside(event) {
+      if (!event.target.closest('.metric-icon-dropdown')) {
+        setOpenIconPickerKey(null)
+      }
+    }
+
+    function closePickerFromEscape(event) {
+      if (event.key === 'Escape') {
+        setOpenIconPickerKey(null)
+      }
+    }
+
+    document.addEventListener('pointerdown', closePickerFromOutside)
+    document.addEventListener('keydown', closePickerFromEscape)
+
+    return () => {
+      document.removeEventListener('pointerdown', closePickerFromOutside)
+      document.removeEventListener('keydown', closePickerFromEscape)
+    }
+  }, [openIconPickerKey])
+
+  useEffect(() => {
+    setOpenIconPickerKey(null)
+  }, [deviceId])
+
   function addMetric() {
+    setOpenIconPickerKey(null)
     setDraftMetrics((currentMetrics = []) =>
       reindexMetrics([
         ...currentMetrics,
@@ -110,6 +167,7 @@ export default function MetricConfigPanel({ deviceId }) {
 
     if (!ok) return
 
+    setOpenIconPickerKey(null)
     setDraftMetrics((currentMetrics = []) =>
       reindexMetrics(
         currentMetrics.filter((_, index) => index !== indexToRemove)
@@ -124,6 +182,7 @@ export default function MetricConfigPanel({ deviceId }) {
   }
 
   async function handleReset() {
+    setOpenIconPickerKey(null)
     await resetMetrics()
 
     window.dispatchEvent(
@@ -134,6 +193,7 @@ export default function MetricConfigPanel({ deviceId }) {
   }
 
   async function handleSave() {
+    setOpenIconPickerKey(null)
     const success = await saveDraftMetrics(reindexMetrics(draftMetrics))
 
     if (success !== false) {
@@ -188,6 +248,9 @@ export default function MetricConfigPanel({ deviceId }) {
           {draftMetrics.map((metric, index) => {
             const metricLabel =
               metric.metric_name || metric.metric_key || `Metric ${index + 1}`
+            const pickerKey = String(
+              metric.id || metric.metric_key || `metric-${index}`
+            )
 
             return (
               <article
@@ -210,6 +273,21 @@ export default function MetricConfigPanel({ deviceId }) {
                     />
                   </label>
 
+                  <div className="metric-config-field metric-config-field-icon">
+                    <span>Icon</span>
+                    <MetricIconPicker
+                      value={metric.icon}
+                      disabled={loading || saving}
+                      isOpen={openIconPickerKey === pickerKey}
+                      onOpenChange={(nextOpen) =>
+                        setOpenIconPickerKey(nextOpen ? pickerKey : null)
+                      }
+                      onChange={(iconName) =>
+                        updateMetric(index, 'icon', iconName)
+                      }
+                    />
+                  </div>
+
                   <label className="metric-config-field metric-config-field-unit">
                     <span>Unit</span>
                     <input
@@ -221,17 +299,6 @@ export default function MetricConfigPanel({ deviceId }) {
                       disabled={loading || saving}
                     />
                   </label>
-
-                  <div className="metric-config-field metric-config-field-icon">
-                    <span>Icon</span>
-                    <MetricIconPicker
-                      value={metric.icon}
-                      disabled={loading || saving}
-                      onChange={(iconName) =>
-                        updateMetric(index, 'icon', iconName)
-                      }
-                    />
-                  </div>
 
                   <div className="metric-config-field metric-config-field-visible">
                     <span>Display</span>

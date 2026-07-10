@@ -4491,3 +4491,252 @@
     width: 100% !important;
   }
 }
+
+/* =========================================================
+   Metric Display - Icon First + Delete Containment Fix
+   1) ย้าย Icon Select มาเป็นช่องแรกของแต่ละ Metric
+   2) ปรับ grid ให้หดตามความกว้าง panel จริง
+   3) บังคับปุ่ม Delete อยู่ภายในกรอบทุกขนาดหน้าจอ
+========================================================= */
+
+.metric-config-row-clean {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding: 13px 14px !important;
+}
+
+.metric-config-row-clean .metric-config-card-clean-grid {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  grid-template-columns:
+    minmax(118px, 0.9fr)
+    minmax(150px, 1.35fr)
+    minmax(68px, 0.52fr)
+    minmax(94px, 0.72fr)
+    38px !important;
+  grid-template-areas: 'icon name unit display action' !important;
+  column-gap: 9px !important;
+  row-gap: 10px !important;
+  align-items: end !important;
+}
+
+.metric-config-row-clean .metric-config-field-icon {
+  grid-area: icon !important;
+  min-width: 0 !important;
+  position: relative !important;
+  z-index: 30 !important;
+}
+
+.metric-config-row-clean .metric-config-field-name {
+  grid-area: name !important;
+  min-width: 0 !important;
+}
+
+.metric-config-row-clean .metric-config-field-unit {
+  grid-area: unit !important;
+  min-width: 0 !important;
+}
+
+.metric-config-row-clean .metric-config-field-visible {
+  grid-area: display !important;
+  min-width: 0 !important;
+}
+
+.metric-config-row-clean .metric-config-row-action {
+  grid-area: action !important;
+  box-sizing: border-box !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  justify-self: end !important;
+  align-self: end !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: visible !important;
+}
+
+.metric-config-row-clean .metric-config-delete-btn {
+  box-sizing: border-box !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  max-width: 38px !important;
+  max-height: 38px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  justify-self: end !important;
+  align-self: end !important;
+  transform: none !important;
+}
+
+.metric-config-row-clean .metric-config-field,
+.metric-config-row-clean .metric-config-field input,
+.metric-config-row-clean .metric-icon-dropdown,
+.metric-config-row-clean .metric-icon-dropdown-summary,
+.metric-config-row-clean .metric-visible-toggle {
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* ใช้ container width ของ panel แทน viewport เพื่อไม่ให้แถวล้นเมื่อ sidebar เปิด */
+.metric-config-panel-clean {
+  container-type: inline-size;
+}
+
+@container (max-width: 610px) {
+  .metric-config-row-clean .metric-config-card-clean-grid {
+    grid-template-columns: minmax(120px, 0.9fr) minmax(0, 1.35fr) 38px !important;
+    grid-template-areas:
+      'icon name action'
+      'unit display action' !important;
+  }
+
+  .metric-config-row-clean .metric-config-row-action {
+    align-self: stretch !important;
+    place-items: center !important;
+  }
+
+  .metric-config-row-clean .metric-config-delete-btn {
+    align-self: center !important;
+  }
+}
+
+@container (max-width: 430px) {
+  .metric-config-row-clean .metric-config-card-clean-grid {
+    grid-template-columns: minmax(0, 1fr) 38px !important;
+    grid-template-areas:
+      'icon action'
+      'name name'
+      'unit unit'
+      'display display' !important;
+  }
+
+  .metric-config-row-clean .metric-config-row-action {
+    align-self: end !important;
+  }
+}
+
+/* Fallback สำหรับ browser ที่ไม่รองรับ container query */
+@media (max-width: 760px) {
+  .metric-config-row-clean .metric-config-card-clean-grid {
+    grid-template-columns: minmax(118px, 0.9fr) minmax(0, 1.35fr) 38px !important;
+    grid-template-areas:
+      'icon name action'
+      'unit display action' !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .metric-config-row-clean .metric-config-card-clean-grid {
+    grid-template-columns: minmax(0, 1fr) 38px !important;
+    grid-template-areas:
+      'icon action'
+      'name name'
+      'unit unit'
+      'display display' !important;
+  }
+
+  .metric-config-row-clean .metric-config-row-action,
+  .metric-config-row-clean .metric-config-delete-btn {
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+  }
+}
+
+/* =========================================================
+   Metric Display - Icon After Metric + Single Dropdown Fix
+   1) จัดลำดับ Metric Name > Icon > Unit > Display > Delete
+   2) จำกัดรายการ Icon ที่มองเห็นพร้อมกันไว้ 5 รายการ
+   3) เปิด Icon dropdown ได้ครั้งละหนึ่งรายการจาก React state
+========================================================= */
+
+.metric-config-row-clean .metric-config-card-clean-grid {
+  grid-template-columns:
+    minmax(150px, 1.35fr)
+    minmax(118px, 0.9fr)
+    minmax(68px, 0.52fr)
+    minmax(94px, 0.72fr)
+    38px !important;
+  grid-template-areas: 'name icon unit display action' !important;
+}
+
+.metric-icon-dropdown-menu {
+  box-sizing: border-box !important;
+  max-height: 222px !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
+}
+
+.metric-icon-dropdown-option {
+  box-sizing: border-box !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  flex: 0 0 38px !important;
+}
+
+.metric-config-card-clean:not(:has(.metric-icon-dropdown[open])) {
+  z-index: 1 !important;
+}
+
+.metric-config-card-clean:has(.metric-icon-dropdown[open]) {
+  z-index: 900 !important;
+}
+
+.metric-config-field-icon:has(.metric-icon-dropdown[open]),
+.metric-icon-dropdown[open] {
+  z-index: 920 !important;
+}
+
+.metric-icon-dropdown[open] .metric-icon-dropdown-menu {
+  z-index: 940 !important;
+}
+
+@container (max-width: 610px) {
+  .metric-config-row-clean .metric-config-card-clean-grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(120px, 0.9fr) 38px !important;
+    grid-template-areas:
+      'name icon action'
+      'unit display action' !important;
+  }
+}
+
+@container (max-width: 430px) {
+  .metric-config-row-clean .metric-config-card-clean-grid {
+    grid-template-columns: minmax(0, 1fr) 38px !important;
+    grid-template-areas:
+      'name action'
+      'icon icon'
+      'unit unit'
+      'display display' !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .metric-config-row-clean .metric-config-card-clean-grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(118px, 0.9fr) 38px !important;
+    grid-template-areas:
+      'name icon action'
+      'unit display action' !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .metric-config-row-clean .metric-config-card-clean-grid {
+    grid-template-columns: minmax(0, 1fr) 38px !important;
+    grid-template-areas:
+      'name action'
+      'icon icon'
+      'unit unit'
+      'display display' !important;
+  }
+}
