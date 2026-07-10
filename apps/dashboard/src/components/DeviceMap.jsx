@@ -9,14 +9,6 @@ function getStatus(device = {}) {
   return String(device.status || 'offline').trim().toLowerCase()
 }
 
-function getStatusLabel(status = 'offline') {
-  if (status === 'online') return 'Online'
-  if (status === 'warning') return 'Warning'
-  if (status === 'critical') return 'Critical'
-
-  return 'Offline'
-}
-
 function getStatusColor(status) {
   if (status === 'online') return '#22c55e'
   if (status === 'warning') return '#f59e0b'
@@ -27,10 +19,6 @@ function getStatusColor(status) {
 
 function getDeviceName(device = {}) {
   return device.name || device.device_code || 'Unnamed Device'
-}
-
-function getDeviceCode(device = {}) {
-  return device.device_code || `ID ${device.id || '--'}`
 }
 
 function isValidCoordinate(latitude, longitude) {
@@ -150,8 +138,6 @@ function DeviceMap({ devices = [], onOpenDevice }) {
 
         {devicesWithPositions.map(({ device, position }) => {
           const deviceName = getDeviceName(device)
-          const status = getStatus(device)
-          const statusLabel = getStatusLabel(status)
 
           return (
             <Marker
@@ -171,14 +157,10 @@ function DeviceMap({ devices = [], onOpenDevice }) {
                 direction="top"
                 offset={[0, -16]}
                 opacity={1}
-                className={`device-map-label ${status}`}
+                className="device-map-label"
               >
                 <div className="device-map-label-content">
                   <strong>{deviceName}</strong>
-                  <span>{getDeviceCode(device)}</span>
-                  <em className={`device-map-label-status ${status}`}>
-                    {statusLabel}
-                  </em>
                 </div>
               </Tooltip>
             </Marker>

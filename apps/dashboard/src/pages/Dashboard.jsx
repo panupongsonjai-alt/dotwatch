@@ -707,31 +707,29 @@ function Dashboard({ onOpenDevice }) {
             </div>
           </div>
 
-          <div className="dashboard-unified-map-frame">
-            {mapReady ? (
-              <Suspense
-                fallback={
-                  <div className="dashboard-map-loading">
-                    <div className="dashboard-map-loading-icon" />
-                    <div>
-                      <strong>Loading device map</strong>
-                      <p>กำลังโหลดแผนที่และตำแหน่งอุปกรณ์</p>
-                    </div>
+          {mapReady ? (
+            <Suspense
+              fallback={
+                <div className="dashboard-map-loading">
+                  <div className="dashboard-map-loading-icon" />
+                  <div>
+                    <strong>Loading device map</strong>
+                    <p>กำลังโหลดแผนที่และตำแหน่งอุปกรณ์</p>
                   </div>
-                }
-              >
-                <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
-              </Suspense>
-            ) : (
-              <div className="dashboard-map-loading dashboard-map-loading-deferred">
-                <div className="dashboard-map-loading-icon" />
-                <div>
-                  <strong>Preparing device map</strong>
-                  <p>โหลดข้อมูลหลักก่อน แล้วค่อยโหลดแผนที่เพื่อลดเวลาเปิดหน้าแรก</p>
                 </div>
+              }
+            >
+              <DeviceMap devices={devices} onOpenDevice={onOpenDevice} />
+            </Suspense>
+          ) : (
+            <div className="dashboard-map-loading dashboard-map-loading-deferred">
+              <div className="dashboard-map-loading-icon" />
+              <div>
+                <strong>Preparing device map</strong>
+                <p>โหลดข้อมูลหลักก่อน แล้วค่อยโหลดแผนที่เพื่อลดเวลาเปิดหน้าแรก</p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </section>
       )}
 
