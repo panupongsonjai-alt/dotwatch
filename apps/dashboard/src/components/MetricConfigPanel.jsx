@@ -1,35 +1,9 @@
-import {
-  Activity,
-  Battery,
-  Cpu,
-  Droplets,
-  Gauge,
-  Power,
-  RotateCcw,
-  Save,
-  Thermometer,
-  Trash2,
-  Wifi,
-  Wind,
-  Zap,
-} from 'lucide-react'
+import { RotateCcw, Save, Trash2 } from 'lucide-react'
 import { useDeviceMetrics } from '../hooks/useDeviceMetrics'
 import { createBlankMetric } from '../utils/metricDisplayConfig'
-import { METRIC_ICON_OPTIONS } from '../utils/metricIcons'
+import { METRIC_ICON_OPTIONS, MetricIcon } from '../utils/metricIcons'
 import { confirmDeleteAction } from '../utils/typedConfirm'
 
-const ICON_COMPONENTS = {
-  Activity,
-  Thermometer,
-  Droplets,
-  Gauge,
-  Zap,
-  Battery,
-  Wifi,
-  Wind,
-  Power,
-  Cpu,
-}
 
 function updateMetricList(metrics = [], metricIndex, key, value) {
   return metrics.map((metric, index) => {
@@ -52,7 +26,6 @@ function reindexMetrics(metrics = []) {
 
 function MetricIconPicker({ value, disabled, onChange }) {
   const selectedIcon = value || 'Activity'
-  const SelectedIconComponent = ICON_COMPONENTS[selectedIcon] || Activity
 
   function handleSelect(iconName, event) {
     if (disabled) return
@@ -72,14 +45,13 @@ function MetricIconPicker({ value, disabled, onChange }) {
         aria-label="Select metric icon"
       >
         <span className="metric-icon-dropdown-current">
-          <SelectedIconComponent size={16} />
+          <MetricIcon name={selectedIcon} size={16} />
           <span>{selectedIcon}</span>
         </span>
       </summary>
 
       <div className="metric-icon-dropdown-menu">
         {METRIC_ICON_OPTIONS.map((iconName) => {
-          const IconComponent = ICON_COMPONENTS[iconName] || Activity
           const isActive = selectedIcon === iconName
 
           return (
@@ -94,7 +66,7 @@ function MetricIconPicker({ value, disabled, onChange }) {
               onClick={(event) => handleSelect(iconName, event)}
               disabled={disabled}
             >
-              <IconComponent size={16} />
+              <MetricIcon name={iconName} size={16} />
               <span>{iconName}</span>
             </button>
           )

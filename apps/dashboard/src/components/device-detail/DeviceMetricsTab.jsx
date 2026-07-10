@@ -1,8 +1,8 @@
 ﻿import { EmptyState, MetricCard, SectionHeader } from '../common'
 import { getVisibleMetricsForDevice } from '../../utils/esp32Dht3Utils.js'
+import { MetricIcon } from '../../utils/metricIcons.jsx'
 import {
   formatMetricNumber,
-  getMetricIcon,
   getMetricValueFromDevice,
 } from './deviceDetailUtils'
 
@@ -45,7 +45,13 @@ function DeviceMetricsTab({ device, visibleMetrics, metricSummary }) {
                   name={metric.metric_name || metric.metric_key}
                   value={formatMetricNumber(value)}
                   unit={metric.unit}
-                  icon={getMetricIcon(metric)}
+                  icon={
+                    <MetricIcon
+                      name={metric.icon}
+                      size={18}
+                      strokeWidth={2.25}
+                    />
+                  }
                   metricKey={metric.metric_key}
                 />
               )

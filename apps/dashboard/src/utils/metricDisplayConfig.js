@@ -28,18 +28,7 @@ export const DEFAULT_METRICS = [
   },
 ]
 
-export const METRIC_ICON_OPTIONS = [
-  'Activity',
-  'Thermometer',
-  'Droplets',
-  'Gauge',
-  'Zap',
-  'Battery',
-  'Wifi',
-  'Wind',
-  'Power',
-  'Cpu',
-]
+export { METRIC_ICON_OPTIONS } from './metricIcons.jsx'
 
 export function normalizeMetricKey(value = '') {
   return String(value)

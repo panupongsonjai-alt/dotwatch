@@ -1,16 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
-import {
-  Activity,
-  Battery,
-  Cpu,
-  Droplets,
-  Gauge,
-  Power,
-  Thermometer,
-  Wifi,
-  Wind,
-  Zap,
-} from 'lucide-react'
+import { MetricIcon, normalizeMetricIconName } from '../utils/metricIcons.jsx'
 import { auth } from '../services/firebase'
 import AlarmPanel from '../components/AlarmPanel.jsx'
 import LatestActiveAlarms from '../components/LatestActiveAlarms.jsx'
@@ -27,25 +16,6 @@ import '../styles/dashboard.css'
 import '../styles/page-system.css'
 const DeviceMap = lazy(() => import('../components/DeviceMap'))
 
-const METRIC_ICON_COMPONENTS = {
-  Activity,
-  Thermometer,
-  Droplets,
-  Gauge,
-  Zap,
-  Battery,
-  Wifi,
-  Wind,
-  Power,
-  Cpu,
-}
-
-function normalizeMetricIconName(value) {
-  const iconName = String(value || '').trim()
-
-  return METRIC_ICON_COMPONENTS[iconName] ? iconName : 'Activity'
-}
-
 function getMetricIconName(metricConfig = {}) {
   return normalizeMetricIconName(
     metricConfig?.icon ||
@@ -58,11 +28,10 @@ function getMetricIconName(metricConfig = {}) {
 
 function MetricOverviewIcon({ iconName }) {
   const safeIconName = normalizeMetricIconName(iconName)
-  const IconComponent = METRIC_ICON_COMPONENTS[safeIconName] || Activity
 
   return (
     <span className="live-metric-overview-icon" title={safeIconName}>
-      <IconComponent size={18} strokeWidth={2.35} />
+      <MetricIcon name={safeIconName} size={18} strokeWidth={2.35} />
     </span>
   )
 }
