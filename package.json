@@ -83,7 +83,9 @@
     "verify:phase11g:admin-dashboard-parity": "node scripts/phase11g-admin-dashboard-parity-verify.mjs",
     "verify:phase11h:dashboard-sidebar-vertical": "node scripts/phase11h-dashboard-sidebar-vertical-verify.mjs",
     "verify:phase11i:admin-dashboard-comfort": "node scripts/phase11i-admin-dashboard-comfort-verify.mjs",
-    "verify:phase11j:dashboard-sidebar-spacing": "node scripts/phase11j-dashboard-sidebar-admin-spacing-verify.mjs"
+    "verify:phase11j:dashboard-sidebar-spacing": "node scripts/phase11j-dashboard-sidebar-admin-spacing-verify.mjs",
+    "cleanup:phase11k:unused": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/phase11k-clean-unused-files.ps1",
+    "verify:phase11k:cleanup": "node scripts/phase11k-unused-file-cleanup-verify.mjs"
   },
   "engines": {
     "node": ">=20"
