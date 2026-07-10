@@ -3,7 +3,7 @@ import { LogOut, Moon, Shield, Sun } from 'lucide-react'
 import { auth } from '../../services/firebase'
 import { ADMIN_PAGE_META } from '../../config/adminPages'
 
-function AdminTopbar({ activePage, adminUser, onNavigate, theme, setTheme }) {
+function AdminTopbar({ activePage, adminUser, theme, setTheme }) {
   const meta = ADMIN_PAGE_META[activePage] || ADMIN_PAGE_META.overview
   const displayName =
     adminUser?.name ||

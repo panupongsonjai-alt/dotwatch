@@ -1,0 +1,42 @@
+/* =========================================================
+   Phase 11E - Dashboard collapsed sidebar icon centering
+   Scope: dashboard sidebar only. Do not affect admin, backend,
+   ESP32, database, or non-collapsed dashboard layout.
+========================================================= */
+
+/* Keep every collapsed dashboard nav pill centered in the 88px rail. */
+.sidebar.collapsed .menu-section {
+  justify-items: center;
+}
+
+.sidebar.collapsed .menu-item {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  padding: 0;
+  margin-inline: auto;
+  display: grid;
+  place-items: center;
+  gap: 0;
+}
+
+.sidebar.collapsed .menu-icon {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.sidebar.collapsed .menu-icon svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Keep the active indicator visually attached to the centered pill. */
+.sidebar.collapsed .menu-item.active::before {
+  left: -1px;
+}
