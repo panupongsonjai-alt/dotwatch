@@ -106,7 +106,24 @@ function isUnsafePlaceholderSecretKey(value) {
   return false
 }
 
-function validateProductionCorsOrigins(origins) {
+function parseOriginUrl(origin) {
+  try {
+    return new URL(origin)
+  } catch {
+    return null
+  }
+}
+
+function isLoopbackOrigin(originUrl) {
+  if (!originUrl) return false
+
+  return ['localhost', '127.0.0.1', '::1'].includes(originUrl.hostname)
+}
+
+function validateProductionCorsOrigins(
+  origins,
+  { allowLocalOrigins = false } = {}
+) {
   if (origins.length === 0) {
     throw new Error('CORS_ORIGIN must include at least one production origin')
   }
@@ -116,13 +133,31 @@ function validateProductionCorsOrigins(origins) {
       throw new Error('CORS_ORIGIN must not use wildcard (*) in production')
     }
 
-    if (/localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(origin)) {
-      throw new Error(
-        `CORS_ORIGIN must not include local address in production: ${origin}`
-      )
+    const originUrl = parseOriginUrl(origin)
+
+    if (!originUrl) {
+      throw new Error(`CORS_ORIGIN must be a valid URL origin: ${origin}`)
     }
 
-    if (!origin.startsWith('https://')) {
+    const isLoopback = isLoopbackOrigin(originUrl)
+
+    if (isLoopback) {
+      if (!allowLocalOrigins) {
+        throw new Error(
+          `CORS_ORIGIN must not include local address in production unless ALLOW_LOCAL_CORS_IN_PRODUCTION=true: ${origin}`
+        )
+      }
+
+      if (!['http:', 'https:'].includes(originUrl.protocol)) {
+        throw new Error(
+          `Local CORS_ORIGIN must use http:// or https://: ${origin}`
+        )
+      }
+
+      continue
+    }
+
+    if (originUrl.protocol !== 'https:') {
       throw new Error(
         `CORS_ORIGIN must use https:// in production: ${origin}`
       )
@@ -139,6 +174,10 @@ export const env = {
 
   corsOrigin: cleanEnvString(process.env.CORS_ORIGIN) || 'http://localhost:5173',
   corsOrigins: parseCorsOrigins(process.env.CORS_ORIGIN),
+  allowLocalCorsInProduction: parseBoolean(
+    process.env.ALLOW_LOCAL_CORS_IN_PRODUCTION,
+    false
+  ),
 
   firebaseProjectId: cleanEnvString(process.env.FIREBASE_PROJECT_ID),
   firebaseClientEmail: cleanEnvString(process.env.FIREBASE_CLIENT_EMAIL),
@@ -282,7 +321,9 @@ export function validateEnv() {
     requireEnv('FIREBASE_PRIVATE_KEY', env.firebasePrivateKey)
     requireEnv('DEVICE_SECRET_ENCRYPTION_KEY', env.deviceSecretEncryptionKey)
 
-    validateProductionCorsOrigins(env.corsOrigins)
+    validateProductionCorsOrigins(env.corsOrigins, {
+      allowLocalOrigins: env.allowLocalCorsInProduction,
+    })
 
     if (isUnsafePlaceholderSecretKey(env.deviceSecretEncryptionKey)) {
       throw new Error(

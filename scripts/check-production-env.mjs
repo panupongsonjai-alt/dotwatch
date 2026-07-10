@@ -48,6 +48,20 @@ function isTruthy(value) {
   return ['true', '1', 'yes', 'y', 'on'].includes(String(value || '').trim().toLowerCase())
 }
 
+function parseOriginUrl(origin) {
+  try {
+    return new URL(origin)
+  } catch {
+    return null
+  }
+}
+
+function isLoopbackOrigin(originUrl) {
+  if (!originUrl) return false
+
+  return ['localhost', '127.0.0.1', '::1'].includes(originUrl.hostname)
+}
+
 function isValid32ByteKey(value) {
   const cleaned = String(value || '').trim()
   if (!cleaned) return false
@@ -112,14 +126,46 @@ const origins = String(env.CORS_ORIGIN || '')
 
 if (origins.length === 0) errors.push('CORS_ORIGIN must include at least one origin')
 
+const allowLocalCorsInProduction = isTruthy(env.ALLOW_LOCAL_CORS_IN_PRODUCTION)
+
 for (const origin of origins) {
-  if (origin === '*') errors.push('CORS_ORIGIN must not be wildcard (*)')
-  if (/localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(origin)) {
-    errors.push(`CORS_ORIGIN must not include local address: ${origin}`)
+  if (origin === '*') {
+    errors.push('CORS_ORIGIN must not be wildcard (*)')
+    continue
   }
-  if (!origin.startsWith('https://')) {
+
+  const originUrl = parseOriginUrl(origin)
+
+  if (!originUrl) {
+    errors.push(`CORS_ORIGIN must be a valid URL origin: ${origin}`)
+    continue
+  }
+
+  const isLoopback = isLoopbackOrigin(originUrl)
+
+  if (isLoopback) {
+    if (!allowLocalCorsInProduction) {
+      errors.push(
+        `CORS_ORIGIN must not include local address unless ALLOW_LOCAL_CORS_IN_PRODUCTION=true: ${origin}`
+      )
+    }
+
+    if (!['http:', 'https:'].includes(originUrl.protocol)) {
+      errors.push(`Local CORS_ORIGIN must use http:// or https://: ${origin}`)
+    }
+
+    continue
+  }
+
+  if (originUrl.protocol !== 'https:') {
     errors.push(`CORS_ORIGIN must use https://: ${origin}`)
   }
+}
+
+if (allowLocalCorsInProduction) {
+  warnings.push(
+    'ALLOW_LOCAL_CORS_IN_PRODUCTION is enabled; keep local origins explicit and disable it when local access is no longer needed'
+  )
 }
 
 if (!isValid32ByteKey(env.DEVICE_SECRET_ENCRYPTION_KEY)) {
