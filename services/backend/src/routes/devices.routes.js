@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { authUser } from "../middlewares/authUser.js";
 import { loadUser } from "../middlewares/loadUser.js";
 import {
+  clearHistory,
   createDevice,
   getDevice,
   getDeviceSecret,
@@ -26,3 +27,4 @@ devicesRouter.put("/:id", asyncHandler(updateDevice));
 devicesRouter.post("/:id/reset-secret", asyncHandler(resetDeviceSecret));
 devicesRouter.delete("/:id", asyncHandler(deleteDevice));
 devicesRouter.get("/:id/history", asyncHandler(getHistory));
+devicesRouter.delete("/:id/history", asyncHandler(clearHistory));

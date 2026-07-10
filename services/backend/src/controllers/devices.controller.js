@@ -748,6 +748,206 @@ export async function deleteDevice(req, res) {
   })
 }
 
+export async function clearHistory(req, res) {
+  const user = req.dbUser
+  const { id } = req.params
+  const dateValue = String(req.query.date || req.body?.date || '').trim()
+  const rawMetricKey =
+    req.query.metricKey ||
+    req.query.metric_key ||
+    req.query.metric ||
+    req.query.key ||
+    req.body?.metricKey ||
+    req.body?.metric_key ||
+    ''
+  const metricKey = normalizeHistoryMetricKey(rawMetricKey)
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return res.status(400).json({
+      message: 'A valid history date is required',
+    })
+  }
+
+  if (rawMetricKey && metricKey === null) {
+    return res.status(400).json({
+      message: 'Invalid metric key',
+    })
+  }
+
+  const fromDate = new Date(`${dateValue}T00:00:00.000+07:00`)
+  const toDate = new Date(`${dateValue}T23:59:59.999+07:00`)
+
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+    return res.status(400).json({
+      message: 'Invalid history date',
+    })
+  }
+
+  const access = await requireDeviceAccess({
+    userId: user.id,
+    deviceId: id,
+    allowedRoles: ORG_ADMIN_ROLES,
+  })
+
+  const client = await pool.connect()
+  let deletedCount = 0
+  let legacyDeletedCount = 0
+
+  try {
+    await client.query('BEGIN')
+
+    const deleteResult = metricKey
+      ? await client.query(
+          `
+          WITH deleted AS (
+            DELETE FROM device_metric_readings
+            WHERE device_id = $1
+              AND time BETWEEN $2 AND $3
+              AND metric_key = $4
+            RETURNING 1
+          )
+          SELECT COUNT(*)::integer AS deleted_count
+          FROM deleted
+          `,
+          [id, fromDate, toDate, metricKey]
+        )
+      : await client.query(
+          `
+          WITH deleted AS (
+            DELETE FROM device_metric_readings
+            WHERE device_id = $1
+              AND time BETWEEN $2 AND $3
+            RETURNING 1
+          )
+          SELECT COUNT(*)::integer AS deleted_count
+          FROM deleted
+          `,
+          [id, fromDate, toDate]
+        )
+
+    deletedCount = Number(deleteResult.rows[0]?.deleted_count || 0)
+
+    if (!metricKey) {
+      const legacyDeleteResult = await client.query(
+        `
+        DELETE FROM sensor_readings
+        WHERE device_id = $1
+          AND time BETWEEN $2 AND $3
+        `,
+        [id, fromDate, toDate]
+      )
+
+      legacyDeletedCount = Number(legacyDeleteResult.rowCount || 0)
+    }
+
+    if (metricKey) {
+      await client.query(
+        `
+        DELETE FROM device_metric_latest
+        WHERE device_id = $1
+          AND metric_key = $2
+        `,
+        [id, metricKey]
+      )
+
+      await client.query(
+        `
+        INSERT INTO device_metric_latest (
+          device_id,
+          metric_key,
+          time,
+          value,
+          updated_at
+        )
+        SELECT DISTINCT ON (device_id, metric_key)
+          device_id,
+          metric_key,
+          time,
+          value,
+          now()
+        FROM device_metric_readings
+        WHERE device_id = $1
+          AND metric_key = $2
+        ORDER BY device_id, metric_key, time DESC
+        ON CONFLICT (device_id, metric_key)
+        DO UPDATE SET
+          time = EXCLUDED.time,
+          value = EXCLUDED.value,
+          updated_at = now()
+        `,
+        [id, metricKey]
+      )
+    } else {
+      await client.query(
+        `
+        DELETE FROM device_metric_latest
+        WHERE device_id = $1
+        `,
+        [id]
+      )
+
+      await client.query(
+        `
+        INSERT INTO device_metric_latest (
+          device_id,
+          metric_key,
+          time,
+          value,
+          updated_at
+        )
+        SELECT DISTINCT ON (device_id, metric_key)
+          device_id,
+          metric_key,
+          time,
+          value,
+          now()
+        FROM device_metric_readings
+        WHERE device_id = $1
+        ORDER BY device_id, metric_key, time DESC
+        ON CONFLICT (device_id, metric_key)
+        DO UPDATE SET
+          time = EXCLUDED.time,
+          value = EXCLUDED.value,
+          updated_at = now()
+        `,
+        [id]
+      )
+    }
+
+    await client.query('COMMIT')
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {})
+    throw error
+  } finally {
+    client.release()
+  }
+
+  await createOrganizationAuditLog({
+    organizationId: access.organization_id || null,
+    actorUserId: user.id,
+    action: 'device.history_cleared',
+    detail: `Cleared history for device ${access.device_code} on ${dateValue}`,
+    metadata: {
+      deviceId: access.id,
+      deviceCode: access.device_code,
+      date: dateValue,
+      metricKey: metricKey || 'all',
+      deletedCount,
+      legacyDeletedCount,
+    },
+    request: req,
+  })
+
+  res.json({
+    ok: true,
+    deviceId: Number(id),
+    date: dateValue,
+    metricKey: metricKey || 'all',
+    deletedCount,
+    legacyDeletedCount,
+  })
+}
+
 export async function getHistory(req, res) {
   const user = req.dbUser
   const { id } = req.params

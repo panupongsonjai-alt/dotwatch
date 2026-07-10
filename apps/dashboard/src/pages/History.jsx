@@ -8,10 +8,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { Download } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Download, Trash2, X } from 'lucide-react'
 import { PageHeader, StatCard } from '../components/common'
 
 import {
+  clearHistoryByDate,
   getDevices,
   getDeviceMetrics,
   getHistoryByDate,
@@ -19,7 +20,8 @@ import {
 import '../styles/history.css'
 import '../styles/page-system.css'
 
-const TABLE_PAGE_SIZE = 100
+const TABLE_PAGE_SIZES = [20, 50, 100]
+const DEFAULT_TABLE_PAGE_SIZE = TABLE_PAGE_SIZES[0]
 
 const HISTORY_STATE_KEY = 'dotwatch.history.analytics.state'
 
@@ -29,12 +31,21 @@ function getSafeTablePage(value) {
   return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1
 }
 
+function getSafeTablePageSize(value) {
+  const pageSize = Number(value)
+
+  return TABLE_PAGE_SIZES.includes(pageSize)
+    ? pageSize
+    : DEFAULT_TABLE_PAGE_SIZE
+}
+
 function getInitialHistoryState() {
   const fallback = {
     deviceId: '',
     date: todayInputValue(),
-    metricKey: '',
+    metricKey: 'all',
     tablePage: 1,
+    tablePageSize: DEFAULT_TABLE_PAGE_SIZE,
     sortOrder: 'desc',
   }
 
@@ -53,13 +64,15 @@ function getInitialHistoryState() {
         params.get('device') ||
         saved.deviceId ||
         fallback.deviceId,
-      date: params.get('date') || saved.date || fallback.date,
+      date: params.get('date') || fallback.date,
       metricKey:
         params.get('metricKey') ||
         params.get('metric') ||
-        saved.metricKey ||
         fallback.metricKey,
-      tablePage: getSafeTablePage(params.get('page') || saved.tablePage),
+      tablePage: getSafeTablePage(params.get('page') || fallback.tablePage),
+      tablePageSize: getSafeTablePageSize(
+        params.get('pageSize') || fallback.tablePageSize
+      ),
       sortOrder:
         params.get('sort') ||
         saved.sortOrder ||
@@ -139,6 +152,19 @@ function formatDateTime(value) {
   return date.toLocaleString('th-TH', {
     dateStyle: 'medium',
     timeStyle: 'medium',
+  })
+}
+
+function formatDateOnly(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return '--'
+
+  const date = new Date(`${value}T00:00:00.000+07:00`)
+
+  if (Number.isNaN(date.getTime())) return '--'
+
+  return date.toLocaleDateString('th-TH', {
+    dateStyle: 'long',
+    timeZone: 'Asia/Bangkok',
   })
 }
 
@@ -463,6 +489,7 @@ function HistoryTooltip({ active, payload, label, metricMap }) {
 function History() {
   const initialHistoryState = useMemo(() => getInitialHistoryState(), [])
   const previousFilterSignatureRef = useRef('')
+  const dateInputRef = useRef(null)
   const [devices, setDevices] = useState([])
   const [metrics, setMetrics] = useState([])
   const [selectedDeviceId, setSelectedDeviceId] = useState(initialHistoryState.deviceId)
@@ -470,9 +497,16 @@ function History() {
   const [selectedMetricKey, setSelectedMetricKey] = useState(initialHistoryState.metricKey)
   const [rows, setRows] = useState([])
   const [tablePage, setTablePage] = useState(initialHistoryState.tablePage)
+  const [tablePageSize, setTablePageSize] = useState(
+    initialHistoryState.tablePageSize
+  )
   const [sortOrder, setSortOrder] = useState(initialHistoryState.sortOrder)
   const [loadingDevices, setLoadingDevices] = useState(true)
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [clearingHistory, setClearingHistory] = useState(false)
+  const [clearDialogOpen, setClearDialogOpen] = useState(false)
+  const [clearConfirmed, setClearConfirmed] = useState(false)
+  const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
 
   const selectedDevice = useMemo(
@@ -550,47 +584,24 @@ function History() {
     })
   }, [rows, sortOrder])
 
-  const totalTablePages = useMemo(() => {
-    return Math.max(1, Math.ceil(filteredRows.length / TABLE_PAGE_SIZE))
-  }, [filteredRows.length])
-
-  const paginatedRows = useMemo(() => {
-    const safePage = Math.min(Math.max(tablePage, 1), totalTablePages)
-    const startIndex = (safePage - 1) * TABLE_PAGE_SIZE
-
-    return filteredRows.slice(startIndex, startIndex + TABLE_PAGE_SIZE)
-  }, [filteredRows, tablePage, totalTablePages])
-
-  const tableStartRow = filteredRows.length
-    ? (Math.min(Math.max(tablePage, 1), totalTablePages) - 1) *
-        TABLE_PAGE_SIZE +
-      1
-    : 0
-
-  const tableEndRow = Math.min(
-    tableStartRow + paginatedRows.length - 1,
-    filteredRows.length
-  )
-
-
   const historyTableRows = useMemo(() => {
     return getHistoryTableRows(filteredRows, selectedMetricKey, metrics)
   }, [filteredRows, selectedMetricKey, metrics])
 
   const totalHistoryTablePages = useMemo(() => {
-    return Math.max(1, Math.ceil(historyTableRows.length / TABLE_PAGE_SIZE))
-  }, [historyTableRows.length])
+    return Math.max(1, Math.ceil(historyTableRows.length / tablePageSize))
+  }, [historyTableRows.length, tablePageSize])
 
   const paginatedHistoryTableRows = useMemo(() => {
     const safePage = Math.min(Math.max(tablePage, 1), totalHistoryTablePages)
-    const startIndex = (safePage - 1) * TABLE_PAGE_SIZE
+    const startIndex = (safePage - 1) * tablePageSize
 
-    return historyTableRows.slice(startIndex, startIndex + TABLE_PAGE_SIZE)
-  }, [historyTableRows, tablePage, totalHistoryTablePages])
+    return historyTableRows.slice(startIndex, startIndex + tablePageSize)
+  }, [historyTableRows, tablePage, tablePageSize, totalHistoryTablePages])
 
   const historyTableStartRow = historyTableRows.length
     ? (Math.min(Math.max(tablePage, 1), totalHistoryTablePages) - 1) *
-        TABLE_PAGE_SIZE +
+        tablePageSize +
       1
     : 0
 
@@ -689,7 +700,8 @@ function History() {
             const result = await getHistoryByDate(
               selectedDeviceId,
               selectedDate,
-              metric.metricKey
+              metric.metricKey,
+              { resolution: 'raw' }
             )
 
             return normalizeHistoryRows(result).map((row) => ({
@@ -706,7 +718,8 @@ function History() {
       const result = await getHistoryByDate(
         selectedDeviceId,
         selectedDate,
-        selectedMetricKey
+        selectedMetricKey,
+        { resolution: 'raw' }
       )
 
       setRows(
@@ -777,6 +790,78 @@ function History() {
     URL.revokeObjectURL(url)
   }
 
+  function showDatePicker() {
+    const input = dateInputRef.current
+
+    if (!input) return
+
+    if (typeof input.showPicker === 'function') {
+      input.showPicker()
+      return
+    }
+
+    input.focus()
+    input.click()
+  }
+
+  function openClearDialog() {
+    if (!historyTableRows.length || loadingHistory || clearingHistory) return
+
+    setClearConfirmed(false)
+    setClearDialogOpen(true)
+  }
+
+  function closeClearDialog() {
+    if (clearingHistory) return
+
+    setClearDialogOpen(false)
+    setClearConfirmed(false)
+  }
+
+  async function handleClearHistory() {
+    if (
+      !clearConfirmed ||
+      !selectedDeviceId ||
+      !selectedDate ||
+      !selectedMetricKey
+    ) {
+      return
+    }
+
+    try {
+      setClearingHistory(true)
+      setError('')
+      setNotice('')
+
+      const result = await clearHistoryByDate(
+        selectedDeviceId,
+        selectedDate,
+        selectedMetricKey === 'all' ? '' : selectedMetricKey
+      )
+
+      const deletedCount = Number(
+        result?.deletedCount ?? result?.deleted_count ?? 0
+      )
+
+      setRows([])
+      setTablePage(1)
+      setClearDialogOpen(false)
+      setClearConfirmed(false)
+      setNotice(
+        deletedCount > 0
+          ? `ลบข้อมูลย้อนหลังสำเร็จ ${deletedCount.toLocaleString('th-TH')} รายการ`
+          : 'ไม่พบข้อมูลย้อนหลังที่ตรงกับตัวกรองสำหรับลบ'
+      )
+
+      await loadHistory()
+    } catch (err) {
+      console.error('History clear data error:', err)
+      setError(err.message || 'ลบข้อมูลย้อนหลังไม่สำเร็จ')
+    } finally {
+      setClearingHistory(false)
+    }
+  }
+
   useEffect(() => {
     loadDevices()
   }, [])
@@ -790,7 +875,7 @@ function History() {
 
   useEffect(() => {
     loadHistory()
-  }, [selectedDeviceId, selectedMetricKey, selectedDate])
+  }, [selectedDeviceId, selectedMetricKey, selectedDate, metrics])
 
   useEffect(() => {
     const filterSignature = `${selectedDeviceId}|${selectedMetricKey}|${selectedDate}`
@@ -803,6 +888,7 @@ function History() {
     if (previousFilterSignatureRef.current !== filterSignature) {
       previousFilterSignatureRef.current = filterSignature
       setTablePage(1)
+      setNotice('')
     }
   }, [selectedDeviceId, selectedMetricKey, selectedDate])
 
@@ -813,6 +899,30 @@ function History() {
   }, [tablePage, totalHistoryTablePages])
 
   useEffect(() => {
+    setTablePage(1)
+  }, [tablePageSize])
+
+  useEffect(() => {
+    if (!clearDialogOpen || typeof document === 'undefined') return undefined
+
+    const previousOverflow = document.body.style.overflow
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !clearingHistory) {
+        closeClearDialog()
+      }
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [clearDialogOpen, clearingHistory])
+
+  useEffect(() => {
     if (typeof window === 'undefined') return
 
     const state = {
@@ -820,6 +930,7 @@ function History() {
       date: selectedDate,
       metricKey: selectedMetricKey,
       tablePage,
+      tablePageSize,
       sortOrder,
     }
 
@@ -838,6 +949,7 @@ function History() {
       else params.delete('metricKey')
 
       params.set('page', String(tablePage))
+      params.set('pageSize', String(tablePageSize))
       params.set('sort', sortOrder)
 
       const query = params.toString()
@@ -847,9 +959,17 @@ function History() {
     } catch (error) {
       console.warn('History state persist failed:', error)
     }
-  }, [selectedDeviceId, selectedDate, selectedMetricKey, tablePage, sortOrder])
+  }, [
+    selectedDeviceId,
+    selectedDate,
+    selectedMetricKey,
+    tablePage,
+    tablePageSize,
+    sortOrder,
+  ])
 
-    const selectedUnit = selectedMetricKey === 'all' ? '' : selectedMetric?.unit || ''
+  const selectedUnit =
+    selectedMetricKey === 'all' ? '' : selectedMetric?.unit || ''
 
   return (
     <div className="page app-page history-page-v2">
@@ -910,14 +1030,27 @@ function History() {
             </select>
           </label>
 
-          <label>
-            <span>Date</span>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(event) => setSelectedDate(event.target.value)}
-            />
-          </label>
+          <div className="history-filter-field">
+            <label htmlFor="history-date-input">Date</label>
+            <div className="history-date-picker">
+              <input
+                id="history-date-input"
+                ref={dateInputRef}
+                type="date"
+                value={selectedDate}
+                onChange={(event) => setSelectedDate(event.target.value)}
+              />
+              <button
+                type="button"
+                className="history-date-picker-button"
+                onClick={showDatePicker}
+                aria-label="เปิดปฏิทินเลือกวันที่"
+                title="เลือกวันที่"
+              >
+                <CalendarDays size={17} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
 
           <label>
             <span>Metric</span>
@@ -942,18 +1075,33 @@ function History() {
             </select>
           </label>
 
-          <button
-            type="button"
-            className="history-export-btn"
-            onClick={exportCSV}
-            disabled={!filteredRows.length}
-          >
-            <Download size={16} />
-            Export CSV
-          </button>
+          <div className="history-filter-actions">
+            <button
+              type="button"
+              className="history-export-btn"
+              onClick={exportCSV}
+              disabled={!filteredRows.length || loadingHistory}
+            >
+              <Download size={16} aria-hidden="true" />
+              Export CSV
+            </button>
+
+            <button
+              type="button"
+              className="history-clear-btn"
+              onClick={openClearDialog}
+              disabled={
+                !historyTableRows.length || loadingHistory || clearingHistory
+              }
+            >
+              <Trash2 size={16} aria-hidden="true" />
+              Clear Data
+            </button>
+          </div>
         </div>
       </section>
 
+      {notice && <section className="history-message success">{notice}</section>}
       {error && <section className="history-message error">{error}</section>}
 
       <section className="app-card history-chart-card history-chart-card-full">
@@ -1078,6 +1226,23 @@ function History() {
             </span>
 
             <label>
+              <span>Show</span>
+              <select
+                value={tablePageSize}
+                onChange={(event) =>
+                  setTablePageSize(getSafeTablePageSize(event.target.value))
+                }
+                aria-label="จำนวนแถวต่อหน้า"
+              >
+                {TABLE_PAGE_SIZES.map((pageSize) => (
+                  <option key={pageSize} value={pageSize}>
+                    {pageSize} rows
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
               <span>Sort</span>
               <select
                 value={sortOrder}
@@ -1150,7 +1315,7 @@ function History() {
           </table>
         </div>
 
-        {historyTableRows.length > TABLE_PAGE_SIZE && (
+        {historyTableRows.length > tablePageSize && (
           <div className="history-table-pagination">
             <div>
               Showing {historyTableStartRow}-{historyTableEndRow} of {historyTableRows.length}
@@ -1198,6 +1363,113 @@ function History() {
           </div>
         )}
       </section>
+
+      {clearDialogOpen && (
+        <div
+          className="history-clear-dialog-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeClearDialog()
+          }}
+        >
+          <section
+            className="history-clear-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="history-clear-dialog-title"
+            aria-describedby="history-clear-dialog-description"
+          >
+            <div className="history-clear-dialog-header">
+              <div className="history-clear-dialog-icon">
+                <AlertTriangle size={22} aria-hidden="true" />
+              </div>
+
+              <div>
+                <span>Confirm destructive action</span>
+                <h2 id="history-clear-dialog-title">ยืนยันการ Clear Data</h2>
+              </div>
+
+              <button
+                type="button"
+                className="history-clear-dialog-close"
+                onClick={closeClearDialog}
+                disabled={clearingHistory}
+                aria-label="ปิดหน้าต่างยืนยัน"
+              >
+                <X size={19} aria-hidden="true" />
+              </button>
+            </div>
+
+            <p
+              id="history-clear-dialog-description"
+              className="history-clear-dialog-description"
+            >
+              ข้อมูลที่ตรงกับตัวกรองด้านล่างจะถูกลบออกจากฐานข้อมูลจริง
+              และไม่สามารถกู้คืนจากหน้า Dashboard ได้
+            </p>
+
+            <dl className="history-clear-summary">
+              <div>
+                <dt>Device</dt>
+                <dd>
+                  {selectedDevice?.name ||
+                    selectedDevice?.device_code ||
+                    `Device ${selectedDeviceId}`}
+                </dd>
+              </div>
+              <div>
+                <dt>Date</dt>
+                <dd>{formatDateOnly(selectedDate)}</dd>
+              </div>
+              <div>
+                <dt>Metric</dt>
+                <dd>
+                  {selectedMetricKey === 'all'
+                    ? 'All Metrics'
+                    : selectedMetric?.metricName || selectedMetricKey}
+                </dd>
+              </div>
+              <div>
+                <dt>Records</dt>
+                <dd>{filteredRows.length.toLocaleString('th-TH')} rows</dd>
+              </div>
+            </dl>
+
+            <label className="history-clear-confirm-check">
+              <input
+                type="checkbox"
+                checked={clearConfirmed}
+                onChange={(event) => setClearConfirmed(event.target.checked)}
+                disabled={clearingHistory}
+              />
+              <span>
+                ฉันตรวจสอบ Device, วันที่ และ Metric แล้ว
+                และยืนยันว่าต้องการลบข้อมูลชุดนี้จริง
+              </span>
+            </label>
+
+            <div className="history-clear-dialog-actions">
+              <button
+                type="button"
+                className="history-clear-cancel-button"
+                onClick={closeClearDialog}
+                disabled={clearingHistory}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="history-clear-confirm-button"
+                onClick={handleClearHistory}
+                disabled={!clearConfirmed || clearingHistory}
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                {clearingHistory ? 'กำลังลบข้อมูล...' : 'ยืนยัน Clear Data'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   )
 }

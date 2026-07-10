@@ -425,6 +425,22 @@ export function getDeviceHistoryByDate(deviceId, date, metricKey, options = {}) 
   return getHistoryByDate(deviceId, date, metricKey, options)
 }
 
+export function clearHistoryByDate(deviceId, date, metricKey = '') {
+  const params = new URLSearchParams()
+
+  if (date) params.set('date', date)
+  if (metricKey) params.set('metricKey', metricKey)
+
+  const query = params.toString()
+
+  return apiFetch(
+    `/api/devices/${encodeURIComponent(deviceId)}/history${
+      query ? `?${query}` : ''
+    }`,
+    { method: 'DELETE' }
+  )
+}
+
 export function getDeviceMetrics(deviceId) {
   return apiFetch(`/api/devices/${encodeURIComponent(deviceId)}/metrics`)
 }
