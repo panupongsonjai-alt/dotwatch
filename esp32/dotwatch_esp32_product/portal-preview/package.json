@@ -1,0 +1,11 @@
+{
+  "name": "dotwatch-esp32-portal-preview",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node dev-server.mjs",
+    "sync": "node sync-portal-assets.mjs",
+    "check": "node --check dev-server.mjs && node --check sync-portal-assets.mjs && node --check src/preview.js && node --check src/firmware.js"
+  }
+}

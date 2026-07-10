@@ -77,4 +77,9 @@ struct RuntimeStatus {
 
   String lastSensorError;
   bool lastSensorFallbackUsed = false;
+
+  bool sensorReadingAvailable = false;
+  float lastTemperature = NAN;
+  float lastHumidity = NAN;
+  unsigned long lastSensorReadAtMs = 0;
 };

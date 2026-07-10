@@ -45,21 +45,21 @@ class PortalServer {
   bool requireAdmin();
   String defaultAdminPin() const;
   String effectiveAdminPin() const;
-  String currentPinValue() const;
-  String pinHiddenInput() const;
-  String authQuery() const;
+  String currentPinValue();
+  String pinHiddenInput();
+  String authQuery();
   void sendLocalAdminLogin(int statusCode = 200,
                            const String &message = "");
 
-  String pageShell(const String &title, const String &body) const;
+  String pageShell(const String &title, const String &body);
   String statusBadgeClass() const;
   String lastSendLabel() const;
   String readinessLabel() const;
   String statusCardsHtml() const;
-  String wifiSectionHtml() const;
-  String deviceSectionHtml() const;
-  String advancedSectionsHtml() const;
-  String operationsHtml() const;
+  String wifiSectionHtml();
+  String deviceSectionHtml();
+  String advancedSectionsHtml();
+  String operationsHtml();
   String restartPage(const String &kicker,
                      const String &title,
                      const String &message,

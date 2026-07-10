@@ -144,6 +144,10 @@ void AppController::serviceTelemetry() {
 
   status_.lastSensorError = "";
   status_.lastSensorFallbackUsed = snapshot.fallbackUsed;
+  status_.sensorReadingAvailable = true;
+  status_.lastTemperature = snapshot.temperature;
+  status_.lastHumidity = snapshot.humidity;
+  status_.lastSensorReadAtMs = snapshot.readAtMs;
 
   Serial.print("Telemetry metric_1=");
   Serial.print(snapshot.temperature, 2);

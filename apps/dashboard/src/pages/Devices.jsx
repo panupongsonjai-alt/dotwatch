@@ -418,12 +418,12 @@ function Devices() {
   async function handleCreateMetricAlarm(deviceId, metricKey, draft) {
     if (!metricKey) {
       showNotice('warning', 'ไม่พบ Metric Key')
-      return
+      return false
     }
 
     if (draft.threshold === '' || Number.isNaN(Number(draft.threshold))) {
       showNotice('warning', 'กรุณากรอก Threshold ให้ถูกต้อง')
-      return
+      return false
     }
 
     const existingRules = alarmRules.filter(
@@ -434,7 +434,7 @@ function Devices() {
 
     if (existingRules.length >= 2) {
       showNotice('warning', 'แต่ละ Metric ตั้ง Alarm Rule ได้สูงสุด 2 รายการ')
-      return
+      return false
     }
 
     try {
@@ -451,9 +451,11 @@ function Devices() {
       })
 
       await loadAlarmRules()
+      return true
     } catch (error) {
       console.error('Create metric alarm rule error:', error)
       showNotice('error', error.message || 'เพิ่ม Alarm Rule ไม่สำเร็จ')
+      return false
     } finally {
       setSaving(false)
     }
@@ -462,7 +464,7 @@ function Devices() {
   async function handleUpdateMetricAlarm(ruleId, nextRule) {
     if (nextRule.threshold === '' || Number.isNaN(Number(nextRule.threshold))) {
       showNotice('warning', 'กรุณากรอก Threshold ให้ถูกต้อง')
-      return
+      return false
     }
 
     try {
@@ -481,9 +483,11 @@ function Devices() {
       })
 
       await loadAlarmRules()
+      return true
     } catch (error) {
       console.error('Update metric alarm rule error:', error)
       showNotice('error', error.message || 'แก้ไข Alarm Rule ไม่สำเร็จ')
+      return false
     } finally {
       setSaving(false)
     }

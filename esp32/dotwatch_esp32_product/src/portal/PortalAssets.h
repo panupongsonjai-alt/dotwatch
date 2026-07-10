@@ -37,7 +37,7 @@ static const char DOTWATCH_PORTAL_CSS[] PROGMEM = R"DOTWATCH_CSS(
 }
 *{box-sizing:border-box}
 html{min-width:320px;min-height:100%;scroll-behavior:smooth;background:var(--bg)}
-body{margin:0;min-width:320px;min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,"Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{margin:0;min-width:320px;min-height:100vh;background:var(--bg);color:var(--text);font-family:'Inter','Prompt',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 a{color:inherit;text-decoration:none}

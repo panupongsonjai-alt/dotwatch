@@ -850,9 +850,6 @@ function SelectedDevicePanel({
   const isEditing = editingDeviceId === selectedDevice.id
   const status = getStatus(selectedDevice)
   const healthTone = getHealthTone(status)
-  const selectedAlarmRuleCount = Array.isArray(selectedRules)
-    ? selectedRules.length
-    : 0
 
   return (
     <section className="app-card devices-v3-detail-card">
@@ -1042,24 +1039,12 @@ function SelectedDevicePanel({
             meta={`${selectedDevice.metric_count || 0} Channels`}
           />
 
-          <MetricConfigPanel deviceId={selectedDevice.id} />
-
-          <div className="metric-alarm-section-divider">
-            <DeviceTabHeader
-              eyebrow="Alarm Thresholds"
-              title="Alarm Rules"
-              description="ตั้งค่า Condition, Threshold, ข้อความแจ้งเตือน และสถานะ Active แยกตาม Metric"
-              meta={`${selectedAlarmRuleCount} Rules`}
-            />
-          </div>
-
-          <DeviceAlarmRulesPanel
+          <MetricConfigPanel
             deviceId={selectedDevice.id}
             alarmRules={Array.isArray(selectedRules) ? selectedRules : []}
-            saving={saving}
+            alarmSaving={saving}
             onCreateMetricAlarm={onCreateMetricAlarm}
             onUpdateMetricAlarm={onUpdateMetricAlarm}
-            onDeleteAlarmRule={onDeleteAlarmRule}
           />
         </div>
       )}

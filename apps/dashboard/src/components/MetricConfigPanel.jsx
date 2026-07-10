@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { RotateCcw, Save, Trash2 } from 'lucide-react'
 import { useDeviceMetrics } from '../hooks/useDeviceMetrics'
 import { createBlankMetric } from '../utils/metricDisplayConfig'
 import { METRIC_ICON_OPTIONS, MetricIcon } from '../utils/metricIcons'
 import { confirmDeleteAction } from '../utils/typedConfirm'
+
+const ALARM_OPERATORS = ['>', '>=', '<', '<=', '=']
+const ALARM_SEVERITIES = ['warning', 'critical']
 
 function updateMetricList(metrics = [], metricIndex, key, value) {
   return metrics.map((metric, index) => {
@@ -24,13 +27,64 @@ function reindexMetrics(metrics = []) {
   }))
 }
 
-function MetricIconPicker({
-  value,
-  disabled,
-  isOpen,
-  onOpenChange,
-  onChange,
-}) {
+function buildRulesByMetricAndSeverity(alarmRules = []) {
+  return alarmRules.reduce((collection, rule) => {
+    const metricKey = rule.metric || rule.metric_key
+    const severity = rule.severity || 'warning'
+
+    if (!metricKey) return collection
+
+    if (!collection[metricKey]) {
+      collection[metricKey] = {}
+    }
+
+    collection[metricKey][severity] = rule
+    return collection
+  }, {})
+}
+
+function createAlarmDrafts(
+  metrics = [],
+  rulesByMetricAndSeverity = {},
+  currentDrafts = {}
+) {
+  const nextDrafts = {}
+
+  metrics.forEach((metric) => {
+    const metricKey = metric.metric_key
+    if (!metricKey) return
+
+    const metricRules = rulesByMetricAndSeverity[metricKey] || {}
+    nextDrafts[metricKey] = {}
+
+    ALARM_SEVERITIES.forEach((severity) => {
+      const existingRule = metricRules[severity]
+      const currentDraft = currentDrafts?.[metricKey]?.[severity]
+
+      nextDrafts[metricKey][severity] = {
+        id: existingRule?.id || null,
+        metric: metricKey,
+        operator:
+          currentDraft?.operator ||
+          existingRule?.operator ||
+          (severity === 'critical' ? '>' : '>='),
+        threshold: currentDraft?.threshold ?? existingRule?.threshold ?? '',
+        severity,
+        is_active:
+          currentDraft?.is_active ??
+          (existingRule ? existingRule.is_active !== false : true),
+        notification_message:
+          currentDraft?.notification_message ??
+          existingRule?.notification_message ??
+          '',
+      }
+    })
+  })
+
+  return nextDrafts
+}
+
+function MetricIconPicker({ value, disabled, isOpen, onOpenChange, onChange }) {
   const selectedIcon = value || 'Activity'
   const selectedOptionRef = useRef(null)
 
@@ -102,8 +156,17 @@ function MetricIconPicker({
   )
 }
 
-export default function MetricConfigPanel({ deviceId }) {
+export default function MetricConfigPanel({
+  deviceId,
+  alarmRules = [],
+  alarmSaving = false,
+  onCreateMetricAlarm,
+  onUpdateMetricAlarm,
+}) {
   const [openIconPickerKey, setOpenIconPickerKey] = useState(null)
+  const [alarmDrafts, setAlarmDrafts] = useState({})
+  const [savingAll, setSavingAll] = useState(false)
+  const [alarmMessage, setAlarmMessage] = useState('')
 
   const {
     draftMetrics = [],
@@ -114,6 +177,17 @@ export default function MetricConfigPanel({ deviceId }) {
     saveDraftMetrics,
     resetMetrics,
   } = useDeviceMetrics(deviceId)
+
+  const rulesByMetricAndSeverity = useMemo(
+    () => buildRulesByMetricAndSeverity(alarmRules),
+    [alarmRules]
+  )
+
+  useEffect(() => {
+    setAlarmDrafts((currentDrafts) =>
+      createAlarmDrafts(draftMetrics, rulesByMetricAndSeverity, currentDrafts)
+    )
+  }, [draftMetrics, rulesByMetricAndSeverity])
 
   useEffect(() => {
     if (!openIconPickerKey) return undefined
@@ -141,10 +215,14 @@ export default function MetricConfigPanel({ deviceId }) {
 
   useEffect(() => {
     setOpenIconPickerKey(null)
+    setAlarmMessage('')
   }, [deviceId])
+
+  const busy = loading || saving || alarmSaving || savingAll
 
   function addMetric() {
     setOpenIconPickerKey(null)
+    setAlarmMessage('')
     setDraftMetrics((currentMetrics = []) =>
       reindexMetrics([
         ...currentMetrics,
@@ -168,6 +246,7 @@ export default function MetricConfigPanel({ deviceId }) {
     if (!ok) return
 
     setOpenIconPickerKey(null)
+    setAlarmMessage('')
     setDraftMetrics((currentMetrics = []) =>
       reindexMetrics(
         currentMetrics.filter((_, index) => index !== indexToRemove)
@@ -176,30 +255,143 @@ export default function MetricConfigPanel({ deviceId }) {
   }
 
   function updateMetric(index, key, value) {
+    setAlarmMessage('')
     setDraftMetrics((currentMetrics = []) =>
       updateMetricList(currentMetrics, index, key, value)
     )
   }
 
+  function updateAlarmDraft(metricKey, severity, key, value) {
+    setAlarmMessage('')
+    setAlarmDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [metricKey]: {
+        ...currentDrafts[metricKey],
+        [severity]: {
+          ...currentDrafts[metricKey]?.[severity],
+          metric: metricKey,
+          severity,
+          [key]: value,
+        },
+      },
+    }))
+  }
+
   async function handleReset() {
     setOpenIconPickerKey(null)
+    setAlarmDrafts({})
+    setAlarmMessage('')
     await resetMetrics()
+  }
+
+  function collectAlarmDraftsForSave(metrics) {
+    const draftsToSave = []
+
+    for (const metric of metrics) {
+      const metricKey = metric.metric_key
+      if (!metricKey) continue
+
+      for (const severity of ALARM_SEVERITIES) {
+        const draft = alarmDrafts?.[metricKey]?.[severity]
+        if (!draft) continue
+
+        const thresholdIsEmpty =
+          draft.threshold === '' || draft.threshold == null
+
+        if (thresholdIsEmpty && !draft.id) {
+          continue
+        }
+
+        if (thresholdIsEmpty || Number.isNaN(Number(draft.threshold))) {
+          const severityLabel = severity === 'critical' ? 'Critical' : 'Warning'
+          const metricLabel =
+            metric.metric_name || metric.metric_key || 'Metric'
+
+          throw new Error(
+            `กรุณากรอก Threshold ของ ${metricLabel} / ${severityLabel} ให้ถูกต้อง`
+          )
+        }
+
+        draftsToSave.push({
+          id: draft.id || null,
+          metric: metricKey,
+          operator: draft.operator || '>',
+          threshold: Number(draft.threshold),
+          severity,
+          is_active: draft.is_active !== false,
+          notification_message: String(draft.notification_message || '').trim(),
+        })
+      }
+    }
+
+    return draftsToSave
   }
 
   async function handleSave() {
     setOpenIconPickerKey(null)
-    return saveDraftMetrics(reindexMetrics(draftMetrics))
+    setAlarmMessage('')
+
+    const normalizedMetrics = reindexMetrics(draftMetrics)
+    let draftsToSave = []
+
+    try {
+      draftsToSave = collectAlarmDraftsForSave(normalizedMetrics)
+    } catch (error) {
+      setAlarmMessage(error.message)
+      return
+    }
+
+    setSavingAll(true)
+
+    try {
+      const metricSaved = await saveDraftMetrics(normalizedMetrics)
+
+      if (!metricSaved) {
+        throw new Error(
+          'บันทึก Metric ไม่สำเร็จ จึงยังไม่ได้บันทึก Alarm Rules'
+        )
+      }
+
+      for (const draft of draftsToSave) {
+        const saveAlarm = draft.id ? onUpdateMetricAlarm : onCreateMetricAlarm
+
+        if (typeof saveAlarm !== 'function') {
+          throw new Error('ไม่พบฟังก์ชันสำหรับบันทึก Alarm Rules')
+        }
+
+        const result = draft.id
+          ? await saveAlarm(draft.id, draft)
+          : await saveAlarm(deviceId, draft.metric, draft)
+
+        if (result !== true) {
+          throw new Error(
+            `บันทึก Alarm ${draft.severity} ของ ${draft.metric} ไม่สำเร็จ`
+          )
+        }
+      }
+
+      setAlarmMessage(
+        `บันทึกการตั้งค่าทั้งหมดแล้ว: ${normalizedMetrics.length} Metrics และ ${draftsToSave.length} Alarm Rules`
+      )
+    } catch (error) {
+      console.error(error)
+      setAlarmMessage(error.message || 'บันทึกการตั้งค่าไม่สำเร็จ')
+    } finally {
+      setSavingAll(false)
+    }
   }
 
   const visibleMetricCount = draftMetrics.filter(
     (metric) => metric.visible !== false
   ).length
 
+  const panelMessage = alarmMessage || message
+
   return (
-    <section className="metric-config-panel metric-config-panel-v2 metric-config-panel-easy metric-config-panel-clean">
+    <section className="metric-config-panel metric-config-panel-v2 metric-config-panel-easy metric-config-panel-clean metric-alarm-combined-panel metric-alarm-combined-panel-refined">
       <div className="metric-config-toolbar">
         <div>
-          <span className="page-eyebrow">Display Fields</span>
+          <span className="page-eyebrow">Display Fields & Alarm Rules</span>
           <strong>
             {visibleMetricCount}/{draftMetrics.length} Visible
           </strong>
@@ -209,18 +401,20 @@ export default function MetricConfigPanel({ deviceId }) {
           type="button"
           className="ghost-button"
           onClick={addMetric}
-          disabled={loading || saving}
+          disabled={busy}
         >
           Add Metric
         </button>
       </div>
 
-      {message && <div className="metric-config-message">{message}</div>}
+      {panelMessage && (
+        <div className="metric-config-message">{panelMessage}</div>
+      )}
 
       {loading ? (
         <div className="app-empty-state">
           <h3>กำลังโหลด Metric</h3>
-          <p>กำลังดึง Metric configuration ของ Device นี้</p>
+          <p>กำลังดึง Metric และ Alarm configuration ของ Device นี้</p>
         </div>
       ) : draftMetrics.length === 0 ? (
         <div className="app-empty-state">
@@ -228,101 +422,241 @@ export default function MetricConfigPanel({ deviceId }) {
           <p>กด Add Metric เพื่อเพิ่มค่าที่ต้องการแสดงผล</p>
         </div>
       ) : (
-        <div className="metric-config-list-clean">
-          {draftMetrics.map((metric, index) => {
-            const metricLabel =
-              metric.metric_name || metric.metric_key || `Metric ${index + 1}`
-            const pickerKey = String(
-              metric.id || metric.metric_key || `metric-${index}`
-            )
+        <div className="metric-alarm-config-table">
+          <div className="metric-alarm-config-head" aria-hidden="true">
+            <span className="metric-alarm-head-number">No.</span>
+            <span className="metric-alarm-head-name">Metric Name</span>
+            <span className="metric-alarm-head-unit">Unit</span>
+            <span className="metric-alarm-head-icon">Icon</span>
+            <span className="metric-alarm-head-display">Display</span>
+          </div>
 
-            return (
-              <article
-                className="metric-config-card-clean metric-config-row-clean"
-                key={metric.id ? `metric-${metric.id}` : `metric-${index}`}
-                aria-label={`Configure ${metricLabel}`}
-              >
-                <div className="metric-config-card-clean-grid">
-                  <label className="metric-config-field metric-config-field-name">
-                    <span>Metric Name</span>
-                    <input
-                      value={metric.metric_name || ''}
-                      placeholder={`เช่น ${
-                        index === 0 ? 'Supply Air' : 'Metric Name'
-                      }`}
-                      onChange={(event) =>
-                        updateMetric(index, 'metric_name', event.target.value)
-                      }
-                      disabled={loading || saving}
-                    />
-                  </label>
+          <div className="metric-alarm-config-body">
+            {draftMetrics.map((metric, index) => {
+              const metricKey = metric.metric_key || `metric_${index + 1}`
+              const metricLabel =
+                metric.metric_name || metricKey || `Metric ${index + 1}`
+              const pickerKey = String(
+                metric.id || metricKey || `metric-${index}`
+              )
+              const metricDrafts = alarmDrafts?.[metricKey] || {}
 
-                  <label className="metric-config-field metric-config-field-unit">
-                    <span>Unit</span>
-                    <input
-                      value={metric.unit || ''}
-                      placeholder="°C, %, kWh"
-                      onChange={(event) =>
-                        updateMetric(index, 'unit', event.target.value)
-                      }
-                      disabled={loading || saving}
-                    />
-                  </label>
+              return (
+                <article
+                  className="metric-alarm-config-group"
+                  key={metric.id ? `metric-${metric.id}` : metricKey}
+                  aria-label={`Configure ${metricLabel}`}
+                >
+                  <div className="metric-alarm-config-index">{index + 1}.</div>
 
-                  <div className="metric-config-field metric-config-field-icon">
-                    <span>Icon</span>
-                    <MetricIconPicker
-                      value={metric.icon}
-                      disabled={loading || saving}
-                      isOpen={openIconPickerKey === pickerKey}
-                      onOpenChange={(nextOpen) =>
-                        setOpenIconPickerKey(nextOpen ? pickerKey : null)
-                      }
-                      onChange={(iconName) =>
-                        updateMetric(index, 'icon', iconName)
-                      }
-                    />
-                  </div>
-
-                  <div className="metric-config-field metric-config-field-visible">
-                    <span>Display</span>
-                    <label
-                      className={
-                        metric.visible !== false
-                          ? 'metric-visible-toggle active'
-                          : 'metric-visible-toggle'
-                      }
-                    >
+                  <div className="metric-alarm-config-metric-row">
+                    <label className="metric-alarm-config-field metric-alarm-config-name">
+                      <span>Metric Name</span>
                       <input
-                        type="checkbox"
-                        checked={metric.visible !== false}
+                        value={metric.metric_name || ''}
+                        placeholder={`เช่น ${
+                          index === 0 ? 'Temperature' : 'Metric Name'
+                        }`}
                         onChange={(event) =>
-                          updateMetric(index, 'visible', event.target.checked)
+                          updateMetric(index, 'metric_name', event.target.value)
                         }
-                        disabled={loading || saving}
+                        disabled={busy}
                       />
-                      <span>
-                        {metric.visible !== false ? 'Visible' : 'Hidden'}
-                      </span>
                     </label>
+
+                    <label className="metric-alarm-config-field metric-alarm-config-unit">
+                      <span>Unit</span>
+                      <input
+                        value={metric.unit || ''}
+                        placeholder="°C, %, kWh"
+                        onChange={(event) =>
+                          updateMetric(index, 'unit', event.target.value)
+                        }
+                        disabled={busy}
+                      />
+                    </label>
+
+                    <div className="metric-alarm-config-field metric-alarm-config-icon">
+                      <span>Icon</span>
+                      <MetricIconPicker
+                        value={metric.icon}
+                        disabled={busy}
+                        isOpen={openIconPickerKey === pickerKey}
+                        onOpenChange={(nextOpen) =>
+                          setOpenIconPickerKey(nextOpen ? pickerKey : null)
+                        }
+                        onChange={(iconName) =>
+                          updateMetric(index, 'icon', iconName)
+                        }
+                      />
+                    </div>
+
+                    <div className="metric-alarm-config-field metric-alarm-config-display">
+                      <span>Display</span>
+                      <label
+                        className={
+                          metric.visible !== false
+                            ? 'metric-visible-toggle active'
+                            : 'metric-visible-toggle'
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={metric.visible !== false}
+                          onChange={(event) =>
+                            updateMetric(index, 'visible', event.target.checked)
+                          }
+                          disabled={busy}
+                        />
+                        <span>
+                          {metric.visible !== false ? 'Visible' : 'Hidden'}
+                        </span>
+                      </label>
+                    </div>
                   </div>
 
-                  <div className="metric-config-row-action">
+                  <div className="metric-alarm-config-rules">
+                    {ALARM_SEVERITIES.map((severity) => {
+                      const draft = metricDrafts[severity] || {
+                        operator: severity === 'critical' ? '>' : '>=',
+                        threshold: '',
+                        is_active: true,
+                        notification_message: '',
+                      }
+                      const severityLabel =
+                        severity === 'critical' ? 'Critical' : 'Warning'
+
+                      return (
+                        <div
+                          key={`${metricKey}-${severity}`}
+                          className={`metric-alarm-config-rule ${severity}`}
+                        >
+                          <div className="metric-alarm-config-severity">
+                            <span className={`status ${severity}`}>
+                              {severityLabel}
+                            </span>
+                            <small>
+                              {severity === 'critical'
+                                ? 'ระดับวิกฤต ต้องตรวจสอบทันที'
+                                : 'ระดับเตือนล่วงหน้า'}
+                            </small>
+                          </div>
+
+                          <label className="metric-alarm-config-control metric-alarm-config-condition">
+                            <span>Condition</span>
+                            <select
+                              value={draft.operator || '>'}
+                              aria-label={`${metricLabel} ${severityLabel} condition`}
+                              onChange={(event) =>
+                                updateAlarmDraft(
+                                  metricKey,
+                                  severity,
+                                  'operator',
+                                  event.target.value
+                                )
+                              }
+                              disabled={busy}
+                            >
+                              {ALARM_OPERATORS.map((operator) => (
+                                <option key={operator} value={operator}>
+                                  {operator}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+
+                          <label className="metric-alarm-config-control metric-alarm-config-threshold">
+                            <span>
+                              Threshold{metric.unit ? ` (${metric.unit})` : ''}
+                            </span>
+                            <input
+                              type="number"
+                              value={draft.threshold}
+                              placeholder="Threshold"
+                              aria-label={`${metricLabel} ${severityLabel} threshold`}
+                              onChange={(event) =>
+                                updateAlarmDraft(
+                                  metricKey,
+                                  severity,
+                                  'threshold',
+                                  event.target.value
+                                )
+                              }
+                              disabled={busy}
+                            />
+                          </label>
+
+                          <label className="metric-alarm-config-control metric-alarm-config-message-field">
+                            <span>ข้อความแจ้งเตือน</span>
+                            <input
+                              type="text"
+                              value={draft.notification_message || ''}
+                              placeholder="เช่น กรุณาตรวจสอบอุณหภูมิทันที"
+                              maxLength={300}
+                              aria-label={`${metricLabel} ${severityLabel} notification message`}
+                              onChange={(event) =>
+                                updateAlarmDraft(
+                                  metricKey,
+                                  severity,
+                                  'notification_message',
+                                  event.target.value
+                                )
+                              }
+                              disabled={busy}
+                            />
+                          </label>
+
+                          <div className="metric-alarm-config-active-field">
+                            <span>Active</span>
+                            <label
+                              className={
+                                draft.is_active !== false
+                                  ? 'metric-visible-toggle alarm-active-toggle active'
+                                  : 'metric-visible-toggle alarm-active-toggle'
+                              }
+                            >
+                              <input
+                                type="checkbox"
+                                checked={draft.is_active !== false}
+                                onChange={(event) =>
+                                  updateAlarmDraft(
+                                    metricKey,
+                                    severity,
+                                    'is_active',
+                                    event.target.checked
+                                  )
+                                }
+                                disabled={busy}
+                              />
+                              <span>
+                                {draft.is_active !== false
+                                  ? 'Active'
+                                  : 'Paused'}
+                              </span>
+                            </label>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="metric-alarm-config-action">
                     <button
                       type="button"
-                      className="delete-btn square metric-config-delete-btn"
+                      className="delete-btn metric-config-delete-btn"
                       onClick={() => removeMetric(index)}
-                      disabled={loading || saving}
+                      disabled={busy}
                       title={`Delete ${metricLabel}`}
                       aria-label={`Delete ${metricLabel}`}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={15} />
+                      <span>Delete Metric</span>
                     </button>
                   </div>
-                </div>
-              </article>
-            )
-          })}
+                </article>
+              )
+            })}
+          </div>
         </div>
       )}
 
@@ -331,7 +665,7 @@ export default function MetricConfigPanel({ deviceId }) {
           type="button"
           className="ghost-button"
           onClick={handleReset}
-          disabled={loading || saving}
+          disabled={busy}
         >
           <RotateCcw size={16} />
           Reset
@@ -341,10 +675,10 @@ export default function MetricConfigPanel({ deviceId }) {
           type="button"
           className="save-btn metric-save-btn"
           onClick={handleSave}
-          disabled={loading || saving}
+          disabled={busy}
         >
           <Save size={16} />
-          {saving ? 'Saving...' : 'Save Display'}
+          {busy ? 'Saving All...' : 'Save All Settings'}
         </button>
       </div>
     </section>

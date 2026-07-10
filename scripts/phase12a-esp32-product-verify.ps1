@@ -64,7 +64,19 @@ if ($missing.Count -gt 0) {
 
 Write-Host 'Required files: OK' -ForegroundColor Green
 
-$inoFiles = @(Get-ChildItem -LiteralPath $ProjectDir -Filter '*.ino' -File -Recurse)
+# Check only project-owned source locations. PlatformIO downloads library examples
+# into .pio\libdeps, and those example .ino files are not duplicate firmware sources.
+$inoFiles = @(
+    Get-ChildItem -LiteralPath $ProjectDir -Filter '*.ino' -File -ErrorAction SilentlyContinue
+)
+
+$srcDir = Join-Path $ProjectDir 'src'
+if (Test-Path -LiteralPath $srcDir -PathType Container) {
+    $inoFiles += @(
+        Get-ChildItem -LiteralPath $srcDir -Filter '*.ino' -File -Recurse -ErrorAction SilentlyContinue
+    )
+}
+
 if ($inoFiles.Count -gt 0) {
     Write-Host 'Duplicate .ino source: FAILED' -ForegroundColor Red
     $inoFiles | ForEach-Object { Write-Host "- $($_.FullName)" -ForegroundColor Red }
