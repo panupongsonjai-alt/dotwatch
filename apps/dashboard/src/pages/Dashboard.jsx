@@ -534,6 +534,8 @@ function Dashboard({ onOpenDevice }) {
         <StatCard
           label="Total Devices"
           value={loading ? '...' : devices.length}
+          hint="Normal operation"
+          tone="success"
         />
         <StatCard
           label="Healthy"
