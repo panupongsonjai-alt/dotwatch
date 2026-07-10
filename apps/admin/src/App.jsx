@@ -157,11 +157,17 @@ function App() {
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('dotwatchAdminOpenCommandPalette', handleOpenCommandPalette)
+    window.addEventListener(
+      'dotwatchAdminOpenCommandPalette',
+      handleOpenCommandPalette
+    )
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('dotwatchAdminOpenCommandPalette', handleOpenCommandPalette)
+      window.removeEventListener(
+        'dotwatchAdminOpenCommandPalette',
+        handleOpenCommandPalette
+      )
     }
   }, [])
 
@@ -252,10 +258,16 @@ function App() {
   const stats = useMemo(() => {
     const totalUsers = users.length
     const activeUsers = users.filter((user) => user.status === 'active').length
-    const suspendedUsers = users.filter((user) => user.status === 'suspended').length
+    const suspendedUsers = users.filter(
+      (user) => user.status === 'suspended'
+    ).length
     const totalDevices = devices.length
-    const onlineDevices = devices.filter((device) => device.status === 'online').length
-    const offlineDevices = devices.filter((device) => device.status === 'offline').length
+    const onlineDevices = devices.filter(
+      (device) => device.status === 'online'
+    ).length
+    const offlineDevices = devices.filter(
+      (device) => device.status === 'offline'
+    ).length
 
     return {
       totalUsers,
@@ -282,7 +294,13 @@ function App() {
         )
       )
 
-      setNotice(buildNotice('success', `User status changed to ${status}`, 'User updated'))
+      setNotice(
+        buildNotice(
+          'success',
+          `User status changed to ${status}`,
+          'User updated'
+        )
+      )
     } catch (error) {
       console.error(error)
       setNotice(
@@ -310,7 +328,13 @@ function App() {
         )
       )
 
-      setNotice(buildNotice('success', `User plan changed to ${data.plan}`, 'Plan updated'))
+      setNotice(
+        buildNotice(
+          'success',
+          `User plan changed to ${data.plan}`,
+          'Plan updated'
+        )
+      )
     } catch (error) {
       console.error(error)
       setNotice(
@@ -367,7 +391,11 @@ function App() {
           title={`${currentPageMeta.title} failed to load`}
           onReset={() => navigateAdminPage('overview')}
         >
-          <Suspense fallback={<PageLoading title={`Loading ${currentPageMeta.title}...`} />}>
+          <Suspense
+            fallback={
+              <PageLoading title={`Loading ${currentPageMeta.title}...`} />
+            }
+          >
             <ActivePage
               users={users}
               devices={devices}

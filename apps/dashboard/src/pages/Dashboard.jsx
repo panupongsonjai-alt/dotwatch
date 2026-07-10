@@ -526,7 +526,8 @@ function Dashboard({ onOpenDevice }) {
     <div className="page app-page dashboard-page dashboard-v2-page">
       <PageHeader
         eyebrow="Operations Center"
-        title="dotWatch Dashboard"
+        title="Dashboard"
+        description="หน้าแสดงภาพรวมและสถานะของอุปกรณ์"
       />
 
       <section className="dw-page-stat-grid dashboard-kpi-grid dashboard-health-kpi-grid">
@@ -564,9 +565,7 @@ function Dashboard({ onOpenDevice }) {
         <div className="app-section-title dashboard-section-title-row live-metrics-overview-header">
           <div>
             <h2>Data Overview</h2>
-            <p>
-              แสดงเฉพาะ Metric ที่เปิด Visible ไว้ใน Metric Display
-            </p>
+            <p>แสดงเฉพาะ Metric ที่เปิด Visible ไว้ใน Metric Display</p>
           </div>
 
           <span className="device-count-badge live-metrics-count-badge">
@@ -613,66 +612,64 @@ function Dashboard({ onOpenDevice }) {
       </section>
 
       {dashboardDisplay.showDeviceOverview && (
-          <section className="app-card devices-overview-panel dashboard-devices-card">
-            <div className="app-section-title dashboard-section-title-row">
-              <div>
-                <h2>Devices Overview</h2>
-                <p>ภาพรวมสถานะอุปกรณ์ทั้งหมด</p>
-              </div>
-
-              <span className="device-count-badge">
-                {devices.length} Devices
-              </span>
+        <section className="app-card devices-overview-panel dashboard-devices-card">
+          <div className="app-section-title dashboard-section-title-row">
+            <div>
+              <h2>Devices Overview</h2>
+              <p>ภาพรวมสถานะอุปกรณ์ทั้งหมด</p>
             </div>
 
-            {loading ? (
-              <EmptyState
-                title="กำลังโหลดข้อมูล"
-                description="กำลังดึงข้อมูล Device จาก Backend"
-              />
-            ) : devices.length === 0 ? (
-              <EmptyState
-                title="ไม่พบ Device"
-                description="ยังไม่มี Device ในระบบ"
-              />
-            ) : (
-              <div className="overview-grid dashboard-device-grid">
-                {devices.map((device) => (
-                  <button
-                    key={device.id}
-                    type="button"
-                    className="overview-card compact dashboard-device-card-v2"
-                    onClick={() => onOpenDevice?.(device.id)}
-                  >
-                    <div className="dashboard-device-topline">
-                      <span
-                        className={`device-status-dot ${device.status || 'offline'}`}
-                      />
-                      <span className="dashboard-device-status">
-                        {device.status || 'offline'}
+            <span className="device-count-badge">{devices.length} Devices</span>
+          </div>
+
+          {loading ? (
+            <EmptyState
+              title="กำลังโหลดข้อมูล"
+              description="กำลังดึงข้อมูล Device จาก Backend"
+            />
+          ) : devices.length === 0 ? (
+            <EmptyState
+              title="ไม่พบ Device"
+              description="ยังไม่มี Device ในระบบ"
+            />
+          ) : (
+            <div className="overview-grid dashboard-device-grid">
+              {devices.map((device) => (
+                <button
+                  key={device.id}
+                  type="button"
+                  className="overview-card compact dashboard-device-card-v2"
+                  onClick={() => onOpenDevice?.(device.id)}
+                >
+                  <div className="dashboard-device-topline">
+                    <span
+                      className={`device-status-dot ${device.status || 'offline'}`}
+                    />
+                    <span className="dashboard-device-status">
+                      {device.status || 'offline'}
+                    </span>
+                    {device.model_name && (
+                      <span className="device-model-badge">
+                        {device.model_name}
                       </span>
-                      {device.model_name && (
-                        <span className="device-model-badge">
-                          {device.model_name}
-                        </span>
-                      )}
-                    </div>
+                    )}
+                  </div>
 
-                    <div className="overview-name dashboard-device-name">
-                      {device.name || device.device_code || 'Unnamed Device'}
-                    </div>
+                  <div className="overview-name dashboard-device-name">
+                    {device.name || device.device_code || 'Unnamed Device'}
+                  </div>
 
-                    <div className="overview-last-update">
-                      Updated{' '}
-                      {formatRelativeTime(
-                        device.latest_time || device.last_ingest_at
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
+                  <div className="overview-last-update">
+                    Updated{' '}
+                    {formatRelativeTime(
+                      device.latest_time || device.last_ingest_at
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
       {dashboardDisplay.showDeviceMap && (
@@ -681,7 +678,8 @@ function Dashboard({ onOpenDevice }) {
             <div>
               <h2>Device Map</h2>
               <p>
-                แสดงตำแหน่ง Device ทั้งหมดบนแผนที่ พร้อมสถานะล่าสุดของแต่ละอุปกรณ์
+                แสดงตำแหน่ง Device ทั้งหมดบนแผนที่
+                พร้อมสถานะล่าสุดของแต่ละอุปกรณ์
               </p>
             </div>
 
@@ -726,7 +724,9 @@ function Dashboard({ onOpenDevice }) {
               <div className="dashboard-map-loading-icon" />
               <div>
                 <strong>Preparing device map</strong>
-                <p>โหลดข้อมูลหลักก่อน แล้วค่อยโหลดแผนที่เพื่อลดเวลาเปิดหน้าแรก</p>
+                <p>
+                  โหลดข้อมูลหลักก่อน แล้วค่อยโหลดแผนที่เพื่อลดเวลาเปิดหน้าแรก
+                </p>
               </div>
             </div>
           )}

@@ -18,12 +18,40 @@ function AdminOverview({ stats, users, devices, loading }) {
       </div>
 
       <div className="admin-stat-grid">
-        <StatCard label="Total Users" value={formatNumber(stats.totalUsers)} helper="All accounts" />
-        <StatCard label="Active Users" value={formatNumber(stats.activeUsers)} helper="Can access dashboard" tone="success" />
-        <StatCard label="Suspended" value={formatNumber(stats.suspendedUsers)} helper="Blocked accounts" tone="danger" />
-        <StatCard label="Total Devices" value={formatNumber(stats.totalDevices)} helper="Across all users" />
-        <StatCard label="Online Devices" value={formatNumber(stats.onlineDevices)} helper="Reporting now" tone="success" />
-        <StatCard label="Offline Devices" value={formatNumber(stats.offlineDevices)} helper="Need attention" tone="warning" />
+        <StatCard
+          label="Total Users"
+          value={formatNumber(stats.totalUsers)}
+          helper="All accounts"
+        />
+        <StatCard
+          label="Active Users"
+          value={formatNumber(stats.activeUsers)}
+          helper="Can access dashboard"
+          tone="success"
+        />
+        <StatCard
+          label="Suspended"
+          value={formatNumber(stats.suspendedUsers)}
+          helper="Blocked accounts"
+          tone="danger"
+        />
+        <StatCard
+          label="Total Devices"
+          value={formatNumber(stats.totalDevices)}
+          helper="Across all users"
+        />
+        <StatCard
+          label="Online Devices"
+          value={formatNumber(stats.onlineDevices)}
+          helper="Reporting now"
+          tone="success"
+        />
+        <StatCard
+          label="Offline Devices"
+          value={formatNumber(stats.offlineDevices)}
+          helper="Need attention"
+          tone="warning"
+        />
       </div>
 
       {loading ? (
@@ -60,7 +88,9 @@ function AdminOverview({ stats, users, devices, loading }) {
                 <div className="admin-list-row" key={device.id}>
                   <div>
                     <strong>{device.name}</strong>
-                    <span>{device.deviceCode} · {device.owner}</span>
+                    <span>
+                      {device.deviceCode} · {device.owner}
+                    </span>
                   </div>
                   <StatusBadge status={device.status} />
                 </div>

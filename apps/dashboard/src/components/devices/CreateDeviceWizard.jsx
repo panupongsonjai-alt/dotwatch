@@ -19,7 +19,9 @@ function formatLocation(latitude, longitude) {
 
 function StepItem({ number, title, description, active, done }) {
   return (
-    <div className={`wizard-v2-step ${active ? 'active' : ''} ${done ? 'done' : ''}`}>
+    <div
+      className={`wizard-v2-step ${active ? 'active' : ''} ${done ? 'done' : ''}`}
+    >
       <span>{done ? <CheckCircle2 size={15} /> : number}</span>
       <div>
         <strong>{title}</strong>
@@ -108,7 +110,8 @@ function CreateDeviceWizard({
           <div className="wizard-v2-note">
             <ShieldCheck size={18} />
             <p>
-              Device Secret จะแสดงหลังสร้างสำเร็จเท่านั้น กรุณา Copy เก็บไว้ทันที
+              Device Secret จะแสดงหลังสร้างสำเร็จเท่านั้น กรุณา Copy
+              เก็บไว้ทันที
             </p>
           </div>
         </aside>
@@ -124,10 +127,13 @@ function CreateDeviceWizard({
                 {createStep === 4 && 'Device Created'}
               </h2>
               <p>
-                {createStep === 1 && 'ตั้งชื่อ เลือกรุ่น และเตรียมข้อมูลสำหรับ Firmware'}
-                {createStep === 2 && 'เลือกตำแหน่งอุปกรณ์เพื่อใช้กับแผนที่และ Monitoring'}
+                {createStep === 1 &&
+                  'ตั้งชื่อ เลือกรุ่น และเตรียมข้อมูลสำหรับ Firmware'}
+                {createStep === 2 &&
+                  'เลือกตำแหน่งอุปกรณ์เพื่อใช้กับแผนที่และ Monitoring'}
                 {createStep === 3 && 'ตรวจสอบข้อมูลก่อนสร้าง Device'}
-                {createStep === 4 && 'Copy Device Code และ Secret ไปใส่ในอุปกรณ์'}
+                {createStep === 4 &&
+                  'Copy Device Code และ Secret ไปใส่ในอุปกรณ์'}
               </p>
             </div>
 
@@ -166,68 +172,49 @@ function CreateDeviceWizard({
                       <span>เลือกรุ่นอุปกรณ์ให้ตรงกับจำนวน Channel</span>
                     </div>
 
-                    <div className="wizard-v2-model-grid">
-                      {deviceModelOptions.map((model) => (
-                        <button
-                          key={model.id}
-                          type="button"
-                          className={`wizard-v2-model-card ${
-                            Number(model.id) === Number(createForm.modelId)
-                              ? 'active'
-                              : ''
-                          }`}
-                          onClick={() =>
-                            setCreateForm((prev) => ({
-                              ...prev,
-                              modelId: Number(model.id),
-                            }))
-                          }
-                        >
-                          <Cpu size={20} />
-                          <strong>{model.name}</strong>
-                          <span>{model.description}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                    <div
+                      className="wizard-v2-model-list"
+                      role="radiogroup"
+                      aria-label="Device model"
+                    >
+                      {deviceModelOptions.map((model) => {
+                        const isSelected =
+                          Number(model.id) === Number(createForm.modelId)
 
-                  <div className="wizard-v2-copy-grid wizard-v2-copy-grid-single">
-                    <label>
-                      Device Code
-                      <div className="copy-input">
-                        <input value={createForm.deviceCode} disabled />
-                        <button
-                          type="button"
-                          onClick={() => onCopy(createForm.deviceCode)}
-                          aria-label="Copy device code"
-                        >
-                          <Copy size={16} />
-                        </button>
-                      </div>
-                    </label>
-                  </div>
+                        return (
+                          <button
+                            key={model.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={isSelected}
+                            className={`wizard-v2-model-card ${
+                              isSelected ? 'active' : ''
+                            }`}
+                            onClick={() =>
+                              setCreateForm((prev) => ({
+                                ...prev,
+                                modelId: Number(model.id),
+                              }))
+                            }
+                          >
+                            <span className="wizard-v2-model-icon">
+                              <Cpu size={20} />
+                            </span>
 
-                  <div className="wizard-v2-secret-note">
-                    <KeyRound size={17} />
-                    <span>
-                      Device Secret จะถูกสร้างและแสดงในขั้นตอนสุดท้ายหลังบันทึกสำเร็จเท่านั้น
-                    </span>
-                  </div>
-                </div>
+                            <span className="wizard-v2-model-copy">
+                              <strong>{model.name}</strong>
+                              <small>{model.description}</small>
+                            </span>
 
-                <div className="wizard-v2-preview-card">
-                  <span className="wizard-v2-preview-label">Preview</span>
-                  <h3>{displayName}</h3>
-                  <p>{createForm.deviceCode}</p>
-
-                  <div className="wizard-v2-preview-meta">
-                    <div>
-                      <span>Model</span>
-                      <strong>{selectedModel?.name || '--'}</strong>
-                    </div>
-                    <div>
-                      <span>Status</span>
-                      <strong>Waiting setup</strong>
+                            <span
+                              className="wizard-v2-model-check"
+                              aria-hidden="true"
+                            >
+                              {isSelected && <CheckCircle2 size={18} />}
+                            </span>
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
@@ -272,14 +259,17 @@ function CreateDeviceWizard({
                         : '--'}
                     </span>
                   </div>
-                </div>
 
-                <div className="wizard-v2-help-card">
-                  <MapPin size={24} />
-                  <h4>Location is optional</h4>
-                  <p>
-                    สามารถข้ามได้ และกลับไปตั้งค่า Location ได้อีกครั้งในหน้า Devices
-                  </p>
+                  <div className="wizard-v2-help-card wizard-v2-help-card-inline">
+                    <MapPin size={22} />
+                    <div>
+                      <h4>Location is optional</h4>
+                      <p>
+                        สามารถข้ามได้ และกลับไปตั้งค่า Location
+                        ได้อีกครั้งในหน้า Devices
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -305,7 +295,10 @@ function CreateDeviceWizard({
                   <div>
                     <span>Location</span>
                     <strong>
-                      {formatLocation(createForm.latitude, createForm.longitude)}
+                      {formatLocation(
+                        createForm.latitude,
+                        createForm.longitude
+                      )}
                     </strong>
                   </div>
                 </div>

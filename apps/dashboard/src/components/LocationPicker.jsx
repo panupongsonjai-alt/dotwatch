@@ -1,35 +1,42 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   MapContainer,
   Marker,
   TileLayer,
   useMap,
   useMapEvents,
-} from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+} from 'react-leaflet'
+import { Crosshair, LoaderCircle } from 'lucide-react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 const DEFAULT_CENTER = {
   latitude: 13.5991,
   longitude: 100.5998,
-};
+}
+
+const GEOLOCATION_OPTIONS = {
+  enableHighAccuracy: true,
+  timeout: 12000,
+  maximumAge: 60000,
+}
 
 const markerIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
-});
+})
 
 function MapUpdater({ position }) {
-  const map = useMap();
+  const map = useMap()
 
   useEffect(() => {
-    if (!position) return;
-    map.setView([position.latitude, position.longitude], 16);
-  }, [map, position]);
+    if (!position) return
+    map.setView([position.latitude, position.longitude], 16)
+  }, [map, position])
 
-  return null;
+  return null
 }
 
 function LocationMarker({ position, onChange }) {
@@ -38,113 +45,220 @@ function LocationMarker({ position, onChange }) {
       onChange({
         latitude: event.latlng.lat,
         longitude: event.latlng.lng,
-      });
+      })
     },
-  });
+  })
 
-  if (!position) return null;
+  if (!position) return null
 
   return (
     <Marker
       position={[position.latitude, position.longitude]}
       icon={markerIcon}
     />
-  );
+  )
+}
+
+function getGeolocationErrorMessage(error) {
+  if (error?.code === 1) {
+    return 'ไม่ได้รับอนุญาตให้เข้าถึงตำแหน่ง กรุณาอนุญาต Location ใน Browser หรือเลือกตำแหน่งบนแผนที่'
+  }
+
+  if (error?.code === 2) {
+    return 'ไม่พบตำแหน่งปัจจุบันของเครื่อง กรุณาลองใหม่หรือเลือกตำแหน่งบนแผนที่'
+  }
+
+  if (error?.code === 3) {
+    return 'ค้นหาตำแหน่งใช้เวลานานเกินไป กรุณาลองใหม่หรือเลือกตำแหน่งบนแผนที่'
+  }
+
+  return 'ไม่สามารถอ่านตำแหน่งปัจจุบันของเครื่องได้'
 }
 
 function LocationPicker({ latitude, longitude, onChange }) {
+  const hasInitialLocation = latitude != null && longitude != null
   const [position, setPosition] = useState(
-    latitude != null && longitude != null
+    hasInitialLocation
       ? {
           latitude: Number(latitude),
           longitude: Number(longitude),
         }
-      : DEFAULT_CENTER,
-  );
+      : DEFAULT_CENTER
+  )
 
-  const [keyword, setKeyword] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const [message, setMessage] = useState("");
-  const searchTimerRef = useRef(null);
+  const [keyword, setKeyword] = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [searching, setSearching] = useState(false)
+  const [locating, setLocating] = useState(false)
+  const [message, setMessage] = useState({ type: '', text: '' })
+  const searchTimerRef = useRef(null)
+  const autoLocateRequestedRef = useRef(false)
+  const geolocationRequestRef = useRef(0)
 
-  function handleSelect(nextPosition) {
-    setPosition(nextPosition);
-    setMessage("");
-    onChange?.(nextPosition);
-  }
+  const handleSelect = useCallback(
+    (nextPosition, source = 'manual') => {
+      if (source !== 'geolocation') {
+        geolocationRequestRef.current += 1
+        setLocating(false)
+      }
+
+      setPosition(nextPosition)
+      setMessage({ type: '', text: '' })
+      onChange?.(nextPosition)
+    },
+    [onChange]
+  )
+
+  const requestCurrentLocation = useCallback(
+    ({ automatic = false } = {}) => {
+      if (!navigator.geolocation) {
+        setMessage({
+          type: 'error',
+          text: 'Browser นี้ไม่รองรับการอ่านตำแหน่งปัจจุบัน กรุณาเลือกตำแหน่งบนแผนที่',
+        })
+        return
+      }
+
+      const requestId = geolocationRequestRef.current + 1
+      geolocationRequestRef.current = requestId
+      setLocating(true)
+
+      navigator.geolocation.getCurrentPosition(
+        (result) => {
+          if (requestId !== geolocationRequestRef.current) return
+
+          const nextPosition = {
+            latitude: result.coords.latitude,
+            longitude: result.coords.longitude,
+          }
+
+          handleSelect(nextPosition, 'geolocation')
+          setKeyword('ตำแหน่งปัจจุบันของเครื่องนี้')
+
+          const accuracy = Number(result.coords.accuracy)
+          setMessage({
+            type: 'success',
+            text: Number.isFinite(accuracy)
+              ? `ใช้ตำแหน่งปัจจุบันแล้ว ความแม่นยำประมาณ ${Math.round(accuracy)} เมตร`
+              : 'ใช้ตำแหน่งปัจจุบันของเครื่องนี้แล้ว',
+          })
+          setLocating(false)
+        },
+        (error) => {
+          if (requestId !== geolocationRequestRef.current) return
+
+          setLocating(false)
+          setMessage({
+            type: automatic ? 'info' : 'error',
+            text: getGeolocationErrorMessage(error),
+          })
+        },
+        GEOLOCATION_OPTIONS
+      )
+    },
+    [handleSelect]
+  )
+
+  useEffect(() => {
+    if (latitude != null && longitude != null) {
+      setPosition({
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+      })
+      return
+    }
+
+    if (autoLocateRequestedRef.current) return
+
+    autoLocateRequestedRef.current = true
+    requestCurrentLocation({ automatic: true })
+  }, [latitude, longitude, requestCurrentLocation])
+
+  useEffect(
+    () => () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current)
+      }
+
+      geolocationRequestRef.current += 1
+    },
+    []
+  )
 
   function selectSuggestion(place) {
     const nextPosition = {
       latitude: Number(place.lat),
       longitude: Number(place.lon),
-    };
+    }
 
-    setKeyword(place.display_name);
-    setSuggestions([]);
-    handleSelect(nextPosition);
+    setKeyword(place.display_name)
+    setSuggestions([])
+    handleSelect(nextPosition)
   }
 
   async function searchPlaces(query) {
-    const text = query.trim();
+    const text = query.trim()
 
     if (text.length < 3) {
-      setSuggestions([]);
-      return;
+      setSuggestions([])
+      return
     }
 
     const coordinateMatch = text.match(
-      /(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
-    );
+      /(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/
+    )
 
     if (coordinateMatch) {
       setSuggestions([
         {
-          place_id: "coordinate",
+          place_id: 'coordinate',
           display_name: `ใช้พิกัด ${coordinateMatch[1]}, ${coordinateMatch[2]}`,
           lat: coordinateMatch[1],
           lon: coordinateMatch[2],
         },
-      ]);
-      return;
+      ])
+      return
     }
 
     try {
-      setSearching(true);
-      setMessage("");
+      setSearching(true)
+      setMessage({ type: '', text: '' })
 
       const params = new URLSearchParams({
         q: text,
-        format: "json",
-        limit: "5",
-        addressdetails: "1",
-      });
+        format: 'json',
+        limit: '5',
+        addressdetails: '1',
+      })
 
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?${params.toString()}`,
-      );
+        `https://nominatim.openstreetmap.org/search?${params.toString()}`
+      )
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Location search failed with status ${response.status}`)
+      }
 
-      setSuggestions(Array.isArray(data) ? data : []);
+      const data = await response.json()
+      setSuggestions(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error(error);
-      setMessage("ค้นหาตำแหน่งไม่สำเร็จ");
+      console.error(error)
+      setMessage({ type: 'error', text: 'ค้นหาตำแหน่งไม่สำเร็จ' })
     } finally {
-      setSearching(false);
+      setSearching(false)
     }
   }
 
   function handleKeywordChange(value) {
-    setKeyword(value);
+    setKeyword(value)
 
     if (searchTimerRef.current) {
-      clearTimeout(searchTimerRef.current);
+      clearTimeout(searchTimerRef.current)
     }
 
     searchTimerRef.current = setTimeout(() => {
-      searchPlaces(value);
-    }, 500);
+      searchPlaces(value)
+    }, 500)
   }
 
   return (
@@ -162,8 +276,25 @@ function LocationPicker({ latitude, longitude, onChange }) {
             onClick={() => searchPlaces(keyword)}
             disabled={searching}
           >
-            {searching ? "ค้นหา..." : "ค้นหา"}
+            {searching ? 'ค้นหา...' : 'ค้นหา'}
           </button>
+        </div>
+
+        <div className="location-current-row">
+          <button
+            type="button"
+            className="location-current-button"
+            onClick={() => requestCurrentLocation()}
+            disabled={locating}
+          >
+            {locating ? (
+              <LoaderCircle className="location-current-spinner" size={16} />
+            ) : (
+              <Crosshair size={16} />
+            )}
+            {locating ? 'กำลังค้นหาตำแหน่ง...' : 'ใช้ตำแหน่งปัจจุบันของเครื่องนี้'}
+          </button>
+          <small>Browser อาจขออนุญาตเข้าถึง Location</small>
         </div>
 
         {suggestions.length > 0 && (
@@ -175,7 +306,7 @@ function LocationPicker({ latitude, longitude, onChange }) {
                 onClick={() => selectSuggestion(place)}
               >
                 <strong>
-                  {place.name || place.display_name?.split(",")[0]}
+                  {place.name || place.display_name?.split(',')[0]}
                 </strong>
                 <span>{place.display_name}</span>
               </button>
@@ -184,7 +315,9 @@ function LocationPicker({ latitude, longitude, onChange }) {
         )}
       </div>
 
-      {message && <div className="location-message">{message}</div>}
+      {message.text && (
+        <div className={`location-message ${message.type}`}>{message.text}</div>
+      )}
 
       <MapContainer
         center={[position.latitude, position.longitude]}
@@ -206,7 +339,7 @@ function LocationPicker({ latitude, longitude, onChange }) {
         <span>Longitude: {position.longitude.toFixed(6)}</span>
       </div>
     </div>
-  );
+  )
 }
 
-export default LocationPicker;
+export default LocationPicker
