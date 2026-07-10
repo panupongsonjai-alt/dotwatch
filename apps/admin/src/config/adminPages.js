@@ -13,40 +13,40 @@ import {
 
 export const ADMIN_PAGE_META = {
   overview: {
-    section: 'Control Center',
+    section: 'Admin Workspace',
     title: 'Overview',
     description: 'System-wide users, devices, subscriptions, and operations summary.',
     icon: LayoutDashboard,
   },
   users: {
-    section: 'Management',
+    section: 'Admin Workspace',
     title: 'Users',
     description: 'Manage user access, account status, device limits, and plan assignment.',
     icon: Users,
   },
   devices: {
-    section: 'Management',
+    section: 'Admin Workspace',
     title: 'Devices',
     description: 'Monitor all devices across organizations and users from one admin view.',
     icon: MonitorSmartphone,
   },
   models: {
-    section: 'Product',
+    section: 'Operations',
     title: 'Device Models',
     description: 'Maintain device model definitions and default metric mapping.',
     icon: Cpu,
   },
   subscriptions: {
-    section: 'Commercial',
+    section: 'Operations',
     title: 'Subscriptions',
     description: 'Review plans, limits, usage, and subscription readiness.',
     icon: CreditCard,
   },
   audit: {
-    section: 'Security',
+    section: 'Operations',
     title: 'Audit Logs',
     description: 'Track admin actions and important system changes.',
-    icon: Bell,
+    icon: Activity,
   },
   system: {
     section: 'System',
@@ -55,7 +55,7 @@ export const ADMIN_PAGE_META = {
     icon: Database,
   },
   settings: {
-    section: 'System',
+    section: 'Account',
     title: 'Settings',
     description: 'Admin console preferences and operational settings.',
     icon: Settings,
@@ -64,34 +64,28 @@ export const ADMIN_PAGE_META = {
 
 export const ADMIN_MENU_GROUPS = [
   {
-    section: 'Control Center',
-    items: [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }],
-  },
-  {
-    section: 'Management',
+    section: 'Admin Workspace',
     items: [
+      { id: 'overview', label: 'Overview', icon: LayoutDashboard },
       { id: 'users', label: 'Users', icon: Users },
       { id: 'devices', label: 'Devices', icon: MonitorSmartphone },
     ],
   },
   {
-    section: 'Product',
-    items: [{ id: 'models', label: 'Device Models', icon: Cpu }],
-  },
-  {
-    section: 'Commercial',
-    items: [{ id: 'subscriptions', label: 'Subscriptions', icon: CreditCard }],
-  },
-  {
-    section: 'Security',
-    items: [{ id: 'audit', label: 'Audit Logs', icon: Bell }],
+    section: 'Operations',
+    items: [
+      { id: 'models', label: 'Device Models', icon: Cpu },
+      { id: 'subscriptions', label: 'Subscriptions', icon: CreditCard },
+      { id: 'audit', label: 'Audit Logs', icon: Activity },
+    ],
   },
   {
     section: 'System',
-    items: [
-      { id: 'system', label: 'System', icon: Database },
-      { id: 'settings', label: 'Settings', icon: Settings },
-    ],
+    items: [{ id: 'system', label: 'System', icon: Database }],
+  },
+  {
+    section: 'Account',
+    items: [{ id: 'settings', label: 'Settings', icon: Settings }],
   },
 ]
 
