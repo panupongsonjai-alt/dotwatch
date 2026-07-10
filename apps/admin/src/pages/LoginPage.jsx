@@ -1,25 +1,32 @@
 import { useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { Activity, Lock, Mail, ShieldCheck } from 'lucide-react'
-import { auth } from '../services/firebase'
+import {
+  auth,
+  firebaseConfigError,
+  firebaseConfigHelp,
+  isFirebaseConfigured,
+} from '../services/firebase'
 
 function LoginPage({ error }) {
-  const [form, setForm] = useState({
-    email: '',
-    password: '',
-  })
-  const [localError, setLocalError] = useState('')
+  const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
+  const [localError, setLocalError] = useState('')
 
   function updateField(field, value) {
-    setForm((currentForm) => ({
-      ...currentForm,
-      [field]: value,
-    }))
+    setForm((current) => ({ ...current, [field]: value }))
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
+
+    if (!auth) {
+      setLocalError(
+        firebaseConfigError ||
+          'Firebase Admin Auth is not configured. Please check apps/admin/.env.local'
+      )
+      return
+    }
 
     try {
       setLoading(true)
@@ -33,6 +40,8 @@ function LoginPage({ error }) {
       setLoading(false)
     }
   }
+
+  const authConfigError = !isFirebaseConfigured
 
   return (
     <main className="auth-screen">
@@ -54,9 +63,19 @@ function LoginPage({ error }) {
           <p>สำหรับผู้ดูแลระบบ dotWatch เท่านั้น</p>
         </div>
 
-        {error || localError ? (
-          <div className="auth-error">{error || localError}</div>
+        {authConfigError ? (
+          <div className="auth-config-card">
+            <strong>Admin auth is not configured</strong>
+            <span>สร้างไฟล์ {firebaseConfigHelp.localEnvFile} แล้วใส่ Firebase Web SDK config ให้ครบ</span>
+            <ul>
+              {firebaseConfigHelp.requiredEnvNames.map((name) => (
+                <li key={name}>{name}</li>
+              ))}
+            </ul>
+          </div>
         ) : null}
+
+        {error || localError ? <div className="auth-error">{error || localError}</div> : null}
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
@@ -68,6 +87,7 @@ function LoginPage({ error }) {
                 autoComplete="email"
                 value={form.email}
                 onChange={(event) => updateField('email', event.target.value)}
+                disabled={authConfigError}
                 required
               />
             </div>
@@ -81,15 +101,14 @@ function LoginPage({ error }) {
                 type="password"
                 autoComplete="current-password"
                 value={form.password}
-                onChange={(event) =>
-                  updateField('password', event.target.value)
-                }
+                onChange={(event) => updateField('password', event.target.value)}
+                disabled={authConfigError}
                 required
               />
             </div>
           </label>
 
-          <button type="submit" disabled={loading}>
+          <button type="submit" disabled={loading || authConfigError}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>

@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '../../services/firebase'
+import { auth, firebaseConfigError } from '../../services/firebase'
 import LoginPage from '../../pages/LoginPage'
 import LoadingState from '../common/LoadingState'
 
 function AuthGate({ children, getAdminMe, onReady }) {
   const [firebaseUser, setFirebaseUser] = useState(null)
   const [adminUser, setAdminUser] = useState(null)
-  const [checking, setChecking] = useState(true)
-  const [error, setError] = useState('')
+  const [checking, setChecking] = useState(Boolean(auth))
+  const [error, setError] = useState(firebaseConfigError || '')
 
   useEffect(() => {
+    if (!auth) {
+      onReady?.(null)
+      setChecking(false)
+      return undefined
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user)
       setAdminUser(null)

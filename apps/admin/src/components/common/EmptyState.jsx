@@ -1,8 +1,10 @@
-function EmptyState({ title = 'No data', description }) {
+function EmptyState({ title = 'No data', description, action }) {
   return (
-    <div className="admin-empty-state">
-      <strong>{title}</strong>
-      {description ? <p>{description}</p> : null}
+    <div className="dw-empty-state admin-empty-state">
+      <div className="dw-empty-icon">•</div>
+      <h3>{title}</h3>
+      {description && <p>{description}</p>}
+      {action && <div className="dw-empty-action">{action}</div>}
     </div>
   )
 }

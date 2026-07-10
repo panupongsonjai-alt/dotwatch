@@ -75,7 +75,8 @@
     "verify:phase10b:esp32-tls-ca": "node scripts/phase10b-esp32-tls-ca-verify.mjs",
     "verify:phase10c:device-ux": "node scripts/phase10c-device-ux-verify.mjs",
     "verify:phase10d:device-ops": "node scripts/phase10d-device-operations-verify.mjs",
-    "verify:phase10e:dashboard-auth": "node scripts/phase10e-dashboard-auth-env-verify.mjs"
+    "verify:phase10e:dashboard-auth": "node scripts/phase10e-dashboard-auth-env-verify.mjs",
+    "verify:phase11a:admin-structure": "node scripts/phase11a-admin-dashboard-structure-verify.mjs"
   },
   "engines": {
     "node": ">=20"

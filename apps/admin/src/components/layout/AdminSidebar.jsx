@@ -1,96 +1,81 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
-  Activity,
-  Bell,
-  Cpu,
-  CreditCard,
-  Database,
-  LayoutDashboard,
-  MonitorSmartphone,
-  Settings,
-  ShieldCheck,
-  Users,
-} from 'lucide-react'
+  ADMIN_ACCESS_ICON,
+  ADMIN_BRAND_ICON,
+  ADMIN_MENU_GROUPS,
+} from '../../config/adminPages'
 
-const MENU_ITEMS = [
-  {
-    id: 'overview',
-    label: 'Overview',
-    icon: LayoutDashboard,
-  },
-  {
-    id: 'users',
-    label: 'Users',
-    icon: Users,
-  },
-  {
-    id: 'devices',
-    label: 'Devices',
-    icon: MonitorSmartphone,
-  },
-  {
-    id: 'models',
-    label: 'Models',
-    icon: Cpu,
-  },
-  {
-    id: 'subscriptions',
-    label: 'Subscriptions',
-    icon: CreditCard,
-  },
-  {
-    id: 'audit',
-    label: 'Audit Logs',
-    icon: Bell,
-  },
-  {
-    id: 'system',
-    label: 'System',
-    icon: Database,
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    icon: Settings,
-  },
-]
+function AdminSidebar({ activePage, onNavigate, sidebarOpen, setSidebarOpen }) {
+  const BrandIcon = ADMIN_BRAND_ICON
+  const AccessIcon = ADMIN_ACCESS_ICON
 
-function AdminSidebar({ activePage, onNavigate }) {
+  function handleNavigate(pageId) {
+    onNavigate(pageId)
+
+    if (window.innerWidth <= 900) {
+      setSidebarOpen(false)
+    }
+  }
+
   return (
-    <aside className="admin-sidebar">
-      <div className="admin-brand">
-        <div className="admin-brand-mark">
-          <Activity size={20} />
+    <aside className={`admin-sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
+      <div className="admin-brand brand">
+        <div className="admin-brand-left brand-left">
+          <span className="admin-brand-mark brand-dot">
+            <BrandIcon size={20} />
+          </span>
+
+          <div className="admin-brand-text brand-text">
+            <strong>dotWatch</strong>
+            <small>Admin Console</small>
+          </div>
         </div>
-        <div>
-          <strong>dotWatch</strong>
-          <span>Admin Console</span>
-        </div>
+
+        <button
+          type="button"
+          className="collapse-btn"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+        >
+          {sidebarOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+        </button>
       </div>
 
-      <nav className="admin-nav">
-        {MENU_ITEMS.map((item) => {
-          const Icon = item.icon
-          const isActive = activePage === item.id
+      <nav className="admin-nav menu" aria-label="Admin navigation">
+        {ADMIN_MENU_GROUPS.map((group) => (
+          <div key={group.section} className="admin-menu-section menu-section">
+            <span className="admin-menu-section-label menu-section-label">
+              {group.section}
+            </span>
 
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className={`admin-nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => onNavigate(item.id)}
-            >
-              <Icon size={18} />
-              <span>{item.label}</span>
-            </button>
-          )
-        })}
+            {group.items.map((item) => {
+              const Icon = item.icon
+              const isActive = activePage === item.id
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`admin-nav-item menu-item ${isActive ? 'active' : ''}`}
+                  onClick={() => handleNavigate(item.id)}
+                  title={item.label}
+                >
+                  <span className="admin-menu-icon menu-icon">
+                    <Icon size={20} />
+                  </span>
+                  <span className="admin-menu-label menu-label">{item.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="admin-sidebar-card">
-        <ShieldCheck size={18} />
+        <AccessIcon size={18} />
         <div>
-          <strong>Super Admin</strong>
-          <span>Full system access</span>
+          <strong>Admin Access</strong>
+          <span>Role protected workspace</span>
         </div>
       </div>
     </aside>

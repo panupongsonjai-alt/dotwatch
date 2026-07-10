@@ -67,6 +67,10 @@ function createRequestId() {
 }
 
 async function getToken({ forceRefresh = false } = {}) {
+  if (!auth) {
+    throw new Error('Firebase Admin Auth is not configured. Please check apps/admin/.env.local')
+  }
+
   const user = auth.currentUser
 
   if (!user) {
