@@ -56,7 +56,7 @@
 #include <string.h>
 #include "dotwatch_root_ca.h"
 
-#define FIRMWARE_VERSION "esp32-dht3-security-0.8.0"
+#define FIRMWARE_VERSION "esp32-dht3-security-0.9.0"
 
 static const char *SETUP_AP_SSID = "dotWatch-ESP32-Setup";
 static const char *SETUP_AP_PASSWORD = "dotwatch-setup";
@@ -712,48 +712,65 @@ String isoTimestampOrEmpty() {
 
 String pageShell(const String &title, const String &body) {
   String html;
-  html.reserve(12000);
+  html.reserve(22000);
+  String connectionClass = WiFi.status() == WL_CONNECTED ? "ok" : "bad";
+  String connectionText = WiFi.status() == WL_CONNECTED ? "Wi-Fi connected" : "Setup mode";
+  String activeIp = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : WiFi.softAPIP().toString();
+
   html += "<!doctype html><html lang='th'><head><meta charset='utf-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
   html += "<title>dotWatch ESP32 Setup</title>";
   html += "<style>";
-  html += ":root{color-scheme:dark;--bg:#0f172a;--panel:#1e293b;--panel2:#111827;--text:#f8fafc;--muted:#94a3b8;--border:#334155;--primary:#2563eb;--ok:#22c55e;--warn:#f59e0b;--danger:#ef4444;--red:#ef4444}";
-  html += "*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% -10%,rgba(37,99,235,.22),transparent 26rem),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}";
-  html += ".wrap{max-width:980px;margin:0 auto;padding:22px}.header,.card{background:var(--panel);border:1px solid var(--border);border-radius:22px;box-shadow:0 18px 45px rgba(0,0,0,.26)}.header{padding:22px;margin-bottom:16px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.brand{display:flex;gap:12px;align-items:center}.logo{width:42px;height:42px;border-radius:14px;background:radial-gradient(circle at 30% 30%,#fff 0 8%,transparent 9%),linear-gradient(135deg,var(--red),#991b1b)}h1{font-size:24px;margin:0;letter-spacing:-.04em}.muted{color:var(--muted);font-size:13px;line-height:1.5}.grid{display:grid;grid-template-columns:1fr 330px;gap:16px}.card{padding:20px;margin-bottom:16px}.card h2{margin:0 0 12px;font-size:18px}.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}label{display:grid;gap:7px;font-size:13px;font-weight:800}input,select,textarea{width:100%;border:1px solid var(--border);border-radius:13px;background:var(--panel2);color:var(--text);padding:12px 13px;outline:none}textarea{min-height:150px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45}button,.btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border:0;border-radius:13px;background:var(--primary);color:white;font-weight:900;text-decoration:none;cursor:pointer}.btn2{background:transparent;border:1px solid var(--border)}.danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.28);color:#fecaca}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.stat{padding:13px;border:1px solid var(--border);border-radius:16px;background:var(--panel2);margin-bottom:10px}.stat small{display:block;color:var(--muted);font-size:11px;font-weight:900}.stat strong{display:block;margin-top:4px;font-size:15px;word-break:break-word}.badge{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:0 11px;border-radius:999px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);font-size:12px;font-weight:900}.dot{width:8px;height:8px;border-radius:999px;background:var(--warn)}.ok .dot{background:var(--ok)}.bad .dot{background:var(--danger)}.notice{padding:13px 14px;border-radius:16px;border:1px solid rgba(245,158,11,.28);background:rgba(245,158,11,.10);color:#fde68a;margin-bottom:16px;font-size:13px;line-height:1.5}.footer{text-align:center;color:var(--muted);font-size:12px;margin-top:18px}";
-  html += "@media(max-width:840px){.grid{grid-template-columns:1fr}.header{display:block}.form{grid-template-columns:1fr}.wrap{padding:14px}}";
-  html += "</style></head><body><div class='wrap'>";
-  html += "<header class='header'><div class='brand'><div class='logo'></div><div><h1>";
-  html += htmlEscape(title);
-  html += "</h1><div class='muted'>dotWatch ESP32-DHT3 · Additional model · ";
+  html += ":root{color-scheme:dark;--bg:#0f172a;--bg2:#111827;--panel:#172033;--panel2:#1e293b;--panel3:#0b1220;--text:#f8fafc;--muted:#94a3b8;--soft:#cbd5e1;--border:#334155;--border2:rgba(148,163,184,.22);--primary:#ef4444;--primary2:#991b1b;--accent:#22c55e;--warn:#f59e0b;--danger:#ef4444;--info:#38bdf8;--shadow:0 24px 60px rgba(0,0,0,.34);}";
+  html += "*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:radial-gradient(circle at 18% -10%,rgba(239,68,68,.18),transparent 28rem),radial-gradient(circle at 88% 10%,rgba(56,189,248,.12),transparent 25rem),linear-gradient(135deg,#0b1220,#111827 48%,#0f172a);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}";
+  html += "a{color:inherit}.app-shell{max-width:1180px;margin:0 auto;padding:22px}.portal-frame{display:grid;grid-template-columns:270px minmax(0,1fr);gap:18px}.portal-sidebar{position:sticky;top:18px;height:calc(100vh - 36px);display:flex;flex-direction:column;gap:14px}.brand-card,.nav-card,.status-card,.card,.section-card,.page-hero{border:1px solid var(--border2);border-radius:24px;background:linear-gradient(180deg,rgba(30,41,59,.92),rgba(15,23,42,.92));box-shadow:var(--shadow);backdrop-filter:blur(10px)}";
+  html += ".brand-card{padding:18px}.brand{display:flex;gap:12px;align-items:center}.logo{width:46px;height:46px;border-radius:16px;background:radial-gradient(circle at 28% 26%,#fff 0 7%,transparent 8%),linear-gradient(135deg,var(--primary),var(--primary2));box-shadow:0 16px 35px rgba(239,68,68,.24)}.brand-title{font-size:18px;font-weight:950;letter-spacing:-.04em}.brand-subtitle{color:var(--muted);font-size:12px;margin-top:2px;line-height:1.4}.nav-card{padding:12px}.nav-title{padding:8px 10px;color:var(--muted);font-size:11px;font-weight:950;letter-spacing:.12em;text-transform:uppercase}.side-nav{display:grid;gap:7px}.side-nav a{display:flex;align-items:center;justify-content:space-between;min-height:40px;padding:0 12px;border-radius:14px;text-decoration:none;color:var(--soft);font-size:13px;font-weight:900;border:1px solid transparent}.side-nav a:hover{border-color:var(--border2);background:rgba(148,163,184,.08)}.side-nav span{color:var(--muted);font-size:11px}.status-card{padding:14px;margin-top:auto}.status-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.status-label{color:var(--muted);font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.10em}.badge{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:0 11px;border-radius:999px;border:1px solid var(--border2);background:rgba(15,23,42,.72);color:var(--muted);font-size:12px;font-weight:950;white-space:nowrap}.dot{width:8px;height:8px;border-radius:999px;background:var(--warn)}.ok .dot{background:var(--accent)}.bad .dot{background:var(--danger)}.tiny{color:var(--muted);font-size:12px;line-height:1.5;word-break:break-word}";
+  html += ".portal-main{min-width:0}.page-hero{padding:22px;margin-bottom:18px;display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.eyebrow{display:inline-flex;align-items:center;gap:8px;color:#fecaca;font-size:12px;font-weight:950;letter-spacing:.10em;text-transform:uppercase}.page-hero h1{font-size:32px;line-height:1.08;margin:8px 0 8px;letter-spacing:-.055em}.page-hero p{margin:0;color:var(--muted);font-size:14px;line-height:1.55}.hero-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.85fr);gap:18px}.card,.section-card{padding:20px;margin-bottom:18px}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}.section-kicker{color:var(--muted);font-size:11px;font-weight:950;letter-spacing:.12em;text-transform:uppercase}.section-card h2,.card h2{margin:0;color:var(--text);font-size:20px;letter-spacing:-.035em}.section-desc,.muted{color:var(--muted);font-size:13px;line-height:1.55}.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}.stat{min-height:86px;padding:13px;border:1px solid var(--border2);border-radius:18px;background:rgba(15,23,42,.62)}.stat small{display:block;color:var(--muted);font-size:11px;font-weight:950;letter-spacing:.04em;text-transform:uppercase}.stat strong{display:block;margin-top:7px;font-size:17px;line-height:1.25;word-break:break-word}.stat.good{border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.08)}.stat.warn{border-color:rgba(245,158,11,.26);background:rgba(245,158,11,.08)}.stat.bad{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.08)}.form-section{border:1px solid var(--border2);border-radius:20px;padding:16px;background:rgba(15,23,42,.48);margin-top:12px}.form-section h3{margin:0 0 12px;font-size:15px;letter-spacing:-.02em}.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}label{display:grid;gap:7px;color:var(--soft);font-size:13px;font-weight:900}input,select,textarea{width:100%;border:1px solid var(--border2);border-radius:14px;background:#0b1220;color:var(--text);padding:12px 13px;outline:none}input:focus,select:focus,textarea:focus{border-color:rgba(239,68,68,.55);box-shadow:0 0 0 4px rgba(239,68,68,.12)}textarea{min-height:160px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}button,.btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 15px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--primary),var(--primary2));color:white;font-weight:950;text-decoration:none;cursor:pointer;box-shadow:0 14px 28px rgba(239,68,68,.16)}.btn2{background:rgba(15,23,42,.45);border:1px solid var(--border2);box-shadow:none;color:var(--soft)}.danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.28);color:#fecaca;box-shadow:none}.notice{padding:13px 14px;border-radius:17px;border:1px solid rgba(245,158,11,.28);background:rgba(245,158,11,.10);color:#fde68a;margin-bottom:16px;font-size:13px;line-height:1.55}.notice.info{border-color:rgba(56,189,248,.26);background:rgba(56,189,248,.08);color:#bae6fd}.ops-list{display:grid;gap:10px}.ops-item{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:16px;border:1px solid var(--border2);background:rgba(15,23,42,.45)}.ops-icon{width:28px;height:28px;border-radius:10px;background:rgba(239,68,68,.14);display:flex;align-items:center;justify-content:center;color:#fecaca;font-weight:950}.footer{text-align:center;color:var(--muted);font-size:12px;margin:18px 0 4px}";
+  html += "@media(max-width:980px){.portal-frame{grid-template-columns:1fr}.portal-sidebar{position:relative;top:auto;height:auto}.side-nav{grid-template-columns:repeat(3,minmax(0,1fr))}.status-card{margin-top:0}.grid{grid-template-columns:1fr}.page-hero{display:block}.hero-actions{justify-content:flex-start;margin-top:14px}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.app-shell{padding:12px}.side-nav{grid-template-columns:1fr}.form,.stat-grid{grid-template-columns:1fr}.page-hero h1{font-size:26px}.brand-card,.nav-card,.status-card,.card,.section-card,.page-hero{border-radius:20px;padding:16px}}";
+  html += "</style></head><body><div class='app-shell'><div class='portal-frame'>";
+  html += "<aside class='portal-sidebar'><section class='brand-card'><div class='brand'><div class='logo'></div><div><div class='brand-title'>dotWatch ESP32</div><div class='brand-subtitle'>DHT3 Local Device Console<br>";
   html += FIRMWARE_VERSION;
-  html += "</div></div></div><div>";
-  html += (WiFi.status() == WL_CONNECTED)
-            ? "<span class='badge ok'><span class='dot'></span>Wi-Fi connected</span>"
-            : "<span class='badge bad'><span class='dot'></span>Setup mode</span>";
-  html += "</div></header>";
+  html += "</div></div></div></section>";
+  html += "<section class='nav-card'><div class='nav-title'>Workspace</div><nav class='side-nav'><a href='#overview'>Overview <span>01</span></a><a href='#network'>Network <span>02</span></a><a href='#security'>Security <span>03</span></a><a href='#device'>Device <span>04</span></a><a href='#sensor'>Sensor <span>05</span></a><a href='#operations'>Operations <span>06</span></a></nav></section>";
+  html += "<section class='status-card'><div class='status-row'><div><div class='status-label'>Status</div><div class='tiny'>";
+  html += htmlEscape(activeIp);
+  html += "</div></div><span class='badge " + connectionClass + "'><span class='dot'></span>" + connectionText + "</span></div><div class='tiny'>Model: ESP32-DHT3 · TLS: ";
+  html += htmlEscape(tlsModeText());
+  html += "</div></section></aside>";
+  html += "<main class='portal-main'><section class='page-hero'><div><div class='eyebrow'>Local Portal</div><h1>";
+  html += htmlEscape(title);
+  html += "</h1><p>โครงสร้างหน้า ESP32 ถูกจัดให้อยู่ในโทนเดียวกับ Dashboard แต่ยังแยก logic, route และข้อมูลของ firmware ไว้เฉพาะ ESP32.</p></div><div class='hero-actions'><a class='btn btn2' href='/json'>Status JSON</a><a class='btn btn2' href='/test'>Read Test</a></div></section>";
   html += body;
-  html += "<div class='footer'>dotWatch ESP32 Config Portal · ไม่แทนที่ Raspberry Pi / DW20CH</div>";
-  html += "</div></body></html>";
+  html += "<div class='footer'>dotWatch ESP32 Config Portal · Local-only UI · ไม่แทนที่ Raspberry Pi / DW20CH</div></main>";
+  html += "</div></div></body></html>";
   return html;
 }
 
 String currentStatusHtml() {
   String html;
-  html += "<div class='stat'><small>Wi-Fi</small><strong>" + htmlEscape(WiFi.status() == WL_CONNECTED ? cfg.wifiSsid : "Not connected") + "</strong></div>";
-  html += "<div class='stat'><small>Remembered Wi-Fi</small><strong>" + htmlEscape(knownWiFiProfileSummary()) + "</strong></div>";
-  html += "<div class='stat'><small>IP</small><strong>" + htmlEscape(WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : WiFi.softAPIP().toString()) + "</strong></div>";
-  html += "<div class='stat'><small>Backend</small><strong>" + htmlEscape(cfg.apiUrl) + "</strong></div>";
-  html += "<div class='stat'><small>Device Code</small><strong>" + htmlEscape(cfg.deviceCode.length() ? cfg.deviceCode : "Not set") + "</strong></div>";
-  html += "<div class='stat'><small>Device Secret</small><strong>" + htmlEscape(maskSecret(cfg.deviceSecret)) + "</strong></div>";
-  html += "<div class='stat'><small>Local Admin</small><strong>" + String(cfg.adminPin.length() >= 4 ? "Custom PIN set" : "Default PIN = last 6 chars of Device Code") + "</strong></div>";
-  html += "<div class='stat'><small>TLS Mode</small><strong>" + htmlEscape(tlsModeText()) + "</strong></div>";
-  html += "<div class='stat'><small>DHT</small><strong>Pin " + String(cfg.dhtPin) + " · " + String(cfg.dhtType == DHT22 ? "DHT22" : "DHT11") + "</strong></div>";
-  html += "<div class='stat'><small>Interval</small><strong>" + String(cfg.sendIntervalMs / 1000) + "s</strong></div>";
+  String wifiLabel = WiFi.status() == WL_CONNECTED ? WiFi.SSID() : "Not connected";
+  String ipLabel = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : WiFi.softAPIP().toString();
+  String sendClass = lastSendStatus == "ok" ? "good" : (lastSendStatus == "error" ? "bad" : "warn");
+  String tlsClass = hasEffectiveTlsCaCert() ? "good" : "warn";
+
+  html += "<div class='stat-grid'>";
+  html += "<div class='stat " + String(WiFi.status() == WL_CONNECTED ? "good" : "warn") + "'><small>Wi-Fi</small><strong>" + htmlEscape(wifiLabel) + "</strong></div>";
+  html += "<div class='stat'><small>IP Address</small><strong>" + htmlEscape(ipLabel) + "</strong></div>";
   html += "<div class='stat'><small>RSSI</small><strong>" + String(WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0) + " dBm</strong></div>";
-  html += "<div class='stat'><small>Uptime</small><strong>" + uptimeText() + "</strong></div>";
-  html += "<div class='stat'><small>Last Send</small><strong>" + htmlEscape(lastSendStatus) + " · HTTP " + String(lastHttpStatus) + "</strong></div>";
-  html += "<div class='stat'><small>Last Error</small><strong>" + htmlEscape(lastSendError.length() ? lastSendError : "None") + "</strong></div>";
-  html += "<div class='stat'><small>Send Count</small><strong>OK " + String(totalSendOk) + " · FAIL " + String(totalSendFail) + "</strong></div>";
+  html += "<div class='stat'><small>Device Code</small><strong>" + htmlEscape(cfg.deviceCode.length() ? cfg.deviceCode : "Not set") + "</strong></div>";
+  html += "<div class='stat " + tlsClass + "'><small>TLS Mode</small><strong>" + htmlEscape(tlsModeText()) + "</strong></div>";
+  html += "<div class='stat " + sendClass + "'><small>Last Send</small><strong>" + htmlEscape(lastSendStatus) + " · HTTP " + String(lastHttpStatus) + "</strong></div>";
+  html += "</div>";
+
+  html += "<div class='ops-list'>";
+  html += "<div class='ops-item'><div class='ops-icon'>W</div><div><strong>Remembered Wi-Fi</strong><div class='muted'>" + htmlEscape(knownWiFiProfileSummary()) + "</div></div></div>";
+  html += "<div class='ops-item'><div class='ops-icon'>B</div><div><strong>Backend</strong><div class='muted'>" + htmlEscape(cfg.apiUrl) + "</div></div></div>";
+  html += "<div class='ops-item'><div class='ops-icon'>S</div><div><strong>Device Secret</strong><div class='muted'>" + htmlEscape(maskSecret(cfg.deviceSecret)) + "</div></div></div>";
+  html += "<div class='ops-item'><div class='ops-icon'>P</div><div><strong>Local Admin</strong><div class='muted'>" + String(cfg.adminPin.length() >= 4 ? "Custom PIN set" : "Default PIN = last 6 chars of Device Code") + "</div></div></div>";
+  html += "<div class='ops-item'><div class='ops-icon'>D</div><div><strong>DHT Sensor</strong><div class='muted'>Pin " + String(cfg.dhtPin) + " · " + String(cfg.dhtType == DHT22 ? "DHT22" : "DHT11") + " · interval " + String(cfg.sendIntervalMs / 1000) + "s</div></div></div>";
+  html += "<div class='ops-item'><div class='ops-icon'>U</div><div><strong>Uptime</strong><div class='muted'>" + uptimeText() + " · OK " + String(totalSendOk) + " · FAIL " + String(totalSendFail) + "</div></div></div>";
+  html += "<div class='ops-item'><div class='ops-icon'>!</div><div><strong>Last Error</strong><div class='muted'>" + htmlEscape(lastSendError.length() ? lastSendError : "None") + "</div></div></div>";
+  html += "</div>";
   return html;
 }
 
@@ -837,15 +854,17 @@ void handleTest() {
   int rssi = 0;
   bool ok = readMetrics(temperature, humidity, rssi);
 
-  String body = "<section class='card'><h2>Read Test</h2>";
+  String body = "<section class='section-card'><div class='section-head'><div><div class='section-kicker'>Live sensor</div><h2>Read Test</h2><div class='section-desc'>อ่านค่าจาก DHT และ Wi-Fi RSSI แบบเดียวกับ payload ที่ส่งเข้า backend.</div></div></div>";
   if (ok) {
-    body += "<div class='stat'><small>metric_1 Temperature</small><strong>" + String(temperature, 2) + " °C</strong></div>";
-    body += "<div class='stat'><small>metric_2 Humidity</small><strong>" + String(humidity, 2) + " %</strong></div>";
-    body += "<div class='stat'><small>metric_3 WiFi RSSI</small><strong>" + String(rssi) + " dBm</strong></div>";
+    body += "<div class='stat-grid'>";
+    body += "<div class='stat good'><small>metric_1 Temperature</small><strong>" + String(temperature, 2) + " °C</strong></div>";
+    body += "<div class='stat good'><small>metric_2 Humidity</small><strong>" + String(humidity, 2) + " %</strong></div>";
+    body += "<div class='stat'><small>metric_3 Wi-Fi RSSI</small><strong>" + String(rssi) + " dBm</strong></div>";
+    body += "</div>";
   } else {
     body += "<div class='notice'>DHT read failed and fallback dummy is disabled.</div>";
   }
-  body += "<div class='row'><a class='btn btn2' href='/'>Back</a></div></section>";
+  body += "<div class='row'><a class='btn btn2' href='/'>Back to ESP32 Console</a><a class='btn btn2' href='/json'>Status JSON</a></div></section>";
   server.send(200, "text/html; charset=utf-8", pageShell("Read Test", body));
 }
 
@@ -860,17 +879,39 @@ void handleRoot() {
     body += "<div class='notice'>ยังตั้งค่าไม่ครบ ให้กรอก Wi‑Fi, Backend, Device Code และ Device Secret ของ ESP32 device ใหม่ ไม่ใช้ของ Raspberry Pi</div>";
   }
 
-  body += "<div class='grid'><main><section class='card'><h2>ESP32 Setup</h2>";
-  body += "<form method='POST' action='/save'>" + pinHiddenInput() + "<div class='form'>";
+  body += "<section id='overview' class='section-card'><div class='section-head'><div><div class='section-kicker'>Overview</div><h2>Live Device Snapshot</h2><div class='section-desc'>ภาพรวมแบบเดียวกับ Dashboard สำหรับดูสถานะอุปกรณ์จริงก่อนแก้ค่า.</div></div><span class='badge " + String(WiFi.status() == WL_CONNECTED ? "ok" : "bad") + "'><span class='dot'></span>" + String(WiFi.status() == WL_CONNECTED ? "Online" : "Setup") + "</span></div>";
+  body += currentStatusHtml();
+  body += "</section>";
+
+  body += "<form method='POST' action='/save'>" + pinHiddenInput();
+
+  body += "<section id='network' class='section-card'><div class='section-head'><div><div class='section-kicker'>Network</div><h2>Wi-Fi & Backend</h2><div class='section-desc'>ตั้งค่าเครือข่ายและปลายทาง API สำหรับส่ง metric เข้า dotWatch backend.</div></div></div>";
+  body += "<div class='form-section'><h3>Wi‑Fi Profiles</h3><div class='form'>";
   body += "<label>Wi‑Fi SSID<input name='wifiSsid' value='" + htmlEscape(cfg.wifiSsid) + "' placeholder='Your Wi-Fi'></label>";
   body += "<label>Wi‑Fi Password<input type='password' name='wifiPassword' value='' placeholder='เว้นว่างเพื่อใช้ค่าเดิม · ถ้าเปลี่ยน SSID ให้ใส่รหัสใหม่'></label>";
-  body += "<div class='notice full'>ESP32 จะจำ Wi‑Fi ที่เคยบันทึกและต่อสำเร็จไว้สูงสุด " + String(WIFI_PROFILE_MAX) + " เครือข่าย เมื่อเปิดเครื่องหรือเน็ตกลับมา จะสแกนหาเครือข่ายที่จำไว้และต่ออัตโนมัติ โดยเลือกสัญญาณแรงที่สุดก่อน</div>";
+  body += "<div class='notice info full'>ESP32 จะจำ Wi‑Fi ที่เคยบันทึกและต่อสำเร็จไว้สูงสุด " + String(WIFI_PROFILE_MAX) + " เครือข่าย เมื่อเปิดเครื่องหรือเน็ตกลับมา จะสแกนหาเครือข่ายที่จำไว้และต่ออัตโนมัติ โดยเลือกสัญญาณแรงที่สุดก่อน</div>";
+  body += "</div></div>";
+  body += "<div class='form-section'><h3>Backend Endpoint</h3><div class='form'>";
   body += "<label class='full'>Backend API URL<input name='apiUrl' value='" + htmlEscape(cfg.apiUrl) + "' placeholder='https://dotwatch-backend.onrender.com'></label>";
+  body += "</div></div></section>";
+
+  body += "<section id='security' class='section-card'><div class='section-head'><div><div class='section-kicker'>Security</div><h2>TLS & Local Admin</h2><div class='section-desc'>คงแนวทาง production security เดิม: HTTPS ต้องมี Root CA และการแก้ค่า Local Admin ต้องใช้ PIN.</div></div><span class='badge " + String(hasEffectiveTlsCaCert() ? "ok" : "bad") + "'><span class='dot'></span>" + htmlEscape(tlsCaCertSourceText()) + "</span></div>";
+  body += "<div class='form-section'><h3>Root CA</h3><div class='form'>";
   body += "<label class='full'>Root CA Certificate (optional override)<textarea name='tlsCaCert' placeholder='วาง Root CA PEM ที่นี่เพื่อ override embedded CA · เว้นว่างเพื่อใช้ค่าเดิม/embedded CA · พิมพ์ CLEAR เพื่อลบ CA ที่บันทึกใน portal'></textarea></label>";
   body += "<div class='notice full'>TLS Mode ปัจจุบัน: " + htmlEscape(tlsModeText()) + " · Source: " + htmlEscape(tlsCaCertSourceText()) + " · Production default ต้องมี Root CA จาก embedded header หรือ portal ก่อนส่ง HTTPS</div>";
+  body += "</div></div>";
+  body += "<div class='form-section'><h3>Local Admin PIN</h3><div class='form'>";
+  body += "<label class='full'>Local Admin PIN<input type='password' name='adminPin' value='' placeholder='เว้นว่างเพื่อใช้ค่าเดิม'></label>";
+  body += "</div></div></section>";
+
+  body += "<section id='device' class='section-card'><div class='section-head'><div><div class='section-kicker'>Device Identity</div><h2>Device Credentials</h2><div class='section-desc'>ค่าเฉพาะของ ESP32-DHT3 ตัวนี้ ใช้สำหรับ ingest เข้า backend และไม่ใช้ร่วมกับ Raspberry Pi.</div></div></div>";
+  body += "<div class='form-section'><h3>Backend Device</h3><div class='form'>";
   body += "<label>Device Code<input name='deviceCode' value='" + htmlEscape(cfg.deviceCode) + "' placeholder='DW-ESP32-...'></label>";
   body += "<label>Device Secret<input type='password' name='deviceSecret' value='' placeholder='เว้นว่างเพื่อใช้ค่าเดิม'></label>";
-  body += "<label>Local Admin PIN<input type='password' name='adminPin' value='' placeholder='เว้นว่างเพื่อใช้ค่าเดิม'></label>";
+  body += "</div></div></section>";
+
+  body += "<section id='sensor' class='section-card'><div class='section-head'><div><div class='section-kicker'>Sensor</div><h2>DHT & Metric Payload</h2><div class='section-desc'>metric_1 = Temperature, metric_2 = Humidity, metric_3 = Wi-Fi RSSI.</div></div></div>";
+  body += "<div class='form-section'><h3>DHT Settings</h3><div class='form'>";
   body += "<label>DHT Pin<input type='number' name='dhtPin' value='" + String(cfg.dhtPin) + "'></label>";
   body += "<label>DHT Type<select name='dhtType'>";
   body += "<option value='11'" + String(cfg.dhtType == DHT11 ? " selected" : "") + ">DHT11</option>";
@@ -887,11 +928,14 @@ void handleRoot() {
   body += "<option value='true'" + String(cfg.fallbackDummy ? " selected" : "") + ">Enabled</option>";
   body += "<option value='false'" + String(!cfg.fallbackDummy ? " selected" : "") + ">Disabled</option>";
   body += "</select></label>";
-  body += "</div><div class='row'><button type='submit'>Save & Restart</button><a class='btn btn2' href='/test'>Read Test</a><a class='btn btn2' href='/json'>JSON</a></div></form>";
-  body += "</section></main><aside><section class='card'><h2>Snapshot</h2>";
-  body += currentStatusHtml();
-  body += "<div class='row'><form method='POST' action='/reset' onsubmit='return confirm(\"Clear ESP32 config?\")'>" + pinHiddenInput() + "<button class='danger' type='submit'>Factory Reset Config</button></form></div>";
-  body += "</section></aside></div>";
+  body += "</div></div></section>";
+
+  body += "<section id='operations' class='section-card'><div class='section-head'><div><div class='section-kicker'>Operations</div><h2>Save, Test & Reset</h2><div class='section-desc'>คำสั่งใช้งานจริงของ ESP32 แยกจาก Dashboard/Admin แต่ใช้ visual pattern เดียวกัน.</div></div></div>";
+  body += "<div class='row'><button type='submit'>Save & Restart</button><a class='btn btn2' href='/test'>Read Test</a><a class='btn btn2' href='/json'>Status JSON</a></div>";
+  body += "</section></form>";
+
+  body += "<section class='section-card'><div class='section-head'><div><div class='section-kicker'>Danger zone</div><h2>Factory Reset Config</h2><div class='section-desc'>ล้างเฉพาะ config ที่บันทึกใน ESP32 Preferences/NVS แล้ว restart เข้าสู่ setup AP ใหม่.</div></div></div>";
+  body += "<form method='POST' action='/reset' onsubmit='return confirm(\"Clear ESP32 config?\")'>" + pinHiddenInput() + "<button class='danger' type='submit'>Factory Reset Config</button></form></section>";
 
   server.send(200, "text/html; charset=utf-8", pageShell("ESP32 Setup Center", body));
 }
