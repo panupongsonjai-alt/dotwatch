@@ -4930,3 +4930,960 @@
     padding-top: 18px;
   }
 }
+
+/* =========================================================
+   Metrics & Alarms - Combined Table Layout
+   จัด Metric และ Warning/Critical ให้อยู่ในกลุ่มเดียวตามภาพอ้างอิง
+========================================================= */
+
+.metric-alarm-combined-panel {
+  container-type: inline-size;
+  overflow: visible !important;
+}
+
+.metric-alarm-config-table,
+.metric-alarm-config-body,
+.metric-alarm-config-group,
+.metric-alarm-config-metric-row,
+.metric-alarm-config-rules,
+.metric-alarm-config-rule {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.metric-alarm-config-table {
+  display: grid;
+  gap: 0;
+  overflow: visible;
+}
+
+.metric-alarm-config-head {
+  display: grid;
+  grid-template-columns:
+    54px
+    minmax(220px, 1.55fr)
+    minmax(92px, 0.55fr)
+    minmax(170px, 1fr)
+    minmax(150px, 0.88fr)
+    42px;
+  gap: 10px;
+  align-items: center;
+  padding: 0 8px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.metric-alarm-config-body {
+  display: grid;
+  gap: 16px;
+}
+
+.metric-alarm-config-group {
+  position: relative;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  grid-template-areas:
+    'index metric'
+    'index rules';
+  column-gap: 10px;
+  row-gap: 8px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--border);
+  overflow: visible;
+  isolation: isolate;
+}
+
+.metric-alarm-config-group:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.metric-alarm-config-group:has(.metric-icon-dropdown[open]) {
+  z-index: 1000;
+}
+
+.metric-alarm-config-index {
+  grid-area: index;
+  align-self: center;
+  justify-self: center;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.metric-alarm-config-metric-row {
+  grid-area: metric;
+  position: relative;
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 1.55fr)
+    minmax(92px, 0.55fr)
+    minmax(170px, 1fr)
+    minmax(150px, 0.88fr)
+    42px;
+  gap: 10px;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 16px;
+  background:
+    linear-gradient(90deg, rgba(37, 99, 235, 0.055), transparent 72%),
+    var(--panel-2);
+  overflow: visible;
+}
+
+.metric-alarm-config-field,
+.metric-alarm-config-control,
+.metric-alarm-config-active-field {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.metric-alarm-config-field > span,
+.metric-alarm-config-control > span,
+.metric-alarm-config-active-field > span {
+  display: none;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.metric-alarm-config-field input,
+.metric-alarm-config-control input,
+.metric-alarm-config-control select,
+.metric-alarm-config-metric-row .metric-icon-dropdown-summary,
+.metric-alarm-config-metric-row .metric-visible-toggle,
+.metric-alarm-config-rule .alarm-active-toggle {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 42px;
+  min-height: 42px;
+  border-radius: 14px;
+}
+
+.metric-alarm-config-field input,
+.metric-alarm-config-control input,
+.metric-alarm-config-control select {
+  padding: 0 13px;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.metric-alarm-config-name input {
+  font-weight: 950;
+}
+
+.metric-alarm-config-icon {
+  position: relative;
+  z-index: 40;
+}
+
+.metric-alarm-config-action {
+  width: 42px;
+  min-width: 42px;
+  display: grid;
+  place-items: center;
+}
+
+.metric-alarm-config-action .metric-config-delete-btn {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.metric-alarm-config-rules {
+  grid-area: rules;
+  display: grid;
+  gap: 8px;
+  padding: 2px 6px 0;
+}
+
+.metric-alarm-config-rule {
+  display: grid;
+  grid-template-columns:
+    minmax(250px, 1.35fr)
+    minmax(118px, 0.56fr)
+    minmax(150px, 0.68fr)
+    minmax(250px, 1.28fr)
+    minmax(142px, 0.72fr);
+  gap: 10px;
+  align-items: center;
+  padding: 0;
+}
+
+.metric-alarm-config-severity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.metric-alarm-config-severity .status {
+  flex: 0 0 auto;
+  min-width: 74px;
+  justify-content: center;
+}
+
+.metric-alarm-config-severity small {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-alarm-config-rule.warning .metric-alarm-config-control select,
+.metric-alarm-config-rule.warning .metric-alarm-config-control input {
+  border-color: color-mix(in srgb, var(--warning) 24%, var(--border));
+}
+
+.metric-alarm-config-rule.critical .metric-alarm-config-control select,
+.metric-alarm-config-rule.critical .metric-alarm-config-control input {
+  border-color: color-mix(in srgb, var(--danger) 22%, var(--border));
+}
+
+.metric-alarm-config-rule .alarm-active-toggle {
+  justify-self: stretch !important;
+  max-width: none !important;
+  align-self: center !important;
+}
+
+.metric-alarm-config-message-field input {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-alarm-combined-panel .metric-config-footer-actions {
+  margin-top: 18px !important;
+}
+
+@container (max-width: 1040px) {
+  .metric-alarm-config-head {
+    display: none;
+  }
+
+  .metric-alarm-config-group {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .metric-alarm-config-metric-row {
+    grid-template-columns: minmax(0, 1.4fr) minmax(88px, 0.5fr) minmax(150px, 0.9fr) 42px;
+    grid-template-areas:
+      'name unit icon action'
+      'display display display action';
+    align-items: end;
+  }
+
+  .metric-alarm-config-name {
+    grid-area: name;
+  }
+
+  .metric-alarm-config-unit {
+    grid-area: unit;
+  }
+
+  .metric-alarm-config-icon {
+    grid-area: icon;
+  }
+
+  .metric-alarm-config-display {
+    grid-area: display;
+  }
+
+  .metric-alarm-config-action {
+    grid-area: action;
+    align-self: stretch;
+  }
+
+  .metric-alarm-config-field > span,
+  .metric-alarm-config-control > span,
+  .metric-alarm-config-active-field > span {
+    display: block;
+  }
+
+  .metric-alarm-config-rule {
+    grid-template-columns: minmax(220px, 1.2fr) minmax(112px, 0.55fr) minmax(130px, 0.65fr) minmax(0, 1.25fr);
+    grid-template-areas:
+      'severity condition threshold active'
+      'message message message message';
+    align-items: end;
+  }
+
+  .metric-alarm-config-severity {
+    grid-area: severity;
+    align-self: center;
+  }
+
+  .metric-alarm-config-condition {
+    grid-area: condition;
+  }
+
+  .metric-alarm-config-threshold {
+    grid-area: threshold;
+  }
+
+  .metric-alarm-config-message-field {
+    grid-area: message;
+  }
+
+  .metric-alarm-config-active-field {
+    grid-area: active;
+  }
+}
+
+@container (max-width: 720px) {
+  .metric-alarm-config-group {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'index'
+      'metric'
+      'rules';
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--panel-2);
+  }
+
+  .metric-alarm-config-index {
+    justify-self: start;
+    padding-left: 2px;
+  }
+
+  .metric-alarm-config-metric-row {
+    grid-template-columns: minmax(0, 1fr) minmax(82px, 0.42fr) 42px;
+    grid-template-areas:
+      'name unit action'
+      'icon icon action'
+      'display display display';
+    padding: 10px;
+  }
+
+  .metric-alarm-config-rule {
+    grid-template-columns: minmax(0, 1fr) minmax(112px, 0.48fr);
+    grid-template-areas:
+      'severity active'
+      'condition threshold'
+      'message message';
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--panel);
+  }
+
+  .metric-alarm-config-severity small {
+    white-space: normal;
+  }
+}
+
+@container (max-width: 480px) {
+  .metric-alarm-config-metric-row {
+    grid-template-columns: minmax(0, 1fr) 42px;
+    grid-template-areas:
+      'name action'
+      'unit unit'
+      'icon icon'
+      'display display';
+  }
+
+  .metric-alarm-config-rule {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'severity'
+      'condition'
+      'threshold'
+      'message'
+      'active';
+  }
+
+  .metric-alarm-config-severity {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+/* =========================================================
+   Metrics & Alarms - Refined Aligned Layout V2
+   - Alarm controls use the same column boundaries as the table header
+   - Delete action sits in a compact footer below each Metric group
+   - Reduced vertical whitespace between Metric groups
+========================================================= */
+
+.metric-alarm-combined-panel-refined {
+  --metric-alarm-control-height: 40px;
+  --metric-alarm-toggle-width: 160px;
+  --metric-alarm-condition-width: 104px;
+  --metric-alarm-threshold-width: 128px;
+  container-type: inline-size;
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 18px !important;
+  border-radius: 20px !important;
+  overflow: visible !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-config-toolbar {
+  margin-bottom: 14px !important;
+  padding-bottom: 14px !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-config-message {
+  margin: 0 0 14px !important;
+}
+
+/* Shared physical columns:
+   No. | Name/Severity | Unit/Condition | Icon part 1/Threshold |
+   Icon part 2/Message | Display/Active
+*/
+.metric-alarm-combined-panel-refined .metric-alarm-config-head {
+  display: grid !important;
+  grid-template-columns:
+    48px
+    minmax(230px, 1.35fr)
+    var(--metric-alarm-condition-width)
+    var(--metric-alarm-threshold-width)
+    minmax(230px, 1fr)
+    var(--metric-alarm-toggle-width) !important;
+  gap: 10px !important;
+  align-items: center !important;
+  padding: 0 5px 10px !important;
+  color: var(--muted) !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-head-number {
+  grid-column: 1 !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-head-name {
+  grid-column: 2 !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-head-unit {
+  grid-column: 3 !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-head-icon {
+  grid-column: 4 / 6 !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-head-display {
+  grid-column: 6 !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-body {
+  display: grid !important;
+  gap: 0 !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-group {
+  display: grid !important;
+  grid-template-columns: 48px minmax(0, 1fr) !important;
+  grid-template-areas:
+    'index metric'
+    'index rules'
+    '. action' !important;
+  column-gap: 10px !important;
+  row-gap: 7px !important;
+  min-width: 0 !important;
+  padding: 0 0 12px !important;
+  border-bottom: 1px solid var(--border) !important;
+  overflow: visible !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-group + .metric-alarm-config-group {
+  padding-top: 12px !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-group:last-child {
+  padding-bottom: 0 !important;
+  border-bottom: 0 !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-index {
+  grid-area: index !important;
+  align-self: start !important;
+  justify-self: center !important;
+  padding-top: 14px !important;
+  color: var(--muted) !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-metric-row,
+.metric-alarm-combined-panel-refined .metric-alarm-config-rule {
+  grid-template-columns:
+    minmax(230px, 1.35fr)
+    var(--metric-alarm-condition-width)
+    var(--metric-alarm-threshold-width)
+    minmax(230px, 1fr)
+    var(--metric-alarm-toggle-width) !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-metric-row {
+  grid-area: metric !important;
+  display: grid !important;
+  grid-template-areas: 'name unit icon icon display' !important;
+  align-items: center !important;
+  padding: 5px !important;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent) !important;
+  border-radius: 14px !important;
+  background: var(--panel-2) !important;
+  overflow: visible !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-name {
+  grid-area: name !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-unit {
+  grid-area: unit !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-icon {
+  grid-area: icon !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-display {
+  grid-area: display !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-rules {
+  grid-area: rules !important;
+  display: grid !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+  padding: 0 5px !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-rule {
+  display: grid !important;
+  grid-template-areas: 'severity condition threshold message active' !important;
+  align-items: center !important;
+  padding: 0 !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-severity {
+  grid-area: severity !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-severity .status {
+  flex: 0 0 auto !important;
+  min-width: 66px !important;
+  height: 30px !important;
+  padding: 0 10px !important;
+  justify-content: center !important;
+  font-size: 11px !important;
+  white-space: nowrap !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-severity small {
+  min-width: 0 !important;
+  color: var(--muted) !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  font-weight: 800 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-condition {
+  grid-area: condition !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-threshold {
+  grid-area: threshold !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-message-field {
+  grid-area: message !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-active-field {
+  grid-area: active !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-field,
+.metric-alarm-combined-panel-refined .metric-alarm-config-control,
+.metric-alarm-combined-panel-refined .metric-alarm-config-active-field {
+  min-width: 0 !important;
+  gap: 5px !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-field > span,
+.metric-alarm-combined-panel-refined .metric-alarm-config-control > span,
+.metric-alarm-combined-panel-refined .metric-alarm-config-active-field > span {
+  display: none !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-field input,
+.metric-alarm-combined-panel-refined .metric-alarm-config-control input,
+.metric-alarm-combined-panel-refined .metric-alarm-config-control select,
+.metric-alarm-combined-panel-refined .metric-icon-dropdown-summary,
+.metric-alarm-combined-panel-refined .metric-visible-toggle,
+.metric-alarm-combined-panel-refined .alarm-active-toggle {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: var(--metric-alarm-control-height) !important;
+  min-height: var(--metric-alarm-control-height) !important;
+  max-height: var(--metric-alarm-control-height) !important;
+  border-radius: 12px !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-field input,
+.metric-alarm-combined-panel-refined .metric-alarm-config-control input,
+.metric-alarm-combined-panel-refined .metric-alarm-config-control select {
+  padding: 0 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 850 !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-name input {
+  font-weight: 950 !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-rule.warning .metric-alarm-config-control select,
+.metric-alarm-combined-panel-refined .metric-alarm-config-rule.warning .metric-alarm-config-control input {
+  border-color: color-mix(in srgb, var(--warning) 24%, var(--border)) !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-rule.critical .metric-alarm-config-control select,
+.metric-alarm-combined-panel-refined .metric-alarm-config-rule.critical .metric-alarm-config-control input {
+  border-color: color-mix(in srgb, var(--danger) 22%, var(--border)) !important;
+}
+
+/* Visible and Active intentionally share exactly the same dimensions. */
+.metric-alarm-combined-panel-refined .metric-alarm-config-display .metric-visible-toggle,
+.metric-alarm-combined-panel-refined .metric-alarm-config-active-field .alarm-active-toggle {
+  width: var(--metric-alarm-toggle-width) !important;
+  min-width: var(--metric-alarm-toggle-width) !important;
+  max-width: var(--metric-alarm-toggle-width) !important;
+  height: var(--metric-alarm-control-height) !important;
+  min-height: var(--metric-alarm-control-height) !important;
+  display: grid !important;
+  grid-template-columns: 22px minmax(0, 1fr) !important;
+  align-items: center !important;
+  justify-self: stretch !important;
+  gap: 8px !important;
+  padding: 0 11px !important;
+  overflow: hidden !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-visible-toggle input,
+.metric-alarm-combined-panel-refined .alarm-active-toggle input {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-visible-toggle > span,
+.metric-alarm-combined-panel-refined .alarm-active-toggle > span {
+  min-width: 0 !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-icon-dropdown-current span,
+.metric-alarm-combined-panel-refined .metric-alarm-config-message-field input {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Delete is a compact footer action, not a cramped right-side column. */
+.metric-alarm-combined-panel-refined .metric-alarm-config-action {
+  grid-area: action !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  padding: 1px 10px 0 5px !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-action .metric-config-delete-btn {
+  width: auto !important;
+  min-width: 116px !important;
+  max-width: none !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  border-radius: 11px !important;
+  font-size: 11.5px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-config-footer-actions {
+  width: 100% !important;
+  margin-top: 14px !important;
+  padding-top: 14px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 10px !important;
+  border-top: 1px solid var(--border) !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-config-footer-actions button {
+  width: auto !important;
+  min-width: 116px !important;
+  max-width: none !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  padding: 0 16px !important;
+  white-space: nowrap !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-save-btn {
+  min-width: 164px !important;
+}
+
+@container (max-width: 1080px) {
+  .metric-alarm-combined-panel-refined {
+    --metric-alarm-toggle-width: 150px;
+    --metric-alarm-condition-width: 96px;
+    --metric-alarm-threshold-width: 118px;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-head {
+    display: none !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-metric-row,
+  .metric-alarm-combined-panel-refined .metric-alarm-config-rule {
+    grid-template-columns:
+      minmax(210px, 1.25fr)
+      var(--metric-alarm-condition-width)
+      var(--metric-alarm-threshold-width)
+      minmax(190px, 1fr)
+      var(--metric-alarm-toggle-width) !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-field > span,
+  .metric-alarm-combined-panel-refined .metric-alarm-config-control > span,
+  .metric-alarm-combined-panel-refined .metric-alarm-config-active-field > span {
+    display: block !important;
+    color: var(--muted) !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+    font-weight: 950 !important;
+    letter-spacing: 0.055em !important;
+    text-transform: uppercase !important;
+  }
+}
+
+@container (max-width: 880px) {
+  .metric-alarm-combined-panel-refined .metric-alarm-config-metric-row {
+    grid-template-columns: minmax(0, 1fr) 96px minmax(150px, 0.85fr) !important;
+    grid-template-areas:
+      'name unit icon'
+      'display display display' !important;
+    align-items: end !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-rule {
+    grid-template-columns: minmax(0, 1fr) 102px 124px var(--metric-alarm-toggle-width) !important;
+    grid-template-areas:
+      'severity condition threshold active'
+      'message message message message' !important;
+    align-items: end !important;
+    padding: 7px 0 !important;
+  }
+}
+
+@container (max-width: 680px) {
+  .metric-alarm-combined-panel-refined {
+    padding: 14px !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-config-toolbar {
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-config-toolbar .ghost-button {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-group,
+  .metric-alarm-combined-panel-refined .metric-alarm-config-group + .metric-alarm-config-group {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      'index'
+      'metric'
+      'rules'
+      'action' !important;
+    gap: 8px !important;
+    padding: 12px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 17px !important;
+    background: var(--panel-2) !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-group + .metric-alarm-config-group {
+    margin-top: 10px !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-index {
+    justify-self: start !important;
+    padding: 0 !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-metric-row {
+    grid-template-columns: minmax(0, 1fr) 96px !important;
+    grid-template-areas:
+      'name unit'
+      'icon icon'
+      'display display' !important;
+    padding: 10px !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-rule {
+    grid-template-columns: minmax(0, 1fr) var(--metric-alarm-toggle-width) !important;
+    grid-template-areas:
+      'severity active'
+      'condition threshold'
+      'message message' !important;
+    padding: 10px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 14px !important;
+    background: var(--panel) !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-action {
+    padding: 0 !important;
+  }
+}
+
+@container (max-width: 470px) {
+  .metric-alarm-combined-panel-refined {
+    --metric-alarm-toggle-width: 100%;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-metric-row,
+  .metric-alarm-combined-panel-refined .metric-alarm-config-rule {
+    grid-template-columns: 1fr !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-metric-row {
+    grid-template-areas:
+      'name'
+      'unit'
+      'icon'
+      'display' !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-rule {
+    grid-template-areas:
+      'severity'
+      'condition'
+      'threshold'
+      'message'
+      'active' !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-severity {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-severity small {
+    white-space: normal !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-display .metric-visible-toggle,
+  .metric-alarm-combined-panel-refined .metric-alarm-config-active-field .alarm-active-toggle {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-alarm-config-action .metric-config-delete-btn {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-config-footer-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .metric-alarm-combined-panel-refined .metric-config-footer-actions button {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
+/* =========================================================
+   Metrics & Alarms - Borderless Metric Name field
+   Remove only the Metric Name input frame while preserving editability.
+========================================================= */
+.metric-alarm-combined-panel-refined .metric-alarm-config-name input {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-name input:hover:not(:disabled) {
+  border-color: transparent !important;
+  background: color-mix(in srgb, var(--panel) 52%, transparent) !important;
+}
+
+.metric-alarm-combined-panel-refined .metric-alarm-config-name input:focus,
+.metric-alarm-combined-panel-refined .metric-alarm-config-name input:focus-visible {
+  border-color: transparent !important;
+  background: color-mix(in srgb, var(--panel) 72%, transparent) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
