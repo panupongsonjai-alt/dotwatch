@@ -4651,8 +4651,8 @@
 }
 
 /* =========================================================
-   Metric Display - Icon After Metric + Single Dropdown Fix
-   1) จัดลำดับ Metric Name > Icon > Unit > Display > Delete
+   Metric Display - Unit Before Icon + Single Dropdown Fix
+   1) จัดลำดับ Metric Name > Unit > Icon > Display > Delete
    2) จำกัดรายการ Icon ที่มองเห็นพร้อมกันไว้ 5 รายการ
    3) เปิด Icon dropdown ได้ครั้งละหนึ่งรายการจาก React state
 ========================================================= */
@@ -4660,11 +4660,11 @@
 .metric-config-row-clean .metric-config-card-clean-grid {
   grid-template-columns:
     minmax(150px, 1.35fr)
-    minmax(118px, 0.9fr)
     minmax(68px, 0.52fr)
+    minmax(118px, 0.9fr)
     minmax(94px, 0.72fr)
     38px !important;
-  grid-template-areas: 'name icon unit display action' !important;
+  grid-template-areas: 'name unit icon display action' !important;
 }
 
 .metric-icon-dropdown-menu {
@@ -4705,8 +4705,8 @@
   .metric-config-row-clean .metric-config-card-clean-grid {
     grid-template-columns: minmax(0, 1.35fr) minmax(120px, 0.9fr) 38px !important;
     grid-template-areas:
-      'name icon action'
-      'unit display action' !important;
+      'name unit action'
+      'icon display action' !important;
   }
 }
 
@@ -4715,8 +4715,8 @@
     grid-template-columns: minmax(0, 1fr) 38px !important;
     grid-template-areas:
       'name action'
-      'icon icon'
       'unit unit'
+      'icon icon'
       'display display' !important;
   }
 }
@@ -4725,8 +4725,8 @@
   .metric-config-row-clean .metric-config-card-clean-grid {
     grid-template-columns: minmax(0, 1.35fr) minmax(118px, 0.9fr) 38px !important;
     grid-template-areas:
-      'name icon action'
-      'unit display action' !important;
+      'name unit action'
+      'icon display action' !important;
   }
 }
 
@@ -4735,8 +4735,8 @@
     grid-template-columns: minmax(0, 1fr) 38px !important;
     grid-template-areas:
       'name action'
-      'icon icon'
       'unit unit'
+      'icon icon'
       'display display' !important;
   }
 }

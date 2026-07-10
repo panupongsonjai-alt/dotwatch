@@ -273,6 +273,18 @@ export default function MetricConfigPanel({ deviceId }) {
                     />
                   </label>
 
+                  <label className="metric-config-field metric-config-field-unit">
+                    <span>Unit</span>
+                    <input
+                      value={metric.unit || ''}
+                      placeholder="°C, %, kWh"
+                      onChange={(event) =>
+                        updateMetric(index, 'unit', event.target.value)
+                      }
+                      disabled={loading || saving}
+                    />
+                  </label>
+
                   <div className="metric-config-field metric-config-field-icon">
                     <span>Icon</span>
                     <MetricIconPicker
@@ -287,18 +299,6 @@ export default function MetricConfigPanel({ deviceId }) {
                       }
                     />
                   </div>
-
-                  <label className="metric-config-field metric-config-field-unit">
-                    <span>Unit</span>
-                    <input
-                      value={metric.unit || ''}
-                      placeholder="°C, %, kWh"
-                      onChange={(event) =>
-                        updateMetric(index, 'unit', event.target.value)
-                      }
-                      disabled={loading || saving}
-                    />
-                  </label>
 
                   <div className="metric-config-field metric-config-field-visible">
                     <span>Display</span>
