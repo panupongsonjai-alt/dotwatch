@@ -448,7 +448,7 @@ void PortalServer::handleTest() {
     body += "<div class='status-grid'>";
     body += "<div class='stat'><small>metric_1</small><strong>" + String(snapshot.temperature, 2) + " °C</strong></div>";
     body += "<div class='stat'><small>metric_2</small><strong>" + String(snapshot.humidity, 2) + " %</strong></div>";
-    body += "<div class='stat'><small>metric_3</small><strong>" + String(snapshot.rssi) + " dBm</strong></div>";
+    body += "<div class='stat'><small>Wi-Fi signal</small><strong>" + String(snapshot.rssi) + " dBm</strong></div>";
     body += "<div class='stat'><small>Source</small><strong>" + String(snapshot.fallbackUsed ? "Dummy fallback" : "DHT sensor") + "</strong></div>";
     body += "</div>";
   } else {
