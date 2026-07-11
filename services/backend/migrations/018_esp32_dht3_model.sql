@@ -16,8 +16,8 @@ VALUES (
   5,
   'esp32_dht3',
   'ESP32-DHT3',
-  3,
-  'ESP32 Wi-Fi model with DHT temperature/humidity and Wi-Fi RSSI',
+  2,
+  'ESP32 Wi-Fi model with DHT temperature and humidity',
   true,
   NOW()
 )
@@ -61,8 +61,7 @@ FROM model
 CROSS JOIN (
   VALUES
     ('metric_1', 'Temperature', 'temperature', '°C', 'Thermometer', 0),
-    ('metric_2', 'Humidity', 'humidity', '%', 'Droplets', 1),
-    ('metric_3', 'WiFi RSSI', 'signal', 'dBm', 'Wifi', 2)
+    ('metric_2', 'Humidity', 'humidity', '%', 'Droplets', 1)
 ) AS data(metric_key, default_name, default_type, default_unit, default_icon, sort_order)
 ON CONFLICT (model_id, metric_key)
 DO UPDATE SET
@@ -72,5 +71,9 @@ DO UPDATE SET
   default_icon = EXCLUDED.default_icon,
   sort_order = EXCLUDED.sort_order,
   updated_at = NOW();
+
+DELETE FROM device_model_metrics
+WHERE model_id = (SELECT id FROM device_models WHERE model_key = 'esp32_dht3')
+  AND metric_key = 'metric_3';
 
 COMMIT;

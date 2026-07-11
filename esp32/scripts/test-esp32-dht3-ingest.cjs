@@ -15,13 +15,19 @@ if (!deviceCode || !deviceSecret) {
   process.exit(1)
 }
 
+const temperature = Number((24 + Math.random() * 8).toFixed(2))
+const humidity = Number((45 + Math.random() * 20).toFixed(2))
+const rssi = -55 - Math.round(Math.random() * 20)
+
 const payload = {
   firmwareVersion: 'esp32-dht3-sim-0.1.0',
   timestamp: new Date().toISOString(),
+  temperature,
+  humidity,
+  rssi,
   metrics: {
-    metric_1: Number((24 + Math.random() * 8).toFixed(2)),
-    metric_2: Number((45 + Math.random() * 20).toFixed(2)),
-    metric_3: -55 - Math.round(Math.random() * 20),
+    metric_1: temperature,
+    metric_2: humidity,
   },
 }
 

@@ -52,7 +52,9 @@ function getSafeTablePageSize(value) {
 }
 
 function getSafeChartResolution(value) {
-  const resolution = String(value || '').trim().toLowerCase()
+  const resolution = String(value || '')
+    .trim()
+    .toLowerCase()
 
   return CHART_RESOLUTION_OPTIONS.some((option) => option.value === resolution)
     ? resolution
@@ -101,17 +103,12 @@ function getInitialHistoryState() {
         saved.date ||
         fallback.endDate,
       metricKey:
-        params.get('metricKey') ||
-        params.get('metric') ||
-        fallback.metricKey,
+        params.get('metricKey') || params.get('metric') || fallback.metricKey,
       tablePage: getSafeTablePage(params.get('page') || fallback.tablePage),
       tablePageSize: getSafeTablePageSize(
         params.get('pageSize') || fallback.tablePageSize
       ),
-      sortOrder:
-        params.get('sort') ||
-        saved.sortOrder ||
-        fallback.sortOrder,
+      sortOrder: params.get('sort') || saved.sortOrder || fallback.sortOrder,
       chartResolution: getSafeChartResolution(
         params.get('resolution') || saved.chartResolution
       ),
@@ -230,10 +227,12 @@ function escapeReportHtml(value) {
 }
 
 function sanitizeReportFilename(value) {
-  return String(value || 'device')
-    .trim()
-    .replace(/[^a-zA-Z0-9ก-๙_-]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'device'
+  return (
+    String(value || 'device')
+      .trim()
+      .replace(/[^a-zA-Z0-9ก-๙_-]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'device'
+  )
 }
 
 function escapeCsvField(value) {
@@ -317,9 +316,7 @@ function formatNumber(value, unit = '', decimalPlaces = 2) {
   if (value == null || !Number.isFinite(Number(value))) return '--'
 
   const numberValue = Number(value)
-  const formatted = numberValue.toFixed(
-    normalizeDecimalPlaces(decimalPlaces)
-  )
+  const formatted = numberValue.toFixed(normalizeDecimalPlaces(decimalPlaces))
 
   return `${formatted}${unit ? ` ${unit}` : ''}`
 }
@@ -415,7 +412,6 @@ function metricsFromDeviceConfig(device = {}) {
     .filter(Boolean)
     .filter((metric) => metric.visible !== false)
 }
-
 
 function mergeMetrics(...groups) {
   const map = new Map()
@@ -517,13 +513,11 @@ function buildChartData(rows = [], selectedMetricKey = '', metrics = []) {
   for (const row of sortedRows) {
     if (!row.time || !row.metricKey) continue
 
-    const existing =
-      map.get(row.time) ||
-      {
-        id: row.time,
-        time: row.time,
-        label: formatChartLabel(row.time, includeDateInLabel),
-      }
+    const existing = map.get(row.time) || {
+      id: row.time,
+      time: row.time,
+      label: formatChartLabel(row.time, includeDateInLabel),
+    }
 
     existing[row.metricKey] = row.value
     map.set(row.time, existing)
@@ -535,7 +529,9 @@ function buildChartData(rows = [], selectedMetricKey = '', metrics = []) {
 }
 
 function getMetricName(metricMap, metricKey = '') {
-  return metricMap.get(metricKey)?.metricName || getFallbackMetricName(metricKey)
+  return (
+    metricMap.get(metricKey)?.metricName || getFallbackMetricName(metricKey)
+  )
 }
 
 function getMetricUnit(metricMap, metricKey = '') {
@@ -543,11 +539,8 @@ function getMetricUnit(metricMap, metricKey = '') {
 }
 
 function getMetricDecimalPlaces(metricMap, metricKey = '') {
-  return normalizeDecimalPlaces(
-    metricMap.get(metricKey)?.decimalPlaces
-  )
+  return normalizeDecimalPlaces(metricMap.get(metricKey)?.decimalPlaces)
 }
-
 
 function normalizeHistoryTimeKey(value) {
   const date = new Date(value)
@@ -574,13 +567,11 @@ function buildAllMetricsTableRows(rows = [], metrics = []) {
 
     if (!timeKey || !row.metricKey) continue
 
-    const existing =
-      map.get(timeKey) ||
-      {
-        id: timeKey,
-        time: row.time,
-        values: {},
-      }
+    const existing = map.get(timeKey) || {
+      id: timeKey,
+      time: row.time,
+      values: {},
+    }
 
     existing.values[row.metricKey] = row.value
     map.set(timeKey, existing)
@@ -596,7 +587,6 @@ function getHistoryTableRows(rows = [], selectedMetricKey = '', metrics = []) {
 
   return rows
 }
-
 
 function formatHistoryTableValue(row, metricMap, selectedUnit = '') {
   const unit = getMetricUnit(metricMap, row.metricKey) || selectedUnit
@@ -714,7 +704,10 @@ function formatAlarmRuleSummary(rule, metricMap, includeMetricName = false) {
 function HistoryAlarmBadge({ evaluation, compact = false }) {
   if (!evaluation?.hasRules) {
     return (
-      <span className="history-alarm-badge no-rule" title="Metric นี้ยังไม่มี Active Alarm Rule">
+      <span
+        className="history-alarm-badge no-rule"
+        title="Metric นี้ยังไม่มี Active Alarm Rule"
+      >
         {compact ? '—' : 'No Rule'}
       </span>
     )
@@ -748,7 +741,9 @@ function HistoryAlarmBadge({ evaluation, compact = false }) {
 
 function HistoryMetricAlarmValue({ value, unit, decimalPlaces, evaluation }) {
   return (
-    <div className={`history-metric-alarm-value ${evaluation?.severity || 'none'}`}>
+    <div
+      className={`history-metric-alarm-value ${evaluation?.severity || 'none'}`}
+    >
       <span>{formatNumber(value, unit, decimalPlaces)}</span>
       <HistoryAlarmBadge evaluation={evaluation} compact />
     </div>
@@ -792,10 +787,14 @@ function History() {
   const [devices, setDevices] = useState([])
   const [metrics, setMetrics] = useState([])
   const [alarmRules, setAlarmRules] = useState([])
-  const [selectedDeviceId, setSelectedDeviceId] = useState(initialHistoryState.deviceId)
+  const [selectedDeviceId, setSelectedDeviceId] = useState(
+    initialHistoryState.deviceId
+  )
   const [startDate, setStartDate] = useState(initialHistoryState.startDate)
   const [endDate, setEndDate] = useState(initialHistoryState.endDate)
-  const [selectedMetricKey, setSelectedMetricKey] = useState(initialHistoryState.metricKey)
+  const [selectedMetricKey, setSelectedMetricKey] = useState(
+    initialHistoryState.metricKey
+  )
   const [rows, setRows] = useState([])
   const [chartRows, setChartRows] = useState([])
   const [tablePage, setTablePage] = useState(initialHistoryState.tablePage)
@@ -818,8 +817,9 @@ function History() {
 
   const selectedDevice = useMemo(
     () =>
-      devices.find((device) => String(device.id) === String(selectedDeviceId)) ||
-      null,
+      devices.find(
+        (device) => String(device.id) === String(selectedDeviceId)
+      ) || null,
     [devices, selectedDeviceId]
   )
 
@@ -898,8 +898,10 @@ function History() {
 
         if (metricCompare !== 0) return metricCompare
 
-        return (ALARM_SEVERITY_PRIORITY[a.severity] || 0) -
+        return (
+          (ALARM_SEVERITY_PRIORITY[a.severity] || 0) -
           (ALARM_SEVERITY_PRIORITY[b.severity] || 0)
+        )
       })
   }, [activeAlarmRules, chartSeries, selectedMetricKey])
 
@@ -1038,9 +1040,7 @@ function History() {
       const nextRules = toArray(result)
         .map(normalizeAlarmRule)
         .filter(Boolean)
-        .filter(
-          (rule) => String(rule.deviceId) === String(deviceId)
-        )
+        .filter((rule) => String(rule.deviceId) === String(deviceId))
 
       setAlarmRules(nextRules)
     } catch (err) {
@@ -1302,7 +1302,9 @@ function History() {
     const reportWindow = window.open('', '_blank')
 
     if (!reportWindow) {
-      setError('เบราว์เซอร์บล็อกหน้าต่าง PDF กรุณาอนุญาต Pop-up สำหรับเว็บไซต์นี้')
+      setError(
+        'เบราว์เซอร์บล็อกหน้าต่าง PDF กรุณาอนุญาต Pop-up สำหรับเว็บไซต์นี้'
+      )
       return
     }
 
@@ -1317,8 +1319,8 @@ function History() {
         ? 'All Metrics'
         : selectedMetric?.metricName || selectedMetricKey
     const chartSvg =
-      document.querySelector('.history-chart-box .recharts-wrapper svg')?.outerHTML ||
-      '<div class="report-empty">No trend data</div>'
+      document.querySelector('.history-chart-box .recharts-wrapper svg')
+        ?.outerHTML || '<div class="report-empty">No trend data</div>'
     const alarmChips = alarmReferenceRules
       .map(
         (rule) => `
@@ -1341,7 +1343,9 @@ function History() {
             <th>Date</th>
             <th>Time</th>
             ${metrics
-              .map((metric) => `<th>${escapeReportHtml(metric.metricName)}</th>`)
+              .map(
+                (metric) => `<th>${escapeReportHtml(metric.metricName)}</th>`
+              )
               .join('')}
           </tr>`
         : `
@@ -1640,9 +1644,8 @@ function History() {
       return undefined
     }
 
-    const recordIntervalMs = Number(
-      selectedDevice?.record_interval_seconds || 30
-    ) * 1000
+    const recordIntervalMs =
+      Number(selectedDevice?.record_interval_seconds || 30) * 1000
     const refreshMs = Math.min(60_000, Math.max(10_000, recordIntervalMs))
 
     const timerId = window.setInterval(() => {
@@ -1763,9 +1766,8 @@ function History() {
   ])
 
   const selectedResolutionLabel =
-    CHART_RESOLUTION_OPTIONS.find(
-      (option) => option.value === chartResolution
-    )?.label || chartResolution
+    CHART_RESOLUTION_OPTIONS.find((option) => option.value === chartResolution)
+      ?.label || chartResolution
 
   const selectedUnit =
     selectedMetricKey === 'all' ? '' : selectedMetric?.unit || ''
@@ -1779,14 +1781,20 @@ function History() {
       <PageHeader
         eyebrow="Data Center"
         title="History Analytics"
-        description="ตรวจสอบข้อมูลย้อนหลังตาม Device, ช่วงวันที่ และ Metric พร้อมกราฟ ตาราง และรายงาน Export"
+        description="ตรวจสอบข้อมูลย้อนหลังของอุปกรณ์และ Metric ที่เลือก พร้อมแสดงผลเป็นกราฟและตาราง"
       />
 
       <section className="history-stat-grid history-stat-grid-tight">
         <HistoryStatCard
           label="Records"
           value={loadingHistory ? '...' : filteredRows.length}
-          hint="Filtered rows"
+          hint="จำนวนรายการข้อมูลย้อนหลังที่ตรงกับตัวกรอง"
+        />
+
+        <HistoryStatCard
+          label="Min"
+          value={formatNumber(stats.min, selectedUnit, selectedDecimalPlaces)}
+          hint="ค่าต่ำสุด"
         />
         <HistoryStatCard
           label="Average"
@@ -1795,17 +1803,12 @@ function History() {
             selectedUnit,
             selectedDecimalPlaces
           )}
-          hint={selectedMetricKey === 'all' ? 'All device metrics' : 'Selected metric'}
-        />
-        <HistoryStatCard
-          label="Min"
-          value={formatNumber(stats.min, selectedUnit, selectedDecimalPlaces)}
-          hint="Lowest value"
+          hint={selectedMetricKey === 'ค่าเฉลี่ย' ? 'ค่าเฉลี่ย' : 'ค่าเฉลี่ย'}
         />
         <HistoryStatCard
           label="Max"
           value={formatNumber(stats.max, selectedUnit, selectedDecimalPlaces)}
-          hint="Highest value"
+          hint="ค่าสูงสุด"
         />
       </section>
 
@@ -1926,9 +1929,7 @@ function History() {
             <select
               value={chartResolution}
               onChange={(event) =>
-                setChartResolution(
-                  getSafeChartResolution(event.target.value)
-                )
+                setChartResolution(getSafeChartResolution(event.target.value))
               }
               disabled={loadingHistory || !metrics.length}
             >
@@ -1978,176 +1979,194 @@ function History() {
         </div>
       </section>
 
-      {notice && <section className="history-message success">{notice}</section>}
+      {notice && (
+        <section className="history-message success">{notice}</section>
+      )}
       {error && <section className="history-message error">{error}</section>}
 
       <section className="app-card history-chart-card history-chart-card-full">
-
-          <div className="history-section-title">
-            <div>
-              <h2>Trend Graph</h2>
-              <p>
-                {selectedMetricKey === 'all' ? 'All Metrics' : selectedMetric?.metricName || 'Metric'} จาก{' '}
-                {selectedDevice?.name || selectedDevice?.device_code || 'Device'}
-                {' '}• {formatDateOnly(startDate)} - {formatDateOnly(endDate)}
-                {' '}• {selectedResolutionLabel}
-              </p>
-            </div>
-
-            <div className="history-trend-actions">
-              <span
-                className={`history-device-status ${selectedDevice?.status || 'offline'}`}
-              >
-                {selectedDevice?.status || 'offline'}
-              </span>
-            </div>
+        <div className="history-section-title">
+          <div>
+            <h2>Trend Graph</h2>
+            <p>
+              {selectedMetricKey === 'all'
+                ? 'All Metrics'
+                : selectedMetric?.metricName || 'Metric'}{' '}
+              จาก{' '}
+              {selectedDevice?.name || selectedDevice?.device_code || 'Device'}{' '}
+              • {formatDateOnly(startDate)} - {formatDateOnly(endDate)} •{' '}
+              {selectedResolutionLabel}
+            </p>
           </div>
 
-          {alarmReferenceRules.length > 0 && (
-            <div className="history-alarm-rule-summary" aria-label="Active alarm thresholds">
-              {alarmReferenceRules.map((rule) => (
-                <span
-                  key={`alarm-summary-${rule.id || `${rule.metricKey}-${rule.severity}`}`}
-                  className={`history-alarm-rule-chip ${rule.severity}`}
-                >
-                  <i aria-hidden="true" />
-                  {formatAlarmRuleSummary(
-                    rule,
-                    metricMap,
-                    selectedMetricKey === 'all'
-                  )}
-                </span>
-              ))}
-            </div>
-          )}
+          <div className="history-trend-actions">
+            <span
+              className={`history-device-status ${selectedDevice?.status || 'offline'}`}
+            >
+              {selectedDevice?.status || 'offline'}
+            </span>
+          </div>
+        </div>
 
-          {loadingChart ? (
-            <div className="history-empty-box">กำลังโหลดข้อมูลกราฟ...</div>
-          ) : chartData.length === 0 ? (
-            <div className="history-empty-box">
-              <span />
-              <strong>ยังไม่มีข้อมูลสำหรับกราฟ</strong>
-              <p>
-                ตรวจสอบวันที่, Metric และ Interval Record ในหน้า Settings จากนั้นรอให้ Device ส่งค่ารอบถัดไป
-              </p>
-            </div>
-          ) : (
-            <div className="history-chart-box">
-              <ResponsiveContainer width="100%" height={360}>
-                <AreaChart
-                  data={chartData}
-                  margin={{
-                    top: 18,
-                    right: 18,
-                    left: -6,
-                    bottom: 0,
-                  }}
-                >
-                  <defs>
-                    <linearGradient
-                      id="historyMetricFill"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.02} />
-                    </linearGradient>
-                  </defs>
+        {alarmReferenceRules.length > 0 && (
+          <div
+            className="history-alarm-rule-summary"
+            aria-label="Active alarm thresholds"
+          >
+            {alarmReferenceRules.map((rule) => (
+              <span
+                key={`alarm-summary-${rule.id || `${rule.metricKey}-${rule.severity}`}`}
+                className={`history-alarm-rule-chip ${rule.severity}`}
+              >
+                <i aria-hidden="true" />
+                {formatAlarmRuleSummary(
+                  rule,
+                  metricMap,
+                  selectedMetricKey === 'all'
+                )}
+              </span>
+            ))}
+          </div>
+        )}
 
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="rgba(148, 163, 184, 0.18)"
-                  />
-                  <XAxis
-                    dataKey="label"
-                    tickLine={false}
-                    axisLine={false}
-                    minTickGap={28}
-                    tick={{
-                      fontSize: 12,
-                      fill: '#94a3b8',
-                      fontWeight: 700,
-                    }}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    width={48}
-                    domain={['auto', 'auto']}
-                    tick={{
-                      fontSize: 12,
-                      fill: '#94a3b8',
-                      fontWeight: 700,
-                    }}
-                  />
-                  <Tooltip
-                    content={<HistoryTooltip metricMap={metricMap} />}
-                    cursor={{
-                      stroke: 'rgba(6, 182, 212, 0.7)',
-                      strokeDasharray: '3 3',
-                    }}
-                  />
-                  {alarmReferenceRules.map((rule) => {
-                    const color = getAlarmRuleColor(rule.severity)
-
-                    return (
-                      <ReferenceLine
-                        key={`alarm-line-${rule.id || `${rule.metricKey}-${rule.severity}`}`}
-                        y={rule.threshold}
-                        stroke={color}
-                        strokeWidth={1.8}
-                        strokeDasharray={
-                          rule.severity === 'critical' ? '4 3' : '7 4'
-                        }
-                        ifOverflow="extendDomain"
-                        label={{
-                          value: formatAlarmRuleSummary(
-                            rule,
-                            metricMap,
-                            selectedMetricKey === 'all'
-                          ),
-                          position: 'insideTopRight',
-                          fill: color,
-                          fontSize: 10,
-                          fontWeight: 800,
-                        }}
-                      />
-                    )
-                  })}
-                  {chartSeries.map((series, index) => (
-                    <Area
-                      key={series.dataKey}
-                      type="monotone"
-                      dataKey={series.dataKey}
-                      name={series.name}
-                      stroke={series.color}
-                      fill={index === 0 ? 'url(#historyMetricFill)' : 'transparent'}
-                      strokeWidth={selectedMetricKey === 'all' ? 2 : 3}
-                      dot={chartData.length <= 1}
-                      activeDot={{ r: 5 }}
-                      connectNulls
-                      isAnimationActive={false}
+        {loadingChart ? (
+          <div className="history-empty-box">กำลังโหลดข้อมูลกราฟ...</div>
+        ) : chartData.length === 0 ? (
+          <div className="history-empty-box">
+            <span />
+            <strong>ยังไม่มีข้อมูลสำหรับกราฟ</strong>
+            <p>
+              ตรวจสอบวันที่, Metric และ Interval Record ในหน้า Settings
+              จากนั้นรอให้ Device ส่งค่ารอบถัดไป
+            </p>
+          </div>
+        ) : (
+          <div className="history-chart-box">
+            <ResponsiveContainer width="100%" height={360}>
+              <AreaChart
+                data={chartData}
+                margin={{
+                  top: 18,
+                  right: 18,
+                  left: -6,
+                  bottom: 0,
+                }}
+              >
+                <defs>
+                  <linearGradient
+                    id="historyMetricFill"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.3} />
+                    <stop
+                      offset="100%"
+                      stopColor="#06b6d4"
+                      stopOpacity={0.02}
                     />
-                  ))}
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+                  </linearGradient>
+                </defs>
+
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="rgba(148, 163, 184, 0.18)"
+                />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={28}
+                  tick={{
+                    fontSize: 12,
+                    fill: '#94a3b8',
+                    fontWeight: 700,
+                  }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={48}
+                  domain={['auto', 'auto']}
+                  tick={{
+                    fontSize: 12,
+                    fill: '#94a3b8',
+                    fontWeight: 700,
+                  }}
+                />
+                <Tooltip
+                  content={<HistoryTooltip metricMap={metricMap} />}
+                  cursor={{
+                    stroke: 'rgba(6, 182, 212, 0.7)',
+                    strokeDasharray: '3 3',
+                  }}
+                />
+                {alarmReferenceRules.map((rule) => {
+                  const color = getAlarmRuleColor(rule.severity)
+
+                  return (
+                    <ReferenceLine
+                      key={`alarm-line-${rule.id || `${rule.metricKey}-${rule.severity}`}`}
+                      y={rule.threshold}
+                      stroke={color}
+                      strokeWidth={1.8}
+                      strokeDasharray={
+                        rule.severity === 'critical' ? '4 3' : '7 4'
+                      }
+                      ifOverflow="extendDomain"
+                      label={{
+                        value: formatAlarmRuleSummary(
+                          rule,
+                          metricMap,
+                          selectedMetricKey === 'all'
+                        ),
+                        position: 'insideTopRight',
+                        fill: color,
+                        fontSize: 10,
+                        fontWeight: 800,
+                      }}
+                    />
+                  )
+                })}
+                {chartSeries.map((series, index) => (
+                  <Area
+                    key={series.dataKey}
+                    type="monotone"
+                    dataKey={series.dataKey}
+                    name={series.name}
+                    stroke={series.color}
+                    fill={
+                      index === 0 ? 'url(#historyMetricFill)' : 'transparent'
+                    }
+                    strokeWidth={selectedMetricKey === 'all' ? 2 : 3}
+                    dot={chartData.length <= 1}
+                    activeDot={{ r: 5 }}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                ))}
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </section>
 
       <section className="app-card history-table-card">
         <div className="history-section-title">
           <div>
             <h2>History Table</h2>
-            <p>ข้อมูลทุก {selectedResolutionLabel} พร้อมสถานะ Warning / Critical ตาม Alarm Rule</p>
+            <p>
+              ข้อมูลทุก {selectedResolutionLabel} พร้อมสถานะ Warning / Critical
+              ตาม Alarm Rule
+            </p>
           </div>
 
           <div className="history-table-actions">
             <span>
-              {historyTableStartRow}-{historyTableEndRow} / {historyTableRows.length} rows
+              {historyTableStartRow}-{historyTableEndRow} /{' '}
+              {historyTableRows.length} rows
             </span>
 
             <label>
@@ -2185,7 +2204,29 @@ function History() {
             className={`history-table ${
               selectedMetricKey === 'all' ? 'history-table-all-metrics' : ''
             }`}
+            style={{
+              minWidth: `${Math.max(
+                760,
+                (selectedMetricKey === 'all' ? metrics.length + 2 : 4) * 180
+              )}px`,
+            }}
           >
+            <colgroup>
+              {Array.from({
+                length: selectedMetricKey === 'all' ? metrics.length + 2 : 4,
+              }).map((_, index) => (
+                <col
+                  key={`history-table-column-${index}`}
+                  style={{
+                    width: `${
+                      100 /
+                      (selectedMetricKey === 'all' ? metrics.length + 2 : 4)
+                    }%`,
+                  }}
+                />
+              ))}
+            </colgroup>
+
             <thead>
               {selectedMetricKey === 'all' ? (
                 <tr>
@@ -2282,7 +2323,8 @@ function History() {
         {historyTableRows.length > tablePageSize && (
           <div className="history-table-pagination">
             <div>
-              Showing {historyTableStartRow}-{historyTableEndRow} of {historyTableRows.length}
+              Showing {historyTableStartRow}-{historyTableEndRow} of{' '}
+              {historyTableRows.length}
             </div>
 
             <div className="history-pagination-actions">
@@ -2303,13 +2345,16 @@ function History() {
               </button>
 
               <span>
-                Page {Math.min(tablePage, totalHistoryTablePages)} / {totalHistoryTablePages}
+                Page {Math.min(tablePage, totalHistoryTablePages)} /{' '}
+                {totalHistoryTablePages}
               </span>
 
               <button
                 type="button"
                 onClick={() =>
-                  setTablePage((page) => Math.min(totalHistoryTablePages, page + 1))
+                  setTablePage((page) =>
+                    Math.min(totalHistoryTablePages, page + 1)
+                  )
                 }
                 disabled={tablePage >= totalHistoryTablePages}
               >

@@ -80,7 +80,9 @@ function Devices() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deviceError, setDeviceError] = useState('')
-  const [deviceModelOptions, setDeviceModelOptions] = useState(FALLBACK_DEVICE_MODEL_OPTIONS)
+  const [deviceModelOptions, setDeviceModelOptions] = useState(
+    FALLBACK_DEVICE_MODEL_OPTIONS
+  )
   const [notice, setNotice] = useState(null)
   const [resetSecretResult, setResetSecretResult] = useState(null)
   const noticeTimerRef = useRef(null)
@@ -366,9 +368,9 @@ function Devices() {
     const device = devices.find((item) => String(item.id) === String(deviceId))
     const ok = confirmDeleteAction({
       title: 'Confirm Delete Device',
-      targetName: device?.name || device?.device_code || `Device ID ${deviceId}`,
-      description:
-        'Device นี้จะถูกลบออกจากระบบ กรุณาพิมพ์ delete เพื่อยืนยัน',
+      targetName:
+        device?.name || device?.device_code || `Device ID ${deviceId}`,
+      description: 'Device นี้จะถูกลบออกจากระบบ กรุณาพิมพ์ delete เพื่อยืนยัน',
     })
 
     if (!ok) return
@@ -388,7 +390,8 @@ function Devices() {
   async function handleResetSecret(device) {
     const ok = confirmResetSecretAction({
       title: 'Confirm Reset Device Secret',
-      targetName: device?.name || device?.device_code || `Device ID ${device?.id}`,
+      targetName:
+        device?.name || device?.device_code || `Device ID ${device?.id}`,
       description:
         'Secret เดิมจะใช้งานไม่ได้ทันที และ Firmware / Gateway ต้องใช้ Secret ใหม่ กรุณาพิมพ์ reset secret เพื่อยืนยัน',
     })
@@ -404,7 +407,10 @@ function Devices() {
         deviceCode: result.device_code || device.device_code,
         deviceSecret: result.deviceSecret,
       })
-      showNotice('success', 'Reset Secret สำเร็จ กรุณา Copy Secret ใหม่เก็บไว้ทันที')
+      showNotice(
+        'success',
+        'Reset Secret สำเร็จ กรุณา Copy Secret ใหม่เก็บไว้ทันที'
+      )
     } catch (error) {
       console.error('Reset secret error:', error)
       showNotice('error', error.message || 'Reset Secret ไม่สำเร็จ')
@@ -546,7 +552,8 @@ function Devices() {
     const currentRule = alarmRules.find(
       (rule) => String(rule.id) === String(ruleId)
     )
-    const deviceId = nextRule.device_id || currentRule?.device_id || selectedDeviceId
+    const deviceId =
+      nextRule.device_id || currentRule?.device_id || selectedDeviceId
 
     if (nextRule.threshold === '' || Number.isNaN(Number(nextRule.threshold))) {
       showNotice('warning', 'กรุณากรอก Threshold ให้ถูกต้อง')
@@ -610,7 +617,7 @@ function Devices() {
       <PageHeader
         eyebrow="Devices"
         title="Device Center"
-        description="ดูสถานะอุปกรณ์จริงแบบเข้าใจง่าย จัดการ ESP32 / Gateway, Metric, Location, Secret และ Alarm Rules ในที่เดียว"
+        description="จัดการอุปกรณ์ dotWatch ทั้งหมด"
       />
 
       {notice && (
@@ -627,7 +634,10 @@ function Devices() {
           <div>
             <span className="page-eyebrow">New Device Secret</span>
             <h3>Copy Secret ใหม่เก็บไว้ทันที</h3>
-            <p>Secret เดิมจะใช้งานไม่ได้แล้ว และ Secret ใหม่นี้จะแสดงเฉพาะตอนนี้เท่านั้น</p>
+            <p>
+              Secret เดิมจะใช้งานไม่ได้แล้ว และ Secret
+              ใหม่นี้จะแสดงเฉพาะตอนนี้เท่านั้น
+            </p>
           </div>
 
           <div className="devices-v3-reset-secret-grid">
@@ -668,25 +678,25 @@ function Devices() {
         <StatCard
           label="Total Devices"
           value={devices.length}
-          hint="All devices"
+          hint="จำนวนอุปกรณ์ทั้งหมดในระบบ"
         />
         <StatCard
           label="Online"
           value={onlineCount}
-          hint="Sending data"
+          hint="จำนวนอุปกรณ์ที่มีสถานะ Online"
           tone="success"
-        />
-        <StatCard
-          label="Warning"
-          value={warningCount}
-          hint="Review alarms"
-          tone="warning"
         />
         <StatCard
           label="Offline"
           value={offlineCount}
-          hint="Check connection"
+          hint="จำนวนอุปกรณ์ที่มีสถานะ Offline"
           tone="danger"
+        />
+        <StatCard
+          label="Warning"
+          value={warningCount}
+          hint="จำนวนอุปกรณ์ที่มีสถานะ Warning"
+          tone="warning"
         />
       </section>
 

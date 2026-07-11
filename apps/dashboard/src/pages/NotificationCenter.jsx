@@ -76,8 +76,12 @@ function buildAlarmNotification(alarm) {
   const id = `alarm-${alarm.id}-${alarm.status || 'active'}`
   const metric = alarm.metric_name || alarm.metric || 'Metric'
   const unit = alarm.unit || ''
-  const valueText = alarm.value != null ? `${alarm.value}${unit ? ` ${unit}` : ''}` : '--'
-  const thresholdText = alarm.threshold != null ? `${alarm.operator || ''} ${alarm.threshold}${unit ? ` ${unit}` : ''}` : '--'
+  const valueText =
+    alarm.value != null ? `${alarm.value}${unit ? ` ${unit}` : ''}` : '--'
+  const thresholdText =
+    alarm.threshold != null
+      ? `${alarm.operator || ''} ${alarm.threshold}${unit ? ` ${unit}` : ''}`
+      : '--'
   const notificationMessage = String(alarm.notification_message || '').trim()
 
   return {
@@ -136,8 +140,12 @@ function mergeAlarmEvents(prev, nextAlarms) {
   })
 
   return Array.from(unique.values()).sort((a, b) => {
-    const aTime = new Date(a.triggered_at || a.time || a.created_at || 0).getTime()
-    const bTime = new Date(b.triggered_at || b.time || b.created_at || 0).getTime()
+    const aTime = new Date(
+      a.triggered_at || a.time || a.created_at || 0
+    ).getTime()
+    const bTime = new Date(
+      b.triggered_at || b.time || b.created_at || 0
+    ).getTime()
     return bTime - aTime
   })
 }
@@ -161,7 +169,10 @@ function NotificationCenter() {
   async function loadData() {
     try {
       setLoading(true)
-      const [alarmData, deviceData] = await Promise.all([getAlarms(), getDevices()])
+      const [alarmData, deviceData] = await Promise.all([
+        getAlarms(),
+        getDevices(),
+      ])
 
       setAlarms(Array.isArray(alarmData) ? alarmData : [])
       setDevices(Array.isArray(deviceData) ? deviceData : [])
@@ -221,7 +232,9 @@ function NotificationCenter() {
           if (!reading) return
 
           setDevices((prev) => {
-            const exists = prev.some((device) => isSameRealtimeDevice(device, reading))
+            const exists = prev.some((device) =>
+              isSameRealtimeDevice(device, reading)
+            )
 
             if (!exists && reading.id) {
               return [reading, ...prev]
@@ -240,7 +253,9 @@ function NotificationCenter() {
           if (!deletedDevice) return
 
           setDevices((prev) =>
-            prev.filter((device) => !isSameRealtimeDevice(device, deletedDevice))
+            prev.filter(
+              (device) => !isSameRealtimeDevice(device, deletedDevice)
+            )
           )
         }
       })
@@ -288,10 +303,18 @@ function NotificationCenter() {
     })
   }, [filter, notifications, readIds, search])
 
-  const unreadCount = notifications.filter((item) => !readIds.has(item.id)).length
-  const criticalCount = notifications.filter((item) => item.severity === 'critical').length
-  const deviceCount = notifications.filter((item) => item.type === 'device').length
-  const alarmCount = notifications.filter((item) => item.type === 'alarm').length
+  const unreadCount = notifications.filter(
+    (item) => !readIds.has(item.id)
+  ).length
+  const criticalCount = notifications.filter(
+    (item) => item.severity === 'critical'
+  ).length
+  const deviceCount = notifications.filter(
+    (item) => item.type === 'device'
+  ).length
+  const alarmCount = notifications.filter(
+    (item) => item.type === 'alarm'
+  ).length
 
   return (
     <div className="page app-page notifications-page">
@@ -301,12 +324,20 @@ function NotificationCenter() {
         description="รวมเหตุการณ์สำคัญของระบบ เช่น Alarm, Device Offline และ Warning เพื่อให้ติดตามได้ในหน้าเดียว"
         actions={
           <>
-            <button type="button" className="secondary-button" onClick={loadData}>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={loadData}
+            >
               <RefreshCcw size={16} />
               Refresh
             </button>
 
-            <button type="button" className="primary-button" onClick={markAllAsRead}>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={markAllAsRead}
+            >
               <CheckCheck size={16} />
               Mark all read
             </button>
@@ -315,17 +346,39 @@ function NotificationCenter() {
       />
 
       <section className="notifications-stat-grid">
-        <StatCard label="Unread" value={loading ? '...' : unreadCount} tone={unreadCount > 0 ? 'warning' : 'success'} />
-        <StatCard label="Critical" value={loading ? '...' : criticalCount} tone={criticalCount > 0 ? 'danger' : 'success'} />
-        <StatCard label="Alarm Events" value={loading ? '...' : alarmCount} />
-        <StatCard label="Device Alerts" value={loading ? '...' : deviceCount} />
+        <StatCard
+          label="Unread"
+          value={loading ? '...' : unreadCount}
+          hint="ความแจ้งเตือนที่ยังไม่ได้อ่าน"
+          tone={unreadCount > 0 ? 'warning' : 'success'}
+        />
+        <StatCard
+          label="Critical"
+          value={loading ? '...' : criticalCount}
+          hint="ความแจ้งเตือนที่มีความสำคัญสูง"
+          tone={criticalCount > 0 ? 'danger' : 'success'}
+        />
+        <StatCard
+          label="Alarm Events"
+          value={loading ? '...' : alarmCount}
+          hint="จำนวนเหตุการณ์ Alarm ที่เกิดขึ้น"
+        />
+        <StatCard
+          label="Device Alerts"
+          value={loading ? '...' : deviceCount}
+          hint="จำนวนการแจ้งเตือนอุปกรณ์"
+        />
       </section>
 
       <section className="app-card notifications-panel">
         <SectionHeader
           title="Notification Feed"
           description="รายการแจ้งเตือนเรียงตามเวลาล่าสุด ใช้สำหรับตรวจสอบเหตุการณ์ที่ต้องติดตาม"
-          actions={<span className="notification-count-chip">{filteredNotifications.length} items</span>}
+          actions={
+            <span className="notification-count-chip">
+              {filteredNotifications.length} items
+            </span>
+          }
         />
 
         <div className="notifications-toolbar">
@@ -338,7 +391,10 @@ function NotificationCenter() {
             />
           </div>
 
-          <select value={filter} onChange={(event) => setFilter(event.target.value)}>
+          <select
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+          >
             <option value="all">All notifications</option>
             <option value="unread">Unread</option>
             <option value="alarm">Alarm events</option>
@@ -350,9 +406,15 @@ function NotificationCenter() {
         </div>
 
         {loading ? (
-          <EmptyState title="Loading notifications" description="กำลังดึงข้อมูล Notification ล่าสุดจากระบบ" />
+          <EmptyState
+            title="Loading notifications"
+            description="กำลังดึงข้อมูล Notification ล่าสุดจากระบบ"
+          />
         ) : filteredNotifications.length === 0 ? (
-          <EmptyState title="No notifications" description="ยังไม่มี Notification ตามเงื่อนไขที่เลือก" />
+          <EmptyState
+            title="No notifications"
+            description="ยังไม่มี Notification ตามเงื่อนไขที่เลือก"
+          />
         ) : (
           <div className="notification-list">
             {filteredNotifications.map((item) => {
@@ -372,7 +434,9 @@ function NotificationCenter() {
                     <div className="notification-title-row">
                       <h3>{item.title}</h3>
                       <div className="notification-badges">
-                        {isUnread && <span className="notification-unread-dot">New</span>}
+                        {isUnread && (
+                          <span className="notification-unread-dot">New</span>
+                        )}
                         <StatusBadge status={item.severity} size="sm" />
                       </div>
                     </div>

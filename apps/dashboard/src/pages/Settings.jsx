@@ -55,7 +55,9 @@ function Settings() {
     const nextPreferences = readUiPreferences()
 
     setShowDataOverview(localStorage.getItem('showDataOverview') !== 'false')
-    setShowDeviceOverview(localStorage.getItem('showDeviceOverview') !== 'false')
+    setShowDeviceOverview(
+      localStorage.getItem('showDeviceOverview') !== 'false'
+    )
     setShowDeviceMap(localStorage.getItem('showDeviceMap') !== 'false')
     setShowLatestActiveAlarms(
       localStorage.getItem('showLatestActiveAlarms') !== 'false'
@@ -128,9 +130,7 @@ function Settings() {
 
         if (cancelled) return
 
-        setRecordIntervalSeconds(
-          Number(result?.record_interval_seconds || 30)
-        )
+        setRecordIntervalSeconds(Number(result?.record_interval_seconds || 30))
       } catch (error) {
         if (cancelled) return
 
@@ -242,7 +242,9 @@ function Settings() {
       setRecordIntervalSeconds(
         Number(result?.record_interval_seconds || recordIntervalSeconds)
       )
-      setRecordMessage('บันทึก Interval Record เรียบร้อย ค่าถัดไปจะถูกบันทึกทันที')
+      setRecordMessage(
+        'บันทึก Interval Record เรียบร้อย ค่าถัดไปจะถูกบันทึกทันที'
+      )
       setRecordMessageTone('success')
 
       window.dispatchEvent(
@@ -283,6 +285,7 @@ function Settings() {
             key={item.label}
             label={item.label}
             value={item.value}
+            hint={item.hint}
             tone={item.tone}
             compact
           />
@@ -329,14 +332,18 @@ function Settings() {
                 <select
                   value={recordDeviceId}
                   onChange={(event) => setRecordDeviceId(event.target.value)}
-                  disabled={recordLoading || recordSaving || !recordDevices.length}
+                  disabled={
+                    recordLoading || recordSaving || !recordDevices.length
+                  }
                 >
                   {!recordDevices.length && (
                     <option value="">No device available</option>
                   )}
                   {recordDevices.map((device) => (
                     <option key={device.id} value={device.id}>
-                      {device.name || device.device_code || `Device ${device.id}`}
+                      {device.name ||
+                        device.device_code ||
+                        `Device ${device.id}`}
                     </option>
                   ))}
                 </select>
@@ -365,7 +372,8 @@ function Settings() {
                 className={`settings-recording-message ${recordMessageTone}`}
                 role={recordMessageTone === 'error' ? 'alert' : 'status'}
               >
-                {recordMessage || 'Interval นี้ควบคุมการบันทึกข้อมูลจริงลง Trend Graph และ History Table'}
+                {recordMessage ||
+                  'Interval นี้ควบคุมการบันทึกข้อมูลจริงลง Trend Graph และ History Table'}
               </span>
               <button
                 type="button"
@@ -388,7 +396,9 @@ function Settings() {
               <label className="settings-v3-toggle-item">
                 <div>
                   <strong>Data Overview</strong>
-                  <span>แสดงค่าล่าสุดของ Metric ที่เปิด Visible ใน Dashboard</span>
+                  <span>
+                    แสดงค่าล่าสุดของ Metric ที่เปิด Visible ใน Dashboard
+                  </span>
                 </div>
                 <input
                   type="checkbox"
@@ -467,7 +477,10 @@ function Settings() {
           </section>
 
           <section className="app-card settings-v3-card">
-            <SectionHeader title="Product UX" description="ตั้งค่าการใช้งานเพิ่มเติม" />
+            <SectionHeader
+              title="Product UX"
+              description="ตั้งค่าการใช้งานเพิ่มเติม"
+            />
 
             <div className="settings-v3-toggle-list compact">
               <label className="settings-v3-toggle-item">
@@ -485,7 +498,9 @@ function Settings() {
               <label className="settings-v3-toggle-item">
                 <div>
                   <strong>Reduce Motion</strong>
-                  <span>ลด Animation สำหรับเครื่องที่ต้องการประหยัดทรัพยากร</span>
+                  <span>
+                    ลด Animation สำหรับเครื่องที่ต้องการประหยัดทรัพยากร
+                  </span>
                 </div>
                 <input
                   type="checkbox"

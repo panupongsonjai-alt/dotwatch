@@ -1,7 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, CheckCircle2, Database, Globe2, RefreshCw, Server, Wifi, WifiOff, XCircle } from 'lucide-react'
-import { PageHeader, SectionHeader, StatCard, StatusBadge } from '../components/common'
-import { getRealtimeStatus, subscribeRealtimeStatus } from '../services/realtime'
+import {
+  Activity,
+  CheckCircle2,
+  Database,
+  Globe2,
+  RefreshCw,
+  Server,
+  Wifi,
+  WifiOff,
+  XCircle,
+} from 'lucide-react'
+import {
+  PageHeader,
+  SectionHeader,
+  StatCard,
+  StatusBadge,
+} from '../components/common'
+import {
+  getRealtimeStatus,
+  subscribeRealtimeStatus,
+} from '../services/realtime'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
@@ -20,13 +38,20 @@ function getUiPreference(name, fallback = '--') {
 }
 
 function getTheme() {
-  return localStorage.getItem('theme') || document.documentElement.dataset.theme || 'dark'
+  return (
+    localStorage.getItem('theme') ||
+    document.documentElement.dataset.theme ||
+    'dark'
+  )
 }
 
 function getConnectionLabel() {
   if (!navigator.onLine) return 'Offline'
 
-  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection
+  const connection =
+    navigator.connection ||
+    navigator.mozConnection ||
+    navigator.webkitConnection
   if (!connection?.effectiveType) return 'Online'
 
   return `${connection.effectiveType.toUpperCase()} connection`
@@ -37,7 +62,9 @@ function SystemHealth() {
   const [health, setHealth] = useState(null)
   const [error, setError] = useState('')
   const [checkedAt, setCheckedAt] = useState(null)
-  const [realtimeStatus, setRealtimeStatus] = useState(() => getRealtimeStatus())
+  const [realtimeStatus, setRealtimeStatus] = useState(() =>
+    getRealtimeStatus()
+  )
 
   async function checkHealth() {
     try {
@@ -50,7 +77,9 @@ function SystemHealth() {
       const data = await response.json().catch(() => null)
 
       if (!response.ok) {
-        throw new Error(data?.message || `Health check failed: ${response.status}`)
+        throw new Error(
+          data?.message || `Health check failed: ${response.status}`
+        )
       }
 
       setHealth({
@@ -137,18 +166,13 @@ function SystemHealth() {
         eyebrow="Diagnostics"
         title="System Health"
         description="ตรวจสอบสถานะ Backend, การเชื่อมต่อ และค่าการแสดงผลของ dotWatch ในเครื่องนี้"
-        meta={
-          <>
-            <StatusBadge status={backendStatus} label={`Backend ${health?.ok ? 'Online' : 'Offline'}`} />
-            <StatusBadge
-              status={realtimeBadgeStatus}
-              label={`Realtime ${realtimeStatus.state}`}
-            />
-            <StatusBadge status={browserStatus} label={`Browser ${navigator.onLine ? 'Online' : 'Offline'}`} />
-          </>
-        }
         actions={
-          <button type="button" className="primary-button" onClick={checkHealth} disabled={loading}>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={checkHealth}
+            disabled={loading}
+          >
             <RefreshCw size={16} />
             {loading ? 'Checking...' : 'Refresh Health'}
           </button>
@@ -173,16 +197,26 @@ function SystemHealth() {
           <SectionHeader
             title="Backend Status"
             description="ข้อมูลจาก endpoint /health ของ dotWatch Backend"
-            actions={<span className="system-health-chip">Last checked {formatTime(checkedAt)}</span>}
+            actions={
+              <span className="system-health-chip">
+                Last checked {formatTime(checkedAt)}
+              </span>
+            }
           />
 
-          <div className={`system-health-status-card ${health?.ok ? 'healthy' : 'offline'}`}>
+          <div
+            className={`system-health-status-card ${health?.ok ? 'healthy' : 'offline'}`}
+          >
             <div className="system-health-status-icon">
               {health?.ok ? <CheckCircle2 size={28} /> : <XCircle size={28} />}
             </div>
 
             <div>
-              <h3>{health?.ok ? 'Backend is reachable' : 'Backend is not reachable'}</h3>
+              <h3>
+                {health?.ok
+                  ? 'Backend is reachable'
+                  : 'Backend is not reachable'}
+              </h3>
               <p>
                 {health?.ok
                   ? `${health.service} responded with status ${health.status} in ${health.latency}ms.`
@@ -206,7 +240,9 @@ function SystemHealth() {
             </div>
             <div>
               <span>Response Time</span>
-              <strong>{health?.latency != null ? `${health.latency} ms` : '--'}</strong>
+              <strong>
+                {health?.latency != null ? `${health.latency} ms` : '--'}
+              </strong>
             </div>
           </div>
         </section>
@@ -218,9 +254,15 @@ function SystemHealth() {
               description="สถานะการเชื่อมต่อ Live Update ของ Dashboard และ Device Detail"
             />
 
-            <div className={`system-health-status-card ${realtimeStatus.connected ? 'healthy' : 'offline'}`}>
+            <div
+              className={`system-health-status-card ${realtimeStatus.connected ? 'healthy' : 'offline'}`}
+            >
               <div className="system-health-status-icon">
-                {realtimeStatus.connected ? <Wifi size={26} /> : <WifiOff size={26} />}
+                {realtimeStatus.connected ? (
+                  <Wifi size={26} />
+                ) : (
+                  <WifiOff size={26} />
+                )}
               </div>
 
               <div>
@@ -264,7 +306,10 @@ function SystemHealth() {
           </section>
 
           <section className="app-card system-health-card compact">
-            <SectionHeader title="Client" description="สถานะฝั่ง Browser และ Network" />
+            <SectionHeader
+              title="Client"
+              description="สถานะฝั่ง Browser และ Network"
+            />
 
             <div className="system-health-mini-list">
               <div>
@@ -280,13 +325,18 @@ function SystemHealth() {
               <div>
                 <Activity size={18} />
                 <span>Timezone</span>
-                <strong>{Intl.DateTimeFormat().resolvedOptions().timeZone || '--'}</strong>
+                <strong>
+                  {Intl.DateTimeFormat().resolvedOptions().timeZone || '--'}
+                </strong>
               </div>
             </div>
           </section>
 
           <section className="app-card system-health-card compact">
-            <SectionHeader title="UI Preferences" description="ค่าการแสดงผลที่บันทึกไว้ใน Browser" />
+            <SectionHeader
+              title="UI Preferences"
+              description="ค่าการแสดงผลที่บันทึกไว้ใน Browser"
+            />
 
             <div className="system-health-mini-list">
               <div>
@@ -302,7 +352,9 @@ function SystemHealth() {
               <div>
                 <Activity size={18} />
                 <span>Density</span>
-                <strong>{getUiPreference('dotwatchDensity', 'comfortable')}</strong>
+                <strong>
+                  {getUiPreference('dotwatchDensity', 'comfortable')}
+                </strong>
               </div>
             </div>
           </section>

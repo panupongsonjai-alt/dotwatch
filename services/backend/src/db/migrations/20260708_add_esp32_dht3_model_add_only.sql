@@ -8,7 +8,7 @@
 -- Metrics:
 --   metric_1 = Temperature (°C)
 --   metric_2 = Humidity (%)
---   metric_3 = WiFi RSSI (dBm)
+--   Wi-Fi RSSI is operational metadata and is not a dashboard metric.
 
 BEGIN;
 
@@ -25,8 +25,8 @@ WITH upsert_model AS (
   VALUES (
     'esp32_dht3',
     'ESP32-DHT3',
-    3,
-    'Additional ESP32 Wi-Fi model with DHT temperature/humidity and Wi-Fi RSSI. Metrics: metric_1 temperature, metric_2 humidity, metric_3 rssi.',
+    2,
+    'Additional ESP32 Wi-Fi model with DHT temperature and humidity. Metrics: metric_1 temperature, metric_2 humidity. RSSI is operational metadata.',
     true,
     NOW(),
     NOW()
@@ -71,8 +71,7 @@ FROM model
 CROSS JOIN (
   VALUES
     ('metric_1', 'Temperature', 'temperature', '°C', 'Thermometer', 1),
-    ('metric_2', 'Humidity', 'humidity', '%', 'Droplets', 2),
-    ('metric_3', 'WiFi RSSI', 'signal', 'dBm', 'Wifi', 3)
+    ('metric_2', 'Humidity', 'humidity', '%', 'Droplets', 2)
 ) AS data(
   metric_key,
   default_name,
@@ -89,6 +88,10 @@ DO UPDATE SET
   default_icon = EXCLUDED.default_icon,
   sort_order = EXCLUDED.sort_order,
   updated_at = NOW();
+
+DELETE FROM device_model_metrics
+WHERE model_id = (SELECT id FROM device_models WHERE model_key = 'esp32_dht3')
+  AND metric_key = 'metric_3';
 
 COMMIT;
 

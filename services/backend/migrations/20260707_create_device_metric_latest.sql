@@ -76,7 +76,7 @@ BEGIN
   END IF;
 END $$;
 
--- Backfill legacy sensor readings as metric_1/metric_2/metric_3 when available.
+-- Backfill legacy sensor readings as metric_1/metric_2 when available. RSSI stays operational metadata.
 DO $$
 BEGIN
   IF EXISTS (
@@ -94,10 +94,6 @@ BEGIN
         SELECT device_id, 'metric_2'::text AS metric_key, time, humidity::double precision AS value
         FROM public.sensor_readings
         WHERE humidity IS NOT NULL
-        UNION ALL
-        SELECT device_id, 'metric_3'::text AS metric_key, time, rssi::double precision AS value
-        FROM public.sensor_readings
-        WHERE rssi IS NOT NULL
       ), latest_rows AS (
         SELECT DISTINCT ON (device_id, metric_key)
           device_id,

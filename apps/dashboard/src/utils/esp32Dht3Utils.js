@@ -21,16 +21,6 @@ export const ESP32_DHT3_METRICS = [
     visible: true,
     sort_order: 1,
   },
-  {
-    metric_key: 'metric_3',
-    metric_name: 'WiFi RSSI',
-    short_label: 'RSSI',
-    metric_type: 'signal',
-    unit: 'dBm',
-    icon: 'Wifi',
-    visible: true,
-    sort_order: 2,
-  },
 ]
 
 export function isEsp32Dht3Device(device = {}) {
@@ -81,10 +71,6 @@ export function getMetricValueFromAnyShape(device = {}, metricKey) {
 
   if (metricKey === 'metric_2' && device.humidity != null) {
     return device.humidity
-  }
-
-  if (metricKey === 'metric_3' && device.rssi != null) {
-    return device.rssi
   }
 
   return null
@@ -161,11 +147,8 @@ export function getDeviceMetricPills(device = {}, limit = 3) {
     latestMetrics.humidity = device.humidity
   }
 
-  if (device.rssi != null && latestMetrics.rssi == null) {
-    latestMetrics.rssi = device.rssi
-  }
-
   return Object.entries(latestMetrics)
+    .filter(([metricKey]) => metricKey !== 'rssi' && metricKey !== 'wifi_rssi')
     .filter(([, value]) => value !== null && value !== undefined && value !== '')
     .sort(([keyA], [keyB]) => getFallbackMetricIndex(keyA) - getFallbackMetricIndex(keyB))
     .slice(0, limit)
@@ -184,7 +167,6 @@ function getFallbackMetricIndex(metricKey = '') {
   if (Number.isFinite(index) && index > 0) return index
   if (metricKey === 'temperature') return 1
   if (metricKey === 'humidity') return 2
-  if (metricKey === 'rssi') return 999
 
   return 9999
 }
@@ -192,7 +174,6 @@ function getFallbackMetricIndex(metricKey = '') {
 function getFallbackMetricLabel(metricKey = '') {
   if (metricKey === 'temperature') return 'Temp'
   if (metricKey === 'humidity') return 'Hum'
-  if (metricKey === 'rssi') return 'RSSI'
 
   const index = getFallbackMetricIndex(metricKey)
   return index > 0 && index < 999 ? `M${index}` : metricKey

@@ -532,39 +532,39 @@ function Dashboard({ onOpenDevice }) {
       <PageHeader
         eyebrow="Operations Center"
         title="Dashboard"
-        description="หน้าแสดงภาพรวมและสถานะของอุปกรณ์"
+        description="หน้าสรุปภาพรวมสถานะอุปกรณ์และ Metric ล่าสุด พร้อมแผนที่และ Alarm ล่าสุด"
       />
 
       <section className="dw-page-stat-grid dashboard-kpi-grid dashboard-health-kpi-grid">
         <StatCard
           label="Total Devices"
           value={loading ? '...' : devices.length}
-          hint="Normal operation"
+          hint="จำนวนอุปกรณ์ทั้งหมดในระบบ"
           tone="success"
         />
         <StatCard
-          label="Healthy"
+          label="Online"
           value={loading ? '...' : healthyCount}
-          hint="Normal operation"
+          hint="จำนวนอุปกรณ์ที่มีสถานะ Online"
           tone="success"
+        />
+        <StatCard
+          label="Offline"
+          value={loading ? '...' : offlineCount}
+          hint="จำนวนอุปกรณ์ที่มีสถานะ Offline"
+          tone={offlineCount > 0 ? 'danger' : 'success'}
         />
         <StatCard
           label="Warning"
           value={loading ? '...' : warningHealthCount}
-          hint={`${alarmSummary.warning} active warning alarms`}
+          hint={`${alarmSummary.warning} จำนวนอุปกรณ์ที่มีสถานะ Warning`}
           tone={warningHealthCount > 0 ? 'warning' : 'success'}
         />
         <StatCard
           label="Critical"
           value={loading ? '...' : criticalHealthCount}
-          hint={`${alarmSummary.critical} active critical alarms`}
+          hint={`${alarmSummary.critical} จำนวนอุปกรณ์ที่มีสถานะ Critical`}
           tone={criticalHealthCount > 0 ? 'danger' : 'success'}
-        />
-        <StatCard
-          label="Offline"
-          value={loading ? '...' : offlineCount}
-          hint="No recent data"
-          tone={offlineCount > 0 ? 'danger' : 'success'}
         />
       </section>
 

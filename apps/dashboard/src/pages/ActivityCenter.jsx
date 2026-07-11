@@ -3,7 +3,12 @@ import { Activity, RefreshCw } from 'lucide-react'
 import { auth } from '../services/firebase'
 import { getActivityLogs, getDevices } from '../services/api'
 import { connectRealtime } from '../services/realtime'
-import { ActivityList, PageHeader, SectionHeader, StatCard } from '../components/common'
+import {
+  ActivityList,
+  PageHeader,
+  SectionHeader,
+  StatCard,
+} from '../components/common'
 
 function normalizeActivity(item = {}) {
   return {
@@ -16,7 +21,8 @@ function dedupeActivity(items = []) {
   const seen = new Set()
 
   return items.filter((item) => {
-    const key = item.id || `${item.activity_type}-${item.device_id}-${item.created_at}`
+    const key =
+      item.id || `${item.activity_type}-${item.device_id}-${item.created_at}`
     if (seen.has(key)) return false
     seen.add(key)
     return true
@@ -98,9 +104,15 @@ function ActivityCenter() {
 
   const summary = useMemo(() => {
     const total = activities.length
-    const alarms = activities.filter((item) => item.activity_type === 'alarm.triggered').length
-    const deviceEvents = activities.filter((item) => String(item.activity_type || '').startsWith('device.')).length
-    const critical = activities.filter((item) => item.severity === 'critical' || item.severity === 'danger').length
+    const alarms = activities.filter(
+      (item) => item.activity_type === 'alarm.triggered'
+    ).length
+    const deviceEvents = activities.filter((item) =>
+      String(item.activity_type || '').startsWith('device.')
+    ).length
+    const critical = activities.filter(
+      (item) => item.severity === 'critical' || item.severity === 'danger'
+    ).length
 
     return { total, alarms, deviceEvents, critical }
   }, [activities])
@@ -125,17 +137,35 @@ function ActivityCenter() {
       />
 
       <section className="activity-stat-grid">
-        <StatCard label="Total Events" value={loading ? '...' : summary.total} />
-        <StatCard label="Device Events" value={loading ? '...' : summary.deviceEvents} tone="success" />
-        <StatCard label="Alarm Events" value={loading ? '...' : summary.alarms} tone={summary.alarms > 0 ? 'warning' : 'success'} />
-        <StatCard label="Critical" value={loading ? '...' : summary.critical} tone={summary.critical > 0 ? 'danger' : 'success'} />
+        <StatCard
+          label="Total Events"
+          value={loading ? '...' : summary.total}
+          hint="จำนวนเหตุการณ์ทั้งหมด"
+        />
+        <StatCard
+          label="Device Events"
+          value={loading ? '...' : summary.deviceEvents}
+          hint="จำนวนเหตุการณ์อุปกรณ์"
+          tone="success"
+        />
+        <StatCard
+          label="Alarm Events"
+          value={loading ? '...' : summary.alarms}
+          hint="จำนวนเหตุการณ์ Alarm ที่เกิดขึ้น"
+          tone={summary.alarms > 0 ? 'warning' : 'success'}
+        />
+        <StatCard
+          label="Critical"
+          value={loading ? '...' : summary.critical}
+          hint="จำนวนเหตุการณ์ที่มีความสำคัญสูง"
+          tone={summary.critical > 0 ? 'danger' : 'success'}
+        />
       </section>
 
       <section className="app-card activity-filter-card">
         <SectionHeader
           title="Filter Activity"
           description="เลือกดูทุกอุปกรณ์ หรือเจาะจงเฉพาะ Device ที่ต้องการ"
-          actions={<Activity size={18} />}
         />
 
         <div className="activity-filter-row">
