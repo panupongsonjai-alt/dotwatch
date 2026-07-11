@@ -6865,3 +6865,51 @@
     max-width: none !important;
   }
 }
+
+/* =========================================================
+   Metrics & Alarms - Normalize Visible / Active check circles
+   Keep both checkbox indicators perfectly round and centered.
+========================================================= */
+.metric-alarm-reference-layout .metric-alarm-config-display .metric-visible-toggle input[type='checkbox'],
+.metric-alarm-reference-layout .metric-alarm-config-active-field .alarm-active-toggle input[type='checkbox'] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 22px !important;
+  inline-size: 22px !important;
+  block-size: 22px !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
+  aspect-ratio: 1 / 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  box-sizing: border-box !important;
+  transform: none !important;
+  overflow: hidden !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-config-display .metric-visible-toggle input[type='checkbox']::after,
+.metric-alarm-reference-layout .metric-alarm-config-active-field .alarm-active-toggle input[type='checkbox']::after {
+  content: '' !important;
+  display: block !important;
+  width: 6px !important;
+  height: 10px !important;
+  margin: -2px 0 0 0 !important;
+  border-right: 2px solid transparent !important;
+  border-bottom: 2px solid transparent !important;
+  transform: rotate(45deg) !important;
+  transform-origin: center !important;
+  box-sizing: border-box !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-config-display .metric-visible-toggle input[type='checkbox']:checked::after,
+.metric-alarm-reference-layout .metric-alarm-config-active-field .alarm-active-toggle input[type='checkbox']:checked::after {
+  border-right-color: #fff !important;
+  border-bottom-color: #fff !important;
+}
