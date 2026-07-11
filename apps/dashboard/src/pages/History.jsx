@@ -680,7 +680,6 @@ function History() {
   const metricsRequestRef = useRef(0)
   const alarmRulesRequestRef = useRef(0)
   const historyRequestRef = useRef(0)
-  const chartRequestRef = useRef(0)
   const [devices, setDevices] = useState([])
   const [metrics, setMetrics] = useState([])
   const [alarmRules, setAlarmRules] = useState([])
@@ -947,77 +946,18 @@ function History() {
 
     if (!selectedDeviceId || !selectedMetricKey || !selectedDate) {
       setRows([])
-      setLoadingHistory(false)
-      return
-    }
-
-    try {
-      setLoadingHistory(true)
-      setError('')
-
-      if (selectedMetricKey === 'all') {
-        const results = await Promise.all(
-          metrics.map(async (metric) => {
-            const result = await getHistoryByDate(
-              selectedDeviceId,
-              selectedDate,
-              metric.metricKey,
-              { resolution: 'raw' }
-            )
-
-            return normalizeHistoryRows(result).map((row) => ({
-              ...row,
-              metricKey: metric.metricKey,
-            }))
-          })
-        )
-
-        if (requestId !== historyRequestRef.current) return
-
-        setRows(results.flat())
-        return
-      }
-
-      const result = await getHistoryByDate(
-        selectedDeviceId,
-        selectedDate,
-        selectedMetricKey,
-        { resolution: 'raw' }
-      )
-
-      if (requestId !== historyRequestRef.current) return
-
-      setRows(
-        normalizeHistoryRows(result).map((row) => ({
-          ...row,
-          metricKey: row.metricKey || selectedMetricKey,
-        }))
-      )
-    } catch (err) {
-      if (requestId !== historyRequestRef.current) return
-
-      console.error('History loadHistory error:', err)
-      setRows([])
-      setError(err.message || 'โหลดข้อมูลย้อนหลังไม่สำเร็จ')
-    } finally {
-      if (requestId === historyRequestRef.current) {
-        setLoadingHistory(false)
-      }
-    }
-  }
-
-  async function loadChartHistory() {
-    const requestId = chartRequestRef.current + 1
-    chartRequestRef.current = requestId
-
-    if (!selectedDeviceId || !selectedMetricKey || !selectedDate) {
       setChartRows([])
+      setLoadingHistory(false)
       setLoadingChart(false)
       return
     }
 
     try {
+      setLoadingHistory(true)
       setLoadingChart(true)
+      setError('')
+
+      let nextRows = []
 
       if (selectedMetricKey === 'all') {
         const results = await Promise.all(
@@ -1036,35 +976,37 @@ function History() {
           })
         )
 
-        if (requestId !== chartRequestRef.current) return
+        nextRows = results.flat()
+      } else {
+        const result = await getHistoryByDate(
+          selectedDeviceId,
+          selectedDate,
+          selectedMetricKey,
+          { resolution: chartResolution }
+        )
 
-        setChartRows(results.flat())
-        return
-      }
-
-      const result = await getHistoryByDate(
-        selectedDeviceId,
-        selectedDate,
-        selectedMetricKey,
-        { resolution: chartResolution }
-      )
-
-      if (requestId !== chartRequestRef.current) return
-
-      setChartRows(
-        normalizeHistoryRows(result).map((row) => ({
+        nextRows = normalizeHistoryRows(result).map((row) => ({
           ...row,
           metricKey: row.metricKey || selectedMetricKey,
         }))
-      )
-    } catch (err) {
-      if (requestId !== chartRequestRef.current) return
+      }
 
-      console.error('History loadChartHistory error:', err)
+      if (requestId !== historyRequestRef.current) return
+
+      // Use one normalized data set for both Trend Graph and History Table.
+      // This keeps both sections synchronized with the selected display interval.
+      setRows(nextRows)
+      setChartRows(nextRows)
+    } catch (err) {
+      if (requestId !== historyRequestRef.current) return
+
+      console.error('History loadHistory error:', err)
+      setRows([])
       setChartRows([])
-      setError(err.message || 'โหลดข้อมูลกราฟย้อนหลังไม่สำเร็จ')
+      setError(err.message || 'โหลดข้อมูลย้อนหลังไม่สำเร็จ')
     } finally {
-      if (requestId === chartRequestRef.current) {
+      if (requestId === historyRequestRef.current) {
+        setLoadingHistory(false)
         setLoadingChart(false)
       }
     }
@@ -1191,7 +1133,7 @@ function History() {
           : 'ไม่พบข้อมูลย้อนหลังที่ตรงกับตัวกรองสำหรับลบ'
       )
 
-      await Promise.all([loadHistory(), loadChartHistory()])
+      await loadHistory()
     } catch (err) {
       console.error('History clear data error:', err)
       setError(err.message || 'ลบข้อมูลย้อนหลังไม่สำเร็จ')
@@ -1217,10 +1159,6 @@ function History() {
 
   useEffect(() => {
     loadHistory()
-  }, [selectedDeviceId, selectedMetricKey, selectedDate, metrics])
-
-  useEffect(() => {
-    loadChartHistory()
   }, [
     selectedDeviceId,
     selectedMetricKey,
@@ -1230,7 +1168,7 @@ function History() {
   ])
 
   useEffect(() => {
-    const filterSignature = `${selectedDeviceId}|${selectedMetricKey}|${selectedDate}`
+    const filterSignature = `${selectedDeviceId}|${selectedMetricKey}|${selectedDate}|${chartResolution}`
 
     if (!previousFilterSignatureRef.current) {
       previousFilterSignatureRef.current = filterSignature
@@ -1242,7 +1180,7 @@ function History() {
       setTablePage(1)
       setNotice('')
     }
-  }, [selectedDeviceId, selectedMetricKey, selectedDate])
+  }, [selectedDeviceId, selectedMetricKey, selectedDate, chartResolution])
 
   useEffect(() => {
     if (tablePage > totalHistoryTablePages) {
@@ -1323,6 +1261,11 @@ function History() {
     chartResolution,
   ])
 
+  const selectedResolutionLabel =
+    CHART_RESOLUTION_OPTIONS.find(
+      (option) => option.value === chartResolution
+    )?.label || chartResolution
+
   const selectedUnit =
     selectedMetricKey === 'all' ? '' : selectedMetric?.unit || ''
   const selectedDecimalPlaces =
@@ -1369,7 +1312,7 @@ function History() {
         <div className="history-section-title">
           <div>
             <h2>Filter</h2>
-            <p>เลือก Device, วันที่ และ Metric ที่ต้องการตรวจสอบ</p>
+            <p>เลือก Device, วันที่, Metric และช่วงเวลาที่ต้องการแสดงผล</p>
           </div>
         </div>
 
@@ -1438,6 +1381,25 @@ function History() {
             </select>
           </label>
 
+          <label className="history-interval-filter">
+            <span>Display Interval</span>
+            <select
+              value={chartResolution}
+              onChange={(event) =>
+                setChartResolution(
+                  getSafeChartResolution(event.target.value)
+                )
+              }
+              disabled={loadingHistory || !metrics.length}
+            >
+              {CHART_RESOLUTION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <div className="history-filter-actions">
             <button
               type="button"
@@ -1475,29 +1437,11 @@ function History() {
               <p>
                 {selectedMetricKey === 'all' ? 'All Metrics' : selectedMetric?.metricName || 'Metric'} จาก{' '}
                 {selectedDevice?.name || selectedDevice?.device_code || 'Device'}
+                {' '}• {selectedResolutionLabel}
               </p>
             </div>
 
             <div className="history-trend-actions">
-              <label className="history-resolution-control">
-                <span>Display interval</span>
-                <select
-                  value={chartResolution}
-                  onChange={(event) =>
-                    setChartResolution(
-                      getSafeChartResolution(event.target.value)
-                    )
-                  }
-                  disabled={loadingChart || !metrics.length}
-                >
-                  {CHART_RESOLUTION_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
               <span
                 className={`history-device-status ${selectedDevice?.status || 'offline'}`}
               >
@@ -1646,7 +1590,7 @@ function History() {
         <div className="history-section-title">
           <div>
             <h2>History Table</h2>
-            <p>รายการข้อมูลย้อนหลังพร้อมสถานะ Warning / Critical ตาม Alarm Rule</p>
+            <p>ข้อมูลทุก {selectedResolutionLabel} พร้อมสถานะ Warning / Critical ตาม Alarm Rule</p>
           </div>
 
           <div className="history-table-actions">

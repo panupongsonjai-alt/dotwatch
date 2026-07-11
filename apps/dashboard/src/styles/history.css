@@ -757,9 +757,10 @@
 
 .history-filter-grid {
   grid-template-columns:
-    minmax(220px, 1.25fr)
+    minmax(220px, 1.2fr)
     minmax(180px, 0.72fr)
     minmax(210px, 1fr)
+    minmax(150px, 0.62fr)
     minmax(290px, 1.05fr);
 }
 
@@ -839,6 +840,15 @@
 .history-filter-actions .history-clear-btn {
   width: 100%;
   min-height: 44px;
+}
+
+.history-interval-filter select {
+  min-width: 0;
+}
+
+.history-interval-filter select:focus {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .history-clear-btn {
@@ -1286,69 +1296,18 @@
   }
 }
 
-/* History Analytics - Trend Graph display interval */
+/* History Analytics - Trend status */
 .history-trend-actions {
   display: inline-flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.history-resolution-control {
-  display: grid;
-  gap: 6px;
-  min-width: 150px;
-}
-
-.history-resolution-control > span {
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1;
-  font-weight: 950;
-  letter-spacing: 0.055em;
-  text-transform: uppercase;
-}
-
-.history-resolution-control select {
-  min-width: 150px;
-  min-height: 38px;
-  padding: 0 36px 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--text);
-  background: var(--panel-2);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 850;
-  outline: none;
-}
-
-.history-resolution-control select:focus {
-  border-color: color-mix(in srgb, var(--accent) 58%, var(--border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
-}
-
-.history-resolution-control select:disabled {
-  opacity: 0.58;
-  cursor: not-allowed;
-}
-
 @media (max-width: 760px) {
   .history-trend-actions {
     width: 100%;
-    justify-content: space-between;
-  }
-
-  .history-resolution-control {
-    min-width: min(220px, 100%);
-  }
-}
-
-@media (max-width: 520px) {
-  .history-trend-actions,
-  .history-resolution-control,
-  .history-resolution-control select {
-    width: 100%;
+    justify-content: flex-start;
   }
 }
