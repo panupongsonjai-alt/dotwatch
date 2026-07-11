@@ -326,6 +326,7 @@ async function createCoreTables() {
       default_unit TEXT DEFAULT '',
       default_icon TEXT DEFAULT 'Activity',
       sort_order INTEGER DEFAULT 0,
+      decimal_places SMALLINT NOT NULL DEFAULT 2,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE (model_id, metric_key)
@@ -364,6 +365,8 @@ async function createCoreTables() {
       ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE,
       ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ,
       ADD COLUMN IF NOT EXISTS last_ingest_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS record_interval_seconds INTEGER NOT NULL DEFAULT 10,
+      ADD COLUMN IF NOT EXISTS last_recorded_at TIMESTAMPTZ,
       ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION,
       ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION,
       ADD COLUMN IF NOT EXISTS map_url TEXT,
@@ -416,7 +419,23 @@ async function createCoreTables() {
       ADD COLUMN IF NOT EXISTS icon TEXT DEFAULT 'Activity',
       ADD COLUMN IF NOT EXISTS visible BOOLEAN NOT NULL DEFAULT TRUE,
       ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS decimal_places SMALLINT NOT NULL DEFAULT 2,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+  `)
+
+  await run(`
+    UPDATE devices
+    SET record_interval_seconds = 10
+    WHERE record_interval_seconds IS NULL
+       OR record_interval_seconds NOT IN (10, 30, 60, 300, 600, 1800, 3600);
+  `)
+
+  await run(`
+    UPDATE device_metrics
+    SET decimal_places = 2
+    WHERE decimal_places IS NULL
+       OR decimal_places < 0
+       OR decimal_places > 6;
   `)
 }
 
@@ -521,7 +540,7 @@ async function createAlarmAndActivityTables() {
     CREATE TABLE IF NOT EXISTS alarm_rules (
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      device_id BIGINT REFERENCES devices(id) ON DELETE CASCADE,
+      device_id BIGINT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
       metric TEXT NOT NULL,
       operator TEXT NOT NULL,
       threshold DOUBLE PRECISION NOT NULL,
@@ -573,6 +592,16 @@ async function createAlarmAndActivityTables() {
   `)
 
   await run(`
+    DELETE FROM alarm_rules
+    WHERE device_id IS NULL;
+  `)
+
+  await run(`
+    ALTER TABLE alarm_rules
+      ALTER COLUMN device_id SET NOT NULL;
+  `)
+
+  await run(`
     WITH ranked_rules AS (
       SELECT
         id,
@@ -596,8 +625,7 @@ async function createAlarmAndActivityTables() {
       device_id,
       metric,
       (LOWER(TRIM(severity)))
-    )
-    WHERE device_id IS NOT NULL;
+    );
   `)
 
   await run(`

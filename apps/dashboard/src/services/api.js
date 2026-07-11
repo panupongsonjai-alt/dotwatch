@@ -449,10 +449,10 @@ export function getDeviceMetrics(deviceId) {
   return apiFetch(`/api/devices/${encodeURIComponent(deviceId)}/metrics`)
 }
 
-export function saveDeviceMetrics(deviceId, metrics) {
+export function saveDeviceMetrics(deviceId, metrics, settings = {}) {
   return apiFetch(`/api/devices/${encodeURIComponent(deviceId)}/metrics`, {
     method: 'PUT',
-    body: JSON.stringify({ metrics }),
+    body: JSON.stringify({ metrics, settings }),
   })
 }
 
@@ -486,8 +486,15 @@ export function getAlarmSummary() {
   return apiFetch('/api/alarms/summary')
 }
 
-export function getAlarmRules() {
-  return apiFetch('/api/alarm-rules')
+export function getAlarmRules(deviceId = null) {
+  const params = new URLSearchParams()
+
+  if (deviceId != null && deviceId !== '') {
+    params.set('deviceId', String(deviceId))
+  }
+
+  const query = params.toString()
+  return apiFetch(`/api/alarm-rules${query ? `?${query}` : ''}`)
 }
 
 export function createAlarmRule(data) {

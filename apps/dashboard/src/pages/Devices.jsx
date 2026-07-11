@@ -84,6 +84,7 @@ function Devices() {
   const [notice, setNotice] = useState(null)
   const [resetSecretResult, setResetSecretResult] = useState(null)
   const noticeTimerRef = useRef(null)
+  const alarmRulesRequestRef = useRef(0)
 
   const [showCreateWizard, setShowCreateWizard] = useState(false)
   const [createStep, setCreateStep] = useState(1)
@@ -202,17 +203,35 @@ function Devices() {
     }
   }
 
-  async function loadAlarmRules() {
+  async function loadAlarmRules(deviceId = selectedDeviceId) {
+    const requestId = alarmRulesRequestRef.current + 1
+    alarmRulesRequestRef.current = requestId
+
+    if (!deviceId) {
+      setAlarmRules([])
+      return
+    }
+
     try {
-      const data = await getAlarmRules()
-      setAlarmRules(Array.isArray(data) ? data : [])
+      const data = await getAlarmRules(deviceId)
+
+      if (requestId !== alarmRulesRequestRef.current) return
+
+      const scopedRules = (Array.isArray(data) ? data : []).filter(
+        (rule) => Number(rule.device_id) === Number(deviceId)
+      )
+
+      setAlarmRules(scopedRules)
     } catch (error) {
+      if (requestId !== alarmRulesRequestRef.current) return
+
+      setAlarmRules([])
       console.error('Load alarm rules error:', error)
     }
   }
 
   async function reloadAll() {
-    await Promise.all([loadDeviceModels(), loadDevices(), loadAlarmRules()])
+    await Promise.all([loadDeviceModels(), loadDevices()])
   }
 
   useEffect(() => {
@@ -224,6 +243,11 @@ function Devices() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    setAlarmRules([])
+    loadAlarmRules(selectedDeviceId)
+  }, [selectedDeviceId])
 
   function openCreateWizard() {
     setCreateForm({
@@ -428,20 +452,25 @@ function Devices() {
       setSaving(true)
 
       const result = await saveAlarmRulesForDevice(deviceId, rules)
-      const savedRules = Array.isArray(result?.rules) ? result.rules : []
+      const canonicalRules = Array.isArray(result?.rules) ? result.rules : []
 
       setAlarmRules((currentRules) => [
         ...currentRules.filter(
           (rule) => Number(rule.device_id) !== Number(deviceId)
         ),
-        ...savedRules,
+        ...canonicalRules,
       ])
 
-      await loadAlarmRules()
+      showNotice(
+        'success',
+        `บันทึก Alarm Rules สำเร็จ ${Number(result?.saved_count || 0)} รายการ`
+      )
 
       return {
         success: true,
-        rules: savedRules,
+        rules: canonicalRules,
+        savedCount: Number(result?.saved_count || 0),
+        deletedCount: Number(result?.deleted_count || 0),
       }
     } catch (error) {
       console.error('Save all metric alarm rules error:', error)
@@ -502,7 +531,7 @@ function Devices() {
         await createAlarmRule(payload)
       }
 
-      await loadAlarmRules()
+      await loadAlarmRules(deviceId)
       return true
     } catch (error) {
       console.error('Create metric alarm rule error:', error)
@@ -514,6 +543,11 @@ function Devices() {
   }
 
   async function handleUpdateMetricAlarm(ruleId, nextRule) {
+    const currentRule = alarmRules.find(
+      (rule) => String(rule.id) === String(ruleId)
+    )
+    const deviceId = nextRule.device_id || currentRule?.device_id || selectedDeviceId
+
     if (nextRule.threshold === '' || Number.isNaN(Number(nextRule.threshold))) {
       showNotice('warning', 'กรุณากรอก Threshold ให้ถูกต้อง')
       return false
@@ -534,7 +568,7 @@ function Devices() {
         ).trim(),
       })
 
-      await loadAlarmRules()
+      await loadAlarmRules(deviceId)
       return true
     } catch (error) {
       console.error('Update metric alarm rule error:', error)
@@ -562,7 +596,7 @@ function Devices() {
     try {
       setSaving(true)
       await deleteAlarmRule(ruleId)
-      await loadAlarmRules()
+      await loadAlarmRules(rule?.device_id || selectedDeviceId)
     } catch (error) {
       console.error('Delete alarm rule error:', error)
       showNotice('error', error.message || 'ลบ Alarm Rule ไม่สำเร็จ')

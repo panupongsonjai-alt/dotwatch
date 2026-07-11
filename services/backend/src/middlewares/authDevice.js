@@ -88,6 +88,8 @@ export async function authDevice(req, res, next) {
         status,
         is_active,
         last_ingest_at,
+        record_interval_seconds,
+        last_recorded_at,
         model_id
       FROM devices
       WHERE device_code = $1

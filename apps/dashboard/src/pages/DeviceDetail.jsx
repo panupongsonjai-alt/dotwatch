@@ -112,6 +112,7 @@ function buildTimeline(device, visibleMetrics, realtimeAlarms = []) {
       key: metric.metric_key,
       name: metric.metric_name || metric.metric_key,
       unit: metric.unit || '',
+      decimalPlaces: metric.decimal_places ?? metric.decimalPlaces ?? 2,
       value: getMetricValueFromDevice(device, metric),
     }))
     .filter(
@@ -142,7 +143,7 @@ function buildTimeline(device, visibleMetrics, realtimeAlarms = []) {
           ? latestMetrics
               .map(
                 (metric) =>
-                  `${metric.name}: ${formatMetricNumber(metric.value)}${metric.unit ? ` ${metric.unit}` : ''}`
+                  `${metric.name}: ${formatMetricNumber(metric.value, metric.decimalPlaces)}${metric.unit ? ` ${metric.unit}` : ''}`
               )
               .join(' • ')
           : 'Device sent new telemetry data.',

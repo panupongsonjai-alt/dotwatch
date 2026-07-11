@@ -196,7 +196,7 @@ export async function checkAlarms({ userId, deviceId, reading }) {
       AND dm.metric_key = ar.metric
     WHERE ar.user_id = $1
       AND ar.is_active = true
-      AND (ar.device_id = $2 OR ar.device_id IS NULL)
+      AND ar.device_id = $2
     ORDER BY
       ar.metric ASC,
       CASE

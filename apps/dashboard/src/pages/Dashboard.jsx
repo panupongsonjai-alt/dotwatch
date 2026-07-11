@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { MetricIcon, normalizeMetricIconName } from '../utils/metricIcons.jsx'
+import { isWifiRssiMetricConfig } from '../utils/metricDisplayConfig'
 import { auth } from '../services/firebase'
 import AlarmPanel from '../components/AlarmPanel.jsx'
 import LatestActiveAlarms from '../components/LatestActiveAlarms.jsx'
@@ -146,6 +147,7 @@ function getConfiguredMetrics(device = {}) {
   if (!metricLists.length) return []
 
   return metricLists[0]
+    .filter((metric) => !isWifiRssiMetricConfig(metric))
     .filter((metric) => metric.visible !== false)
     .sort((a, b) => {
       const orderA = Number(a.sort_order ?? 9999)
@@ -160,22 +162,31 @@ function getConfiguredMetrics(device = {}) {
     })
 }
 
-function formatMetricValue(value) {
+function normalizeDecimalPlaces(value, fallback = 2) {
+  const decimalPlaces = Number(value)
+
+  if (!Number.isInteger(decimalPlaces)) return fallback
+
+  return Math.min(6, Math.max(0, decimalPlaces))
+}
+
+function formatMetricValue(value, decimalPlaces = 2) {
   if (value == null || value === '') return '--'
 
   const numberValue = Number(value)
 
   if (!Number.isFinite(numberValue)) return String(value)
 
+  const decimals = normalizeDecimalPlaces(decimalPlaces)
+
   if (Math.abs(numberValue) >= 1000) {
     return numberValue.toLocaleString('en-US', {
-      maximumFractionDigits: 0,
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
     })
   }
 
-  return Number.isInteger(numberValue)
-    ? String(numberValue)
-    : numberValue.toFixed(2)
+  return numberValue.toFixed(decimals)
 }
 
 function getMetricInitial(metricKey = '') {
@@ -247,7 +258,10 @@ function buildMetricCard(device, metricKey, value, metricConfig = null) {
       getFallbackMetricName(metricKey),
     unit: metricConfig?.unit || getFallbackMetricUnit(metricKey),
     icon: getMetricIconName(metricConfig),
-    value: formatMetricValue(value),
+    value: formatMetricValue(
+      value,
+      metricConfig?.decimal_places ?? metricConfig?.decimalPlaces ?? 2
+    ),
     latestTime: device.latest_time || device.last_ingest_at,
     healthStatus: getHealthStatus(device),
     initial: getMetricInitial(metricKey),

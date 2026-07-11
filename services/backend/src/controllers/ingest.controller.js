@@ -10,6 +10,7 @@ import {
 
 const DEFAULT_MAX_METRICS_PER_INGEST = 64
 const DEFAULT_BATCH_MAX_READINGS = 120
+const DEFAULT_RECORD_INTERVAL_SECONDS = 10
 const MAX_FUTURE_TIMESTAMP_MS = 5 * 60 * 1000
 const MAX_BACKDATE_TIMESTAMP_MS = 7 * 24 * 60 * 60 * 1000
 const METRIC_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_:-]{0,63}$/
@@ -56,6 +57,34 @@ function getBatchMaxReadings() {
   return Number.isInteger(value) && value > 0
     ? value
     : DEFAULT_BATCH_MAX_READINGS
+}
+
+function getDeviceRecordIntervalSeconds(device = {}) {
+  const value = Number(device.record_interval_seconds)
+
+  return Number.isInteger(value) && value >= 1
+    ? value
+    : DEFAULT_RECORD_INTERVAL_SECONDS
+}
+
+function filterReadingsForHistory(device = {}, readings = []) {
+  const intervalMs = getDeviceRecordIntervalSeconds(device) * 1000
+  let lastRecordedTime = device.last_recorded_at
+    ? new Date(device.last_recorded_at).getTime()
+    : Number.NEGATIVE_INFINITY
+
+  return readings
+    .slice()
+    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
+    .filter((reading) => {
+      const readingTime = new Date(reading.time).getTime()
+
+      if (!Number.isFinite(readingTime)) return false
+      if (readingTime - lastRecordedTime < intervalMs) return false
+
+      lastRecordedTime = readingTime
+      return true
+    })
 }
 
 function normalizeTimestamp(value) {
@@ -300,14 +329,17 @@ async function insertLegacySensorRows(client, rows = []) {
 }
 
 async function persistReadings({ client, device, readings, firmwareVersion }) {
-  const metricRows = flattenMetricRows(device.id, readings)
-  const legacySensorRows = flattenLegacySensorRows(device.id, readings)
+  const historyReadings = filterReadingsForHistory(device, readings)
+  const historyMetricRows = flattenMetricRows(device.id, historyReadings)
+  const latestMetricRows = flattenMetricRows(device.id, readings)
+  const legacySensorRows = flattenLegacySensorRows(device.id, historyReadings)
 
-  await insertMetricRows(client, metricRows)
-  await upsertMetricLatest(client, metricRows)
+  await insertMetricRows(client, historyMetricRows)
+  await upsertMetricLatest(client, latestMetricRows)
   await insertLegacySensorRows(client, legacySensorRows)
 
   const newestReading = pickNewestReading(readings)
+  const newestRecordedReading = pickNewestReading(historyReadings)
 
   const deviceResult = await client.query(
     `
@@ -315,6 +347,7 @@ async function persistReadings({ client, device, readings, firmwareVersion }) {
     SET
       last_seen_at = now(),
       last_ingest_at = now(),
+      last_recorded_at = COALESCE($3::timestamptz, last_recorded_at),
       status = 'online',
       firmware_version = COALESCE($2, firmware_version)
     FROM users u
@@ -329,9 +362,15 @@ async function persistReadings({ client, device, readings, firmwareVersion }) {
       d.status,
       d.last_seen_at,
       d.last_ingest_at,
+      d.last_recorded_at,
+      d.record_interval_seconds,
       d.firmware_version
     `,
-    [device.id, firmwareVersion || newestReading?.firmwareVersion || null]
+    [
+      device.id,
+      firmwareVersion || newestReading?.firmwareVersion || null,
+      newestRecordedReading?.time || null,
+    ]
   )
 
   if (!deviceResult.rows.length) {
@@ -341,7 +380,8 @@ async function persistReadings({ client, device, readings, firmwareVersion }) {
   return {
     updatedDevice: deviceResult.rows[0],
     newestReading,
-    metricRowsInserted: metricRows.length,
+    metricRowsInserted: historyMetricRows.length,
+    historyReadingsRecorded: historyReadings.length,
     legacyRowsInserted: legacySensorRows.length,
   }
 }
@@ -495,7 +535,12 @@ export async function ingestReading(req, res) {
   try {
     await client.query('BEGIN')
 
-    const { updatedDevice, metricRowsInserted, legacyRowsInserted } =
+    const {
+      updatedDevice,
+      metricRowsInserted,
+      legacyRowsInserted,
+      historyReadingsRecorded,
+    } =
       await persistReadings({
         client,
         device,
@@ -521,6 +566,7 @@ export async function ingestReading(req, res) {
         latest_metrics: reading.latestMetrics,
         metrics: reading.latestMetrics,
         rowsInserted: metricRowsInserted,
+        historyReadingsRecorded,
         legacyRowsInserted,
         alerts,
       },
@@ -552,7 +598,12 @@ export async function ingestBatch(req, res) {
   try {
     await client.query('BEGIN')
 
-    const { updatedDevice, metricRowsInserted, legacyRowsInserted } =
+    const {
+      updatedDevice,
+      metricRowsInserted,
+      legacyRowsInserted,
+      historyReadingsRecorded,
+    } =
       await persistReadings({
         client,
         device,
@@ -578,6 +629,7 @@ export async function ingestBatch(req, res) {
         deviceCode: updatedDevice.device_code,
         acceptedReadings: readings.length,
         rowsInserted: metricRowsInserted,
+        historyReadingsRecorded,
         legacyRowsInserted,
         latestTime: newestReading.time,
         latest_metrics: newestReading.latestMetrics,

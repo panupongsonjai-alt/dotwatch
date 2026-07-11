@@ -8,6 +8,18 @@ import { confirmDeleteAction } from '../utils/typedConfirm'
 const ALARM_OPERATORS = ['>', '>=', '<', '<=', '=']
 const ALARM_SEVERITIES = ['warning', 'critical']
 
+const RECORD_INTERVAL_OPTIONS = [
+  { value: 10, label: '10 seconds' },
+  { value: 30, label: '30 seconds' },
+  { value: 60, label: '1 minute' },
+  { value: 300, label: '5 minutes' },
+  { value: 600, label: '10 minutes' },
+  { value: 1800, label: '30 minutes' },
+  { value: 3600, label: '1 hour' },
+]
+
+const DECIMAL_PLACE_OPTIONS = [0, 1, 2, 3, 4, 5, 6]
+
 function isThresholdEmpty(value) {
   return value === '' || value == null
 }
@@ -237,10 +249,13 @@ export default function MetricConfigPanel({
   const [savingAll, setSavingAll] = useState(false)
   const [alarmMessage, setAlarmMessage] = useState('')
   const [alarmMessageTone, setAlarmMessageTone] = useState('info')
+  const alarmDraftDeviceIdRef = useRef(null)
 
   const {
     draftMetrics = [],
     setDraftMetrics,
+    draftSettings = { record_interval_seconds: 10 },
+    setDraftSettings,
     loading,
     saving,
     message,
@@ -254,14 +269,19 @@ export default function MetricConfigPanel({
   )
 
   useEffect(() => {
+    const deviceChanged =
+      String(alarmDraftDeviceIdRef.current || '') !== String(deviceId || '')
+
+    alarmDraftDeviceIdRef.current = deviceId || null
+
     setAlarmDrafts((currentDrafts) =>
       createAlarmDrafts(
         draftMetrics,
         rulesByMetricAndSeverity,
-        currentDrafts
+        deviceChanged ? {} : currentDrafts
       )
     )
-  }, [draftMetrics, rulesByMetricAndSeverity])
+  }, [deviceId, draftMetrics, rulesByMetricAndSeverity])
 
   useEffect(() => {
     if (!openIconPickerKey) return undefined
@@ -289,6 +309,7 @@ export default function MetricConfigPanel({
 
   useEffect(() => {
     setOpenIconPickerKey(null)
+    setAlarmDrafts({})
     setAlarmMessage('')
     setAlarmMessageTone('info')
   }, [deviceId])
@@ -468,7 +489,10 @@ export default function MetricConfigPanel({
     setAlarmMessageTone('info')
 
     try {
-      const metricSaved = await saveDraftMetrics(normalizedMetrics)
+      const metricSaved = await saveDraftMetrics(
+        normalizedMetrics,
+        draftSettings
+      )
 
       if (!metricSaved) {
         throw new Error('บันทึก Metric ไม่สำเร็จ จึงยังไม่ได้บันทึก Alarm Rules')
@@ -529,7 +553,7 @@ export default function MetricConfigPanel({
       ).length
 
       setAlarmMessage(
-        `บันทึกสำเร็จ: ${normalizedMetrics.length} Metrics และ ${activeRuleCount} Active Alarm Rules`
+        `บันทึกสำเร็จ: ${normalizedMetrics.length} Metrics, ${activeRuleCount} Active Alarm Rules และ Interval ${Number(draftSettings.record_interval_seconds || 10)} วินาที`
       )
       setAlarmMessageTone('success')
     } catch (error) {
@@ -570,6 +594,29 @@ export default function MetricConfigPanel({
         </button>
       </div>
 
+      <div className="metric-device-settings" aria-label="Metric recording settings">
+        <label className="metric-device-setting-field">
+          <span>Interval Record</span>
+          <select
+            value={Number(draftSettings.record_interval_seconds || 10)}
+            onChange={(event) =>
+              setDraftSettings((current) => ({
+                ...current,
+                record_interval_seconds: Number(event.target.value),
+              }))
+            }
+            disabled={busy}
+          >
+            {RECORD_INTERVAL_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <small>กำหนดช่วงเวลาที่ Backend บันทึกค่าลง History ของ Device นี้</small>
+        </label>
+      </div>
+
       {panelMessage && (
         <div
           className={`metric-config-message ${
@@ -596,6 +643,7 @@ export default function MetricConfigPanel({
           <div className="metric-alarm-config-head" aria-hidden="true">
             <span className="metric-alarm-head-name">Metric Name</span>
             <span className="metric-alarm-head-unit">Unit</span>
+            <span className="metric-alarm-head-decimals">Decimals</span>
             <span className="metric-alarm-head-icon">Icon</span>
             <span className="metric-alarm-head-display">Display</span>
           </div>
@@ -641,6 +689,28 @@ export default function MetricConfigPanel({
                         }
                         disabled={busy}
                       />
+                    </label>
+
+                    <label className="metric-alarm-config-field metric-alarm-config-decimals">
+                      <span>Decimals</span>
+                      <select
+                        value={Number(metric.decimal_places ?? 2)}
+                        onChange={(event) =>
+                          updateMetric(
+                            index,
+                            'decimal_places',
+                            Number(event.target.value)
+                          )
+                        }
+                        disabled={busy}
+                        aria-label={`${metricLabel} decimal places`}
+                      >
+                        {DECIMAL_PLACE_OPTIONS.map((decimalPlaces) => (
+                          <option key={decimalPlaces} value={decimalPlaces}>
+                            {decimalPlaces}
+                          </option>
+                        ))}
+                      </select>
                     </label>
 
                     <div className="metric-alarm-config-field metric-alarm-config-icon">

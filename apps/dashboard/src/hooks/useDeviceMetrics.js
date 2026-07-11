@@ -15,36 +15,61 @@ export function useDeviceMetrics(deviceId) {
   const hookInstanceIdRef = useRef(
     `metric-hook-${Date.now()}-${Math.random().toString(16).slice(2)}`
   )
-  const [metrics, setMetrics] = useState(DEFAULT_METRICS)
-  const [draftMetrics, setDraftMetrics] = useState(DEFAULT_METRICS)
+  const requestVersionRef = useRef(0)
+  const [metrics, setMetrics] = useState([])
+  const [draftMetrics, setDraftMetrics] = useState([])
+  const [settings, setSettings] = useState({ record_interval_seconds: 10 })
+  const [draftSettings, setDraftSettings] = useState({ record_interval_seconds: 10 })
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
   const loadMetrics = useCallback(async () => {
-    if (!deviceId) return
+    const requestVersion = requestVersionRef.current + 1
+    requestVersionRef.current = requestVersion
+
+    if (!deviceId) {
+      setMetrics([])
+      setDraftMetrics([])
+      setSettings({ record_interval_seconds: 10 })
+      setDraftSettings({ record_interval_seconds: 10 })
+      return
+    }
 
     try {
       setLoading(true)
       setMessage('')
+      setMetrics([])
+      setDraftMetrics([])
 
       const data = await getDeviceMetrics(deviceId)
+
+      if (requestVersion !== requestVersionRef.current) return
 
       const nextMetrics = normalizeMetrics(
         data?.metrics || data || DEFAULT_METRICS
       )
+      const nextSettings = {
+        record_interval_seconds: Number(
+          data?.settings?.record_interval_seconds || 10
+        ),
+      }
 
       setMetrics(nextMetrics)
       setDraftMetrics(nextMetrics)
+      setSettings(nextSettings)
+      setDraftSettings(nextSettings)
     } catch (error) {
+      if (requestVersion !== requestVersionRef.current) return
+
       console.error(error)
-
       setMessage(error.message || 'Load metrics failed')
-
-      setMetrics(DEFAULT_METRICS)
-      setDraftMetrics(DEFAULT_METRICS)
+      setMetrics([])
+      setDraftMetrics([])
     } finally {
-      setLoading(false)
+      if (requestVersion === requestVersionRef.current) {
+        setLoading(false)
+      }
     }
   }, [deviceId])
 
@@ -84,7 +109,10 @@ export function useDeviceMetrics(deviceId) {
     }
   }, [deviceId, loadMetrics])
 
-  async function saveDraftMetrics(nextDraft = draftMetrics) {
+  async function saveDraftMetrics(
+    nextDraft = draftMetrics,
+    nextSettings = draftSettings
+  ) {
     if (!deviceId) return false
 
     try {
@@ -93,12 +121,21 @@ export function useDeviceMetrics(deviceId) {
 
       const normalized = prepareMetricsForSave(nextDraft)
 
-      const data = await saveDeviceMetrics(deviceId, normalized)
+      const data = await saveDeviceMetrics(deviceId, normalized, nextSettings)
 
       const savedMetrics = normalizeMetrics(data?.metrics || normalized)
+      const savedSettings = {
+        record_interval_seconds: Number(
+          data?.settings?.record_interval_seconds ||
+            nextSettings?.record_interval_seconds ||
+            10
+        ),
+      }
 
       setMetrics(savedMetrics)
       setDraftMetrics(savedMetrics)
+      setSettings(savedSettings)
+      setDraftSettings(savedSettings)
 
       setMessage('Saved')
 
@@ -132,9 +169,18 @@ export function useDeviceMetrics(deviceId) {
       const data = await resetDeviceMetrics(deviceId)
 
       const nextMetrics = normalizeMetrics(data?.metrics || DEFAULT_METRICS)
+      const nextSettings = {
+        record_interval_seconds: Number(
+          data?.settings?.record_interval_seconds ||
+            draftSettings.record_interval_seconds ||
+            10
+        ),
+      }
 
       setMetrics(nextMetrics)
       setDraftMetrics(nextMetrics)
+      setSettings(nextSettings)
+      setDraftSettings(nextSettings)
 
       setMessage('Reset complete')
 
@@ -159,6 +205,9 @@ export function useDeviceMetrics(deviceId) {
     metrics,
     draftMetrics,
     setDraftMetrics,
+    settings,
+    draftSettings,
+    setDraftSettings,
     loading,
     saving,
     message,

@@ -6913,3 +6913,268 @@
   border-right-color: #fff !important;
   border-bottom-color: #fff !important;
 }
+
+/* =========================================================
+   Metrics & Alarms - per-device recording/display settings
+   Adds Interval Record and Decimal Places without breaking
+   the compact Warning/Critical table alignment.
+========================================================= */
+.metric-alarm-reference-layout .metric-device-settings {
+  display: grid;
+  grid-template-columns: minmax(240px, 360px);
+  gap: 12px;
+  margin: 14px 0 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--panel-2) 72%, transparent);
+}
+
+.metric-alarm-reference-layout .metric-device-setting-field {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) minmax(150px, 1fr);
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+.metric-alarm-reference-layout .metric-device-setting-field > span {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.metric-alarm-reference-layout .metric-device-setting-field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 38px 0 13px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  color: var(--text);
+  background: var(--panel);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  outline: none;
+}
+
+.metric-alarm-reference-layout .metric-device-setting-field select:focus {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.metric-alarm-reference-layout .metric-device-setting-field small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+/* Desktop: Name | Condition | Unit/Threshold | Decimals | Icon/Message | Display */
+.metric-alarm-reference-layout {
+  --metric-reference-decimals: 96px;
+}
+
+.metric-alarm-reference-layout .metric-alarm-config-head,
+.metric-alarm-reference-layout .metric-alarm-config-metric-row,
+.metric-alarm-reference-layout .metric-alarm-config-rule,
+.metric-alarm-reference-layout .metric-alarm-config-action {
+  grid-template-columns:
+    minmax(220px, 1.35fr)
+    var(--metric-reference-condition)
+    var(--metric-reference-threshold)
+    var(--metric-reference-decimals)
+    minmax(230px, 1.1fr)
+    var(--metric-reference-action) !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-head-name,
+.metric-alarm-reference-layout .metric-alarm-config-name {
+  grid-column: 1 / span 2 !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-head-unit,
+.metric-alarm-reference-layout .metric-alarm-config-unit {
+  grid-column: 3 !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-head-decimals,
+.metric-alarm-reference-layout .metric-alarm-config-decimals {
+  grid-column: 4 !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-head-icon,
+.metric-alarm-reference-layout .metric-alarm-config-icon {
+  grid-column: 5 !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-head-display,
+.metric-alarm-reference-layout .metric-alarm-config-display {
+  grid-column: 6 !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-config-decimals select {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  margin: 0 !important;
+  padding: 0 34px 0 13px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  color: var(--text) !important;
+  background: var(--panel-2) !important;
+  font: inherit !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-config-decimals select:focus {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--border)) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent) !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-config-severity {
+  grid-column: 1 !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-config-condition {
+  grid-column: 2 !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-config-threshold {
+  grid-column: 3 !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-config-message-field {
+  grid-column: 4 / span 2 !important;
+}
+
+.metric-alarm-reference-layout .metric-alarm-config-active-field,
+.metric-alarm-reference-layout .metric-alarm-config-action .metric-config-delete-btn {
+  grid-column: 6 !important;
+}
+
+@container (max-width: 1180px) {
+  .metric-alarm-reference-layout {
+    --metric-reference-condition: 104px;
+    --metric-reference-threshold: 124px;
+    --metric-reference-decimals: 82px;
+    --metric-reference-action: 142px;
+    --metric-reference-gap: 9px;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-head,
+  .metric-alarm-reference-layout .metric-alarm-config-metric-row,
+  .metric-alarm-reference-layout .metric-alarm-config-rule,
+  .metric-alarm-reference-layout .metric-alarm-config-action {
+    grid-template-columns:
+      minmax(190px, 1.2fr)
+      var(--metric-reference-condition)
+      var(--metric-reference-threshold)
+      var(--metric-reference-decimals)
+      minmax(180px, 1fr)
+      var(--metric-reference-action) !important;
+  }
+}
+
+@container (max-width: 820px) {
+  .metric-alarm-reference-layout .metric-device-settings {
+    grid-template-columns: 1fr;
+    margin: 12px 0 14px;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-metric-row {
+    grid-template-columns: minmax(0, 1fr) 112px !important;
+    grid-template-areas:
+      'name name'
+      'unit decimals'
+      'icon icon'
+      'display display' !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-name {
+    grid-area: name !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-unit {
+    grid-area: unit !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-decimals {
+    grid-area: decimals !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-icon {
+    grid-area: icon !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-display {
+    grid-area: display !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-rule,
+  .metric-alarm-reference-layout .metric-alarm-config-rule.warning,
+  .metric-alarm-reference-layout .metric-alarm-config-rule.critical {
+    grid-template-columns: minmax(0, 1fr) 112px 132px !important;
+    grid-template-areas:
+      'severity condition threshold'
+      'message message active' !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-severity {
+    grid-area: severity !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-condition {
+    grid-area: condition !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-threshold {
+    grid-area: threshold !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-message-field {
+    grid-area: message !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-active-field {
+    grid-area: active !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-action {
+    grid-template-columns: 1fr 42px !important;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-action .metric-config-delete-btn {
+    grid-column: 2 !important;
+  }
+}
+
+@container (max-width: 560px) {
+  .metric-alarm-reference-layout .metric-device-setting-field {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-alarm-reference-layout .metric-device-setting-field small {
+    grid-column: 1;
+  }
+
+  .metric-alarm-reference-layout .metric-alarm-config-metric-row {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      'name'
+      'unit'
+      'decimals'
+      'icon'
+      'display' !important;
+  }
+}

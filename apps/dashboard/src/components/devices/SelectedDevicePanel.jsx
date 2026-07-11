@@ -1041,6 +1041,7 @@ function SelectedDevicePanel({
           />
 
           <MetricConfigPanel
+            key={`metrics-alarms-${selectedDevice.id}`}
             deviceId={selectedDevice.id}
             alarmRules={Array.isArray(selectedRules) ? selectedRules : []}
             alarmSaving={saving}

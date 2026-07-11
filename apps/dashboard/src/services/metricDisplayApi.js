@@ -38,10 +38,10 @@ export function getDeviceMetrics(deviceId) {
   return request(`/api/devices/${deviceId}/metrics`)
 }
 
-export function saveDeviceMetrics(deviceId, metrics) {
+export function saveDeviceMetrics(deviceId, metrics, settings = {}) {
   return request(`/api/devices/${deviceId}/metrics`, {
     method: 'PUT',
-    body: JSON.stringify({ metrics }),
+    body: JSON.stringify({ metrics, settings }),
   })
 }
 

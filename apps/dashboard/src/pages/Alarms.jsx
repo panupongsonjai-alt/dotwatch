@@ -125,8 +125,14 @@ function Alarms() {
       const metricEntries = await Promise.all(
         nextDevices.map(async (device) => {
           try {
-            const metrics = await getDeviceMetrics(device.id)
-            return [device.id, Array.isArray(metrics) ? metrics : []]
+            const metricResult = await getDeviceMetrics(device.id)
+            const metrics = Array.isArray(metricResult?.metrics)
+              ? metricResult.metrics
+              : Array.isArray(metricResult)
+                ? metricResult
+                : []
+
+            return [device.id, metrics]
           } catch (error) {
             console.error(`Load metrics error device ${device.id}:`, error)
             return [device.id, []]

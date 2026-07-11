@@ -55,7 +55,7 @@ async function ensureAlarmRulesSchema() {
         CREATE TABLE IF NOT EXISTS alarm_rules (
           id BIGSERIAL PRIMARY KEY,
           user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          device_id BIGINT REFERENCES devices(id) ON DELETE CASCADE,
+          device_id BIGINT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
           metric TEXT NOT NULL,
           operator TEXT NOT NULL,
           threshold DOUBLE PRECISION NOT NULL,
@@ -95,6 +95,16 @@ async function ensureAlarmRulesSchema() {
       `)
 
       await client.query(`
+        DELETE FROM alarm_rules
+        WHERE device_id IS NULL
+      `)
+
+      await client.query(`
+        ALTER TABLE alarm_rules
+          ALTER COLUMN device_id SET NOT NULL
+      `)
+
+      await client.query(`
         WITH ranked_rules AS (
           SELECT
             id,
@@ -119,7 +129,6 @@ async function ensureAlarmRulesSchema() {
           metric,
           (LOWER(TRIM(severity)))
         )
-        WHERE device_id IS NOT NULL
       `)
 
       await client.query(`
@@ -564,12 +573,35 @@ router.get(
   asyncHandler(async (req, res) => {
     await ensureAlarmRulesSchema()
 
+    const requestedDeviceId =
+      req.query.deviceId == null || req.query.deviceId === ''
+        ? null
+        : Number(req.query.deviceId)
+
+    if (
+      requestedDeviceId != null &&
+      (!Number.isInteger(requestedDeviceId) || requestedDeviceId <= 0)
+    ) {
+      return res.status(400).json({ message: 'Invalid device id' })
+    }
+
+    if (requestedDeviceId != null) {
+      const ownedDevice = await requireOwnedAlarmDevice(
+        requestedDeviceId,
+        req.dbUser.id
+      )
+
+      if (!ownedDevice) {
+        return res.status(404).json({ message: 'Device not found or access denied' })
+      }
+    }
+
     const result = await pool.query(
       `
       SELECT canonical.*
       FROM (
         SELECT DISTINCT ON (
-          COALESCE(ar.device_id, -ar.id),
+          ar.device_id,
           ar.metric,
           LOWER(TRIM(ar.severity))
         )
@@ -584,8 +616,9 @@ router.get(
           ON dm.device_id = ar.device_id
           AND dm.metric_key = ar.metric
         WHERE ar.user_id = $1
+          AND ($2::bigint IS NULL OR ar.device_id = $2)
         ORDER BY
-          COALESCE(ar.device_id, -ar.id),
+          ar.device_id,
           ar.metric,
           LOWER(TRIM(ar.severity)),
           ar.updated_at DESC NULLS LAST,
@@ -593,7 +626,7 @@ router.get(
       ) canonical
       ORDER BY canonical.updated_at DESC NULLS LAST, canonical.id DESC
       `,
-      [req.dbUser.id]
+      [req.dbUser.id, requestedDeviceId]
     )
 
     res.json(result.rows.map(normalizeRuleForClient))

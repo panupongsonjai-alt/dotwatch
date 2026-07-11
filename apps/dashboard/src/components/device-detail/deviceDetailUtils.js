@@ -36,13 +36,15 @@ export function getDeviceHealthLabel(status) {
   return 'Offline'
 }
 
-export function formatMetricNumber(value) {
+export function formatMetricNumber(value, decimalPlaces = 2) {
   if (value == null || value === '' || Number.isNaN(Number(value))) return '--'
 
-  const numberValue = Number(value)
-  return Number.isInteger(numberValue)
-    ? String(numberValue)
-    : numberValue.toFixed(1)
+  const requestedDecimals = Number(decimalPlaces)
+  const decimals = Number.isInteger(requestedDecimals)
+    ? Math.min(6, Math.max(0, requestedDecimals))
+    : 2
+
+  return Number(value).toFixed(decimals)
 }
 
 export function getMetricValueFromDevice(device, metric) {

@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import { AlertTriangle, CalendarDays, Download, Trash2, X } from 'lucide-react'
 import { PageHeader, StatCard } from '../components/common'
+import { isWifiRssiMetricConfig } from '../utils/metricDisplayConfig'
 
 import {
   clearHistoryByDate,
@@ -24,6 +25,15 @@ import '../styles/page-system.css'
 
 const TABLE_PAGE_SIZES = [20, 50, 100]
 const DEFAULT_TABLE_PAGE_SIZE = TABLE_PAGE_SIZES[0]
+
+const CHART_RESOLUTION_OPTIONS = [
+  { value: '1m', label: '1 minute' },
+  { value: '5m', label: '5 minutes' },
+  { value: '10m', label: '10 minutes' },
+  { value: '30m', label: '30 minutes' },
+  { value: '1h', label: '1 hour' },
+]
+const DEFAULT_CHART_RESOLUTION = '5m'
 
 const HISTORY_STATE_KEY = 'dotwatch.history.analytics.state'
 
@@ -41,6 +51,14 @@ function getSafeTablePageSize(value) {
     : DEFAULT_TABLE_PAGE_SIZE
 }
 
+function getSafeChartResolution(value) {
+  const resolution = String(value || '').trim().toLowerCase()
+
+  return CHART_RESOLUTION_OPTIONS.some((option) => option.value === resolution)
+    ? resolution
+    : DEFAULT_CHART_RESOLUTION
+}
+
 function getInitialHistoryState() {
   const fallback = {
     deviceId: '',
@@ -49,6 +67,7 @@ function getInitialHistoryState() {
     tablePage: 1,
     tablePageSize: DEFAULT_TABLE_PAGE_SIZE,
     sortOrder: 'desc',
+    chartResolution: DEFAULT_CHART_RESOLUTION,
   }
 
   if (typeof window === 'undefined') return fallback
@@ -79,6 +98,9 @@ function getInitialHistoryState() {
         params.get('sort') ||
         saved.sortOrder ||
         fallback.sortOrder,
+      chartResolution: getSafeChartResolution(
+        params.get('resolution') || saved.chartResolution
+      ),
     }
   } catch (error) {
     console.warn('History state restore failed:', error)
@@ -181,13 +203,21 @@ function formatChartLabel(value) {
   })
 }
 
-function formatNumber(value, unit = '') {
+function normalizeDecimalPlaces(value, fallback = 2) {
+  const decimalPlaces = Number(value)
+
+  if (!Number.isInteger(decimalPlaces)) return fallback
+
+  return Math.min(6, Math.max(0, decimalPlaces))
+}
+
+function formatNumber(value, unit = '', decimalPlaces = 2) {
   if (value == null || !Number.isFinite(Number(value))) return '--'
 
   const numberValue = Number(value)
-  const formatted = Number.isInteger(numberValue)
-    ? String(numberValue)
-    : numberValue.toFixed(2)
+  const formatted = numberValue.toFixed(
+    normalizeDecimalPlaces(decimalPlaces)
+  )
 
   return `${formatted}${unit ? ` ${unit}` : ''}`
 }
@@ -229,6 +259,9 @@ function normalizeMetric(metric = {}) {
     unit: metric.unit || '',
     visible: metric.visible !== false,
     sortOrder: Number(metric.sort_order ?? 9999),
+    decimalPlaces: normalizeDecimalPlaces(
+      metric.decimal_places ?? metric.decimalPlaces
+    ),
   }
 }
 
@@ -275,20 +308,12 @@ function metricsFromDeviceConfig(device = {}) {
   if (!metricLists.length) return []
 
   return metricLists[0]
+    .filter((metric) => !isWifiRssiMetricConfig(metric))
     .map(normalizeMetric)
     .filter(Boolean)
     .filter((metric) => metric.visible !== false)
 }
 
-function metricsFromLatest(device = {}) {
-  return Object.keys(getLatestMetrics(device)).map((metricKey, index) => ({
-    metricKey,
-    metricName: getFallbackMetricName(metricKey),
-    unit: '',
-    visible: true,
-    sortOrder: index,
-  }))
-}
 
 function mergeMetrics(...groups) {
   const map = new Map()
@@ -308,6 +333,9 @@ function mergeMetrics(...groups) {
             ? current.metricName
             : normalized.metricName,
         unit: current?.unit || normalized.unit || '',
+        decimalPlaces: normalizeDecimalPlaces(
+          current?.decimalPlaces ?? normalized.decimalPlaces
+        ),
         sortOrder: Math.min(
           Number(current?.sortOrder ?? 9999),
           Number(normalized.sortOrder ?? 9999)
@@ -406,6 +434,12 @@ function getMetricUnit(metricMap, metricKey = '') {
   return metricMap.get(metricKey)?.unit || ''
 }
 
+function getMetricDecimalPlaces(metricMap, metricKey = '') {
+  return normalizeDecimalPlaces(
+    metricMap.get(metricKey)?.decimalPlaces
+  )
+}
+
 
 function normalizeHistoryTimeKey(value) {
   const date = new Date(value)
@@ -458,7 +492,8 @@ function getHistoryTableRows(rows = [], selectedMetricKey = '', metrics = []) {
 
 function formatHistoryTableValue(row, metricMap, selectedUnit = '') {
   const unit = getMetricUnit(metricMap, row.metricKey) || selectedUnit
-  const value = formatNumber(row.value, unit)
+  const decimalPlaces = getMetricDecimalPlaces(metricMap, row.metricKey)
+  const value = formatNumber(row.value, unit, decimalPlaces)
 
   return value
 }
@@ -558,7 +593,12 @@ function formatAlarmRuleSummary(rule, metricMap, includeMetricName = false) {
   const metricName = getMetricName(metricMap, rule.metricKey)
   const unit = getMetricUnit(metricMap, rule.metricKey)
   const severityLabel = rule.severity === 'critical' ? 'Critical' : 'Warning'
-  const condition = `${rule.operator} ${formatNumber(rule.threshold, unit)}`
+  const decimalPlaces = getMetricDecimalPlaces(metricMap, rule.metricKey)
+  const condition = `${rule.operator} ${formatNumber(
+    rule.threshold,
+    unit,
+    decimalPlaces
+  )}`
 
   return `${includeMetricName ? `${metricName} • ` : ''}${severityLabel} ${condition}`
 }
@@ -598,10 +638,10 @@ function HistoryAlarmBadge({ evaluation, compact = false }) {
   )
 }
 
-function HistoryMetricAlarmValue({ value, unit, evaluation }) {
+function HistoryMetricAlarmValue({ value, unit, decimalPlaces, evaluation }) {
   return (
     <div className={`history-metric-alarm-value ${evaluation?.severity || 'none'}`}>
-      <span>{formatNumber(value, unit)}</span>
+      <span>{formatNumber(value, unit, decimalPlaces)}</span>
       <HistoryAlarmBadge evaluation={evaluation} compact />
     </div>
   )
@@ -621,10 +661,11 @@ function HistoryTooltip({ active, payload, label, metricMap }) {
       {payload.map((item) => {
         const unit = getMetricUnit(metricMap, item.dataKey)
         const name = getMetricName(metricMap, item.dataKey)
+        const decimalPlaces = getMetricDecimalPlaces(metricMap, item.dataKey)
 
         return (
           <span key={item.dataKey}>
-            {name}: {formatNumber(item.value, unit)}
+            {name}: {formatNumber(item.value, unit, decimalPlaces)}
           </span>
         )
       })}
@@ -636,6 +677,10 @@ function History() {
   const initialHistoryState = useMemo(() => getInitialHistoryState(), [])
   const previousFilterSignatureRef = useRef('')
   const dateInputRef = useRef(null)
+  const metricsRequestRef = useRef(0)
+  const alarmRulesRequestRef = useRef(0)
+  const historyRequestRef = useRef(0)
+  const chartRequestRef = useRef(0)
   const [devices, setDevices] = useState([])
   const [metrics, setMetrics] = useState([])
   const [alarmRules, setAlarmRules] = useState([])
@@ -643,13 +688,18 @@ function History() {
   const [selectedDate, setSelectedDate] = useState(initialHistoryState.date)
   const [selectedMetricKey, setSelectedMetricKey] = useState(initialHistoryState.metricKey)
   const [rows, setRows] = useState([])
+  const [chartRows, setChartRows] = useState([])
   const [tablePage, setTablePage] = useState(initialHistoryState.tablePage)
   const [tablePageSize, setTablePageSize] = useState(
     initialHistoryState.tablePageSize
   )
   const [sortOrder, setSortOrder] = useState(initialHistoryState.sortOrder)
+  const [chartResolution, setChartResolution] = useState(
+    initialHistoryState.chartResolution
+  )
   const [loadingDevices, setLoadingDevices] = useState(true)
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [loadingChart, setLoadingChart] = useState(false)
   const [clearingHistory, setClearingHistory] = useState(false)
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [clearConfirmed, setClearConfirmed] = useState(false)
@@ -680,8 +730,8 @@ function History() {
     return new Map(metrics.map((metric) => [metric.metricKey, metric]))
   }, [metrics])
 
-  const chartRows = useMemo(() => {
-    return [...rows].sort((a, b) => {
+  const orderedChartRows = useMemo(() => {
+    return [...chartRows].sort((a, b) => {
       const timeA = new Date(a.time).getTime()
       const timeB = new Date(b.time).getTime()
 
@@ -689,16 +739,16 @@ function History() {
 
       return timeA - timeB
     })
-  }, [rows])
+  }, [chartRows])
 
   const chartData = useMemo(
-    () => buildChartData(chartRows, selectedMetricKey, metrics),
-    [chartRows, selectedMetricKey, metrics]
+    () => buildChartData(orderedChartRows, selectedMetricKey, metrics),
+    [orderedChartRows, selectedMetricKey, metrics]
   )
 
   const chartSeries = useMemo(() => {
     if (selectedMetricKey === 'all') {
-      const availableMetricKeys = new Set(rows.map((row) => row.metricKey))
+      const availableMetricKeys = new Set(chartRows.map((row) => row.metricKey))
 
       return metrics
         .filter((metric) => availableMetricKeys.has(metric.metricKey))
@@ -718,7 +768,7 @@ function History() {
         color: getMetricColor(0),
       },
     ]
-  }, [metrics, rows, selectedMetric, selectedMetricKey])
+  }, [chartRows, metrics, selectedMetric, selectedMetricKey])
 
   const activeAlarmRules = useMemo(
     () => alarmRules.filter((rule) => rule.isActive),
@@ -810,6 +860,9 @@ function History() {
   }
 
   async function loadMetrics(deviceId) {
+    const requestId = metricsRequestRef.current + 1
+    metricsRequestRef.current = requestId
+
     if (!deviceId) {
       setMetrics([])
       setSelectedMetricKey('')
@@ -824,20 +877,24 @@ function History() {
     try {
       const result = await getDeviceMetrics(deviceId)
 
+      if (requestId !== metricsRequestRef.current) return
+
       apiMetrics = Array.isArray(result?.metrics)
         ? result.metrics
         : Array.isArray(result)
           ? result
           : []
     } catch (err) {
+      if (requestId !== metricsRequestRef.current) return
       console.warn('History metric config fallback:', err)
     }
 
     const nextMetrics = mergeMetrics(
-      metricsFromDeviceConfig(device),
       apiMetrics,
-      metricsFromLatest(device)
+      metricsFromDeviceConfig(device)
     )
+
+    if (requestId !== metricsRequestRef.current) return
 
     setMetrics(nextMetrics)
 
@@ -855,13 +912,19 @@ function History() {
   }
 
   async function loadAlarmRules(deviceId) {
+    const requestId = alarmRulesRequestRef.current + 1
+    alarmRulesRequestRef.current = requestId
+
     if (!deviceId) {
       setAlarmRules([])
       return
     }
 
     try {
-      const result = await getAlarmRules()
+      const result = await getAlarmRules(deviceId)
+
+      if (requestId !== alarmRulesRequestRef.current) return
+
       const nextRules = toArray(result)
         .map(normalizeAlarmRule)
         .filter(Boolean)
@@ -871,14 +934,20 @@ function History() {
 
       setAlarmRules(nextRules)
     } catch (err) {
+      if (requestId !== alarmRulesRequestRef.current) return
+
       console.warn('History alarm rules unavailable:', err)
       setAlarmRules([])
     }
   }
 
   async function loadHistory() {
+    const requestId = historyRequestRef.current + 1
+    historyRequestRef.current = requestId
+
     if (!selectedDeviceId || !selectedMetricKey || !selectedDate) {
       setRows([])
+      setLoadingHistory(false)
       return
     }
 
@@ -903,6 +972,8 @@ function History() {
           })
         )
 
+        if (requestId !== historyRequestRef.current) return
+
         setRows(results.flat())
         return
       }
@@ -914,6 +985,8 @@ function History() {
         { resolution: 'raw' }
       )
 
+      if (requestId !== historyRequestRef.current) return
+
       setRows(
         normalizeHistoryRows(result).map((row) => ({
           ...row,
@@ -921,11 +994,79 @@ function History() {
         }))
       )
     } catch (err) {
+      if (requestId !== historyRequestRef.current) return
+
       console.error('History loadHistory error:', err)
       setRows([])
       setError(err.message || 'โหลดข้อมูลย้อนหลังไม่สำเร็จ')
     } finally {
-      setLoadingHistory(false)
+      if (requestId === historyRequestRef.current) {
+        setLoadingHistory(false)
+      }
+    }
+  }
+
+  async function loadChartHistory() {
+    const requestId = chartRequestRef.current + 1
+    chartRequestRef.current = requestId
+
+    if (!selectedDeviceId || !selectedMetricKey || !selectedDate) {
+      setChartRows([])
+      setLoadingChart(false)
+      return
+    }
+
+    try {
+      setLoadingChart(true)
+
+      if (selectedMetricKey === 'all') {
+        const results = await Promise.all(
+          metrics.map(async (metric) => {
+            const result = await getHistoryByDate(
+              selectedDeviceId,
+              selectedDate,
+              metric.metricKey,
+              { resolution: chartResolution }
+            )
+
+            return normalizeHistoryRows(result).map((row) => ({
+              ...row,
+              metricKey: metric.metricKey,
+            }))
+          })
+        )
+
+        if (requestId !== chartRequestRef.current) return
+
+        setChartRows(results.flat())
+        return
+      }
+
+      const result = await getHistoryByDate(
+        selectedDeviceId,
+        selectedDate,
+        selectedMetricKey,
+        { resolution: chartResolution }
+      )
+
+      if (requestId !== chartRequestRef.current) return
+
+      setChartRows(
+        normalizeHistoryRows(result).map((row) => ({
+          ...row,
+          metricKey: row.metricKey || selectedMetricKey,
+        }))
+      )
+    } catch (err) {
+      if (requestId !== chartRequestRef.current) return
+
+      console.error('History loadChartHistory error:', err)
+      setChartRows([])
+      setError(err.message || 'โหลดข้อมูลกราฟย้อนหลังไม่สำเร็จ')
+    } finally {
+      if (requestId === chartRequestRef.current) {
+        setLoadingChart(false)
+      }
     }
   }
 
@@ -945,7 +1086,11 @@ function History() {
                   return value == null
                     ? ''
                     : `"${String(
-                        formatNumber(value, metric.unit || '')
+                        formatNumber(
+                          value,
+                          metric.unit || '',
+                          metric.decimalPlaces
+                        )
                       ).replaceAll('"', '""')}"`
                 }),
               ].join(',')
@@ -1036,6 +1181,7 @@ function History() {
       )
 
       setRows([])
+      setChartRows([])
       setTablePage(1)
       setClearDialogOpen(false)
       setClearConfirmed(false)
@@ -1045,7 +1191,7 @@ function History() {
           : 'ไม่พบข้อมูลย้อนหลังที่ตรงกับตัวกรองสำหรับลบ'
       )
 
-      await loadHistory()
+      await Promise.all([loadHistory(), loadChartHistory()])
     } catch (err) {
       console.error('History clear data error:', err)
       setError(err.message || 'ลบข้อมูลย้อนหลังไม่สำเร็จ')
@@ -1061,7 +1207,10 @@ function History() {
   useEffect(() => {
     if (!selectedDeviceId || !devices.length) return
 
+    setMetrics([])
+    setAlarmRules([])
     setRows([])
+    setChartRows([])
     loadMetrics(selectedDeviceId)
     loadAlarmRules(selectedDeviceId)
   }, [selectedDeviceId, devices])
@@ -1069,6 +1218,16 @@ function History() {
   useEffect(() => {
     loadHistory()
   }, [selectedDeviceId, selectedMetricKey, selectedDate, metrics])
+
+  useEffect(() => {
+    loadChartHistory()
+  }, [
+    selectedDeviceId,
+    selectedMetricKey,
+    selectedDate,
+    metrics,
+    chartResolution,
+  ])
 
   useEffect(() => {
     const filterSignature = `${selectedDeviceId}|${selectedMetricKey}|${selectedDate}`
@@ -1125,6 +1284,7 @@ function History() {
       tablePage,
       tablePageSize,
       sortOrder,
+      chartResolution,
     }
 
     try {
@@ -1144,6 +1304,7 @@ function History() {
       params.set('page', String(tablePage))
       params.set('pageSize', String(tablePageSize))
       params.set('sort', sortOrder)
+      params.set('resolution', chartResolution)
 
       const query = params.toString()
       const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
@@ -1159,10 +1320,15 @@ function History() {
     tablePage,
     tablePageSize,
     sortOrder,
+    chartResolution,
   ])
 
   const selectedUnit =
     selectedMetricKey === 'all' ? '' : selectedMetric?.unit || ''
+  const selectedDecimalPlaces =
+    selectedMetricKey === 'all'
+      ? 2
+      : normalizeDecimalPlaces(selectedMetric?.decimalPlaces)
 
   return (
     <div className="page app-page history-page-v2">
@@ -1180,17 +1346,21 @@ function History() {
         />
         <HistoryStatCard
           label="Average"
-          value={formatNumber(stats.average, selectedUnit)}
+          value={formatNumber(
+            stats.average,
+            selectedUnit,
+            selectedDecimalPlaces
+          )}
           hint={selectedMetricKey === 'all' ? 'All device metrics' : 'Selected metric'}
         />
         <HistoryStatCard
           label="Min"
-          value={formatNumber(stats.min, selectedUnit)}
+          value={formatNumber(stats.min, selectedUnit, selectedDecimalPlaces)}
           hint="Lowest value"
         />
         <HistoryStatCard
           label="Max"
-          value={formatNumber(stats.max, selectedUnit)}
+          value={formatNumber(stats.max, selectedUnit, selectedDecimalPlaces)}
           hint="Highest value"
         />
       </section>
@@ -1308,11 +1478,32 @@ function History() {
               </p>
             </div>
 
-            <span
-              className={`history-device-status ${selectedDevice?.status || 'offline'}`}
-            >
-              {selectedDevice?.status || 'offline'}
-            </span>
+            <div className="history-trend-actions">
+              <label className="history-resolution-control">
+                <span>Display interval</span>
+                <select
+                  value={chartResolution}
+                  onChange={(event) =>
+                    setChartResolution(
+                      getSafeChartResolution(event.target.value)
+                    )
+                  }
+                  disabled={loadingChart || !metrics.length}
+                >
+                  {CHART_RESOLUTION_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <span
+                className={`history-device-status ${selectedDevice?.status || 'offline'}`}
+              >
+                {selectedDevice?.status || 'offline'}
+              </span>
+            </div>
           </div>
 
           {alarmReferenceRules.length > 0 && (
@@ -1333,8 +1524,8 @@ function History() {
             </div>
           )}
 
-          {loadingHistory ? (
-            <div className="history-empty-box">กำลังโหลดข้อมูลย้อนหลัง...</div>
+          {loadingChart ? (
+            <div className="history-empty-box">กำลังโหลดข้อมูลกราฟ...</div>
           ) : chartData.length === 0 ? (
             <div className="history-empty-box">
               <span />
@@ -1552,6 +1743,7 @@ function History() {
                           <HistoryMetricAlarmValue
                             value={value}
                             unit={metric.unit || ''}
+                            decimalPlaces={metric.decimalPlaces}
                             evaluation={evaluation}
                           />
                         </td>

@@ -21,7 +21,17 @@ import { createOrganizationAuditLog } from '../services/organizationAudit.servic
 import { assertOrganizationCanCreateDevice } from '../services/organizationUsage.service.js'
 
 const HISTORY_METRIC_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_:-]{0,63}$/
-const HISTORY_RESOLUTIONS = new Set(['auto', 'raw', '1m', '5m', '15m', '1h', '1d'])
+const HISTORY_RESOLUTIONS = new Set([
+  'auto',
+  'raw',
+  '1m',
+  '5m',
+  '10m',
+  '15m',
+  '30m',
+  '1h',
+  '1d',
+])
 
 function normalizeHistoryMetricKey(value) {
   const metricKey = String(value || '').trim()
@@ -49,7 +59,9 @@ function getHistoryLimit(value) {
 function getFallbackBucketSeconds(diffHours, resolution = 'auto') {
   if (resolution === '1m') return 60
   if (resolution === '5m') return 300
+  if (resolution === '10m') return 600
   if (resolution === '15m') return 900
+  if (resolution === '30m') return 1800
   if (resolution === '1h') return 3600
   if (resolution === '1d') return 86400
 
@@ -76,8 +88,16 @@ function pickHistorySource(diffHours, resolution = 'auto') {
     return { type: 'aggregate_bucket', table: 'device_metric_readings_1m', interval: '5 minutes' }
   }
 
+  if (resolution === '10m') {
+    return { type: 'aggregate_bucket', table: 'device_metric_readings_1m', interval: '10 minutes' }
+  }
+
   if (resolution === '15m') {
     return { type: 'aggregate_bucket', table: 'device_metric_readings_1m', interval: '15 minutes' }
+  }
+
+  if (resolution === '30m') {
+    return { type: 'aggregate_bucket', table: 'device_metric_readings_1m', interval: '30 minutes' }
   }
 
   if (resolution === '1m' || diffHours > env.historyRawMaxHours) {
@@ -101,6 +121,8 @@ export async function listDevices(req, res) {
       d.last_seen_at,
       d.last_ingest_at,
       d.firmware_version,
+      d.record_interval_seconds,
+      d.last_recorded_at,
       d.latitude,
       d.longitude,
       d.map_url,
@@ -163,7 +185,8 @@ export async function listDevices(req, res) {
               'unit', dm_cfg.unit,
               'icon', dm_cfg.icon,
               'visible', dm_cfg.visible,
-              'sort_order', dm_cfg.sort_order
+              'sort_order', dm_cfg.sort_order,
+              'decimal_places', dm_cfg.decimal_places
             )
             ORDER BY dm_cfg.sort_order ASC, dm_cfg.metric_key ASC
           ),
@@ -172,6 +195,7 @@ export async function listDevices(req, res) {
       FROM device_metrics dm_cfg
       WHERE dm_cfg.device_id = d.id
         AND dm_cfg.visible = true
+        AND NOT (d.model_id = 5 AND dm_cfg.metric_key = 'metric_3')
     ) metric_config ON true
 
     WHERE ${buildTenantDeviceAccessWhere('$1')}
@@ -293,7 +317,8 @@ export async function createDevice(req, res) {
         unit,
         icon,
         visible,
-        sort_order
+        sort_order,
+        decimal_places
       )
       SELECT
         $1,
@@ -304,7 +329,8 @@ export async function createDevice(req, res) {
         default_unit,
         default_icon,
         true,
-        sort_order
+        sort_order,
+        2
       FROM device_model_metrics
       WHERE model_id = $2
       ORDER BY sort_order ASC
@@ -380,6 +406,8 @@ export async function getDevice(req, res) {
       d.last_seen_at,
       d.last_ingest_at,
       d.firmware_version,
+      d.record_interval_seconds,
+      d.last_recorded_at,
       d.latitude,
       d.longitude,
       d.map_url,
@@ -442,7 +470,8 @@ export async function getDevice(req, res) {
               'unit', dm_cfg.unit,
               'icon', dm_cfg.icon,
               'visible', dm_cfg.visible,
-              'sort_order', dm_cfg.sort_order
+              'sort_order', dm_cfg.sort_order,
+              'decimal_places', dm_cfg.decimal_places
             )
             ORDER BY dm_cfg.sort_order ASC, dm_cfg.metric_key ASC
           ),
@@ -451,6 +480,7 @@ export async function getDevice(req, res) {
       FROM device_metrics dm_cfg
       WHERE dm_cfg.device_id = d.id
         AND dm_cfg.visible = true
+        AND NOT (d.model_id = 5 AND dm_cfg.metric_key = 'metric_3')
     ) metric_config ON true
 
     WHERE d.id = $1
@@ -1026,6 +1056,26 @@ export async function getHistory(req, res) {
     allowedRoles: ORG_READ_ROLES,
   })
 
+  if (metricKey) {
+    const metricConfigResult = await pool.query(
+      `
+      SELECT metric_key
+      FROM device_metrics
+      WHERE device_id = $1
+        AND metric_key = $2
+        AND visible = true
+      LIMIT 1
+      `,
+      [id, metricKey]
+    )
+
+    if (!metricConfigResult.rows.length) {
+      return res.status(404).json({
+        message: 'Metric is not configured or visible for this device',
+      })
+    }
+  }
+
   const { fromDate, toDate } = parseHistoryRange(req.query)
 
   if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
@@ -1183,6 +1233,10 @@ export async function getHistory(req, res) {
       latest.value AS max_value,
       1 AS sample_count
     FROM device_metric_latest latest
+    JOIN device_metrics dm_cfg
+      ON dm_cfg.device_id = latest.device_id
+      AND dm_cfg.metric_key = latest.metric_key
+      AND dm_cfg.visible = true
     WHERE latest.device_id = $1
       AND latest.time BETWEEN $2 AND $3
     ORDER BY latest.metric_key ASC
