@@ -69,22 +69,36 @@ function getDeviceRecordIntervalSeconds(device = {}) {
 
 function filterReadingsForHistory(device = {}, readings = []) {
   const intervalMs = getDeviceRecordIntervalSeconds(device) * 1000
+  const sortedReadings = readings
+    .slice()
+    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
+  const newestReadingTime = sortedReadings.reduce((latest, reading) => {
+    const readingTime = new Date(reading.time).getTime()
+    return Number.isFinite(readingTime) ? Math.max(latest, readingTime) : latest
+  }, Number.NEGATIVE_INFINITY)
+
   let lastRecordedTime = device.last_recorded_at
     ? new Date(device.last_recorded_at).getTime()
     : Number.NEGATIVE_INFINITY
 
-  return readings
-    .slice()
-    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
-    .filter((reading) => {
-      const readingTime = new Date(reading.time).getTime()
+  if (
+    !Number.isFinite(lastRecordedTime) ||
+    lastRecordedTime > Date.now() + MAX_FUTURE_TIMESTAMP_MS ||
+    (Number.isFinite(newestReadingTime) &&
+      lastRecordedTime > newestReadingTime + intervalMs)
+  ) {
+    lastRecordedTime = Number.NEGATIVE_INFINITY
+  }
 
-      if (!Number.isFinite(readingTime)) return false
-      if (readingTime - lastRecordedTime < intervalMs) return false
+  return sortedReadings.filter((reading) => {
+    const readingTime = new Date(reading.time).getTime()
 
-      lastRecordedTime = readingTime
-      return true
-    })
+    if (!Number.isFinite(readingTime)) return false
+    if (readingTime - lastRecordedTime < intervalMs) return false
+
+    lastRecordedTime = readingTime
+    return true
+  })
 }
 
 function normalizeTimestamp(value) {

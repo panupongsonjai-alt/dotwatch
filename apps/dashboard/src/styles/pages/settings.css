@@ -229,3 +229,96 @@
     linear-gradient(135deg, rgba(37, 99, 235, 0.06), transparent 44%),
     var(--panel);
 }
+
+/* =========================================================
+   Device data recording settings
+========================================================= */
+
+.settings-recording-card {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-recording-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-recording-field {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(220px, 320px);
+  align-items: center;
+  gap: 18px;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel-2);
+}
+
+.settings-recording-field > span {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.settings-recording-field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-weight: 850;
+}
+
+.settings-recording-field select:focus {
+  border-color: var(--primary);
+  outline: 3px solid color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+.settings-recording-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-recording-message {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.settings-recording-message.success {
+  color: var(--success, #16a34a);
+}
+
+.settings-recording-message.error {
+  color: var(--danger, #ef4444);
+}
+
+.settings-recording-footer .primary-button {
+  min-width: 156px;
+}
+
+@media (max-width: 680px) {
+  .settings-recording-field {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .settings-recording-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .settings-recording-footer .primary-button {
+    width: 100%;
+  }
+}

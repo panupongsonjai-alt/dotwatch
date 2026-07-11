@@ -940,7 +940,7 @@ function History() {
     }
   }
 
-  async function loadHistory() {
+  async function loadHistory({ silent = false } = {}) {
     const requestId = historyRequestRef.current + 1
     historyRequestRef.current = requestId
 
@@ -953,8 +953,10 @@ function History() {
     }
 
     try {
-      setLoadingHistory(true)
-      setLoadingChart(true)
+      if (!silent) {
+        setLoadingHistory(true)
+        setLoadingChart(true)
+      }
       setError('')
 
       let nextRows = []
@@ -1005,7 +1007,7 @@ function History() {
       setChartRows([])
       setError(err.message || 'โหลดข้อมูลย้อนหลังไม่สำเร็จ')
     } finally {
-      if (requestId === historyRequestRef.current) {
+      if (requestId === historyRequestRef.current && !silent) {
         setLoadingHistory(false)
         setLoadingChart(false)
       }
@@ -1163,6 +1165,37 @@ function History() {
     selectedDeviceId,
     selectedMetricKey,
     selectedDate,
+    metrics,
+    chartResolution,
+  ])
+
+  useEffect(() => {
+    if (
+      !selectedDeviceId ||
+      !selectedMetricKey ||
+      !selectedDate ||
+      selectedDate !== todayInputValue() ||
+      String(selectedDevice?.status || '').toLowerCase() !== 'online'
+    ) {
+      return undefined
+    }
+
+    const recordIntervalMs = Number(
+      selectedDevice?.record_interval_seconds || 30
+    ) * 1000
+    const refreshMs = Math.min(60_000, Math.max(10_000, recordIntervalMs))
+
+    const timerId = window.setInterval(() => {
+      loadHistory({ silent: true })
+    }, refreshMs)
+
+    return () => window.clearInterval(timerId)
+  }, [
+    selectedDeviceId,
+    selectedMetricKey,
+    selectedDate,
+    selectedDevice?.status,
+    selectedDevice?.record_interval_seconds,
     metrics,
     chartResolution,
   ])
@@ -1475,8 +1508,7 @@ function History() {
               <span />
               <strong>ยังไม่มีข้อมูลสำหรับกราฟ</strong>
               <p>
-                ตรวจสอบว่า Device ส่งข้อมูลในวันที่เลือก และ Metric นี้มีข้อมูลใน
-                device_metric_readings
+                ตรวจสอบวันที่, Metric และ Interval Record ในหน้า Settings จากนั้นรอให้ Device ส่งค่ารอบถัดไป
               </p>
             </div>
           ) : (
@@ -1659,7 +1691,7 @@ function History() {
                       selectedMetricKey === 'all' ? metrics.length + 1 : 3
                     }
                   >
-                    ยังไม่มีข้อมูลย้อนหลัง
+                    ยังไม่มีข้อมูลย้อนหลังสำหรับตัวกรองนี้
                   </td>
                 </tr>
               ) : selectedMetricKey === 'all' ? (

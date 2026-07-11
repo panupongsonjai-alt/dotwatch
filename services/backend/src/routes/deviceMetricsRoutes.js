@@ -1,9 +1,11 @@
 import { Router } from 'express'
 import {
   deleteDeviceMetric,
+  getDeviceRecordSettings,
   listDeviceMetrics,
   resetDeviceMetrics,
   saveDeviceMetrics,
+  updateDeviceRecordSettings,
 } from '../controllers/deviceMetricsController.js'
 import { authUser } from '../middlewares/authUser.js'
 import { loadUser } from '../middlewares/loadUser.js'
@@ -44,6 +46,18 @@ async function requireOwnedDevice(req, res, next) {
 
   next()
 }
+
+router.get(
+  '/devices/:deviceId/record-settings',
+  asyncHandler(requireOwnedDevice),
+  asyncHandler(getDeviceRecordSettings)
+)
+
+router.put(
+  '/devices/:deviceId/record-settings',
+  asyncHandler(requireOwnedDevice),
+  asyncHandler(updateDeviceRecordSettings)
+)
 
 router.get(
   '/devices/:deviceId/metrics',

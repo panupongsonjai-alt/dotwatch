@@ -293,9 +293,16 @@ async function getMetricSettings(deviceId, client = pool) {
   }
 }
 
+function hasRecordIntervalSetting(payload = {}) {
+  return (
+    payload.record_interval_seconds !== undefined ||
+    payload.recordIntervalSeconds !== undefined
+  )
+}
+
 function normalizeMetricSettings(payload = {}) {
   const recordIntervalSeconds = Number(
-    payload.record_interval_seconds ?? payload.recordIntervalSeconds ?? DEFAULT_RECORD_INTERVAL_SECONDS
+    payload.record_interval_seconds ?? payload.recordIntervalSeconds
   )
 
   if (!ALLOWED_RECORD_INTERVAL_SECONDS.has(recordIntervalSeconds)) {
@@ -305,6 +312,113 @@ function normalizeMetricSettings(payload = {}) {
   return {
     record_interval_seconds: recordIntervalSeconds,
   }
+}
+
+export async function getDeviceRecordSettings(req, res) {
+  await ensureDeviceMetricSettingsSchema()
+
+  const userId = req.dbUser?.id
+  const deviceId = Number(req.params.deviceId)
+
+  if (!Number.isInteger(deviceId)) {
+    return res.status(400).json({
+      message: 'Invalid device id',
+    })
+  }
+
+  const allowed = await ensureDeviceOwner(deviceId, userId)
+
+  if (!allowed) {
+    return res.status(404).json({
+      message: 'Device not found',
+    })
+  }
+
+  const result = await pool.query(
+    `
+    SELECT
+      id AS device_id,
+      device_code,
+      name AS device_name,
+      record_interval_seconds,
+      last_recorded_at
+    FROM devices
+    WHERE id = $1
+    LIMIT 1
+    `,
+    [deviceId]
+  )
+
+  const row = result.rows[0]
+
+  res.json({
+    device_id: row.device_id,
+    device_code: row.device_code,
+    device_name: row.device_name,
+    record_interval_seconds: Number(
+      row.record_interval_seconds || DEFAULT_RECORD_INTERVAL_SECONDS
+    ),
+    last_recorded_at: row.last_recorded_at || null,
+  })
+}
+
+export async function updateDeviceRecordSettings(req, res) {
+  await ensureDeviceMetricSettingsSchema()
+
+  const userId = req.dbUser?.id
+  const deviceId = Number(req.params.deviceId)
+
+  if (!Number.isInteger(deviceId)) {
+    return res.status(400).json({
+      message: 'Invalid device id',
+    })
+  }
+
+  const allowed = await ensureDeviceOwner(deviceId, userId)
+
+  if (!allowed) {
+    return res.status(404).json({
+      message: 'Device not found',
+    })
+  }
+
+  let settings
+
+  try {
+    settings = normalizeMetricSettings(req.body || {})
+  } catch {
+    return res.status(400).json({
+      message: 'Invalid record interval',
+    })
+  }
+
+  const result = await pool.query(
+    `
+    UPDATE devices
+    SET
+      record_interval_seconds = $2,
+      last_recorded_at = NULL
+    WHERE id = $1
+    RETURNING
+      id AS device_id,
+      device_code,
+      name AS device_name,
+      record_interval_seconds,
+      last_recorded_at
+    `,
+    [deviceId, settings.record_interval_seconds]
+  )
+
+  const row = result.rows[0]
+
+  res.json({
+    ok: true,
+    device_id: row.device_id,
+    device_code: row.device_code,
+    device_name: row.device_name,
+    record_interval_seconds: Number(row.record_interval_seconds),
+    last_recorded_at: row.last_recorded_at || null,
+  })
 }
 
 export async function listDeviceMetrics(req, res) {
@@ -362,14 +476,17 @@ export async function saveDeviceMetrics(req, res) {
     const userId = req.dbUser?.id
     const deviceId = Number(req.params.deviceId)
     const metrics = Array.isArray(req.body?.metrics) ? req.body.metrics : []
-    let settings
+    const settingsPayload = req.body?.settings || null
+    let settings = null
 
-    try {
-      settings = normalizeMetricSettings(req.body?.settings || {})
-    } catch {
-      return res.status(400).json({
-        message: 'Invalid record interval',
-      })
+    if (settingsPayload && hasRecordIntervalSetting(settingsPayload)) {
+      try {
+        settings = normalizeMetricSettings(settingsPayload)
+      } catch {
+        return res.status(400).json({
+          message: 'Invalid record interval',
+        })
+      }
     }
 
     if (!Number.isInteger(deviceId)) {
@@ -462,14 +579,18 @@ export async function saveDeviceMetrics(req, res) {
       )
     }
 
-    await client.query(
-      `
-      UPDATE devices
-      SET record_interval_seconds = $2
-      WHERE id = $1
-      `,
-      [deviceId, settings.record_interval_seconds]
-    )
+    if (settings) {
+      await client.query(
+        `
+        UPDATE devices
+        SET
+          record_interval_seconds = $2,
+          last_recorded_at = NULL
+        WHERE id = $1
+        `,
+        [deviceId, settings.record_interval_seconds]
+      )
+    }
 
     await client.query('COMMIT')
 

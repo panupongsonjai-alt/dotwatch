@@ -108,6 +108,244 @@ function pickHistorySource(diffHours, resolution = 'auto') {
   return { type: 'raw', interval: null }
 }
 
+
+const LEGACY_HISTORY_METRIC_COLUMNS = new Map([
+  ['metric_1', 'temperature'],
+  ['temperature', 'temperature'],
+  ['temp', 'temperature'],
+  ['metric_2', 'humidity'],
+  ['humidity', 'humidity'],
+  ['hum', 'humidity'],
+])
+
+async function queryRawMetricHistory({
+  deviceId,
+  metricKey,
+  fromDate,
+  toDate,
+  limit,
+  bucketSeconds = null,
+}) {
+  if (!bucketSeconds) {
+    const result = await pool.query(
+      `
+      SELECT
+        time,
+        time AS bucket_time,
+        metric_key,
+        value,
+        value AS avg_value,
+        value AS min_value,
+        value AS max_value,
+        1 AS sample_count
+      FROM device_metric_readings
+      WHERE device_id = $1
+        AND metric_key = $2
+        AND time BETWEEN $3 AND $4
+      ORDER BY time ASC
+      LIMIT $5
+      `,
+      [deviceId, metricKey, fromDate, toDate, limit]
+    )
+
+    return result.rows
+  }
+
+  const result = await pool.query(
+    `
+    SELECT
+      bucket_time AS time,
+      bucket_time,
+      metric_key,
+      AVG(value)::double precision AS value,
+      AVG(value)::double precision AS avg_value,
+      MIN(value)::double precision AS min_value,
+      MAX(value)::double precision AS max_value,
+      COUNT(*)::integer AS sample_count
+    FROM (
+      SELECT
+        to_timestamp(
+          floor(extract(epoch from time) / $5) * $5
+        ) AS bucket_time,
+        metric_key,
+        value
+      FROM device_metric_readings
+      WHERE device_id = $1
+        AND metric_key = $2
+        AND time BETWEEN $3 AND $4
+    ) bucketed
+    GROUP BY bucket_time, metric_key
+    ORDER BY bucket_time ASC
+    LIMIT $6
+    `,
+    [deviceId, metricKey, fromDate, toDate, bucketSeconds, limit]
+  )
+
+  return result.rows
+}
+
+async function queryLegacyMetricHistory({
+  deviceId,
+  metricKey,
+  fromDate,
+  toDate,
+  limit,
+  bucketSeconds = null,
+}) {
+  const column = LEGACY_HISTORY_METRIC_COLUMNS.get(
+    String(metricKey || '').trim().toLowerCase()
+  )
+
+  if (!column) return []
+
+  if (!bucketSeconds) {
+    const result = await pool.query(
+      `
+      SELECT
+        time,
+        time AS bucket_time,
+        $5::text AS metric_key,
+        ${column}::double precision AS value,
+        ${column}::double precision AS avg_value,
+        ${column}::double precision AS min_value,
+        ${column}::double precision AS max_value,
+        1 AS sample_count
+      FROM sensor_readings
+      WHERE device_id = $1
+        AND time BETWEEN $2 AND $3
+        AND ${column} IS NOT NULL
+      ORDER BY time ASC
+      LIMIT $4
+      `,
+      [deviceId, fromDate, toDate, limit, metricKey]
+    )
+
+    return result.rows
+  }
+
+  const result = await pool.query(
+    `
+    SELECT
+      bucket_time AS time,
+      bucket_time,
+      $6::text AS metric_key,
+      AVG(metric_value)::double precision AS value,
+      AVG(metric_value)::double precision AS avg_value,
+      MIN(metric_value)::double precision AS min_value,
+      MAX(metric_value)::double precision AS max_value,
+      COUNT(*)::integer AS sample_count
+    FROM (
+      SELECT
+        to_timestamp(
+          floor(extract(epoch from time) / $5) * $5
+        ) AS bucket_time,
+        ${column}::double precision AS metric_value
+      FROM sensor_readings
+      WHERE device_id = $1
+        AND time BETWEEN $2 AND $3
+        AND ${column} IS NOT NULL
+    ) bucketed
+    GROUP BY bucket_time
+    ORDER BY bucket_time ASC
+    LIMIT $4
+    `,
+    [deviceId, fromDate, toDate, limit, bucketSeconds, metricKey]
+  )
+
+  return result.rows
+}
+
+async function queryLatestMetricHistory({
+  deviceId,
+  metricKey,
+  fromDate,
+  toDate,
+}) {
+  const result = await pool.query(
+    `
+    SELECT
+      time,
+      time AS bucket_time,
+      metric_key,
+      value,
+      value AS avg_value,
+      value AS min_value,
+      value AS max_value,
+      1 AS sample_count
+    FROM device_metric_latest
+    WHERE device_id = $1
+      AND metric_key = $2
+      AND time BETWEEN $3 AND $4
+    LIMIT 1
+    `,
+    [deviceId, metricKey, fromDate, toDate]
+  )
+
+  return result.rows
+}
+
+async function queryMetricHistoryFallback({
+  deviceId,
+  metricKey,
+  fromDate,
+  toDate,
+  limit,
+  diffHours,
+  resolution,
+}) {
+  const bucketSeconds =
+    resolution === 'raw'
+      ? null
+      : getFallbackBucketSeconds(diffHours, resolution)
+
+  const rawRows = await queryRawMetricHistory({
+    deviceId,
+    metricKey,
+    fromDate,
+    toDate,
+    limit,
+    bucketSeconds,
+  })
+
+  if (rawRows.length) {
+    return {
+      rows: rawRows,
+      source: bucketSeconds ? 'raw-bucket' : 'raw',
+      resolution: bucketSeconds ? `${bucketSeconds}s` : 'raw',
+    }
+  }
+
+  const legacyRows = await queryLegacyMetricHistory({
+    deviceId,
+    metricKey,
+    fromDate,
+    toDate,
+    limit,
+    bucketSeconds,
+  })
+
+  if (legacyRows.length) {
+    return {
+      rows: legacyRows,
+      source: bucketSeconds ? 'legacy-bucket' : 'legacy',
+      resolution: bucketSeconds ? `${bucketSeconds}s` : 'raw',
+    }
+  }
+
+  const latestRows = await queryLatestMetricHistory({
+    deviceId,
+    metricKey,
+    fromDate,
+    toDate,
+  })
+
+  return {
+    rows: latestRows,
+    source: latestRows.length ? 'latest-fallback' : 'empty',
+    resolution: latestRows.length ? 'latest' : null,
+  }
+}
+
 export async function listDevices(req, res) {
   await ensureDeviceMetricSettingsSchema()
   const user = req.dbUser
@@ -947,6 +1185,15 @@ export async function clearHistory(req, res) {
       )
     }
 
+    await client.query(
+      `
+      UPDATE devices
+      SET last_recorded_at = NULL
+      WHERE id = $1
+      `,
+      [id]
+    )
+
     await client.query('COMMIT')
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {})
@@ -1107,31 +1354,27 @@ export async function getHistory(req, res) {
 
   if (metricKey) {
     if (historySource.type === 'raw') {
-      const result = await pool.query(
-        `
-        SELECT
-          time,
-          time AS bucket_time,
-          metric_key,
-          value,
-          value AS avg_value,
-          value AS min_value,
-          value AS max_value,
-          1 AS sample_count
-        FROM device_metric_readings
-        WHERE device_id = $1
-          AND metric_key = $2
-          AND time BETWEEN $3 AND $4
-        ORDER BY time ASC
-        LIMIT $5
-        `,
-        [id, metricKey, fromDate, toDate, limit]
-      )
+      const fallback = await queryMetricHistoryFallback({
+        deviceId: id,
+        metricKey,
+        fromDate,
+        toDate,
+        limit,
+        diffHours,
+        resolution: resolution === 'auto' ? 'raw' : resolution,
+      })
 
-      return res.json(result.rows)
+      res.set('x-dotwatch-history-source', fallback.source)
+      if (fallback.resolution) {
+        res.set('x-dotwatch-history-resolution', fallback.resolution)
+      }
+
+      return res.json(fallback.rows)
     }
 
     try {
+      let aggregateRows = []
+
       if (historySource.type === 'aggregate_bucket') {
         const result = await pool.query(
           `
@@ -1155,31 +1398,42 @@ export async function getHistory(req, res) {
           [id, metricKey, fromDate, toDate, historySource.interval, limit]
         )
 
-        return res.json(result.rows)
+        aggregateRows = result.rows
+      } else {
+        const result = await pool.query(
+          `
+          SELECT
+            bucket AS time,
+            bucket AS bucket_time,
+            metric_key,
+            avg_value::double precision AS value,
+            avg_value::double precision AS avg_value,
+            min_value::double precision AS min_value,
+            max_value::double precision AS max_value,
+            sample_count::integer AS sample_count
+          FROM ${historySource.table}
+          WHERE device_id = $1
+            AND metric_key = $2
+            AND bucket BETWEEN $3 AND $4
+          ORDER BY bucket ASC
+          LIMIT $5
+          `,
+          [id, metricKey, fromDate, toDate, limit]
+        )
+
+        aggregateRows = result.rows
       }
 
-      const result = await pool.query(
-        `
-        SELECT
-          bucket AS time,
-          bucket AS bucket_time,
-          metric_key,
-          avg_value::double precision AS value,
-          avg_value::double precision AS avg_value,
-          min_value::double precision AS min_value,
-          max_value::double precision AS max_value,
-          sample_count::integer AS sample_count
-        FROM ${historySource.table}
-        WHERE device_id = $1
-          AND metric_key = $2
-          AND bucket BETWEEN $3 AND $4
-        ORDER BY bucket ASC
-        LIMIT $5
-        `,
-        [id, metricKey, fromDate, toDate, limit]
-      )
+      if (aggregateRows.length) {
+        return res.json(aggregateRows)
+      }
 
-      return res.json(result.rows)
+      console.warn('History aggregate returned no rows; using raw fallback:', {
+        deviceId: id,
+        metricKey,
+        source: historySource.table,
+        resolution,
+      })
     } catch (error) {
       console.warn('History aggregate query fallback:', {
         deviceId: id,
@@ -1187,42 +1441,24 @@ export async function getHistory(req, res) {
         source: historySource.table,
         message: error.message,
       })
-
-      const bucketSeconds = getFallbackBucketSeconds(diffHours, resolution)
-      const result = await pool.query(
-        `
-        SELECT
-          bucket_time AS time,
-          bucket_time,
-          metric_key,
-          AVG(value)::double precision AS value,
-          AVG(value)::double precision AS avg_value,
-          MIN(value)::double precision AS min_value,
-          MAX(value)::double precision AS max_value,
-          COUNT(*)::integer AS sample_count
-        FROM (
-          SELECT
-            to_timestamp(
-              floor(extract(epoch from time) / $5) * $5
-            ) AS bucket_time,
-            metric_key,
-            value
-          FROM device_metric_readings
-          WHERE device_id = $1
-            AND metric_key = $2
-            AND time BETWEEN $3 AND $4
-        ) bucketed
-        GROUP BY bucket_time, metric_key
-        ORDER BY bucket_time ASC
-        LIMIT $6
-        `,
-        [id, metricKey, fromDate, toDate, bucketSeconds, limit]
-      )
-
-      res.set('x-dotwatch-history-source', 'raw-fallback')
-      res.set('x-dotwatch-history-resolution', `${bucketSeconds}s`)
-      return res.json(result.rows)
     }
+
+    const fallback = await queryMetricHistoryFallback({
+      deviceId: id,
+      metricKey,
+      fromDate,
+      toDate,
+      limit,
+      diffHours,
+      resolution,
+    })
+
+    res.set('x-dotwatch-history-source', fallback.source)
+    if (fallback.resolution) {
+      res.set('x-dotwatch-history-resolution', fallback.resolution)
+    }
+
+    return res.json(fallback.rows)
   }
 
   const result = await pool.query(

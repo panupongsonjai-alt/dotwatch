@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PageHeader, SectionHeader, StatCard } from '../components/common'
+import { getDevices } from '../services/api'
+import {
+  getDeviceRecordSettings,
+  updateDeviceRecordSettings,
+} from '../services/metricDisplayApi'
 import {
   ACCENT_OPTIONS,
   DENSITY_OPTIONS,
@@ -11,6 +16,23 @@ import {
   writeUiPreferences,
 } from '../utils/uiPreferences'
 
+const RECORD_INTERVAL_OPTIONS = [
+  { value: 10, label: '10 seconds' },
+  { value: 30, label: '30 seconds' },
+  { value: 60, label: '1 minute' },
+  { value: 300, label: '5 minutes' },
+  { value: 600, label: '10 minutes' },
+  { value: 1800, label: '30 minutes' },
+  { value: 3600, label: '1 hour' },
+]
+
+function toArray(payload) {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.data)) return payload.data
+  if (Array.isArray(payload?.devices)) return payload.devices
+  return []
+}
+
 function Settings() {
   const [showDataOverview, setShowDataOverview] = useState(true)
   const [showDeviceOverview, setShowDeviceOverview] = useState(true)
@@ -21,6 +43,13 @@ function Settings() {
   const [reduceMotion, setReduceMotion] = useState(false)
   const [compactCards, setCompactCards] = useState(false)
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
+  const [recordDevices, setRecordDevices] = useState([])
+  const [recordDeviceId, setRecordDeviceId] = useState('')
+  const [recordIntervalSeconds, setRecordIntervalSeconds] = useState(30)
+  const [recordLoading, setRecordLoading] = useState(true)
+  const [recordSaving, setRecordSaving] = useState(false)
+  const [recordMessage, setRecordMessage] = useState('')
+  const [recordMessageTone, setRecordMessageTone] = useState('info')
 
   useEffect(() => {
     const nextPreferences = readUiPreferences()
@@ -39,6 +68,86 @@ function Settings() {
     applyUiPreferences(nextPreferences)
     setPreferencesLoaded(true)
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadRecordDevices() {
+      try {
+        setRecordLoading(true)
+        setRecordMessage('')
+
+        const result = await getDevices()
+        const nextDevices = toArray(result)
+
+        if (cancelled) return
+
+        setRecordDevices(nextDevices)
+        setRecordDeviceId((current) => {
+          const stillExists = nextDevices.some(
+            (device) => String(device.id) === String(current)
+          )
+
+          if (current && stillExists) return current
+          return nextDevices[0] ? String(nextDevices[0].id) : ''
+        })
+      } catch (error) {
+        if (cancelled) return
+
+        console.error('Settings load devices error:', error)
+        setRecordDevices([])
+        setRecordDeviceId('')
+        setRecordMessage(error.message || 'โหลดรายการ Device ไม่สำเร็จ')
+        setRecordMessageTone('error')
+      } finally {
+        if (!cancelled) setRecordLoading(false)
+      }
+    }
+
+    loadRecordDevices()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadRecordSettings() {
+      if (!recordDeviceId) {
+        setRecordIntervalSeconds(30)
+        return
+      }
+
+      try {
+        setRecordLoading(true)
+        setRecordMessage('')
+
+        const result = await getDeviceRecordSettings(recordDeviceId)
+
+        if (cancelled) return
+
+        setRecordIntervalSeconds(
+          Number(result?.record_interval_seconds || 30)
+        )
+      } catch (error) {
+        if (cancelled) return
+
+        console.error('Settings load record interval error:', error)
+        setRecordMessage(error.message || 'โหลด Interval Record ไม่สำเร็จ')
+        setRecordMessageTone('error')
+      } finally {
+        if (!cancelled) setRecordLoading(false)
+      }
+    }
+
+    loadRecordSettings()
+
+    return () => {
+      cancelled = true
+    }
+  }, [recordDeviceId])
 
   useEffect(() => {
     if (!preferencesLoaded) return
@@ -117,6 +226,44 @@ function Settings() {
     alert('บันทึกการตั้งค่าเรียบร้อย')
   }
 
+  async function handleSaveRecordInterval() {
+    if (!recordDeviceId || recordSaving) return
+
+    try {
+      setRecordSaving(true)
+      setRecordMessage('กำลังบันทึก Interval Record...')
+      setRecordMessageTone('info')
+
+      const result = await updateDeviceRecordSettings(
+        recordDeviceId,
+        recordIntervalSeconds
+      )
+
+      setRecordIntervalSeconds(
+        Number(result?.record_interval_seconds || recordIntervalSeconds)
+      )
+      setRecordMessage('บันทึก Interval Record เรียบร้อย ค่าถัดไปจะถูกบันทึกทันที')
+      setRecordMessageTone('success')
+
+      window.dispatchEvent(
+        new CustomEvent('dotwatchRecordSettingsChanged', {
+          detail: {
+            deviceId: recordDeviceId,
+            recordIntervalSeconds: Number(
+              result?.record_interval_seconds || recordIntervalSeconds
+            ),
+          },
+        })
+      )
+    } catch (error) {
+      console.error('Settings save record interval error:', error)
+      setRecordMessage(error.message || 'บันทึก Interval Record ไม่สำเร็จ')
+      setRecordMessageTone('error')
+    } finally {
+      setRecordSaving(false)
+    }
+  }
+
   return (
     <div className="page app-page settings-page settings-v3-page">
       <PageHeader
@@ -167,6 +314,67 @@ function Settings() {
                   <strong>{option.label}</strong>
                 </button>
               ))}
+            </div>
+          </section>
+
+          <section className="app-card settings-v3-card settings-recording-card">
+            <SectionHeader
+              title="Data Recording"
+              description="กำหนด Interval Record แยกตาม Device สำหรับบันทึกข้อมูลลง History Analytics"
+            />
+
+            <div className="settings-recording-fields">
+              <label className="settings-recording-field">
+                <span>Device</span>
+                <select
+                  value={recordDeviceId}
+                  onChange={(event) => setRecordDeviceId(event.target.value)}
+                  disabled={recordLoading || recordSaving || !recordDevices.length}
+                >
+                  {!recordDevices.length && (
+                    <option value="">No device available</option>
+                  )}
+                  {recordDevices.map((device) => (
+                    <option key={device.id} value={device.id}>
+                      {device.name || device.device_code || `Device ${device.id}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="settings-recording-field settings-recording-interval-row">
+                <span>Interval Record</span>
+                <select
+                  value={Number(recordIntervalSeconds)}
+                  onChange={(event) =>
+                    setRecordIntervalSeconds(Number(event.target.value))
+                  }
+                  disabled={recordLoading || recordSaving || !recordDeviceId}
+                >
+                  {RECORD_INTERVAL_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="settings-recording-footer">
+              <span
+                className={`settings-recording-message ${recordMessageTone}`}
+                role={recordMessageTone === 'error' ? 'alert' : 'status'}
+              >
+                {recordMessage || 'Interval นี้ควบคุมการบันทึกข้อมูลจริงลง Trend Graph และ History Table'}
+              </span>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={handleSaveRecordInterval}
+                disabled={recordLoading || recordSaving || !recordDeviceId}
+              >
+                {recordSaving ? 'Saving...' : 'Save Interval'}
+              </button>
             </div>
           </section>
 

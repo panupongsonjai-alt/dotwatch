@@ -109,10 +109,7 @@ export function useDeviceMetrics(deviceId) {
     }
   }, [deviceId, loadMetrics])
 
-  async function saveDraftMetrics(
-    nextDraft = draftMetrics,
-    nextSettings = draftSettings
-  ) {
+  async function saveDraftMetrics(nextDraft = draftMetrics) {
     if (!deviceId) return false
 
     try {
@@ -121,13 +118,13 @@ export function useDeviceMetrics(deviceId) {
 
       const normalized = prepareMetricsForSave(nextDraft)
 
-      const data = await saveDeviceMetrics(deviceId, normalized, nextSettings)
+      const data = await saveDeviceMetrics(deviceId, normalized)
 
       const savedMetrics = normalizeMetrics(data?.metrics || normalized)
       const savedSettings = {
         record_interval_seconds: Number(
           data?.settings?.record_interval_seconds ||
-            nextSettings?.record_interval_seconds ||
+            settings.record_interval_seconds ||
             10
         ),
       }

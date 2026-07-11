@@ -38,10 +38,29 @@ export function getDeviceMetrics(deviceId) {
   return request(`/api/devices/${deviceId}/metrics`)
 }
 
-export function saveDeviceMetrics(deviceId, metrics, settings = {}) {
+export function saveDeviceMetrics(deviceId, metrics, settings) {
+  const payload = { metrics }
+
+  if (settings && Object.keys(settings).length > 0) {
+    payload.settings = settings
+  }
+
   return request(`/api/devices/${deviceId}/metrics`, {
     method: 'PUT',
-    body: JSON.stringify({ metrics, settings }),
+    body: JSON.stringify(payload),
+  })
+}
+
+export function getDeviceRecordSettings(deviceId) {
+  return request(`/api/devices/${deviceId}/record-settings`)
+}
+
+export function updateDeviceRecordSettings(deviceId, recordIntervalSeconds) {
+  return request(`/api/devices/${deviceId}/record-settings`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      record_interval_seconds: Number(recordIntervalSeconds),
+    }),
   })
 }
 
