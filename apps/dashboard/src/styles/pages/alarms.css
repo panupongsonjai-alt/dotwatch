@@ -542,3 +542,141 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================================================
+   Alarm Center - History Table parity
+   Keep Alarm Events and Alarm Rules visually consistent with
+   the History Analytics table: equal columns, centered content,
+   calm borders, and the same table surface treatment.
+========================================================= */
+
+.alarms-page .alarm-table-wrap.history-table-wrap {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel-2);
+  box-shadow: none;
+}
+
+.alarms-page .alarm-history-table {
+  width: 100%;
+  min-width: 1200px;
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.alarms-page .alarm-rules-history-table {
+  min-width: 1080px;
+}
+
+.alarms-page .alarm-history-table thead {
+  position: static;
+}
+
+.alarms-page .alarm-history-table th,
+.alarms-page .alarm-history-table td {
+  width: auto;
+  min-width: 0;
+  padding: 14px 12px;
+  vertical-align: middle;
+  text-align: center;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+.alarms-page .alarm-history-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: auto;
+  color: var(--muted);
+  background: var(--panel-2);
+  box-shadow: none;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 950;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.alarms-page .alarm-history-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.alarms-page .alarm-history-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+}
+
+.alarms-page .alarm-history-table td {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.alarms-page .alarm-history-table td strong,
+.alarms-page .alarm-history-table td > span:not(.status) {
+  display: block;
+  width: 100%;
+  margin: 0;
+  text-align: center;
+}
+
+.alarms-page .alarm-history-table td strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.alarms-page .alarm-history-table td > span:not(.status) {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.alarms-page .alarm-history-table .status,
+.alarms-page .alarm-history-table .save-btn,
+.alarms-page .alarm-history-table .delete-btn {
+  margin-inline: auto;
+}
+
+.alarms-page .alarm-history-table .status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  min-height: 30px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.alarms-page .alarm-history-table button.status {
+  width: auto;
+}
+
+.alarms-page .alarm-history-table .save-btn,
+.alarms-page .alarm-history-table .delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 92px;
+  min-height: 38px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .alarms-page .alarm-history-table th,
+  .alarms-page .alarm-history-table td {
+    padding: 12px 10px;
+  }
+}

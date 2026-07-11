@@ -380,25 +380,25 @@ function Alarms() {
         <StatCard
           label="Total Alarms"
           value={summary.total}
-          hint="จำนวน Alarm ทั้งหมดที่เกิดขึ้น"
+          hint="Event history"
         />
         <StatCard
           label="Active"
           value={summary.active}
-          hint="จำนวน Alarm ที่กำลังทำงาน"
+          hint="Need attention"
           tone={summary.active > 0 ? 'danger' : 'success'}
-        />
-        <StatCard
-          label="Warning"
-          value={summary.warning}
-          hint="จำนวน Alarm ที่มีระดับคำเตือน"
-          tone={summary.warning > 0 ? 'warning' : 'default'}
         />
         <StatCard
           label="Critical"
           value={summary.critical}
-          hint="จำนวน Alarm ที่มีความสำคัญสูง"
+          hint="High priority"
           tone={summary.critical > 0 ? 'danger' : 'default'}
+        />
+        <StatCard
+          label="Warning"
+          value={summary.warning}
+          hint="Warning level"
+          tone={summary.warning > 0 ? 'warning' : 'default'}
         />
       </section>
 
@@ -455,8 +455,8 @@ function Alarms() {
             <p>เมื่อมีค่าเกินเงื่อนไข ระบบจะแสดงรายการที่นี่</p>
           </div>
         ) : (
-          <div className="alarm-table-wrap alarm-events-table-wrap">
-            <table className="device-v2-table alarm-table">
+          <div className="history-table-wrap alarm-table-wrap alarm-events-table-wrap">
+            <table className="history-table alarm-table alarm-history-table alarm-events-history-table">
               <thead>
                 <tr>
                   <th>Device</th>
@@ -466,7 +466,7 @@ function Alarms() {
                   <th>Severity</th>
                   <th>Status</th>
                   <th>Triggered</th>
-                  <th />
+                  <th>Action</th>
                 </tr>
               </thead>
 
@@ -555,8 +555,8 @@ function Alarms() {
             <p>ไปที่หน้า Device → Manage เพื่อตั้ง Rule ให้แต่ละ Metric</p>
           </div>
         ) : (
-          <div className="alarm-table-wrap alarm-rules-table-wrap">
-            <table className="device-v2-table alarm-table">
+          <div className="history-table-wrap alarm-table-wrap alarm-rules-table-wrap">
+            <table className="history-table alarm-table alarm-history-table alarm-rules-history-table">
               <thead>
                 <tr>
                   <th>Device</th>
@@ -565,7 +565,7 @@ function Alarms() {
                   <th>Severity</th>
                   <th>Status</th>
                   <th>Created</th>
-                  <th />
+                  <th>Action</th>
                 </tr>
               </thead>
 
