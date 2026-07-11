@@ -50,12 +50,13 @@ async function ensureAlarmRulesSchema() {
 
     try {
       await client.query('BEGIN')
+      await client.query('SELECT pg_advisory_xact_lock($1)', [17833713])
 
       await client.query(`
         CREATE TABLE IF NOT EXISTS alarm_rules (
           id BIGSERIAL PRIMARY KEY,
           user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          device_id BIGINT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+          device_id BIGINT REFERENCES devices(id) ON DELETE CASCADE,
           metric TEXT NOT NULL,
           operator TEXT NOT NULL,
           threshold DOUBLE PRECISION NOT NULL,
@@ -70,6 +71,10 @@ async function ensureAlarmRulesSchema() {
       await client.query(`
         ALTER TABLE alarm_rules
           ADD COLUMN IF NOT EXISTS device_id BIGINT,
+          ADD COLUMN IF NOT EXISTS metric TEXT,
+          ADD COLUMN IF NOT EXISTS operator TEXT,
+          ADD COLUMN IF NOT EXISTS threshold DOUBLE PRECISION,
+          ADD COLUMN IF NOT EXISTS severity TEXT DEFAULT 'warning',
           ADD COLUMN IF NOT EXISTS notification_message TEXT,
           ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
           ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -94,46 +99,12 @@ async function ensureAlarmRulesSchema() {
           updated_at = COALESCE(updated_at, created_at, NOW())
       `)
 
+      // Runtime requests must never perform destructive cleanup. Older alarm
+      // rows may still be referenced by alarm_events/alarm_states. The normal
+      // migration safely remaps those references before it removes duplicates.
       await client.query(`
-        DELETE FROM alarm_rules
-        WHERE device_id IS NULL
-      `)
-
-      await client.query(`
-        ALTER TABLE alarm_rules
-          ALTER COLUMN device_id SET NOT NULL
-      `)
-
-      await client.query(`
-        WITH ranked_rules AS (
-          SELECT
-            id,
-            ROW_NUMBER() OVER (
-              PARTITION BY user_id, device_id, metric, LOWER(TRIM(severity))
-              ORDER BY updated_at DESC NULLS LAST, id DESC
-            ) AS duplicate_rank
-          FROM alarm_rules
-          WHERE device_id IS NOT NULL
-        )
-        DELETE FROM alarm_rules ar
-        USING ranked_rules rr
-        WHERE ar.id = rr.id
-          AND rr.duplicate_rank > 1
-      `)
-
-      await client.query(`
-        CREATE UNIQUE INDEX IF NOT EXISTS uq_alarm_rules_user_device_metric_severity
-        ON alarm_rules (
-          user_id,
-          device_id,
-          metric,
-          (LOWER(TRIM(severity)))
-        )
-      `)
-
-      await client.query(`
-        CREATE INDEX IF NOT EXISTS idx_alarm_rules_device
-        ON alarm_rules(device_id)
+        CREATE INDEX IF NOT EXISTS idx_alarm_rules_user_device
+        ON alarm_rules(user_id, device_id)
       `)
 
       await client.query('COMMIT')
@@ -149,6 +120,12 @@ async function ensureAlarmRulesSchema() {
     await alarmSchemaReadyPromise
   } catch (error) {
     alarmSchemaReadyPromise = null
+    console.error('ensureAlarmRulesSchema error:', {
+      message: error?.message,
+      code: error?.code,
+      constraint: error?.constraint,
+      detail: error?.detail,
+    })
     throw error
   }
 }

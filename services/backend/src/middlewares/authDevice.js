@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { pool } from '../db/pool.js'
+import { ensureDeviceMetricSettingsSchema } from '../services/schemaCompatibility.service.js'
 
 const FAILED_AUTH_WINDOW_MS = 5 * 60 * 1000
 const MAX_FAILED_AUTH_ATTEMPTS = 10
@@ -76,6 +77,7 @@ export async function authDevice(req, res, next) {
       })
     }
 
+    await ensureDeviceMetricSettingsSchema()
     assertDeviceAuthNotLocked(attemptKey)
 
     const result = await pool.query(

@@ -1,4 +1,5 @@
 import { pool } from '../db/pool.js'
+import { ensureDeviceMetricSettingsSchema } from '../services/schemaCompatibility.service.js'
 
 const MAX_DEVICE_METRICS = 64
 const METRIC_NAME_MAX_LENGTH = 80
@@ -307,6 +308,7 @@ function normalizeMetricSettings(payload = {}) {
 }
 
 export async function listDeviceMetrics(req, res) {
+  await ensureDeviceMetricSettingsSchema()
   const client = await pool.connect()
 
   try {
@@ -353,6 +355,7 @@ export async function listDeviceMetrics(req, res) {
 }
 
 export async function saveDeviceMetrics(req, res) {
+  await ensureDeviceMetricSettingsSchema()
   const client = await pool.connect()
 
   try {
@@ -486,6 +489,7 @@ export async function saveDeviceMetrics(req, res) {
 }
 
 export async function resetDeviceMetrics(req, res) {
+  await ensureDeviceMetricSettingsSchema()
   const client = await pool.connect()
 
   try {
@@ -536,6 +540,7 @@ export async function resetDeviceMetrics(req, res) {
 }
 
 export async function deleteDeviceMetric(req, res) {
+  await ensureDeviceMetricSettingsSchema()
   try {
     const userId = req.dbUser?.id
     const deviceId = Number(req.params.deviceId)

@@ -592,43 +592,6 @@ async function createAlarmAndActivityTables() {
   `)
 
   await run(`
-    DELETE FROM alarm_rules
-    WHERE device_id IS NULL;
-  `)
-
-  await run(`
-    ALTER TABLE alarm_rules
-      ALTER COLUMN device_id SET NOT NULL;
-  `)
-
-  await run(`
-    WITH ranked_rules AS (
-      SELECT
-        id,
-        ROW_NUMBER() OVER (
-          PARTITION BY user_id, device_id, metric, LOWER(TRIM(severity))
-          ORDER BY updated_at DESC NULLS LAST, id DESC
-        ) AS duplicate_rank
-      FROM alarm_rules
-      WHERE device_id IS NOT NULL
-    )
-    DELETE FROM alarm_rules ar
-    USING ranked_rules rr
-    WHERE ar.id = rr.id
-      AND rr.duplicate_rank > 1;
-  `)
-
-  await run(`
-    CREATE UNIQUE INDEX IF NOT EXISTS uq_alarm_rules_user_device_metric_severity
-    ON alarm_rules (
-      user_id,
-      device_id,
-      metric,
-      (LOWER(TRIM(severity)))
-    );
-  `)
-
-  await run(`
     CREATE TABLE IF NOT EXISTS alarm_events (
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -673,6 +636,119 @@ async function createAlarmAndActivityTables() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE (device_id, metric)
+    );
+  `)
+
+  // Safely normalize old alarm rules only after the tables that may
+  // reference them are guaranteed to exist.
+  await run(`
+    UPDATE alarm_events
+    SET rule_id = NULL
+    WHERE rule_id IN (
+      SELECT id
+      FROM alarm_rules
+      WHERE device_id IS NULL
+    );
+  `)
+
+  await run(`
+    UPDATE alarm_states
+    SET rule_id = NULL
+    WHERE rule_id IN (
+      SELECT id
+      FROM alarm_rules
+      WHERE device_id IS NULL
+    );
+  `)
+
+  await run(`
+    DELETE FROM alarm_rules
+    WHERE device_id IS NULL;
+  `)
+
+  await run(`
+    WITH ranked_rules AS (
+      SELECT
+        id,
+        FIRST_VALUE(id) OVER (
+          PARTITION BY user_id, device_id, metric, LOWER(TRIM(severity))
+          ORDER BY updated_at DESC NULLS LAST, id DESC
+        ) AS keep_id,
+        ROW_NUMBER() OVER (
+          PARTITION BY user_id, device_id, metric, LOWER(TRIM(severity))
+          ORDER BY updated_at DESC NULLS LAST, id DESC
+        ) AS duplicate_rank
+      FROM alarm_rules
+      WHERE device_id IS NOT NULL
+    ), duplicate_rules AS (
+      SELECT id, keep_id
+      FROM ranked_rules
+      WHERE duplicate_rank > 1
+    )
+    UPDATE alarm_events ae
+    SET rule_id = duplicate_rules.keep_id
+    FROM duplicate_rules
+    WHERE ae.rule_id = duplicate_rules.id;
+  `)
+
+  await run(`
+    WITH ranked_rules AS (
+      SELECT
+        id,
+        FIRST_VALUE(id) OVER (
+          PARTITION BY user_id, device_id, metric, LOWER(TRIM(severity))
+          ORDER BY updated_at DESC NULLS LAST, id DESC
+        ) AS keep_id,
+        ROW_NUMBER() OVER (
+          PARTITION BY user_id, device_id, metric, LOWER(TRIM(severity))
+          ORDER BY updated_at DESC NULLS LAST, id DESC
+        ) AS duplicate_rank
+      FROM alarm_rules
+      WHERE device_id IS NOT NULL
+    ), duplicate_rules AS (
+      SELECT id, keep_id
+      FROM ranked_rules
+      WHERE duplicate_rank > 1
+    )
+    UPDATE alarm_states ast
+    SET rule_id = duplicate_rules.keep_id
+    FROM duplicate_rules
+    WHERE ast.rule_id = duplicate_rules.id;
+  `)
+
+  await run(`
+    WITH ranked_rules AS (
+      SELECT
+        id,
+        ROW_NUMBER() OVER (
+          PARTITION BY user_id, device_id, metric, LOWER(TRIM(severity))
+          ORDER BY updated_at DESC NULLS LAST, id DESC
+        ) AS duplicate_rank
+      FROM alarm_rules
+      WHERE device_id IS NOT NULL
+    )
+    DELETE FROM alarm_rules ar
+    USING ranked_rules rr
+    WHERE ar.id = rr.id
+      AND rr.duplicate_rank > 1;
+  `)
+
+  await run(`
+    ALTER TABLE alarm_rules
+      ALTER COLUMN device_id SET NOT NULL;
+  `)
+
+  await run(`
+    DROP INDEX IF EXISTS uq_alarm_rules_user_device_metric_severity;
+  `)
+
+  await run(`
+    CREATE UNIQUE INDEX uq_alarm_rules_user_device_metric_severity
+    ON alarm_rules (
+      user_id,
+      device_id,
+      metric,
+      (LOWER(TRIM(severity)))
     );
   `)
 

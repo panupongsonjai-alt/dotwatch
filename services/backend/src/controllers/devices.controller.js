@@ -19,6 +19,7 @@ import {
 } from '../services/organizationAccess.service.js'
 import { createOrganizationAuditLog } from '../services/organizationAudit.service.js'
 import { assertOrganizationCanCreateDevice } from '../services/organizationUsage.service.js'
+import { ensureDeviceMetricSettingsSchema } from '../services/schemaCompatibility.service.js'
 
 const HISTORY_METRIC_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_:-]{0,63}$/
 const HISTORY_RESOLUTIONS = new Set([
@@ -108,6 +109,7 @@ function pickHistorySource(diffHours, resolution = 'auto') {
 }
 
 export async function listDevices(req, res) {
+  await ensureDeviceMetricSettingsSchema()
   const user = req.dbUser
 
   const result = await pool.query(
@@ -386,6 +388,7 @@ export async function createDevice(req, res) {
 }
 
 export async function getDevice(req, res) {
+  await ensureDeviceMetricSettingsSchema()
   const user = req.dbUser
   const { id } = req.params
 
@@ -979,6 +982,7 @@ export async function clearHistory(req, res) {
 }
 
 export async function getHistory(req, res) {
+  await ensureDeviceMetricSettingsSchema()
   const user = req.dbUser
   const { id } = req.params
   const rawMetricKey =
