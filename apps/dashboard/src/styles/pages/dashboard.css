@@ -1022,3 +1022,8 @@
     padding-bottom: 5px;
   }
 }
+
+/* Data Overview metric values: keep cards flat without drop shadows. */
+.live-metric-overview-card {
+  box-shadow: none !important;
+}

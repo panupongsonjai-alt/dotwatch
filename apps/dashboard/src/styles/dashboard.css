@@ -1247,3 +1247,8 @@
     justify-self: start;
   }
 }
+
+/* Data Overview metric values: keep cards flat without drop shadows. */
+.live-metric-overview-card {
+  box-shadow: none !important;
+}
