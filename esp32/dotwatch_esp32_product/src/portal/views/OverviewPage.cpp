@@ -40,14 +40,12 @@ String PortalView::statusCardsHtml() const {
 
 String PortalView::overviewPageHtml() const {
   String html;
-  html += "<section id='overview' class='dashboard-page is-active' data-page-title='ESP32 Overview'>";
+  html += "<section id='overview' class='dashboard-page is-active' data-page-title='Overview'>";
   html += "<div class='card overview-hero'>";
   html += "<div class='hero'><div><div class='kicker'>Device Overview</div>";
-  html += "<h1>ESP32 พร้อมสำหรับ dotTH</h1>";
+  html += "<h1>TEMPERATURE AND HUMIDITY MODEL</h1>";
   html += "<p class='muted'>ดูสถานะ Wi-Fi, Backend, Sensor และความพร้อมของอุปกรณ์จากหน้าเดียว</p></div>";
-  html += "<span id='appStateBadge' class='badge " + statusBadgeClass() + "'>";
-  html += StringUtils::appStateText(status_->state);
-  html += "</span></div>";
+  html += "</div>";
   html += statusCardsHtml();
   html += "</div>";
 

@@ -69,8 +69,7 @@
               class="portal-nav-item is-active"
               href="#overview"
               data-page-target="overview"
-              data-page-title="ESP32 Overview"
-              data-page-subtitle="ภาพรวมสถานะอุปกรณ์และการเชื่อมต่อ"
+              data-page-title="Overview"
               ><span class="nav-icon">▦</span><span>Overview</span></a
             >
             <a
@@ -134,60 +133,33 @@
 
         <div class="portal-workspace">
           <header class="portal-header">
-            <div class="portal-header-main">
-              <button
-                id="portalMenuButton"
-                class="portal-menu-button"
-                type="button"
-                aria-label="เปิดเมนู"
-              >
-                ☰
-              </button>
-              <div class="portal-header-copy">
-                <h1 id="portalPageTitle">ESP32 Overview</h1>
-                <p id="portalPageSubtitle">ภาพรวมสถานะอุปกรณ์และการเชื่อมต่อ</p>
-              </div>
-            </div>
-            <div class="portal-header-actions">
-              <span id="headerStateBadge" class="badge warn"
-                >CONNECTING_BACKEND</span
-              >
-              <button
-                class="btn btn-secondary"
-                type="button"
-                data-preview-action="refresh"
-              >
-                <span class="header-label">Refresh</span> ↻
-              </button>
-              <button
-                class="btn btn-secondary"
-                type="button"
-                data-preview-action="json"
-              >
-                <span class="header-label">JSON</span> { }
-              </button>
-            </div>
+            <button
+              id="portalMenuButton"
+              class="portal-menu-button"
+              type="button"
+              aria-label="เปิดเมนู"
+            >
+              ☰
+            </button>
           </header>
 
           <main class="portal-content">
             <section
               id="overview"
               class="dashboard-page is-active"
-              data-page-title="ESP32 Overview"
+              data-page-title="Overview"
             >
               <div class="card overview-hero">
                 <div class="hero">
                   <div>
                     <div class="kicker">Device Overview</div>
-                    <h1>ESP32 พร้อมสำหรับ dotTH</h1>
+                    <h1>TEMPERATURE AND HUMIDITY MODEL</h1>
                     <p class="muted">
                       ดูสถานะ Wi-Fi, Backend, Sensor
                       และความพร้อมของอุปกรณ์จากหน้าเดียว
                     </p>
                   </div>
-                  <span id="appStateBadge" class="badge warn"
-                    >CONNECTING_BACKEND</span
-                  >
+
                 </div>
                 <div class="status-grid">
                   <div class="stat">

@@ -92,7 +92,7 @@ String PortalView::pageShell(const String &title,
   html += "<div class='portal-brand'><div class='brand-mark'>dT</div><div class='brand-copy'><strong>dotTH</strong>";
   html += "</div></div>";
   html += "<div class='portal-nav-label'>Device Console</div><nav class='portal-nav'>";
-  html += "<a class='portal-nav-item is-active' href='#overview' data-page-target='overview' data-page-title='ESP32 Overview' data-page-subtitle='ภาพรวมสถานะอุปกรณ์และการเชื่อมต่อ'><span class='nav-icon'>▦</span><span>Overview</span></a>";
+  html += "<a class='portal-nav-item is-active' href='#overview' data-page-target='overview' data-page-title='Overview'><span class='nav-icon'>▦</span><span>Overview</span></a>";
   html += "<a class='portal-nav-item' href='#wifi' data-page-target='wifi' data-page-title='Wi-Fi Setup' data-page-subtitle='เปลี่ยนเครือข่ายด้วยระบบทดสอบและ Rollback'><span class='nav-icon'>⌁</span><span>Wi-Fi</span></a>";
   html += "<a class='portal-nav-item' href='#device' data-page-target='device' data-page-title='Device Connection' data-page-subtitle='เชื่อม Device Code และ Backend ของ dotTH'><span class='nav-icon'>◇</span><span>Device</span></a>";
   html += "<a class='portal-nav-item' href='#sensor' data-page-target='sensor' data-page-title='Sensor Monitor' data-page-subtitle='ดูค่าปัจจุบันและกำหนดรอบส่งข้อมูล'><span class='nav-icon'>∿</span><span>Sensor</span></a>";
@@ -107,15 +107,7 @@ String PortalView::pageShell(const String &title,
           "</span></div></aside>";
   html += "<button id='portalOverlay' class='portal-overlay' type='button' aria-label='ปิดเมนู'></button>";
 
-  html += "<div class='portal-workspace'><header class='portal-header'><div class='portal-header-main'><button id='portalMenuButton' class='portal-menu-button' type='button' aria-label='เปิดเมนู'>☰</button><div class='portal-header-copy'><h1 id='portalPageTitle'>ESP32 Overview</h1><p id='portalPageSubtitle'>ภาพรวมสถานะอุปกรณ์และการเชื่อมต่อ</p></div></div><div class='portal-header-actions'>";
-  html += "<span id='headerStateBadge' class='badge " +
-          statusBadgeClass() + "'>" +
-          StringUtils::appStateText(status_->state) + "</span>";
-  html += "<a class='btn btn-secondary' href='/" + authQuery() +
-          "#overview'><span class='header-label'>Refresh</span> ↻</a>";
-  html += "<a class='btn btn-secondary' href='/json" + authQuery() +
-          "'><span class='header-label'>JSON</span> { }</a>";
-  html += "</div></header><main class='portal-content'>";
+  html += "<div class='portal-workspace'><header class='portal-header'><button id='portalMenuButton' class='portal-menu-button' type='button' aria-label='เปิดเมนู'>☰</button></header><main class='portal-content'>";
   html += body;
   html += "</main><footer class='portal-footer'>";
   html += DOTWATCH_MODEL_NAME;

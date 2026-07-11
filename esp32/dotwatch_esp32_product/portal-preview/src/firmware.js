@@ -16,8 +16,9 @@ function openDashboardPage(pageId,updateHash){
     if(item.classList.contains('portal-nav-item'))item.setAttribute('aria-current',active?'page':'false');
   });
   const nav=document.querySelector('.portal-nav-item[data-page-target="'+target.id+'"]');
-  setText('portalPageTitle',nav?.getAttribute('data-page-title')||target.getAttribute('data-page-title')||'ESP32 Dashboard');
-  setText('portalPageSubtitle',nav?.getAttribute('data-page-subtitle')||target.getAttribute('data-page-subtitle')||'Local Device Console');
+  setText('portalPageTitle',nav?.getAttribute('data-page-title')||target.getAttribute('data-page-title')||'Device Console');
+  setText('portalPageSubtitle',nav?.getAttribute('data-page-subtitle')||target.getAttribute('data-page-subtitle')||'');
+  document.body.setAttribute('data-active-page',target.id);
   document.body.classList.remove('nav-open');
   if(updateHash!==false&&location.hash!=='#'+target.id)history.replaceState(null,'','#'+target.id);
   window.scrollTo({top:0,behavior:'smooth'});
@@ -65,5 +66,5 @@ function applyPortalStatus(data){
   const dot=byId('sidebarStateDot');if(dot)dot.className='sidebar-status-dot '+stateClass(data.state);
   ['headerStateBadge','appStateBadge'].forEach(id=>{const badge=byId(id);if(badge){badge.className='badge '+stateClass(data.state);badge.textContent=data.state||'UNKNOWN'}});
 }
-async function refreshSensorValues(){if(!byId('sensorTemperature')&&!byId('headerStateBadge'))return;try{const response=await fetch('/json'+(window.location.search||''),{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.message||'Status failed');applyPortalStatus(data)}catch(error){setText('sensorLiveStatus','ไม่สามารถอัปเดตสถานะอุปกรณ์ได้')}}
-window.addEventListener('load',()=>{initDashboardNavigation();if(byId('networkList'))setTimeout(scanWifi,450);if(byId('sensorTemperature')||byId('headerStateBadge')){setTimeout(refreshSensorValues,300);setInterval(refreshSensorValues,2000)}})
+async function refreshSensorValues(){if(!byId('sensorTemperature')&&!byId('statusDeviceCode'))return;try{const response=await fetch('/json'+(window.location.search||''),{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.message||'Status failed');applyPortalStatus(data)}catch(error){setText('sensorLiveStatus','ไม่สามารถอัปเดตสถานะอุปกรณ์ได้')}}
+window.addEventListener('load',()=>{initDashboardNavigation();if(byId('networkList'))setTimeout(scanWifi,450);if(byId('sensorTemperature')||byId('statusDeviceCode')){setTimeout(refreshSensorValues,300);setInterval(refreshSensorValues,2000)}})
