@@ -14,10 +14,10 @@ import { PageHeader, StatCard } from '../components/common'
 import { isWifiRssiMetricConfig } from '../utils/metricDisplayConfig'
 
 import {
-  clearHistoryByDate,
+  clearHistoryRange,
   getDevices,
   getDeviceMetrics,
-  getHistoryByDate,
+  getHistory,
   getAlarmRules,
 } from '../services/api'
 import '../styles/history.css'
@@ -62,7 +62,8 @@ function getSafeChartResolution(value) {
 function getInitialHistoryState() {
   const fallback = {
     deviceId: '',
-    date: todayInputValue(),
+    startDate: todayInputValue(),
+    endDate: todayInputValue(),
     metricKey: 'all',
     tablePage: 1,
     tablePageSize: DEFAULT_TABLE_PAGE_SIZE,
@@ -85,7 +86,20 @@ function getInitialHistoryState() {
         params.get('device') ||
         saved.deviceId ||
         fallback.deviceId,
-      date: params.get('date') || fallback.date,
+      startDate:
+        params.get('startDate') ||
+        params.get('from') ||
+        params.get('date') ||
+        saved.startDate ||
+        saved.date ||
+        fallback.startDate,
+      endDate:
+        params.get('endDate') ||
+        params.get('to') ||
+        params.get('date') ||
+        saved.endDate ||
+        saved.date ||
+        fallback.endDate,
       metricKey:
         params.get('metricKey') ||
         params.get('metric') ||
@@ -179,6 +193,49 @@ function formatDateTime(value) {
   })
 }
 
+function formatHistoryDate(value) {
+  const date = new Date(value)
+
+  if (!value || Number.isNaN(date.getTime())) return '--'
+
+  return date.toLocaleDateString('th-TH', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Bangkok',
+  })
+}
+
+function formatHistoryTime(value) {
+  const date = new Date(value)
+
+  if (!value || Number.isNaN(date.getTime())) return '--'
+
+  return date.toLocaleTimeString('th-TH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Bangkok',
+  })
+}
+
+function escapeReportHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
+}
+
+function sanitizeReportFilename(value) {
+  return String(value || 'device')
+    .trim()
+    .replace(/[^a-zA-Z0-9ก-๙_-]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'device'
+}
+
 function formatDateOnly(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return '--'
 
@@ -192,14 +249,25 @@ function formatDateOnly(value) {
   })
 }
 
-function formatChartLabel(value) {
+function formatChartLabel(value, includeDate = false) {
   const date = new Date(value)
 
   if (!value || Number.isNaN(date.getTime())) return '--'
 
+  if (includeDate) {
+    return date.toLocaleString('th-TH', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Bangkok',
+    })
+  }
+
   return date.toLocaleTimeString('th-TH', {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Asia/Bangkok',
   })
 }
 
@@ -397,9 +465,15 @@ function buildChartData(rows = [], selectedMetricKey = '', metrics = []) {
     return timeA - timeB
   })
 
+  const chartDates = new Set(
+    sortedRows.map((row) => formatHistoryDate(row.time))
+  )
+  const includeDateInLabel = chartDates.size > 1
+
   if (selectedMetricKey !== 'all') {
     return sortedRows.map((row) => ({
       ...row,
+      label: formatChartLabel(row.time, includeDateInLabel),
       value: row.value,
     }))
   }
@@ -414,7 +488,7 @@ function buildChartData(rows = [], selectedMetricKey = '', metrics = []) {
       {
         id: row.time,
         time: row.time,
-        label: formatChartLabel(row.time),
+        label: formatChartLabel(row.time, includeDateInLabel),
       }
 
     existing[row.metricKey] = row.value
@@ -676,7 +750,8 @@ function HistoryTooltip({ active, payload, label, metricMap }) {
 function History() {
   const initialHistoryState = useMemo(() => getInitialHistoryState(), [])
   const previousFilterSignatureRef = useRef('')
-  const dateInputRef = useRef(null)
+  const startDateInputRef = useRef(null)
+  const endDateInputRef = useRef(null)
   const metricsRequestRef = useRef(0)
   const alarmRulesRequestRef = useRef(0)
   const historyRequestRef = useRef(0)
@@ -684,7 +759,8 @@ function History() {
   const [metrics, setMetrics] = useState([])
   const [alarmRules, setAlarmRules] = useState([])
   const [selectedDeviceId, setSelectedDeviceId] = useState(initialHistoryState.deviceId)
-  const [selectedDate, setSelectedDate] = useState(initialHistoryState.date)
+  const [startDate, setStartDate] = useState(initialHistoryState.startDate)
+  const [endDate, setEndDate] = useState(initialHistoryState.endDate)
   const [selectedMetricKey, setSelectedMetricKey] = useState(initialHistoryState.metricKey)
   const [rows, setRows] = useState([])
   const [chartRows, setChartRows] = useState([])
@@ -829,7 +905,7 @@ function History() {
     historyTableRows.length
   )
 
-    const stats = useMemo(() => getStats(filteredRows), [filteredRows])
+  const stats = useMemo(() => getStats(filteredRows), [filteredRows])
 
   async function loadDevices() {
     try {
@@ -944,11 +1020,20 @@ function History() {
     const requestId = historyRequestRef.current + 1
     historyRequestRef.current = requestId
 
-    if (!selectedDeviceId || !selectedMetricKey || !selectedDate) {
+    if (!selectedDeviceId || !selectedMetricKey || !startDate || !endDate) {
       setRows([])
       setChartRows([])
       setLoadingHistory(false)
       setLoadingChart(false)
+      return
+    }
+
+    if (startDate > endDate) {
+      setRows([])
+      setChartRows([])
+      setLoadingHistory(false)
+      setLoadingChart(false)
+      setError('Start Date ต้องไม่มากกว่า End Date')
       return
     }
 
@@ -964,9 +1049,10 @@ function History() {
       if (selectedMetricKey === 'all') {
         const results = await Promise.all(
           metrics.map(async (metric) => {
-            const result = await getHistoryByDate(
+            const result = await getHistory(
               selectedDeviceId,
-              selectedDate,
+              startDate,
+              endDate,
               metric.metricKey,
               { resolution: chartResolution }
             )
@@ -980,9 +1066,10 @@ function History() {
 
         nextRows = results.flat()
       } else {
-        const result = await getHistoryByDate(
+        const result = await getHistory(
           selectedDeviceId,
-          selectedDate,
+          startDate,
+          endDate,
           selectedMetricKey,
           { resolution: chartResolution }
         )
@@ -1014,65 +1101,213 @@ function History() {
     }
   }
 
-  function exportCSV() {
+  function exportReport() {
     if (!historyTableRows.length) return
 
-    const csvRows =
+    const reportWindow = window.open('', '_blank')
+
+    if (!reportWindow) {
+      setError('เบราว์เซอร์บล็อกหน้าต่าง Export กรุณาอนุญาต Pop-up สำหรับเว็บไซต์นี้')
+      return
+    }
+
+    reportWindow.opener = null
+
+    const deviceName =
+      selectedDevice?.name ||
+      selectedDevice?.device_code ||
+      `Device ${selectedDeviceId}`
+    const metricTitle =
       selectedMetricKey === 'all'
-        ? [
-            ['time', ...metrics.map((metric) => metric.metricName)].join(','),
-            ...historyTableRows.map((row) =>
-              [
-                row.time,
-                ...metrics.map((metric) => {
-                  const value = row.values?.[metric.metricKey]
+        ? 'All Metrics'
+        : selectedMetric?.metricName || selectedMetricKey
+    const chartSvg =
+      document.querySelector('.history-chart-box .recharts-wrapper svg')?.outerHTML ||
+      '<div class="report-empty">No trend data</div>'
+    const alarmChips = alarmReferenceRules
+      .map(
+        (rule) => `
+          <span class="report-alarm-chip ${escapeReportHtml(rule.severity)}">
+            ${escapeReportHtml(
+              formatAlarmRuleSummary(
+                rule,
+                metricMap,
+                selectedMetricKey === 'all'
+              )
+            )}
+          </span>`
+      )
+      .join('')
 
-                  return value == null
-                    ? ''
-                    : `"${String(
-                        formatNumber(
-                          value,
-                          metric.unit || '',
-                          metric.decimalPlaces
-                        )
-                      ).replaceAll('"', '""')}"`
-                }),
-              ].join(',')
-            ),
-          ]
-        : [
-            `time,"${String(selectedMetric?.metricName || 'value').replaceAll(
-              '"',
-              '""'
-            )}"`,
-            ...historyTableRows.map((row) =>
-              [
-                row.time,
-                `"${String(
-                  formatHistoryTableValue(row, metricMap, selectedUnit)
-                ).replaceAll('"', '""')}"`,
-              ].join(',')
-            ),
-          ]
+    const tableHeader =
+      selectedMetricKey === 'all'
+        ? `
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            ${metrics
+              .map((metric) => `<th>${escapeReportHtml(metric.metricName)}</th>`)
+              .join('')}
+          </tr>`
+        : `
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>${escapeReportHtml(selectedMetric?.metricName || 'Value')}</th>
+            <th>Alarm Status</th>
+          </tr>`
 
-    const csv = csvRows.join(String.fromCharCode(10))
+    const tableBody =
+      selectedMetricKey === 'all'
+        ? historyTableRows
+            .map(
+              (row) => `
+                <tr>
+                  <td>${escapeReportHtml(formatHistoryDate(row.time))}</td>
+                  <td>${escapeReportHtml(formatHistoryTime(row.time))}</td>
+                  ${metrics
+                    .map((metric) => {
+                      const value = row.values?.[metric.metricKey]
 
-    const blob = new Blob([csv], {
-      type: 'text/csv;charset=utf-8;',
+                      if (value == null) return '<td>--</td>'
+
+                      const evaluation = getAlarmEvaluation(
+                        value,
+                        metric.metricKey,
+                        activeAlarmRules
+                      )
+
+                      return `
+                        <td>
+                          <strong>${escapeReportHtml(
+                            formatNumber(
+                              value,
+                              metric.unit || '',
+                              metric.decimalPlaces
+                            )
+                          )}</strong>
+                          <span class="report-status ${escapeReportHtml(
+                            evaluation.severity
+                          )}">${escapeReportHtml(evaluation.label)}</span>
+                        </td>`
+                    })
+                    .join('')}
+                </tr>`
+            )
+            .join('')
+        : historyTableRows
+            .map((row) => {
+              const evaluation = getAlarmEvaluation(
+                row.value,
+                row.metricKey || selectedMetricKey,
+                activeAlarmRules
+              )
+
+              return `
+                <tr>
+                  <td>${escapeReportHtml(formatHistoryDate(row.time))}</td>
+                  <td>${escapeReportHtml(formatHistoryTime(row.time))}</td>
+                  <td><strong>${escapeReportHtml(
+                    formatHistoryTableValue(row, metricMap, selectedUnit)
+                  )}</strong></td>
+                  <td><span class="report-status ${escapeReportHtml(
+                    evaluation.severity
+                  )}">${escapeReportHtml(evaluation.label)}</span></td>
+                </tr>`
+            })
+            .join('')
+
+    const reportTitle = `dotWatch History - ${sanitizeReportFilename(deviceName)} - ${startDate}-to-${endDate}`
+    const reportHtml = `<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeReportHtml(reportTitle)}</title>
+  <style>
+    @page { size: A4 landscape; margin: 9mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #0f172a; background: #fff; font-family: Inter, Prompt, Arial, sans-serif; font-size: 11px; }
+    .report { display: grid; gap: 10px; }
+    .report-header { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; padding: 4px 2px; }
+    .report-header div { display: flex; gap: 8px; font-size: 14px; font-weight: 800; }
+    .report-header span { min-width: 105px; color: #64748b; text-transform: uppercase; }
+    .report-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .report-stat { padding: 10px; border: 1px solid #dbe3ef; border-top: 3px solid #ef4444; border-radius: 8px; }
+    .report-stat span { display: block; color: #64748b; font-size: 9px; font-weight: 900; text-transform: uppercase; }
+    .report-stat strong { display: block; margin-top: 4px; font-size: 21px; }
+    .report-stat small { color: #64748b; font-weight: 700; }
+    .report-card { padding: 10px; border: 1px solid #dbe3ef; border-radius: 9px; break-inside: avoid; }
+    .report-card h2 { margin: 0 0 3px; font-size: 15px; }
+    .report-card p { margin: 0 0 8px; color: #64748b; font-weight: 700; }
+    .report-chart { width: 100%; min-height: 250px; padding: 7px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    .report-chart svg { width: 100% !important; height: 250px !important; }
+    .report-empty { min-height: 250px; display: grid; place-items: center; color: #64748b; }
+    .report-alarms { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 7px; }
+    .report-alarm-chip { padding: 3px 7px; border-radius: 999px; font-size: 8px; font-weight: 900; border: 1px solid #f59e0b; color: #b45309; background: #fff7ed; }
+    .report-alarm-chip.critical { border-color: #ef4444; color: #dc2626; background: #fef2f2; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td { padding: 6px 7px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle; }
+    th { color: #64748b; background: #f8fafc; font-size: 8px; font-weight: 900; text-transform: uppercase; }
+    td { font-size: 9px; }
+    tr { break-inside: avoid; }
+    .report-status { display: inline-block; margin-left: 4px; padding: 1px 5px; border-radius: 999px; color: #15803d; background: #dcfce7; font-size: 7px; font-weight: 900; }
+    .report-status.warning { color: #b45309; background: #fef3c7; }
+    .report-status.critical { color: #dc2626; background: #fee2e2; }
+    .report-status.none { color: #64748b; background: #e2e8f0; }
+    .report-footer { color: #64748b; font-size: 8px; text-align: right; }
+    @media print { .report-card { box-shadow: none; } }
+  </style>
+</head>
+<body>
+  <main class="report">
+    <header class="report-header">
+      <div><span>Device Name :</span><strong>${escapeReportHtml(deviceName)}</strong></div>
+      <div><span>Metric :</span><strong>${escapeReportHtml(metricTitle)}</strong></div>
+      <div><span>Start Date :</span><strong>${escapeReportHtml(formatDateOnly(startDate))}</strong></div>
+      <div><span>End Date :</span><strong>${escapeReportHtml(formatDateOnly(endDate))}</strong></div>
+    </header>
+
+    <section class="report-stats">
+      <div class="report-stat"><span>Records</span><strong>${escapeReportHtml(historyTableRows.length.toLocaleString('th-TH'))}</strong><small>Filtered rows</small></div>
+      <div class="report-stat"><span>Average</span><strong>${escapeReportHtml(formatNumber(stats.average, selectedUnit, selectedDecimalPlaces))}</strong><small>${escapeReportHtml(metricTitle)}</small></div>
+      <div class="report-stat"><span>Min</span><strong>${escapeReportHtml(formatNumber(stats.min, selectedUnit, selectedDecimalPlaces))}</strong><small>Lowest value</small></div>
+      <div class="report-stat"><span>Max</span><strong>${escapeReportHtml(formatNumber(stats.max, selectedUnit, selectedDecimalPlaces))}</strong><small>Highest value</small></div>
+    </section>
+
+    <section class="report-card">
+      <h2>Trend Graph</h2>
+      <p>${escapeReportHtml(metricTitle)} from ${escapeReportHtml(deviceName)} • ${escapeReportHtml(selectedResolutionLabel)}</p>
+      ${alarmChips ? `<div class="report-alarms">${alarmChips}</div>` : ''}
+      <div class="report-chart">${chartSvg}</div>
+    </section>
+
+    <section class="report-card">
+      <h2>History Table</h2>
+      <p>Start ${escapeReportHtml(formatDateOnly(startDate))} - End ${escapeReportHtml(formatDateOnly(endDate))} • ${escapeReportHtml(selectedResolutionLabel)}</p>
+      <table>
+        <thead>${tableHeader}</thead>
+        <tbody>${tableBody}</tbody>
+      </table>
+    </section>
+
+    <footer class="report-footer">Generated by dotWatch • ${escapeReportHtml(new Date().toLocaleString('th-TH'))}</footer>
+  </main>
+  <script>
+    window.addEventListener('load', () => {
+      setTimeout(() => window.print(), 350)
     })
+  </script>
+</body>
+</html>`
 
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-
-    link.href = url
-    link.download = `dotwatch-history-${selectedDeviceId}-${selectedMetricKey}-${selectedDate}.csv`
-    link.click()
-
-    URL.revokeObjectURL(url)
+    reportWindow.document.open()
+    reportWindow.document.write(reportHtml)
+    reportWindow.document.close()
   }
 
-  function showDatePicker() {
-    const input = dateInputRef.current
+  function showDatePicker(inputRef) {
+    const input = inputRef.current
 
     if (!input) return
 
@@ -1103,7 +1338,8 @@ function History() {
     if (
       !clearConfirmed ||
       !selectedDeviceId ||
-      !selectedDate ||
+      !startDate ||
+      !endDate ||
       !selectedMetricKey
     ) {
       return
@@ -1114,15 +1350,16 @@ function History() {
       setError('')
       setNotice('')
 
-      const result = await clearHistoryByDate(
+      const result = await clearHistoryRange(
         selectedDeviceId,
-        selectedDate,
+        startDate,
+        endDate,
         selectedMetricKey === 'all' ? '' : selectedMetricKey
       )
 
-      const deletedCount = Number(
-        result?.deletedCount ?? result?.deleted_count ?? 0
-      )
+      const deletedCount =
+        Number(result?.deletedCount ?? result?.deleted_count ?? 0) +
+        Number(result?.legacyDeletedCount ?? result?.legacy_deleted_count ?? 0)
 
       setRows([])
       setChartRows([])
@@ -1164,7 +1401,8 @@ function History() {
   }, [
     selectedDeviceId,
     selectedMetricKey,
-    selectedDate,
+    startDate,
+    endDate,
     metrics,
     chartResolution,
   ])
@@ -1173,8 +1411,8 @@ function History() {
     if (
       !selectedDeviceId ||
       !selectedMetricKey ||
-      !selectedDate ||
-      selectedDate !== todayInputValue() ||
+      !endDate ||
+      endDate !== todayInputValue() ||
       String(selectedDevice?.status || '').toLowerCase() !== 'online'
     ) {
       return undefined
@@ -1193,7 +1431,8 @@ function History() {
   }, [
     selectedDeviceId,
     selectedMetricKey,
-    selectedDate,
+    startDate,
+    endDate,
     selectedDevice?.status,
     selectedDevice?.record_interval_seconds,
     metrics,
@@ -1201,7 +1440,7 @@ function History() {
   ])
 
   useEffect(() => {
-    const filterSignature = `${selectedDeviceId}|${selectedMetricKey}|${selectedDate}|${chartResolution}`
+    const filterSignature = `${selectedDeviceId}|${selectedMetricKey}|${startDate}|${endDate}|${chartResolution}`
 
     if (!previousFilterSignatureRef.current) {
       previousFilterSignatureRef.current = filterSignature
@@ -1213,7 +1452,7 @@ function History() {
       setTablePage(1)
       setNotice('')
     }
-  }, [selectedDeviceId, selectedMetricKey, selectedDate, chartResolution])
+  }, [selectedDeviceId, selectedMetricKey, startDate, endDate, chartResolution])
 
   useEffect(() => {
     if (tablePage > totalHistoryTablePages) {
@@ -1250,7 +1489,8 @@ function History() {
 
     const state = {
       deviceId: selectedDeviceId,
-      date: selectedDate,
+      startDate,
+      endDate,
       metricKey: selectedMetricKey,
       tablePage,
       tablePageSize,
@@ -1266,8 +1506,13 @@ function History() {
       if (selectedDeviceId) params.set('deviceId', selectedDeviceId)
       else params.delete('deviceId')
 
-      if (selectedDate) params.set('date', selectedDate)
-      else params.delete('date')
+      if (startDate) params.set('startDate', startDate)
+      else params.delete('startDate')
+
+      if (endDate) params.set('endDate', endDate)
+      else params.delete('endDate')
+
+      params.delete('date')
 
       if (selectedMetricKey) params.set('metricKey', selectedMetricKey)
       else params.delete('metricKey')
@@ -1286,7 +1531,8 @@ function History() {
     }
   }, [
     selectedDeviceId,
-    selectedDate,
+    startDate,
+    endDate,
     selectedMetricKey,
     tablePage,
     tablePageSize,
@@ -1311,7 +1557,7 @@ function History() {
       <PageHeader
         eyebrow="Data Center"
         title="History Analytics"
-        description="ตรวจสอบข้อมูลย้อนหลังตาม Device, วันที่ และ Metric พร้อมกราฟ ตาราง และ Export CSV"
+        description="ตรวจสอบข้อมูลย้อนหลังตาม Device, ช่วงวันที่ และ Metric พร้อมกราฟ ตาราง และรายงาน Export"
       />
 
       <section className="history-stat-grid history-stat-grid-tight">
@@ -1345,7 +1591,7 @@ function History() {
         <div className="history-section-title">
           <div>
             <h2>Filter</h2>
-            <p>เลือก Device, วันที่, Metric และช่วงเวลาที่ต้องการแสดงผล</p>
+            <p>เลือก Device, ช่วงวันที่, Metric และช่วงเวลาที่ต้องการแสดงผล</p>
           </div>
         </div>
 
@@ -1370,21 +1616,60 @@ function History() {
           </label>
 
           <div className="history-filter-field">
-            <label htmlFor="history-date-input">Date</label>
+            <label htmlFor="history-start-date-input">Start Date</label>
             <div className="history-date-picker">
               <input
-                id="history-date-input"
-                ref={dateInputRef}
+                id="history-start-date-input"
+                ref={startDateInputRef}
                 type="date"
-                value={selectedDate}
-                onChange={(event) => setSelectedDate(event.target.value)}
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(event) => {
+                  const nextStartDate = event.target.value
+                  setStartDate(nextStartDate)
+
+                  if (endDate && nextStartDate > endDate) {
+                    setEndDate(nextStartDate)
+                  }
+                }}
               />
               <button
                 type="button"
                 className="history-date-picker-button"
-                onClick={showDatePicker}
-                aria-label="เปิดปฏิทินเลือกวันที่"
-                title="เลือกวันที่"
+                onClick={() => showDatePicker(startDateInputRef)}
+                aria-label="เปิดปฏิทินเลือกวันเริ่มต้น"
+                title="เลือกวันเริ่มต้น"
+              >
+                <CalendarDays size={17} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+
+          <div className="history-filter-field">
+            <label htmlFor="history-end-date-input">End Date</label>
+            <div className="history-date-picker">
+              <input
+                id="history-end-date-input"
+                ref={endDateInputRef}
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                max={todayInputValue()}
+                onChange={(event) => {
+                  const nextEndDate = event.target.value
+                  setEndDate(nextEndDate)
+
+                  if (startDate && nextEndDate < startDate) {
+                    setStartDate(nextEndDate)
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="history-date-picker-button"
+                onClick={() => showDatePicker(endDateInputRef)}
+                aria-label="เปิดปฏิทินเลือกวันสิ้นสุด"
+                title="เลือกวันสิ้นสุด"
               >
                 <CalendarDays size={17} aria-hidden="true" />
               </button>
@@ -1437,11 +1722,11 @@ function History() {
             <button
               type="button"
               className="history-export-btn"
-              onClick={exportCSV}
+              onClick={exportReport}
               disabled={!filteredRows.length || loadingHistory}
             >
               <Download size={16} aria-hidden="true" />
-              Export CSV
+              Export
             </button>
 
             <button
@@ -1470,6 +1755,7 @@ function History() {
               <p>
                 {selectedMetricKey === 'all' ? 'All Metrics' : selectedMetric?.metricName || 'Metric'} จาก{' '}
                 {selectedDevice?.name || selectedDevice?.device_code || 'Device'}
+                {' '}• {formatDateOnly(startDate)} - {formatDateOnly(endDate)}
                 {' '}• {selectedResolutionLabel}
               </p>
             </div>
@@ -1669,6 +1955,7 @@ function History() {
             <thead>
               {selectedMetricKey === 'all' ? (
                 <tr>
+                  <th>Date</th>
                   <th>Time</th>
                   {metrics.map((metric) => (
                     <th key={metric.metricKey}>{metric.metricName}</th>
@@ -1676,6 +1963,7 @@ function History() {
                 </tr>
               ) : (
                 <tr>
+                  <th>Date</th>
                   <th>Time</th>
                   <th>{selectedMetric?.metricName || 'Name'}</th>
                   <th>Alarm Status</th>
@@ -1688,7 +1976,7 @@ function History() {
                 <tr>
                   <td
                     colSpan={
-                      selectedMetricKey === 'all' ? metrics.length + 1 : 3
+                      selectedMetricKey === 'all' ? metrics.length + 2 : 4
                     }
                   >
                     ยังไม่มีข้อมูลย้อนหลังสำหรับตัวกรองนี้
@@ -1697,7 +1985,8 @@ function History() {
               ) : selectedMetricKey === 'all' ? (
                 paginatedHistoryTableRows.map((row) => (
                   <tr key={row.id}>
-                    <td>{formatDateTime(row.time)}</td>
+                    <td>{formatHistoryDate(row.time)}</td>
+                    <td>{formatHistoryTime(row.time)}</td>
                     {metrics.map((metric) => {
                       const value = row.values?.[metric.metricKey]
 
@@ -1740,7 +2029,8 @@ function History() {
                       key={row.id}
                       className={`history-alarm-row ${evaluation.severity}`}
                     >
-                      <td>{formatDateTime(row.time)}</td>
+                      <td>{formatHistoryDate(row.time)}</td>
+                      <td>{formatHistoryTime(row.time)}</td>
                       <td>
                         {formatHistoryTableValue(row, metricMap, selectedUnit)}
                       </td>
@@ -1858,8 +2148,12 @@ function History() {
                 </dd>
               </div>
               <div>
-                <dt>Date</dt>
-                <dd>{formatDateOnly(selectedDate)}</dd>
+                <dt>Start Date</dt>
+                <dd>{formatDateOnly(startDate)}</dd>
+              </div>
+              <div>
+                <dt>End Date</dt>
+                <dd>{formatDateOnly(endDate)}</dd>
               </div>
               <div>
                 <dt>Metric</dt>
@@ -1883,7 +2177,7 @@ function History() {
                 disabled={clearingHistory}
               />
               <span>
-                ฉันตรวจสอบ Device, วันที่ และ Metric แล้ว
+                ฉันตรวจสอบ Device, ช่วงวันที่ และ Metric แล้ว
                 และยืนยันว่าต้องการลบข้อมูลชุดนี้จริง
               </span>
             </label>

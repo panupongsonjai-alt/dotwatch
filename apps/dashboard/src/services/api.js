@@ -429,10 +429,16 @@ export function getDeviceHistoryByDate(deviceId, date, metricKey, options = {}) 
   return getHistoryByDate(deviceId, date, metricKey, options)
 }
 
-export function clearHistoryByDate(deviceId, date, metricKey = '') {
+export function clearHistoryRange(
+  deviceId,
+  from,
+  to,
+  metricKey = ''
+) {
   const params = new URLSearchParams()
 
-  if (date) params.set('date', date)
+  if (from) params.set('from', from)
+  if (to) params.set('to', to)
   if (metricKey) params.set('metricKey', metricKey)
 
   const query = params.toString()
@@ -443,6 +449,10 @@ export function clearHistoryByDate(deviceId, date, metricKey = '') {
     }`,
     { method: 'DELETE' }
   )
+}
+
+export function clearHistoryByDate(deviceId, date, metricKey = '') {
+  return clearHistoryRange(deviceId, date, date, metricKey)
 }
 
 export function getDeviceMetrics(deviceId) {

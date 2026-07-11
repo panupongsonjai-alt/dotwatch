@@ -1022,7 +1022,28 @@ export async function deleteDevice(req, res) {
 export async function clearHistory(req, res) {
   const user = req.dbUser
   const { id } = req.params
-  const dateValue = String(req.query.date || req.body?.date || '').trim()
+  const startDateValue = String(
+    req.query.from ||
+      req.query.start ||
+      req.query.startDate ||
+      req.query.date ||
+      req.body?.from ||
+      req.body?.start ||
+      req.body?.startDate ||
+      req.body?.date ||
+      ''
+  ).trim()
+  const endDateValue = String(
+    req.query.to ||
+      req.query.end ||
+      req.query.endDate ||
+      req.query.date ||
+      req.body?.to ||
+      req.body?.end ||
+      req.body?.endDate ||
+      req.body?.date ||
+      startDateValue
+  ).trim()
   const rawMetricKey =
     req.query.metricKey ||
     req.query.metric_key ||
@@ -1033,9 +1054,12 @@ export async function clearHistory(req, res) {
     ''
   const metricKey = normalizeHistoryMetricKey(rawMetricKey)
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(startDateValue) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(endDateValue)
+  ) {
     return res.status(400).json({
-      message: 'A valid history date is required',
+      message: 'A valid history date range is required',
     })
   }
 
@@ -1045,12 +1069,18 @@ export async function clearHistory(req, res) {
     })
   }
 
-  const fromDate = new Date(`${dateValue}T00:00:00.000+07:00`)
-  const toDate = new Date(`${dateValue}T23:59:59.999+07:00`)
+  const fromDate = new Date(`${startDateValue}T00:00:00.000+07:00`)
+  const toDate = new Date(`${endDateValue}T23:59:59.999+07:00`)
 
   if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
     return res.status(400).json({
-      message: 'Invalid history date',
+      message: 'Invalid history date range',
+    })
+  }
+
+  if (fromDate > toDate) {
+    return res.status(400).json({
+      message: 'Invalid history date range: from must be before to',
     })
   }
 
@@ -1206,11 +1236,12 @@ export async function clearHistory(req, res) {
     organizationId: access.organization_id || null,
     actorUserId: user.id,
     action: 'device.history_cleared',
-    detail: `Cleared history for device ${access.device_code} on ${dateValue}`,
+    detail: `Cleared history for device ${access.device_code} from ${startDateValue} to ${endDateValue}`,
     metadata: {
       deviceId: access.id,
       deviceCode: access.device_code,
-      date: dateValue,
+      startDate: startDateValue,
+      endDate: endDateValue,
       metricKey: metricKey || 'all',
       deletedCount,
       legacyDeletedCount,
@@ -1221,7 +1252,8 @@ export async function clearHistory(req, res) {
   res.json({
     ok: true,
     deviceId: Number(id),
-    date: dateValue,
+    startDate: startDateValue,
+    endDate: endDateValue,
     metricKey: metricKey || 'all',
     deletedCount,
     legacyDeletedCount,
