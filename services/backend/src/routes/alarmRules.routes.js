@@ -13,21 +13,179 @@ const ALLOWED_ALARM_OPERATORS = new Set(['>', '>=', '<', '<=', '=', '==', '!='])
 const ALLOWED_ALARM_SEVERITIES = new Set(['warning', 'critical'])
 const MAX_BULK_RULES = 100
 
+let alarmSchemaReadyPromise = null
+
+function normalizeOperatorForStorage(operator) {
+  return operator === '=' ? '==' : operator
+}
+
+function normalizeRuleForClient(rule = {}) {
+  return {
+    ...rule,
+    operator: rule.operator === '==' ? '=' : rule.operator,
+    notification_message: rule.notification_message || '',
+    is_active: rule.is_active !== false,
+  }
+}
+
+/**
+ * Production compatibility guard.
+ *
+ * Some deployed dotWatch databases were created before alarm_rules gained
+ * device_id, notification_message and timestamp columns. The dashboard can
+ * already be running the newer API while the database is still on that older
+ * shape, which makes both GET /alarm-rules and POST /save-all fail with 500.
+ *
+ * Keep the normal migration as the source of truth, but repair the small,
+ * backwards-compatible alarm schema gap once per backend process so the API
+ * becomes usable immediately after deploy.
+ */
+async function ensureAlarmRulesSchema() {
+  if (alarmSchemaReadyPromise) {
+    return alarmSchemaReadyPromise
+  }
+
+  alarmSchemaReadyPromise = (async () => {
+    const client = await pool.connect()
+
+    try {
+      await client.query('BEGIN')
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS alarm_rules (
+          id BIGSERIAL PRIMARY KEY,
+          user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          device_id BIGINT REFERENCES devices(id) ON DELETE CASCADE,
+          metric TEXT NOT NULL,
+          operator TEXT NOT NULL,
+          threshold DOUBLE PRECISION NOT NULL,
+          severity TEXT NOT NULL DEFAULT 'warning',
+          notification_message TEXT,
+          is_active BOOLEAN NOT NULL DEFAULT TRUE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `)
+
+      await client.query(`
+        ALTER TABLE alarm_rules
+          ADD COLUMN IF NOT EXISTS device_id BIGINT,
+          ADD COLUMN IF NOT EXISTS notification_message TEXT,
+          ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
+          ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW(),
+          ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
+      `)
+
+      await client.query(`
+        UPDATE alarm_rules
+        SET
+          operator = CASE
+            WHEN operator = '=' THEN '=='
+            WHEN operator IN ('>', '>=', '<', '<=', '==', '!=') THEN operator
+            ELSE '>'
+          END,
+          severity = CASE
+            WHEN LOWER(TRIM(COALESCE(severity, 'warning'))) = 'critical'
+              THEN 'critical'
+            ELSE 'warning'
+          END,
+          is_active = COALESCE(is_active, TRUE),
+          created_at = COALESCE(created_at, NOW()),
+          updated_at = COALESCE(updated_at, created_at, NOW())
+      `)
+
+      await client.query(`
+        WITH ranked_rules AS (
+          SELECT
+            id,
+            ROW_NUMBER() OVER (
+              PARTITION BY user_id, device_id, metric, LOWER(TRIM(severity))
+              ORDER BY updated_at DESC NULLS LAST, id DESC
+            ) AS duplicate_rank
+          FROM alarm_rules
+          WHERE device_id IS NOT NULL
+        )
+        DELETE FROM alarm_rules ar
+        USING ranked_rules rr
+        WHERE ar.id = rr.id
+          AND rr.duplicate_rank > 1
+      `)
+
+      await client.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_alarm_rules_user_device_metric_severity
+        ON alarm_rules (
+          user_id,
+          device_id,
+          metric,
+          (LOWER(TRIM(severity)))
+        )
+        WHERE device_id IS NOT NULL
+      `)
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_alarm_rules_device
+        ON alarm_rules(device_id)
+      `)
+
+      await client.query('COMMIT')
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {})
+      throw error
+    } finally {
+      client.release()
+    }
+  })()
+
+  try {
+    await alarmSchemaReadyPromise
+  } catch (error) {
+    alarmSchemaReadyPromise = null
+    throw error
+  }
+}
+
 function normalizeAlarmPayload(payload = {}) {
   const metric = String(payload.metric || '').trim()
-  const operator = String(payload.operator || '').trim()
   const severity = String(payload.severity || 'warning')
     .trim()
     .toLowerCase()
-  const threshold = Number(payload.threshold)
-  const notificationMessage = String(payload.notification_message || '').trim()
   const rawId = payload.id == null || payload.id === '' ? null : Number(payload.id)
+  const shouldDelete = payload.delete === true || payload._delete === true
 
   if (!metric) {
     return {
       error: 'Metric is required',
     }
   }
+
+  if (!ALLOWED_ALARM_SEVERITIES.has(severity)) {
+    return {
+      error: 'Invalid severity',
+    }
+  }
+
+  if (rawId != null && (!Number.isInteger(rawId) || rawId <= 0)) {
+    return {
+      error: 'Invalid alarm rule id',
+    }
+  }
+
+  if (shouldDelete) {
+    return {
+      value: {
+        id: rawId,
+        metric,
+        severity,
+        delete: true,
+      },
+    }
+  }
+
+  const operator = normalizeOperatorForStorage(
+    String(payload.operator || '').trim()
+  )
+  const threshold = Number(payload.threshold)
+  const notificationMessage = String(payload.notification_message || '').trim()
 
   if (!ALLOWED_ALARM_OPERATORS.has(operator)) {
     return {
@@ -41,21 +199,9 @@ function normalizeAlarmPayload(payload = {}) {
     }
   }
 
-  if (!ALLOWED_ALARM_SEVERITIES.has(severity)) {
-    return {
-      error: 'Invalid severity',
-    }
-  }
-
   if (notificationMessage.length > 300) {
     return {
       error: 'Notification message must not exceed 300 characters',
-    }
-  }
-
-  if (rawId != null && (!Number.isInteger(rawId) || rawId <= 0)) {
-    return {
-      error: 'Invalid alarm rule id',
     }
   }
 
@@ -69,8 +215,64 @@ function normalizeAlarmPayload(payload = {}) {
       notificationMessage,
       isActive:
         typeof payload.is_active === 'boolean' ? payload.is_active : true,
+      delete: false,
     },
   }
+}
+
+async function listCanonicalRulesForDevice({ client = pool, userId, deviceId }) {
+  const result = await client.query(
+    `
+    SELECT canonical.*
+    FROM (
+      SELECT DISTINCT ON (
+        ar.device_id,
+        ar.metric,
+        LOWER(TRIM(ar.severity))
+      )
+        ar.*,
+        d.name AS device_name,
+        dm.metric_name,
+        dm.unit
+      FROM alarm_rules ar
+      LEFT JOIN devices d
+        ON d.id = ar.device_id
+      LEFT JOIN device_metrics dm
+        ON dm.device_id = ar.device_id
+        AND dm.metric_key = ar.metric
+      WHERE ar.user_id = $1
+        AND ar.device_id = $2
+      ORDER BY
+        ar.device_id,
+        ar.metric,
+        LOWER(TRIM(ar.severity)),
+        ar.updated_at DESC NULLS LAST,
+        ar.id DESC
+    ) canonical
+    ORDER BY canonical.updated_at DESC NULLS LAST, canonical.id DESC
+    `,
+    [userId, deviceId]
+  )
+
+  return result.rows.map(normalizeRuleForClient)
+}
+
+async function deleteAlarmRuleOperation({
+  client,
+  userId,
+  deviceId,
+  rule,
+}) {
+  await client.query(
+    `
+    DELETE FROM alarm_rules
+    WHERE user_id = $1
+      AND device_id = $2
+      AND metric = $3
+      AND LOWER(TRIM(severity)) = $4
+    `,
+    [userId, deviceId, rule.metric, rule.severity]
+  )
 }
 
 async function requireOwnedAlarmDevice(deviceId, userId, client = pool) {
@@ -360,6 +562,8 @@ async function removeOrphanAlarmRules({ client, userId, deviceId }) {
 router.get(
   '/',
   asyncHandler(async (req, res) => {
+    await ensureAlarmRulesSchema()
+
     const result = await pool.query(
       `
       SELECT canonical.*
@@ -392,7 +596,7 @@ router.get(
       [req.dbUser.id]
     )
 
-    res.json(result.rows)
+    res.json(result.rows.map(normalizeRuleForClient))
   })
 )
 
@@ -423,6 +627,8 @@ router.post(
         message: `A maximum of ${MAX_BULK_RULES} alarm rules can be saved at once`,
       })
     }
+
+    await ensureAlarmRulesSchema()
 
     const normalizedRules = []
     const identityKeys = new Set()
@@ -466,7 +672,14 @@ router.post(
         })
       }
 
-      const metricKeys = [...new Set(normalizedRules.map((rule) => rule.metric))]
+      await removeOrphanAlarmRules({
+        client,
+        userId: req.dbUser.id,
+        deviceId,
+      })
+
+      const upsertRules = normalizedRules.filter((rule) => !rule.delete)
+      const metricKeys = [...new Set(upsertRules.map((rule) => rule.metric))]
       const savedMetricKeys = await requireDeviceMetrics(
         deviceId,
         metricKeys,
@@ -483,31 +696,49 @@ router.post(
         })
       }
 
+      let savedCount = 0
+      let deletedCount = 0
+
+      for (const rule of normalizedRules) {
+        if (rule.delete) {
+          await deleteAlarmRuleOperation({
+            client,
+            userId: req.dbUser.id,
+            deviceId,
+            rule,
+          })
+          deletedCount += 1
+          continue
+        }
+
+        await upsertAlarmRule({
+          client,
+          userId: req.dbUser.id,
+          deviceId,
+          rule,
+        })
+        savedCount += 1
+      }
+
       await removeOrphanAlarmRules({
         client,
         userId: req.dbUser.id,
         deviceId,
       })
 
-      const savedRules = []
-
-      for (const rule of normalizedRules) {
-        const savedRule = await upsertAlarmRule({
-          client,
-          userId: req.dbUser.id,
-          deviceId,
-          rule,
-        })
-
-        savedRules.push(savedRule)
-      }
+      const canonicalRules = await listCanonicalRulesForDevice({
+        client,
+        userId: req.dbUser.id,
+        deviceId,
+      })
 
       await client.query('COMMIT')
 
       return res.json({
         success: true,
-        saved_count: savedRules.length,
-        rules: savedRules,
+        saved_count: savedCount,
+        deleted_count: deletedCount,
+        rules: canonicalRules,
       })
     } catch (error) {
       await client.query('ROLLBACK').catch(() => {})
@@ -532,6 +763,8 @@ router.post(
         message: 'Valid device is required',
       })
     }
+
+    await ensureAlarmRulesSchema()
 
     const normalized = normalizeAlarmPayload(req.body)
 
@@ -580,7 +813,7 @@ router.post(
       })
 
       await client.query('COMMIT')
-      res.status(201).json(savedRule)
+      res.status(201).json(normalizeRuleForClient(savedRule))
     } catch (error) {
       await client.query('ROLLBACK').catch(() => {})
       throw error
@@ -603,6 +836,8 @@ router.put(
         message: 'Invalid alarm rule id',
       })
     }
+
+    await ensureAlarmRulesSchema()
 
     const normalized = normalizeAlarmPayload({
       ...req.body,
@@ -673,7 +908,7 @@ router.put(
       })
 
       await client.query('COMMIT')
-      res.json(savedRule)
+      res.json(normalizeRuleForClient(savedRule))
     } catch (error) {
       await client.query('ROLLBACK').catch(() => {})
       throw error
@@ -689,6 +924,8 @@ router.put(
 router.delete(
   '/:id',
   asyncHandler(async (req, res) => {
+    await ensureAlarmRulesSchema()
+
     const result = await pool.query(
       `
       DELETE FROM alarm_rules

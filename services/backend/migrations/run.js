@@ -486,10 +486,6 @@ async function createMetricLatestTable() {
       SELECT device_id, 'metric_2'::text AS metric_key, time, humidity::double precision AS value
       FROM sensor_readings
       WHERE humidity IS NOT NULL
-      UNION ALL
-      SELECT device_id, 'metric_3'::text AS metric_key, time, rssi::double precision AS value
-      FROM sensor_readings
-      WHERE rssi IS NOT NULL
     ), latest_rows AS (
       SELECT DISTINCT ON (device_id, metric_key)
         device_id,
@@ -538,7 +534,35 @@ async function createAlarmAndActivityTables() {
 
   await run(`
     ALTER TABLE alarm_rules
-      ADD COLUMN IF NOT EXISTS notification_message TEXT;
+      ADD COLUMN IF NOT EXISTS device_id BIGINT REFERENCES devices(id) ON DELETE CASCADE,
+      ADD COLUMN IF NOT EXISTS notification_message TEXT,
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
+      ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW(),
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+  `)
+
+  await run(`
+    UPDATE alarm_rules
+    SET
+      is_active = COALESCE(is_active, TRUE),
+      created_at = COALESCE(created_at, NOW()),
+      updated_at = COALESCE(updated_at, created_at, NOW())
+    WHERE is_active IS NULL
+       OR created_at IS NULL
+       OR updated_at IS NULL;
+  `)
+
+  await run(`
+    ALTER TABLE alarm_rules
+      ALTER COLUMN is_active SET DEFAULT TRUE,
+      ALTER COLUMN created_at SET DEFAULT NOW(),
+      ALTER COLUMN updated_at SET DEFAULT NOW();
+  `)
+
+  await run(`
+    UPDATE alarm_rules
+    SET operator = '=='
+    WHERE operator = '=';
   `)
 
   await run(`
@@ -835,8 +859,8 @@ async function seedDeviceModels() {
       id: 5,
       modelKey: 'esp32_dht3',
       modelName: 'ESP32-DHT3',
-      metricCount: 3,
-      description: 'ESP32 Wi-Fi model with DHT temperature/humidity and Wi-Fi RSSI',
+      metricCount: 2,
+      description: 'ESP32 Wi-Fi model with DHT temperature and humidity',
     },
   ]
 
@@ -897,7 +921,7 @@ async function seedDeviceModels() {
     }),
     ...createMetricRows(2, 10),
     ...createMetricRows(3, 20),
-    ...createMetricRows(5, 3, {
+    ...createMetricRows(5, 2, {
       metric_1: {
         defaultName: 'Temperature',
         defaultType: 'temperature',
@@ -909,12 +933,6 @@ async function seedDeviceModels() {
         defaultType: 'humidity',
         defaultUnit: '%',
         defaultIcon: 'Droplets',
-      },
-      metric_3: {
-        defaultName: 'WiFi RSSI',
-        defaultType: 'signal',
-        defaultUnit: 'dBm',
-        defaultIcon: 'Wifi',
       },
     }),
   ]
@@ -953,6 +971,52 @@ async function seedDeviceModels() {
       ]
     )
   }
+
+  // RSSI remains available as operational connectivity metadata, but it is
+  // no longer a configurable/display metric for ESP32-DHT3 devices.
+  await run(`
+    DELETE FROM alarm_rules ar
+    USING devices d, device_models dm
+    WHERE ar.device_id = d.id
+      AND d.model_id = dm.id
+      AND dm.model_key = 'esp32_dht3'
+      AND ar.metric IN ('metric_3', 'rssi', 'wifi_rssi');
+  `)
+
+  await run(`
+    DELETE FROM device_metrics cfg
+    USING devices d, device_models dm
+    WHERE cfg.device_id = d.id
+      AND d.model_id = dm.id
+      AND dm.model_key = 'esp32_dht3'
+      AND (
+        cfg.metric_key = 'metric_3'
+        OR lower(COALESCE(cfg.metric_name, '')) LIKE '%rssi%'
+        OR (
+          lower(COALESCE(cfg.metric_type, '')) = 'signal'
+          AND lower(COALESCE(cfg.unit, '')) = 'dbm'
+        )
+      );
+  `)
+
+  await run(`
+    DELETE FROM device_model_metrics
+    WHERE model_id IN (
+      SELECT id
+      FROM device_models
+      WHERE model_key = 'esp32_dht3'
+    )
+      AND metric_key = 'metric_3';
+  `)
+
+  await run(`
+    DELETE FROM device_metric_latest latest
+    USING devices d, device_models dm
+    WHERE latest.device_id = d.id
+      AND d.model_id = dm.id
+      AND dm.model_key = 'esp32_dht3'
+      AND latest.metric_key IN ('metric_3', 'rssi', 'wifi_rssi');
+  `)
 }
 
 async function backfillDefaultOrganizations() {

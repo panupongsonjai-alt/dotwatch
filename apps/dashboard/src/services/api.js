@@ -243,9 +243,13 @@ async function performApiRequest(path, options = {}) {
         })
       }
 
-      throw new Error(
+      const baseMessage =
         data?.message || data?.error || `API request failed: ${response.status}`
-      )
+      const requestIdSuffix = data?.requestId
+        ? ` (Request ID: ${data.requestId})`
+        : ''
+
+      throw new Error(`${baseMessage}${requestIdSuffix}`)
     }
 
     return data
