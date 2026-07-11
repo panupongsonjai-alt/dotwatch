@@ -7178,3 +7178,83 @@
       'display' !important;
   }
 }
+
+/* =========================================================
+   Metrics & Alarms - Interval Record compact full-width row
+   Matches the selected-device setting row reference.
+========================================================= */
+.metric-alarm-reference-layout .metric-device-settings {
+  display: block !important;
+  width: 100% !important;
+  margin: 14px 0 18px !important;
+  padding: 0 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  background: color-mix(in srgb, var(--panel-2) 76%, transparent) !important;
+  overflow: hidden;
+}
+
+.metric-alarm-reference-layout .metric-device-setting-field {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 252px) !important;
+  align-items: center !important;
+  gap: 16px !important;
+  width: 100% !important;
+  min-height: 64px !important;
+  padding: 10px 14px !important;
+  box-sizing: border-box !important;
+}
+
+.metric-alarm-reference-layout .metric-device-setting-field > span {
+  align-self: center !important;
+  color: var(--text) !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.035em !important;
+  text-transform: uppercase !important;
+}
+
+.metric-alarm-reference-layout .metric-device-setting-field select {
+  justify-self: end !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  margin: 0 !important;
+  padding: 0 42px 0 18px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  color: var(--text) !important;
+  background-color: var(--panel) !important;
+  font: inherit !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  outline: none !important;
+}
+
+.metric-alarm-reference-layout .metric-device-setting-field select:hover {
+  border-color: color-mix(in srgb, var(--text) 24%, var(--border)) !important;
+}
+
+.metric-alarm-reference-layout .metric-device-setting-field select:focus {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--border)) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent) !important;
+}
+
+.metric-alarm-reference-layout .metric-device-setting-field > small {
+  display: none !important;
+}
+
+@container (max-width: 560px) {
+  .metric-alarm-reference-layout .metric-device-setting-field {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    min-height: 0 !important;
+    padding: 13px !important;
+  }
+
+  .metric-alarm-reference-layout .metric-device-setting-field select {
+    justify-self: stretch !important;
+    width: 100% !important;
+  }
+}
