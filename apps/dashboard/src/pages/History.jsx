@@ -1419,39 +1419,58 @@ function History() {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${escapeReportHtml(reportTitle)}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    @page { size: A4 landscape; margin: 9mm; }
+    @page { size: A4 portrait; margin: 10mm; }
     * { box-sizing: border-box; }
-    body { margin: 0; color: #0f172a; background: #fff; font-family: Inter, Prompt, Arial, sans-serif; font-size: 11px; }
-    .report { display: grid; gap: 10px; }
-    .report-header { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; padding: 4px 2px; }
-    .report-header div { display: flex; gap: 8px; font-size: 14px; font-weight: 800; }
-    .report-header span { min-width: 105px; color: #64748b; text-transform: uppercase; }
-    .report-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-    .report-stat { padding: 10px; border: 1px solid #dbe3ef; border-top: 3px solid #ef4444; border-radius: 8px; }
-    .report-stat span { display: block; color: #64748b; font-size: 9px; font-weight: 900; text-transform: uppercase; }
-    .report-stat strong { display: block; margin-top: 4px; font-size: 21px; }
+    html, body { width: 100%; min-height: 100%; }
+    body {
+      margin: 0;
+      color: #0f172a;
+      background: #fff;
+      font-family: 'Inter', 'Prompt', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 10px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .report { display: grid; gap: 9px; width: 100%; }
+    .report-header { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 18px; padding: 3px 2px; }
+    .report-header div { display: flex; align-items: baseline; gap: 7px; min-width: 0; font-size: 12px; font-weight: 800; }
+    .report-header span { min-width: 82px; color: #64748b; text-transform: uppercase; }
+    .report-header strong { min-width: 0; overflow-wrap: anywhere; }
+    .report-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    .report-stat { padding: 8px 9px; border: 1px solid #dbe3ef; border-top: 3px solid #ef4444; border-radius: 8px; break-inside: avoid; }
+    .report-stat span { display: block; color: #64748b; font-size: 8px; font-weight: 900; text-transform: uppercase; }
+    .report-stat strong { display: block; margin-top: 3px; font-size: 18px; }
     .report-stat small { color: #64748b; font-weight: 700; }
-    .report-card { padding: 10px; border: 1px solid #dbe3ef; border-radius: 9px; break-inside: avoid; }
-    .report-card h2 { margin: 0 0 3px; font-size: 15px; }
-    .report-card p { margin: 0 0 8px; color: #64748b; font-weight: 700; }
-    .report-chart { width: 100%; min-height: 250px; padding: 7px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-    .report-chart svg { width: 100% !important; height: 250px !important; }
-    .report-empty { min-height: 250px; display: grid; place-items: center; color: #64748b; }
-    .report-alarms { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 7px; }
-    .report-alarm-chip { padding: 3px 7px; border-radius: 999px; font-size: 8px; font-weight: 900; border: 1px solid #f59e0b; color: #b45309; background: #fff7ed; }
+    .report-card { padding: 9px; border: 1px solid #dbe3ef; border-radius: 9px; }
+    .report-chart-card { break-inside: avoid; page-break-inside: avoid; }
+    .report-table-card { break-inside: auto; page-break-inside: auto; }
+    .report-card h2 { margin: 0 0 3px; font-size: 14px; }
+    .report-card p { margin: 0 0 7px; color: #64748b; font-weight: 700; }
+    .report-chart { width: 100%; min-height: 205px; padding: 6px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    .report-chart svg { width: 100% !important; height: 205px !important; }
+    .report-empty { min-height: 205px; display: grid; place-items: center; color: #64748b; }
+    .report-alarms { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+    .report-alarm-chip { padding: 3px 6px; border-radius: 999px; font-size: 7px; font-weight: 900; border: 1px solid #f59e0b; color: #b45309; background: #fff7ed; }
     .report-alarm-chip.critical { border-color: #ef4444; color: #dc2626; background: #fef2f2; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    th, td { padding: 6px 7px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle; }
-    th { color: #64748b; background: #f8fafc; font-size: 8px; font-weight: 900; text-transform: uppercase; }
-    td { font-size: 9px; }
-    tr { break-inside: avoid; }
-    .report-status { display: inline-block; margin-left: 4px; padding: 1px 5px; border-radius: 999px; color: #15803d; background: #dcfce7; font-size: 7px; font-weight: 900; }
+    thead { display: table-header-group; }
+    th, td { padding: 5px 6px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle; overflow-wrap: anywhere; }
+    th { color: #64748b; background: #f8fafc; font-size: 7px; font-weight: 900; text-transform: uppercase; }
+    td { font-size: 8px; }
+    tr { break-inside: avoid; page-break-inside: avoid; }
+    .report-status { display: inline-block; margin-left: 3px; padding: 1px 4px; border-radius: 999px; color: #15803d; background: #dcfce7; font-size: 6px; font-weight: 900; white-space: nowrap; }
     .report-status.warning { color: #b45309; background: #fef3c7; }
     .report-status.critical { color: #dc2626; background: #fee2e2; }
     .report-status.none { color: #64748b; background: #e2e8f0; }
-    .report-footer { color: #64748b; font-size: 8px; text-align: right; }
-    @media print { .report-card { box-shadow: none; } }
+    .report-footer { color: #64748b; font-size: 7px; text-align: right; }
+    @media print {
+      .report-card { box-shadow: none; }
+      .report-table-card { border: 0; padding: 0; }
+    }
   </style>
 </head>
 <body>
@@ -1470,14 +1489,14 @@ function History() {
       <div class="report-stat"><span>Max</span><strong>${escapeReportHtml(formatNumber(stats.max, selectedUnit, selectedDecimalPlaces))}</strong><small>Highest value</small></div>
     </section>
 
-    <section class="report-card">
+    <section class="report-card report-chart-card">
       <h2>Trend Graph</h2>
       <p>${escapeReportHtml(metricTitle)} from ${escapeReportHtml(deviceName)} • ${escapeReportHtml(selectedResolutionLabel)}</p>
       ${alarmChips ? `<div class="report-alarms">${alarmChips}</div>` : ''}
       <div class="report-chart">${chartSvg}</div>
     </section>
 
-    <section class="report-card">
+    <section class="report-card report-table-card">
       <h2>History Table</h2>
       <p>Start ${escapeReportHtml(formatDateOnly(startDate))} - End ${escapeReportHtml(formatDateOnly(endDate))} • ${escapeReportHtml(selectedResolutionLabel)}</p>
       <table>
@@ -1489,8 +1508,16 @@ function History() {
     <footer class="report-footer">Generated by dotWatch • ${escapeReportHtml(new Date().toLocaleString('th-TH'))}</footer>
   </main>
   <script>
-    window.addEventListener('load', () => {
-      setTimeout(() => window.print(), 350)
+    window.addEventListener('load', async () => {
+      try {
+        if (document.fonts && document.fonts.ready) {
+          await document.fonts.ready
+        }
+      } catch (error) {
+        console.warn('Unable to wait for report fonts', error)
+      }
+
+      setTimeout(() => window.print(), 250)
     })
   </script>
 </body>
