@@ -18,7 +18,7 @@ import {
   Search,
   Trash2,
 } from 'lucide-react'
-import { StatCard } from '../components/common'
+import { PageHeader, StatCard } from '../components/common'
 import { confirmDeleteAction } from '../utils/typedConfirm'
 
 function formatDate(value) {
@@ -79,8 +79,12 @@ function mergeAlarmEvents(prev, nextAlarms) {
   })
 
   return Array.from(unique.values()).sort((a, b) => {
-    const aTime = new Date(a.triggered_at || a.time || a.created_at || 0).getTime()
-    const bTime = new Date(b.triggered_at || b.time || b.created_at || 0).getTime()
+    const aTime = new Date(
+      a.triggered_at || a.time || a.created_at || 0
+    ).getTime()
+    const bTime = new Date(
+      b.triggered_at || b.time || b.created_at || 0
+    ).getTime()
     return bTime - aTime
   })
 }
@@ -306,90 +310,95 @@ function Alarms() {
   const filteredAlarms = useMemo(() => {
     const keyword = search.trim().toLowerCase()
 
-    return alarms.filter((alarm) => {
-      const metricInfo = getMetricInfo(alarm.device_id, alarm.metric)
+    return alarms
+      .filter((alarm) => {
+        const metricInfo = getMetricInfo(alarm.device_id, alarm.metric)
 
-      const text = [
-        alarm.device_name,
-        alarm.device_code,
-        alarm.metric,
-        metricInfo.name,
-        alarm.severity,
-        alarm.status,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
+        const text = [
+          alarm.device_name,
+          alarm.device_code,
+          alarm.metric,
+          metricInfo.name,
+          alarm.severity,
+          alarm.status,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
 
-      const matchSearch = !keyword || text.includes(keyword)
-      const matchStatus =
-        statusFilter === 'all' || alarm.status === statusFilter
-      const matchSeverity =
-        severityFilter === 'all' || alarm.severity === severityFilter
+        const matchSearch = !keyword || text.includes(keyword)
+        const matchStatus =
+          statusFilter === 'all' || alarm.status === statusFilter
+        const matchSeverity =
+          severityFilter === 'all' || alarm.severity === severityFilter
 
-      return matchSearch && matchStatus && matchSeverity
-    }).sort((a, b) => {
-      const aTime = new Date(a.triggered_at || a.time || a.created_at || 0).getTime()
-      const bTime = new Date(b.triggered_at || b.time || b.created_at || 0).getTime()
-      return bTime - aTime
-    })
+        return matchSearch && matchStatus && matchSeverity
+      })
+      .sort((a, b) => {
+        const aTime = new Date(
+          a.triggered_at || a.time || a.created_at || 0
+        ).getTime()
+        const bTime = new Date(
+          b.triggered_at || b.time || b.created_at || 0
+        ).getTime()
+        return bTime - aTime
+      })
   }, [alarms, search, statusFilter, severityFilter, deviceMetrics])
 
   return (
     <div className="page app-page alarms-page">
-      <section className="app-page-header">
-        <div>
-          <span className="page-eyebrow">Alarm Center</span>
-          <h2>Alarms</h2>
-          <p>ติดตาม Alarm Events และ Alarm Rules ของอุปกรณ์ทั้งหมด</p>
-        </div>
+      <PageHeader
+        eyebrow="Alarm Center"
+        title="Alarms"
+        description="ติดตาม Alarm Events และ Alarm Rules ของอุปกรณ์ทั้งหมด"
+        actions={
+          <>
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={loadData}
+              disabled={loading || saving}
+            >
+              <RefreshCw size={17} />
+              Refresh
+            </button>
 
-        <div className="app-page-actions">
-          <button
-            type="button"
-            className="ghost-button"
-            onClick={loadData}
-            disabled={loading || saving}
-          >
-            <RefreshCw size={17} />
-            Refresh
-          </button>
-
-          <button
-            type="button"
-            className="primary-button alarm-clear-button"
-            onClick={handleClearAlarms}
-            disabled={loading || saving || alarms.length === 0}
-          >
-            <Trash2 size={17} />
-            Clear Alarm
-          </button>
-        </div>
-      </section>
+            <button
+              type="button"
+              className="primary-button alarm-clear-button"
+              onClick={handleClearAlarms}
+              disabled={loading || saving || alarms.length === 0}
+            >
+              <Trash2 size={17} />
+              Clear Alarm
+            </button>
+          </>
+        }
+      />
 
       <section className="alarms-stat-grid dashboard-style-stat-grid">
         <StatCard
           label="Total Alarms"
           value={summary.total}
-          hint="Event history"
+          hint="จำนวน Alarm ทั้งหมดที่เกิดขึ้น"
         />
         <StatCard
           label="Active"
           value={summary.active}
-          hint="Need attention"
+          hint="จำนวน Alarm ที่กำลังทำงาน"
           tone={summary.active > 0 ? 'danger' : 'success'}
-        />
-        <StatCard
-          label="Critical"
-          value={summary.critical}
-          hint="High priority"
-          tone={summary.critical > 0 ? 'danger' : 'default'}
         />
         <StatCard
           label="Warning"
           value={summary.warning}
-          hint="Warning level"
+          hint="จำนวน Alarm ที่มีระดับคำเตือน"
           tone={summary.warning > 0 ? 'warning' : 'default'}
+        />
+        <StatCard
+          label="Critical"
+          value={summary.critical}
+          hint="จำนวน Alarm ที่มีความสำคัญสูง"
+          tone={summary.critical > 0 ? 'danger' : 'default'}
         />
       </section>
 
