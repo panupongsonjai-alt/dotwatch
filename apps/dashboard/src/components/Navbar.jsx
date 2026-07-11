@@ -1,4 +1,3 @@
-import React from 'react'
 import { Moon, Sun, LogOut } from 'lucide-react'
 
 function Navbar({ user, onLogout, theme, setTheme }) {

@@ -1,5 +1,5 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { AlarmProvider } from './context/AlarmContext.jsx'
@@ -14,11 +14,17 @@ const app = (
   </AuthProvider>
 )
 
-const root = ReactDOM.createRoot(document.getElementById('root'))
+const rootElement = document.getElementById('root')
+
+if (!rootElement) {
+  throw new Error('Unable to start dotWatch: #root element was not found.')
+}
+
+const root = createRoot(rootElement)
 
 root.render(
   import.meta.env.VITE_REACT_STRICT_MODE === 'true' ? (
-    <React.StrictMode>{app}</React.StrictMode>
+    <StrictMode>{app}</StrictMode>
   ) : (
     app
   )

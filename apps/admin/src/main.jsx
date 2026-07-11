@@ -1,15 +1,22 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import './styles/admin.css'
 import './styles/phase11g-admin-dashboard-parity.css'
 import './styles/phase11i-admin-comfort-parity.css'
 
-const app = <App />
+const rootElement = document.getElementById('root')
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+if (!rootElement) {
+  throw new Error('Unable to start dotWatch Admin: #root element was not found.')
+}
+
+const app = <App />
+const root = createRoot(rootElement)
+
+root.render(
   import.meta.env.VITE_REACT_STRICT_MODE === 'true' ? (
-    <React.StrictMode>{app}</React.StrictMode>
+    <StrictMode>{app}</StrictMode>
   ) : (
     app
   )

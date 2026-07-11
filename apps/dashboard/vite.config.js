@@ -17,6 +17,18 @@ function manualChunks(id) {
 export default defineConfig({
   plugins: [react()],
   base: '/',
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'react/jsx-runtime',
+      'react/jsx-dev-runtime',
+    ],
+  },
   build: {
     target: 'es2020',
     cssCodeSplit: true,

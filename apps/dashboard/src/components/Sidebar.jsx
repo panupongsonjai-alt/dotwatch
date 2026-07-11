@@ -1,4 +1,3 @@
-import React from 'react'
 import { useAlarm } from '../context/AlarmContext'
 import {
   Activity,
