@@ -8,6 +8,10 @@ import { confirmDeleteAction } from '../utils/typedConfirm'
 const ALARM_OPERATORS = ['>', '>=', '<', '<=', '=']
 const ALARM_SEVERITIES = ['warning', 'critical']
 
+function isThresholdEmpty(value) {
+  return value === '' || value == null
+}
+
 function updateMetricList(metrics = [], metricIndex, key, value) {
   return metrics.map((metric, index) => {
     if (index !== metricIndex) return metric
@@ -100,7 +104,7 @@ function createAlarmDrafts(
         severity,
         is_active:
           currentDraft?.is_active ??
-          (existingRule ? existingRule.is_active !== false : true),
+          (existingRule ? existingRule.is_active !== false : false),
         notification_message:
           currentDraft?.notification_message ??
           existingRule?.notification_message ??
@@ -232,6 +236,7 @@ export default function MetricConfigPanel({
   const [alarmDrafts, setAlarmDrafts] = useState({})
   const [savingAll, setSavingAll] = useState(false)
   const [alarmMessage, setAlarmMessage] = useState('')
+  const [alarmMessageTone, setAlarmMessageTone] = useState('info')
 
   const {
     draftMetrics = [],
@@ -285,13 +290,19 @@ export default function MetricConfigPanel({
   useEffect(() => {
     setOpenIconPickerKey(null)
     setAlarmMessage('')
+    setAlarmMessageTone('info')
   }, [deviceId])
 
   const busy = loading || saving || alarmSaving || savingAll
 
+  function clearAlarmFeedback() {
+    setAlarmMessage('')
+    setAlarmMessageTone('info')
+  }
+
   function addMetric() {
     setOpenIconPickerKey(null)
-    setAlarmMessage('')
+    clearAlarmFeedback()
     setDraftMetrics((currentMetrics = []) => {
       const nextMetric = {
         ...createBlankMetric(currentMetrics.length),
@@ -317,7 +328,7 @@ export default function MetricConfigPanel({
     if (!ok) return
 
     setOpenIconPickerKey(null)
-    setAlarmMessage('')
+    clearAlarmFeedback()
     setDraftMetrics((currentMetrics = []) =>
       reindexMetrics(
         currentMetrics.filter((_, index) => index !== indexToRemove)
@@ -326,37 +337,63 @@ export default function MetricConfigPanel({
   }
 
   function updateMetric(index, key, value) {
-    setAlarmMessage('')
+    clearAlarmFeedback()
     setDraftMetrics((currentMetrics = []) =>
       updateMetricList(currentMetrics, index, key, value)
     )
   }
 
   function updateAlarmDraft(metricKey, severity, key, value) {
-    setAlarmMessage('')
-    setAlarmDrafts((currentDrafts) => ({
-      ...currentDrafts,
-      [metricKey]: {
-        ...currentDrafts[metricKey],
-        [severity]: {
-          ...currentDrafts[metricKey]?.[severity],
-          metric: metricKey,
-          severity,
-          [key]: value,
+    clearAlarmFeedback()
+    setAlarmDrafts((currentDrafts) => {
+      const currentRule = currentDrafts?.[metricKey]?.[severity] || {}
+      const nextRule = {
+        ...currentRule,
+        metric: metricKey,
+        severity,
+        [key]: value,
+      }
+
+      if (
+        key === 'threshold' &&
+        !isThresholdEmpty(value) &&
+        !currentRule.id &&
+        isThresholdEmpty(currentRule.threshold)
+      ) {
+        nextRule.is_active = true
+      }
+
+      return {
+        ...currentDrafts,
+        [metricKey]: {
+          ...currentDrafts[metricKey],
+          [severity]: nextRule,
         },
-      },
-    }))
+      }
+    })
+  }
+
+  function updateAlarmActive(metricKey, severity, checked) {
+    const draft = alarmDrafts?.[metricKey]?.[severity]
+
+    if (checked && isThresholdEmpty(draft?.threshold)) {
+      setAlarmMessage('กรุณากรอก Threshold ก่อนเปิดใช้งาน Alarm')
+      setAlarmMessageTone('error')
+      return
+    }
+
+    updateAlarmDraft(metricKey, severity, 'is_active', checked)
   }
 
   async function handleReset() {
     setOpenIconPickerKey(null)
     setAlarmDrafts({})
-    setAlarmMessage('')
+    clearAlarmFeedback()
     await resetMetrics()
   }
 
   function collectAlarmDraftsForSave(metrics) {
-    const draftsToSave = []
+    const operations = []
 
     for (const metric of metrics) {
       const metricKey = metric.metric_key
@@ -366,14 +403,24 @@ export default function MetricConfigPanel({
         const draft = alarmDrafts?.[metricKey]?.[severity]
         if (!draft) continue
 
-        const thresholdIsEmpty =
-          draft.threshold === '' || draft.threshold == null
+        const thresholdIsEmpty = isThresholdEmpty(draft.threshold)
 
-        if (thresholdIsEmpty && !draft.id) {
+        if (thresholdIsEmpty) {
+          if (draft.id) {
+            operations.push({
+              id: draft.id,
+              metric: metricKey,
+              severity,
+              delete: true,
+            })
+          }
+
           continue
         }
 
-        if (thresholdIsEmpty || Number.isNaN(Number(draft.threshold))) {
+        const threshold = Number(draft.threshold)
+
+        if (!Number.isFinite(threshold)) {
           const severityLabel =
             severity === 'critical' ? 'Critical' : 'Warning'
           const metricLabel =
@@ -384,11 +431,11 @@ export default function MetricConfigPanel({
           )
         }
 
-        draftsToSave.push({
+        operations.push({
           id: draft.id || null,
           metric: metricKey,
           operator: draft.operator || '>',
-          threshold: Number(draft.threshold),
+          threshold,
           severity,
           is_active: draft.is_active !== false,
           notification_message: String(
@@ -398,24 +445,27 @@ export default function MetricConfigPanel({
       }
     }
 
-    return draftsToSave
+    return operations
   }
 
   async function handleSave() {
     setOpenIconPickerKey(null)
-    setAlarmMessage('')
+    clearAlarmFeedback()
 
     const normalizedMetrics = reindexMetrics(draftMetrics)
-    let draftsToSave = []
+    let operations = []
 
     try {
-      draftsToSave = collectAlarmDraftsForSave(normalizedMetrics)
+      operations = collectAlarmDraftsForSave(normalizedMetrics)
     } catch (error) {
       setAlarmMessage(error.message)
+      setAlarmMessageTone('error')
       return
     }
 
     setSavingAll(true)
+    setAlarmMessage('กำลังบันทึก Metric และ Alarm Rules...')
+    setAlarmMessageTone('info')
 
     try {
       const metricSaved = await saveDraftMetrics(normalizedMetrics)
@@ -424,8 +474,10 @@ export default function MetricConfigPanel({
         throw new Error('บันทึก Metric ไม่สำเร็จ จึงยังไม่ได้บันทึก Alarm Rules')
       }
 
+      let canonicalRules = []
+
       if (typeof onSaveMetricAlarms === 'function') {
-        const saveResult = await onSaveMetricAlarms(deviceId, draftsToSave)
+        const saveResult = await onSaveMetricAlarms(deviceId, operations)
 
         if (!saveResult?.success) {
           throw new Error(
@@ -433,11 +485,11 @@ export default function MetricConfigPanel({
           )
         }
 
-        setAlarmDrafts((currentDrafts) =>
-          mergeSavedAlarmRuleIds(currentDrafts, saveResult.rules)
-        )
+        canonicalRules = Array.isArray(saveResult.rules)
+          ? saveResult.rules
+          : []
       } else {
-        for (const draft of draftsToSave) {
+        for (const draft of operations.filter((item) => !item.delete)) {
           const saveAlarm = draft.id
             ? onUpdateMetricAlarm
             : onCreateMetricAlarm
@@ -461,12 +513,29 @@ export default function MetricConfigPanel({
         }
       }
 
+      if (canonicalRules.length > 0 || operations.some((item) => item.delete)) {
+        const canonicalByMetric = buildRulesByMetricAndSeverity(canonicalRules)
+        setAlarmDrafts(
+          createAlarmDrafts(normalizedMetrics, canonicalByMetric, {})
+        )
+      } else {
+        setAlarmDrafts((currentDrafts) =>
+          mergeSavedAlarmRuleIds(currentDrafts, canonicalRules)
+        )
+      }
+
+      const activeRuleCount = canonicalRules.filter(
+        (rule) => rule.is_active !== false
+      ).length
+
       setAlarmMessage(
-        `บันทึกการตั้งค่าทั้งหมดแล้ว: ${normalizedMetrics.length} Metrics และ ${draftsToSave.length} Alarm Rules`
+        `บันทึกสำเร็จ: ${normalizedMetrics.length} Metrics และ ${activeRuleCount} Active Alarm Rules`
       )
+      setAlarmMessageTone('success')
     } catch (error) {
       console.error(error)
       setAlarmMessage(error.message || 'บันทึกการตั้งค่าไม่สำเร็จ')
+      setAlarmMessageTone('error')
     } finally {
       setSavingAll(false)
     }
@@ -479,13 +548,16 @@ export default function MetricConfigPanel({
   const panelMessage = alarmMessage || message
 
   return (
-    <section className="metric-config-panel metric-config-panel-v2 metric-config-panel-easy metric-config-panel-clean metric-alarm-combined-panel metric-alarm-combined-panel-refined">
+    <section className="metric-config-panel metric-config-panel-v2 metric-config-panel-easy metric-config-panel-clean metric-alarm-combined-panel metric-alarm-combined-panel-refined metric-alarm-reference-layout">
       <div className="metric-config-toolbar">
         <div>
           <span className="page-eyebrow">Display Fields & Alarm Rules</span>
           <strong>
             {visibleMetricCount}/{draftMetrics.length} Visible
           </strong>
+          <small className="metric-config-helper">
+            กรอก Threshold เพื่อสร้างหรือแก้ไข Alarm และล้าง Threshold เพื่อลบ Rule เดิม
+          </small>
         </div>
 
         <button
@@ -499,7 +571,14 @@ export default function MetricConfigPanel({
       </div>
 
       {panelMessage && (
-        <div className="metric-config-message">{panelMessage}</div>
+        <div
+          className={`metric-config-message ${
+            alarmMessage ? alarmMessageTone : 'info'
+          }`}
+          role={alarmMessageTone === 'error' ? 'alert' : 'status'}
+        >
+          {panelMessage}
+        </div>
       )}
 
       {loading ? (
@@ -515,7 +594,6 @@ export default function MetricConfigPanel({
       ) : (
         <div className="metric-alarm-config-table">
           <div className="metric-alarm-config-head" aria-hidden="true">
-            <span className="metric-alarm-head-number">No.</span>
             <span className="metric-alarm-head-name">Metric Name</span>
             <span className="metric-alarm-head-unit">Unit</span>
             <span className="metric-alarm-head-icon">Icon</span>
@@ -538,10 +616,6 @@ export default function MetricConfigPanel({
                   key={metric.id ? `metric-${metric.id}` : metricKey}
                   aria-label={`Configure ${metricLabel}`}
                 >
-                  <div className="metric-alarm-config-index">
-                    {index + 1}.
-                  </div>
-
                   <div className="metric-alarm-config-metric-row">
                     <label className="metric-alarm-config-field metric-alarm-config-name">
                       <span>Metric Name</span>
@@ -618,7 +692,7 @@ export default function MetricConfigPanel({
                       const draft = metricDrafts[severity] || {
                         operator: severity === 'critical' ? '>' : '>=',
                         threshold: '',
-                        is_active: true,
+                        is_active: false,
                         notification_message: '',
                       }
                       const severityLabel =
@@ -669,6 +743,8 @@ export default function MetricConfigPanel({
                             </span>
                             <input
                               type="number"
+                              step="any"
+                              inputMode="decimal"
                               value={draft.threshold}
                               placeholder="Threshold"
                               aria-label={`${metricLabel} ${severityLabel} threshold`}
@@ -717,10 +793,9 @@ export default function MetricConfigPanel({
                                 type="checkbox"
                                 checked={draft.is_active !== false}
                                 onChange={(event) =>
-                                  updateAlarmDraft(
+                                  updateAlarmActive(
                                     metricKey,
                                     severity,
-                                    'is_active',
                                     event.target.checked
                                   )
                                 }
