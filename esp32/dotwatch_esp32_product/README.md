@@ -1,12 +1,9 @@
 # dotWatch ESP32 Product Core — Phase 12A
 
-Firmware ชุดนี้เป็นโครงสร้างใหม่แบบ **Add-only** สำหรับพัฒนา ESP32 ให้เหมาะกับ Product จริง โดยไม่ลบหรือแทนที่ Firmware เดิม:
+Firmware ชุดนี้เป็นโครงสร้างหลักสำหรับพัฒนา ESP32 ให้เหมาะกับ Product จริง
+โดยแยกโมดูลออกจาก `main.cpp` และคงความเข้ากันได้กับค่า NVS จาก Firmware รุ่นก่อนหน้า
 
-```text
-esp32/dotwatch_esp32_dht3_tls_hardened
-```
-
-Firmware ใหม่อยู่ที่:
+Firmware ปัจจุบันอยู่ที่:
 
 ```text
 esp32/dotwatch_esp32_product

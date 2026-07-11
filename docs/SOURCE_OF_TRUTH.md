@@ -1,6 +1,6 @@
 # dotWatch Source of Truth
 
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 
 This file defines which folders/files are the canonical source for the project. Use it before editing, exporting, or deploying dotWatch.
 
@@ -13,7 +13,7 @@ This file defines which folders/files are the canonical source for the project. 
 | Admin console | `apps/admin` | Admin/commercial management UI. |
 | Raspberry Pi Agent | `pi/agent` | Production Pi gateway/agent files. |
 | Raspberry Pi scripts | `pi/scripts` | Windows PowerShell upload/check/setup helpers. |
-| ESP32 production candidate | `esp32/dotwatch_esp32_dht3_tls_hardened` | Main ESP32 DHT3 firmware candidate. |
+| ESP32 production firmware | `esp32/dotwatch_esp32_product` | Modular ESP32 Product Core firmware. |
 | Documentation | `docs` | Architecture, deployment, security and phase docs. |
 | Root scripts | `scripts` | Verification, export, smoke test, doctor scripts. |
 
@@ -103,7 +103,7 @@ The clean export excludes generated files, reports, diagnostics, backups, real e
 
 - Pi Config UI canonical files are in `pi/agent/pi_config_web.py` and `pi/agent/install_config_ui_service.sh`.
 - Pi Config UI binds to `127.0.0.1:8080` by default. Use SSH tunnel unless LAN exposure is explicitly required.
-- ESP32 production firmware is `esp32/dotwatch_esp32_dht3_tls_hardened`.
+- ESP32 production firmware is `esp32/dotwatch_esp32_product`.
 - ESP32 production firmware must not use insecure TLS fallback unless a lab-only build flag is deliberately enabled.
 - Backend production Dockerfile must not run `npm run dev`.
 
@@ -112,18 +112,18 @@ The clean export excludes generated files, reports, diagnostics, backups, real e
 - Raspberry Pi commissioning uses `scripts/pi-field-commissioning.ps1` from Windows and `pi/agent/agent_field_test.py` on the Pi.
 - Pi field tests must mask `DEVICE_SECRET`; do not paste raw `.env` or real secrets into chat, Git or exported zip files.
 - Pi production/lab HTTP backend URLs are blocked by default unless `ALLOW_HTTP_API=true` is explicitly set for a trusted local network.
-- ESP32 field checks use `scripts/esp32-field-check.ps1`; production source remains `esp32/dotwatch_esp32_dht3_tls_hardened/src/main.cpp`.
-- Legacy root ESP32 sketches should not be flashed unless they are confirmed to match the canonical source.
+- ESP32 field checks use `scripts/esp32-field-check.ps1`; production source remains `esp32/dotwatch_esp32_product/src/main.cpp`.
+- Do not flash legacy ESP32 sketches from old exports; use the Product Core project above.
 
 ## Phase 10A ESP32 Wi-Fi memory rules
 
-- ESP32 production firmware remains `esp32/dotwatch_esp32_dht3_tls_hardened/src/main.cpp`.
+- ESP32 production firmware remains `esp32/dotwatch_esp32_product/src/main.cpp`.
 - Remembered Wi-Fi profiles are stored in ESP32 Preferences/NVS key `wifiProfiles`.
 - Firmware remembers up to 5 Wi-Fi profiles and auto-connects to the strongest remembered SSID found during scan.
 - Factory Reset Config clears remembered Wi-Fi profiles together with device/backend/TLS settings.
 - Do not print or expose Wi-Fi passwords in portal, JSON, logs, or screenshots.
 
-## Phase 10F cleanup rules
+## Clean repository rules
 
 - Legacy root sketches and old ESP32 variants are removed from the clean repository.
 - Pi Config UI source is canonical under `pi/agent`; `pi/config-ui` is no longer exported.

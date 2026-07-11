@@ -58,7 +58,7 @@ $knownDirectories = @(
   'apps/dashboard/dist',
   'apps/admin/dist',
   'services/backend/dist',
-  'esp32/dotwatch_esp32_dht3_tls_hardened/.pio'
+  'esp32/dotwatch_esp32_product/.pio'
 )
 
 foreach ($relative in $knownDirectories) {

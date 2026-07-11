@@ -162,7 +162,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\esp32-field-check.
 Production ESP32 source of truth remains:
 
 ```text
-esp32/dotwatch_esp32_dht3_tls_hardened/src/main.cpp
+esp32/dotwatch_esp32_product/src/main.cpp
 ```
 
 ## Done criteria for Phase 4

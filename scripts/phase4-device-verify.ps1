@@ -39,11 +39,15 @@ if ($SelfCheck -notmatch "Settings validation") { throw "agent_self_check.py doe
 if ($FieldTest -notmatch "queue-test") { throw "agent_field_test.py queue-test support is missing" }
 if ($FieldTest -match "device_secret.*print") { throw "agent_field_test.py may print raw device_secret" }
 
-Write-Step "Checking ESP32 safety source"
-$Esp32Main = Get-Content "esp32/dotwatch_esp32_dht3_tls_hardened/src/main.cpp" -Raw
-if ($Esp32Main -notmatch 'SETUP_AP_PASSWORD\s*=\s*"dotwatch-setup"') { throw "ESP32 setup AP password is not set" }
-if ($Esp32Main -notmatch "DOTWATCH_ALLOW_INSECURE_TLS_FALLBACK 0") { throw "ESP32 insecure TLS fallback is not disabled by default" }
-if ($Esp32Main -match 'SETUP_AP_PASSWORD\s*=\s*""') { throw "ESP32 setup AP password is blank" }
+Write-Step "Checking ESP32 Product Core safety source"
+$ProductConfig = Get-Content "esp32/dotwatch_esp32_product/include/ProductConfig.h" -Raw
+$BackendClient = Get-Content "esp32/dotwatch_esp32_product/src/backend/BackendClient.cpp" -Raw
+$Platformio = Get-Content "esp32/dotwatch_esp32_product/platformio.ini" -Raw
+if ($ProductConfig -notmatch 'SETUP_AP_PASSWORD\s*=\s*"dotwatch-setup"') { throw "ESP32 setup AP password is not set" }
+if ($ProductConfig -notmatch '#define\s+DOTWATCH_ALLOW_INSECURE_TLS_FALLBACK\s+0') { throw "ESP32 insecure TLS fallback is not disabled by default" }
+if ($Platformio -notmatch 'DOTWATCH_ALLOW_INSECURE_TLS_FALLBACK=0') { throw "ESP32 build flags do not disable insecure TLS fallback" }
+if ($BackendClient -notmatch 'setCACert') { throw "ESP32 Root CA support is missing" }
+if ($ProductConfig -match 'SETUP_AP_PASSWORD\s*=\s*""') { throw "ESP32 setup AP password is blank" }
 
 Write-Step "Checking package scripts"
 $Package = Get-Content "package.json" -Raw | ConvertFrom-Json

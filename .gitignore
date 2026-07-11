@@ -49,6 +49,7 @@ logs/
 Thumbs.db
 desktop.ini
 .vscode/.history/
+.vscode/c_cpp_properties.json
 .idea/
 *.swp
 *.swo

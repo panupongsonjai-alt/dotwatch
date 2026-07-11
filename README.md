@@ -10,7 +10,7 @@ Production-ready dotWatch IoT monitoring monorepo.
 | Admin console | `apps/admin` |
 | Backend API | `services/backend` |
 | Raspberry Pi agent | `pi/agent` |
-| ESP32 production firmware | `esp32/dotwatch_esp32_dht3_tls_hardened` |
+| ESP32 production firmware | `esp32/dotwatch_esp32_product` |
 | Operations scripts | `scripts` |
 | Project documentation | `docs` |
 
@@ -37,10 +37,16 @@ npm run db:parity:compat -- -LocalDatabaseUrl "$LocalDbUrl" -RenderDatabaseUrl "
 ## ESP32 production firmware
 
 ```powershell
-cd "D:\IoT Project\dotwatch\esp32\dotwatch_esp32_dht3_tls_hardened"
-py -m platformio run
-py -m platformio run -t upload
-py -m platformio device monitor
+cd "D:\IoT Project\dotwatch\esp32\dotwatch_esp32_product"
+python -m platformio run
+python -m platformio run --target upload
+python -m platformio device monitor --baud 115200
+```
+
+ตรวจโครงสร้าง Firmware โดยไม่ Build:
+
+```powershell
+npm run verify:esp32:product -- -SkipBuild
 ```
 
 ## Local/Render database parity

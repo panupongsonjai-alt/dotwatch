@@ -30,7 +30,7 @@ http://127.0.0.1:8080
 
 ### ESP32-DHT3 firmware
 
-- Canonical firmware: `esp32/dotwatch_esp32_dht3_tls_hardened`.
+- Canonical firmware: `esp32/dotwatch_esp32_product`.
 - Setup AP password changed from open AP to `dotwatch-setup`.
 - HTTPS ingest now requires Root CA by default.
 - `setInsecure()` is available only with a lab-only build flag:

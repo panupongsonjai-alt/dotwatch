@@ -50,7 +50,7 @@ if (-not $SkipDatabase) {
 if (-not $SkipDevice) {
   $steps += Invoke-Step -Name 'Phase 4 device static verify' -Command 'npm run verify:phase4:device'
 }
-$steps += Invoke-Step -Name 'Phase 5 UX static verify' -Command 'npm run verify:phase5:ux'
+$steps += Invoke-Step -Name 'Dashboard style audit' -Command 'npm run audit:dashboard-style'
 $steps += Invoke-Step -Name 'Phase 6 ops static verify' -Command 'npm run verify:phase6:ops'
 $steps += Invoke-Step -Name 'Secret scan' -Command 'npm run scan:secrets'
 $steps += Invoke-Step -Name 'Backend syntax' -Command 'npm run check:backend'

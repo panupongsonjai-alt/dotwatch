@@ -84,10 +84,6 @@ pendBackup
 
 ## Rollback Firmware
 
-Firmware เดิมยังอยู่ใน:
-
-```text
-esp32/dotwatch_esp32_dht3_tls_hardened
-```
-
-หาก Product Core ยังไม่ผ่าน Acceptance Test ให้ Upload Firmware เดิมกลับ โดยไม่ต้องลบโฟลเดอร์ใหม่
+Clean repository เก็บเฉพาะ Product Core ปัจจุบันเพื่อลดไฟล์ซ้ำ
+หากต้อง Rollback ให้ Checkout release/tag ก่อนหน้าใน Git แล้ว Build Firmware จาก revision ที่ผ่านการทดสอบ
+ไม่ควรเก็บ Firmware หลายชุดซ้ำกันใน working tree เดียว
