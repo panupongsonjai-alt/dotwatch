@@ -1429,3 +1429,39 @@
     grid-column: auto;
   }
 }
+
+/* =========================================================
+   Export format selector: CSV / PDF
+========================================================= */
+
+.history-filter-actions {
+  grid-template-columns:
+    minmax(84px, 0.72fr)
+    minmax(96px, 1fr)
+    minmax(118px, 1.08fr);
+}
+
+.history-export-format-select {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding-inline: 12px 34px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.history-export-format-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+@media (max-width: 560px) {
+  .history-filter-actions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .history-export-format-select {
+    grid-column: 1 / -1;
+  }
+}
+

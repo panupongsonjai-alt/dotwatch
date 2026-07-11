@@ -236,6 +236,40 @@ function sanitizeReportFilename(value) {
     .replace(/^-+|-+$/g, '') || 'device'
 }
 
+function escapeCsvField(value) {
+  let normalized = String(value ?? '')
+
+  // Prevent spreadsheet applications from evaluating exported text as a formula.
+  if (/^[=+@]/.test(normalized) || /^-[^0-9.]/.test(normalized)) {
+    normalized = `'${normalized}`
+  }
+
+  return `"${normalized.replaceAll('"', '""')}"`
+}
+
+function buildCsvText(rows = []) {
+  return rows
+    .map((row) => row.map((value) => escapeCsvField(value)).join(','))
+    .join('\r\n')
+}
+
+function downloadCsvFile(filename, rows) {
+  const csvText = `\uFEFF${buildCsvText(rows)}`
+  const blob = new Blob([csvText], {
+    type: 'text/csv;charset=utf-8',
+  })
+  const objectUrl = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+
+  anchor.href = objectUrl
+  anchor.download = filename
+  anchor.style.display = 'none'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
+}
+
 function formatDateOnly(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return '--'
 
@@ -772,6 +806,7 @@ function History() {
   const [chartResolution, setChartResolution] = useState(
     initialHistoryState.chartResolution
   )
+  const [exportFormat, setExportFormat] = useState('pdf')
   const [loadingDevices, setLoadingDevices] = useState(true)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [loadingChart, setLoadingChart] = useState(false)
@@ -1101,13 +1136,173 @@ function History() {
     }
   }
 
-  function exportReport() {
+  function exportCsvReport() {
+    if (!historyTableRows.length) return
+
+    const deviceName =
+      selectedDevice?.name ||
+      selectedDevice?.device_code ||
+      `Device ${selectedDeviceId}`
+    const metricTitle =
+      selectedMetricKey === 'all'
+        ? 'All Metrics'
+        : selectedMetric?.metricName || selectedMetricKey
+    const fileBaseName = [
+      'dotWatch-history',
+      sanitizeReportFilename(deviceName),
+      startDate,
+      'to',
+      endDate,
+    ].join('-')
+    const csvRows = [
+      ['dotWatch History Report'],
+      ['Device Name', deviceName],
+      ['Metric', metricTitle],
+      ['Start Date', formatDateOnly(startDate)],
+      ['End Date', formatDateOnly(endDate)],
+      ['Display Interval', selectedResolutionLabel],
+      ['Generated At', new Date().toLocaleString('th-TH')],
+      [],
+      ['Summary'],
+      ['Records', historyTableRows.length],
+      [
+        'Average',
+        formatNumber(stats.average, selectedUnit, selectedDecimalPlaces),
+      ],
+      ['Minimum', formatNumber(stats.min, selectedUnit, selectedDecimalPlaces)],
+      ['Maximum', formatNumber(stats.max, selectedUnit, selectedDecimalPlaces)],
+    ]
+
+    if (alarmReferenceRules.length) {
+      csvRows.push(
+        [],
+        ['Alarm Rules'],
+        [
+          'Severity',
+          'Metric',
+          'Condition',
+          'Threshold',
+          'Unit',
+          'Active',
+          'Notification Message',
+        ]
+      )
+
+      for (const rule of alarmReferenceRules) {
+        csvRows.push([
+          rule.severity === 'critical' ? 'Critical' : 'Warning',
+          getMetricName(metricMap, rule.metricKey),
+          rule.operator,
+          rule.threshold,
+          getMetricUnit(metricMap, rule.metricKey),
+          rule.isActive ? 'Yes' : 'No',
+          rule.notificationMessage || '',
+        ])
+      }
+    }
+
+    csvRows.push([], ['History Data'])
+
+    if (selectedMetricKey === 'all') {
+      const header = ['Date', 'Time']
+
+      for (const metric of metrics) {
+        header.push(
+          metric.metricName,
+          `${metric.metricName} Unit`,
+          `${metric.metricName} Alarm Status`
+        )
+      }
+
+      csvRows.push(header)
+
+      for (const row of historyTableRows) {
+        const csvRow = [
+          formatHistoryDate(row.time),
+          formatHistoryTime(row.time),
+        ]
+
+        for (const metric of metrics) {
+          const value = row.values?.[metric.metricKey]
+
+          if (value == null) {
+            csvRow.push('', metric.unit || '', '')
+            continue
+          }
+
+          const evaluation = getAlarmEvaluation(
+            value,
+            metric.metricKey,
+            activeAlarmRules
+          )
+
+          csvRow.push(
+            Number(value).toFixed(normalizeDecimalPlaces(metric.decimalPlaces)),
+            metric.unit || '',
+            evaluation.label
+          )
+        }
+
+        csvRows.push(csvRow)
+      }
+    } else {
+      csvRows.push([
+        'Date',
+        'Time',
+        'Metric Key',
+        'Metric Name',
+        'Value',
+        'Unit',
+        'Alarm Status',
+      ])
+
+      for (const row of historyTableRows) {
+        const metricKey = row.metricKey || selectedMetricKey
+        const metric = metricMap.get(metricKey) || selectedMetric
+        const evaluation = getAlarmEvaluation(
+          row.value,
+          metricKey,
+          activeAlarmRules
+        )
+
+        csvRows.push([
+          formatHistoryDate(row.time),
+          formatHistoryTime(row.time),
+          metricKey,
+          metric?.metricName || metricKey,
+          Number(row.value).toFixed(
+            normalizeDecimalPlaces(metric?.decimalPlaces)
+          ),
+          metric?.unit || selectedUnit,
+          evaluation.label,
+        ])
+      }
+    }
+
+    downloadCsvFile(`${fileBaseName}.csv`, csvRows)
+    setError('')
+    setNotice('ส่งออกไฟล์ CSV สำเร็จ')
+  }
+
+  function handleExport() {
+    setNotice('')
+    setError('')
+
+    if (exportFormat === 'csv') {
+      exportCsvReport()
+      return
+    }
+
+    exportPdfReport()
+  }
+
+  function exportPdfReport() {
     if (!historyTableRows.length) return
 
     const reportWindow = window.open('', '_blank')
 
     if (!reportWindow) {
-      setError('เบราว์เซอร์บล็อกหน้าต่าง Export กรุณาอนุญาต Pop-up สำหรับเว็บไซต์นี้')
+      setError('เบราว์เซอร์บล็อกหน้าต่าง PDF กรุณาอนุญาต Pop-up สำหรับเว็บไซต์นี้')
       return
     }
 
@@ -1719,10 +1914,22 @@ function History() {
           </label>
 
           <div className="history-filter-actions">
+            <select
+              className="history-export-format-select"
+              value={exportFormat}
+              onChange={(event) => setExportFormat(event.target.value)}
+              aria-label="เลือกรูปแบบไฟล์สำหรับ Export"
+              title="เลือกรูปแบบไฟล์สำหรับ Export"
+              disabled={!filteredRows.length || loadingHistory}
+            >
+              <option value="csv">CSV</option>
+              <option value="pdf">PDF</option>
+            </select>
+
             <button
               type="button"
               className="history-export-btn"
-              onClick={exportReport}
+              onClick={handleExport}
               disabled={!filteredRows.length || loadingHistory}
             >
               <Download size={16} aria-hidden="true" />
