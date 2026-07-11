@@ -17,11 +17,7 @@
   color: var(--text);
   overflow: hidden;
   background:
-    radial-gradient(
-      circle at top right,
-      rgba(37, 99, 235, 0.22),
-      transparent 28%
-    ),
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.22), transparent 28%),
     var(--panel);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-soft, var(--shadow));
@@ -274,11 +270,7 @@
   width: 42px;
   height: 42px;
   border-radius: 999px;
-  background: radial-gradient(
-    circle,
-    #06b6d4 0 12%,
-    rgba(37, 99, 235, 0.2) 13%
-  );
+  background: radial-gradient(circle, #06b6d4 0 12%, rgba(37, 99, 235, 0.2) 13%);
 }
 
 .history-empty-box strong {
@@ -400,7 +392,7 @@
   font-weight: 950;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: var(--panel-2);
+  background: var(--panel);
 }
 
 .history-table td {
@@ -1320,6 +1312,7 @@
   }
 }
 
+
 /* =========================================================
    History date-range filters and report export alignment
 ========================================================= */
@@ -1471,6 +1464,8 @@
     grid-column: 1 / -1;
   }
 }
+
+
 
 /* =========================================================
    History filter action sizing fix
@@ -1705,4 +1700,13 @@
 
 .history-alarm-status-cell {
   text-align: center !important;
+}
+
+
+/* =========================================================
+   History table header consistency
+   Keep Date header on the same surface as Time and metric headers.
+========================================================= */
+.history-table thead th {
+  background: var(--panel-2) !important;
 }
