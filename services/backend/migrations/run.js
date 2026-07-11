@@ -542,6 +542,41 @@ async function createAlarmAndActivityTables() {
   `)
 
   await run(`
+    UPDATE alarm_rules
+    SET severity = LOWER(TRIM(severity))
+    WHERE severity IS NOT NULL
+      AND severity <> LOWER(TRIM(severity));
+  `)
+
+  await run(`
+    WITH ranked_rules AS (
+      SELECT
+        id,
+        ROW_NUMBER() OVER (
+          PARTITION BY user_id, device_id, metric, LOWER(TRIM(severity))
+          ORDER BY updated_at DESC NULLS LAST, id DESC
+        ) AS duplicate_rank
+      FROM alarm_rules
+      WHERE device_id IS NOT NULL
+    )
+    DELETE FROM alarm_rules ar
+    USING ranked_rules rr
+    WHERE ar.id = rr.id
+      AND rr.duplicate_rank > 1;
+  `)
+
+  await run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_alarm_rules_user_device_metric_severity
+    ON alarm_rules (
+      user_id,
+      device_id,
+      metric,
+      (LOWER(TRIM(severity)))
+    )
+    WHERE device_id IS NOT NULL;
+  `)
+
+  await run(`
     CREATE TABLE IF NOT EXISTS alarm_events (
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

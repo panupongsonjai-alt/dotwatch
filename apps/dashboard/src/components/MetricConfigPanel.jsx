@@ -27,18 +27,46 @@ function reindexMetrics(metrics = []) {
   }))
 }
 
+function createNextMetricKey(metrics = []) {
+  const usedKeys = new Set(
+    metrics.map((metric) => String(metric.metric_key || '').trim()).filter(Boolean)
+  )
+  let candidateIndex = 1
+
+  while (usedKeys.has(`metric_${candidateIndex}`)) {
+    candidateIndex += 1
+  }
+
+  return `metric_${candidateIndex}`
+}
+
+function getRuleSortValue(rule = {}) {
+  const updatedAt = new Date(rule.updated_at || rule.updatedAt || 0).getTime()
+
+  if (Number.isFinite(updatedAt) && updatedAt > 0) {
+    return updatedAt
+  }
+
+  return Number(rule.id) || 0
+}
+
 function buildRulesByMetricAndSeverity(alarmRules = []) {
   return alarmRules.reduce((collection, rule) => {
-    const metricKey = rule.metric || rule.metric_key
-    const severity = rule.severity || 'warning'
+    const metricKey = String(rule.metric || rule.metric_key || '').trim()
+    const severity = String(rule.severity || 'warning').trim().toLowerCase()
 
-    if (!metricKey) return collection
+    if (!metricKey || !ALARM_SEVERITIES.includes(severity)) return collection
 
     if (!collection[metricKey]) {
       collection[metricKey] = {}
     }
 
-    collection[metricKey][severity] = rule
+    const currentRule = collection[metricKey][severity]
+
+    if (!currentRule || getRuleSortValue(rule) >= getRuleSortValue(currentRule)) {
+      collection[metricKey][severity] = rule
+    }
+
     return collection
   }, {})
 }
@@ -62,7 +90,7 @@ function createAlarmDrafts(
       const currentDraft = currentDrafts?.[metricKey]?.[severity]
 
       nextDrafts[metricKey][severity] = {
-        id: existingRule?.id || null,
+        id: existingRule?.id || currentDraft?.id || null,
         metric: metricKey,
         operator:
           currentDraft?.operator ||
@@ -84,7 +112,43 @@ function createAlarmDrafts(
   return nextDrafts
 }
 
-function MetricIconPicker({ value, disabled, isOpen, onOpenChange, onChange }) {
+function mergeSavedAlarmRuleIds(currentDrafts = {}, savedRules = []) {
+  if (!Array.isArray(savedRules) || savedRules.length === 0) {
+    return currentDrafts
+  }
+
+  const nextDrafts = { ...currentDrafts }
+
+  savedRules.forEach((rule) => {
+    const metricKey = String(rule.metric || rule.metric_key || '').trim()
+    const severity = String(rule.severity || 'warning').trim().toLowerCase()
+
+    if (!metricKey || !ALARM_SEVERITIES.includes(severity)) return
+
+    nextDrafts[metricKey] = {
+      ...nextDrafts[metricKey],
+      [severity]: {
+        ...nextDrafts[metricKey]?.[severity],
+        ...rule,
+        id: rule.id || nextDrafts[metricKey]?.[severity]?.id || null,
+        metric: metricKey,
+        severity,
+        notification_message: rule.notification_message || '',
+        is_active: rule.is_active !== false,
+      },
+    }
+  })
+
+  return nextDrafts
+}
+
+function MetricIconPicker({
+  value,
+  disabled,
+  isOpen,
+  onOpenChange,
+  onChange,
+}) {
   const selectedIcon = value || 'Activity'
   const selectedOptionRef = useRef(null)
 
@@ -160,6 +224,7 @@ export default function MetricConfigPanel({
   deviceId,
   alarmRules = [],
   alarmSaving = false,
+  onSaveMetricAlarms,
   onCreateMetricAlarm,
   onUpdateMetricAlarm,
 }) {
@@ -185,7 +250,11 @@ export default function MetricConfigPanel({
 
   useEffect(() => {
     setAlarmDrafts((currentDrafts) =>
-      createAlarmDrafts(draftMetrics, rulesByMetricAndSeverity, currentDrafts)
+      createAlarmDrafts(
+        draftMetrics,
+        rulesByMetricAndSeverity,
+        currentDrafts
+      )
     )
   }, [draftMetrics, rulesByMetricAndSeverity])
 
@@ -223,12 +292,14 @@ export default function MetricConfigPanel({
   function addMetric() {
     setOpenIconPickerKey(null)
     setAlarmMessage('')
-    setDraftMetrics((currentMetrics = []) =>
-      reindexMetrics([
-        ...currentMetrics,
-        createBlankMetric(currentMetrics.length),
-      ])
-    )
+    setDraftMetrics((currentMetrics = []) => {
+      const nextMetric = {
+        ...createBlankMetric(currentMetrics.length),
+        metric_key: createNextMetricKey(currentMetrics),
+      }
+
+      return reindexMetrics([...currentMetrics, nextMetric])
+    })
   }
 
   function removeMetric(indexToRemove) {
@@ -303,7 +374,8 @@ export default function MetricConfigPanel({
         }
 
         if (thresholdIsEmpty || Number.isNaN(Number(draft.threshold))) {
-          const severityLabel = severity === 'critical' ? 'Critical' : 'Warning'
+          const severityLabel =
+            severity === 'critical' ? 'Critical' : 'Warning'
           const metricLabel =
             metric.metric_name || metric.metric_key || 'Metric'
 
@@ -319,7 +391,9 @@ export default function MetricConfigPanel({
           threshold: Number(draft.threshold),
           severity,
           is_active: draft.is_active !== false,
-          notification_message: String(draft.notification_message || '').trim(),
+          notification_message: String(
+            draft.notification_message || ''
+          ).trim(),
         })
       }
     }
@@ -347,26 +421,43 @@ export default function MetricConfigPanel({
       const metricSaved = await saveDraftMetrics(normalizedMetrics)
 
       if (!metricSaved) {
-        throw new Error(
-          'บันทึก Metric ไม่สำเร็จ จึงยังไม่ได้บันทึก Alarm Rules'
-        )
+        throw new Error('บันทึก Metric ไม่สำเร็จ จึงยังไม่ได้บันทึก Alarm Rules')
       }
 
-      for (const draft of draftsToSave) {
-        const saveAlarm = draft.id ? onUpdateMetricAlarm : onCreateMetricAlarm
+      if (typeof onSaveMetricAlarms === 'function') {
+        const saveResult = await onSaveMetricAlarms(deviceId, draftsToSave)
 
-        if (typeof saveAlarm !== 'function') {
-          throw new Error('ไม่พบฟังก์ชันสำหรับบันทึก Alarm Rules')
+        if (!saveResult?.success) {
+          throw new Error(
+            saveResult?.error || 'บันทึก Alarm Rules ทั้งหมดไม่สำเร็จ'
+          )
         }
 
-        const result = draft.id
-          ? await saveAlarm(draft.id, draft)
-          : await saveAlarm(deviceId, draft.metric, draft)
+        setAlarmDrafts((currentDrafts) =>
+          mergeSavedAlarmRuleIds(currentDrafts, saveResult.rules)
+        )
+      } else {
+        for (const draft of draftsToSave) {
+          const saveAlarm = draft.id
+            ? onUpdateMetricAlarm
+            : onCreateMetricAlarm
 
-        if (result !== true) {
-          throw new Error(
-            `บันทึก Alarm ${draft.severity} ของ ${draft.metric} ไม่สำเร็จ`
-          )
+          if (typeof saveAlarm !== 'function') {
+            throw new Error('ไม่พบฟังก์ชันสำหรับบันทึก Alarm Rules')
+          }
+
+          const result = draft.id
+            ? await saveAlarm(draft.id, draft)
+            : await saveAlarm(deviceId, draft.metric, draft)
+
+          const succeeded = result === true || result?.success === true
+
+          if (!succeeded) {
+            throw new Error(
+              result?.error ||
+                `บันทึก Alarm ${draft.severity} ของ ${draft.metric} ไม่สำเร็จ`
+            )
+          }
         }
       }
 
@@ -447,7 +538,9 @@ export default function MetricConfigPanel({
                   key={metric.id ? `metric-${metric.id}` : metricKey}
                   aria-label={`Configure ${metricLabel}`}
                 >
-                  <div className="metric-alarm-config-index">{index + 1}.</div>
+                  <div className="metric-alarm-config-index">
+                    {index + 1}.
+                  </div>
 
                   <div className="metric-alarm-config-metric-row">
                     <label className="metric-alarm-config-field metric-alarm-config-name">
@@ -504,7 +597,11 @@ export default function MetricConfigPanel({
                           type="checkbox"
                           checked={metric.visible !== false}
                           onChange={(event) =>
-                            updateMetric(index, 'visible', event.target.checked)
+                            updateMetric(
+                              index,
+                              'visible',
+                              event.target.checked
+                            )
                           }
                           disabled={busy}
                         />
@@ -513,6 +610,7 @@ export default function MetricConfigPanel({
                         </span>
                       </label>
                     </div>
+
                   </div>
 
                   <div className="metric-alarm-config-rules">

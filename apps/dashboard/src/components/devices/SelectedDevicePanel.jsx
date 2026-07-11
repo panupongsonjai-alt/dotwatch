@@ -754,6 +754,7 @@ function SelectedDevicePanel({
   onDeleteDevice,
   onResetSecret,
   onSavePickedLocation,
+  onSaveMetricAlarms,
   onCreateMetricAlarm,
   onUpdateMetricAlarm,
   onDeleteAlarmRule,
@@ -1043,6 +1044,7 @@ function SelectedDevicePanel({
             deviceId={selectedDevice.id}
             alarmRules={Array.isArray(selectedRules) ? selectedRules : []}
             alarmSaving={saving}
+            onSaveMetricAlarms={onSaveMetricAlarms}
             onCreateMetricAlarm={onCreateMetricAlarm}
             onUpdateMetricAlarm={onUpdateMetricAlarm}
           />

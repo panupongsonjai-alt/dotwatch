@@ -18,6 +18,7 @@ import {
   getDeviceModels,
   getDevices,
   resetDeviceSecret,
+  saveAlarmRulesForDevice,
   updateAlarmRule,
   updateDeviceLocation,
   updateDeviceName,
@@ -415,6 +416,47 @@ function Devices() {
     }
   }
 
+  async function handleSaveMetricAlarms(deviceId, rules = []) {
+    if (!deviceId) {
+      return {
+        success: false,
+        error: 'ไม่พบ Device สำหรับบันทึก Alarm Rules',
+      }
+    }
+
+    try {
+      setSaving(true)
+
+      const result = await saveAlarmRulesForDevice(deviceId, rules)
+      const savedRules = Array.isArray(result?.rules) ? result.rules : []
+
+      setAlarmRules((currentRules) => [
+        ...currentRules.filter(
+          (rule) => Number(rule.device_id) !== Number(deviceId)
+        ),
+        ...savedRules,
+      ])
+
+      await loadAlarmRules()
+
+      return {
+        success: true,
+        rules: savedRules,
+      }
+    } catch (error) {
+      console.error('Save all metric alarm rules error:', error)
+      const message = error.message || 'บันทึก Alarm Rules ไม่สำเร็จ'
+      showNotice('error', message)
+
+      return {
+        success: false,
+        error: message,
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function handleCreateMetricAlarm(deviceId, metricKey, draft) {
     if (!metricKey) {
       showNotice('warning', 'ไม่พบ Metric Key')
@@ -426,13 +468,17 @@ function Devices() {
       return false
     }
 
+    const severity = String(draft.severity || 'warning').toLowerCase()
     const existingRules = alarmRules.filter(
       (rule) =>
         Number(rule.device_id) === Number(deviceId) &&
         String(rule.metric) === String(metricKey)
     )
+    const existingRule = existingRules.find(
+      (rule) => String(rule.severity || 'warning').toLowerCase() === severity
+    )
 
-    if (existingRules.length >= 2) {
+    if (!existingRule && existingRules.length >= 2) {
       showNotice('warning', 'แต่ละ Metric ตั้ง Alarm Rule ได้สูงสุด 2 รายการ')
       return false
     }
@@ -440,15 +486,21 @@ function Devices() {
     try {
       setSaving(true)
 
-      await createAlarmRule({
+      const payload = {
         device_id: deviceId,
         metric: metricKey,
         operator: draft.operator || '>',
         threshold: Number(draft.threshold),
-        severity: draft.severity || 'warning',
+        severity,
         is_active: draft.is_active !== false,
         notification_message: String(draft.notification_message || '').trim(),
-      })
+      }
+
+      if (existingRule?.id) {
+        await updateAlarmRule(existingRule.id, payload)
+      } else {
+        await createAlarmRule(payload)
+      }
 
       await loadAlarmRules()
       return true
@@ -630,6 +682,7 @@ function Devices() {
             onDeleteDevice={handleDeleteDevice}
             onResetSecret={handleResetSecret}
             onSavePickedLocation={handleSavePickedLocation}
+            onSaveMetricAlarms={handleSaveMetricAlarms}
             onCreateMetricAlarm={handleCreateMetricAlarm}
             onUpdateMetricAlarm={handleUpdateMetricAlarm}
             onDeleteAlarmRule={handleDeleteAlarmRule}

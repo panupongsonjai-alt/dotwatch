@@ -493,6 +493,16 @@ export function createAlarmRule(data) {
   })
 }
 
+export function saveAlarmRulesForDevice(deviceId, rules = []) {
+  return apiFetch('/api/alarm-rules/save-all', {
+    method: 'POST',
+    body: JSON.stringify({
+      device_id: deviceId,
+      rules,
+    }),
+  })
+}
+
 export function updateAlarmRule(id, data) {
   return apiFetch(`/api/alarm-rules/${encodeURIComponent(id)}`, {
     method: 'PUT',
