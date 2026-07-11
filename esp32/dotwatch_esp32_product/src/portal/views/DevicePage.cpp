@@ -5,7 +5,7 @@
 
 String PortalView::devicePageHtml() {
   String html;
-  html += "<section id='device' class='dashboard-page' data-page-title='Device Connection'><div class='card'><div class='section-head'><div><div class='kicker'>Device Settings</div><h2>เชื่อม dotWatch Backend</h2><p class='muted'>แก้เฉพาะเมื่อเปลี่ยน Backend หรือผูก ESP32 กับ Device ใหม่</p></div><span id='deviceBadge' class='badge ";
+  html += "<section id='device' class='dashboard-page' data-page-title='Device Connection'><div class='card'><div class='section-head'><div><div class='kicker'>Device Settings</div><h2>เชื่อม dotTH Backend</h2><p class='muted'>แก้เฉพาะเมื่อเปลี่ยน Backend หรือผูก ESP32 กับ Device ใหม่</p></div><span id='deviceBadge' class='badge ";
   html += store_->hasDeviceCredentials(*config_) ? "ok'>Configured" : "warn'>Required";
   html += "</span></div>";
   html += "<form method='POST' action='/device-save'>" + pinHiddenInput();

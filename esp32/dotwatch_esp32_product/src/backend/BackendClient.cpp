@@ -48,10 +48,17 @@ bool BackendClient::postIngest(const MetricSnapshot &snapshot) {
   const String timestamp = timeService_->isoTimestampOrEmpty();
   if (timestamp.length() > 0) document["timestamp"] = timestamp;
 
+  const float temperature = roundf(snapshot.temperature * 100.0f) / 100.0f;
+  const float humidity = roundf(snapshot.humidity * 100.0f) / 100.0f;
+
+  // RSSI remains operational connectivity metadata, not a configurable metric.
+  document["temperature"] = temperature;
+  document["humidity"] = humidity;
+  document["rssi"] = snapshot.rssi;
+
   JsonObject metrics = document["metrics"].to<JsonObject>();
-  metrics["metric_1"] = roundf(snapshot.temperature * 100.0f) / 100.0f;
-  metrics["metric_2"] = roundf(snapshot.humidity * 100.0f) / 100.0f;
-  metrics["metric_3"] = snapshot.rssi;
+  metrics["metric_1"] = temperature;
+  metrics["metric_2"] = humidity;
 
   String body;
   serializeJson(document, body);

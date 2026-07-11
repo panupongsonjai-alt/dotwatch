@@ -1,4 +1,4 @@
-# dotWatch ESP32 Portal Live Preview
+# dotTH ESP32 Portal Live Preview
 
 เครื่องมือ Preview หน้า Local Portal บนคอมพิวเตอร์ โดยไม่ต้อง Build และ Upload Firmware ทุกครั้ง
 
@@ -63,17 +63,4 @@ cd "D:\IoT Project\dotwatch\esp32\dotwatch_esp32_product"
 python -m platformio run
 ```
 
-> HTML ของ Firmware จริงถูกแยกเป็นรายหน้าใน `src/portal/views/` แล้ว ส่วน `index.html` ใช้สำหรับ Live Preview เพื่อดูภาพรวมก่อนนำโครงสร้างไปปรับในไฟล์หน้าที่ตรงกัน CSS และ Firmware JavaScript สามารถ Sync อัตโนมัติด้วย `npm run sync`
-
-
-## โครงสร้างหน้า Firmware จริง
-
-- `src/portal/views/PortalView.cpp` — Layout, Sidebar, Header, Footer และ Login
-- `src/portal/views/OverviewPage.cpp` — Overview
-- `src/portal/views/WifiPage.cpp` — Wi-Fi
-- `src/portal/views/DevicePage.cpp` — Device
-- `src/portal/views/SensorPage.cpp` — Sensor Monitor
-- `src/portal/views/SecurityPage.cpp` — Security
-- `src/portal/views/SystemPage.cpp` — System
-
-`PortalServer.cpp` เหลือเฉพาะ Route, Validation, NVS, JSON และ Device operations ไม่ควรใส่ Dashboard markup กลับเข้าไฟล์นี้
+> การเปลี่ยนโครงสร้าง HTML ใน `index.html` ยังเป็น Preview เท่านั้น เพราะ HTML จริงถูกประกอบใน `PortalServer.cpp` ส่วนการแก้ CSS และ Firmware JS สามารถ Sync อัตโนมัติได้ทันที

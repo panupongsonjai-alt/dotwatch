@@ -79,7 +79,7 @@ async function proxyDevice(req, res) {
       method: req.method,
       headers: {
         Accept: req.headers.accept || "*/*",
-        "User-Agent": "dotWatch-ESP32-Portal-Preview/1.0"
+        "User-Agent": "dotTH-ESP32-Portal-Preview/1.0"
       },
       signal: AbortSignal.timeout(7000)
     });
@@ -177,7 +177,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(port, "0.0.0.0", () => {
   console.log("============================================================");
-  console.log("dotWatch ESP32 Portal Live Preview");
+  console.log("dotTH ESP32 Portal Live Preview");
   console.log("============================================================");
   console.log(`Preview URL : http://localhost:${port}`);
   console.log(`ESP32 target: ${deviceTarget}`);

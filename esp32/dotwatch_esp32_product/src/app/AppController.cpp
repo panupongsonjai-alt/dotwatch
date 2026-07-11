@@ -153,7 +153,7 @@ void AppController::serviceTelemetry() {
   Serial.print(snapshot.temperature, 2);
   Serial.print(" metric_2=");
   Serial.print(snapshot.humidity, 2);
-  Serial.print(" metric_3=");
+  Serial.print(" wifi_rssi=");
   Serial.print(snapshot.rssi);
   if (snapshot.fallbackUsed) Serial.print(" source=dummy_fallback");
   Serial.println();

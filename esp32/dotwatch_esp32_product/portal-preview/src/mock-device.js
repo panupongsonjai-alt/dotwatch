@@ -1,5 +1,5 @@
 export const mockStatus = {
-  productName: "dotWatch ESP32",
+  productName: "dotTH ESP32",
   firmwareVersion: "esp32-product-1.0.0-phase12a",
   configSchemaVersion: 2,
   modelKey: "esp32_dht3",

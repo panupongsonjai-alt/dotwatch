@@ -39,7 +39,7 @@ String PortalView::dashboardPage() {
   body += sensorPageHtml();
   body += securityPageHtml();
   body += systemPageHtml();
-  return pageShell("dotWatch ESP32", body);
+  return pageShell("dotTH ESP32", body);
 }
 
 String PortalView::loginPage(const String &message,
@@ -49,14 +49,14 @@ String PortalView::loginPage(const String &message,
   body += "<p class='muted'>กรอก Local Admin PIN เพื่อเปิด Dashboard, เปลี่ยน Wi-Fi และตรวจสถานะอุปกรณ์</p>";
 
   if (showDefaultPinHint) {
-    body += "<div class='notice info' style='margin-top:12px'>ค่าเริ่มต้นคือ 6 ตัวท้ายของ Device Code จนกว่าจะตั้ง Custom PIN</div>";
+    body += "<div class='notice info' style='margin-top:12px'>ค่าเริ่มต้นคือ admin จนกว่าจะตั้ง Custom PIN</div>";
   }
   if (message.length() > 0) {
     body += "<div class='notice' style='margin-top:10px'>" +
             StringUtils::htmlEscape(message) + "</div>";
   }
 
-  body += "<form method='GET' action='/' style='margin-top:16px'><div class='field'><label>Local Admin PIN</label><input type='password' name='pin' inputmode='numeric' autocomplete='current-password' placeholder='เช่น 123456'></div><div class='button-row'><button class='btn-primary' type='submit'>เปิด ESP32 Dashboard</button><a class='btn btn-secondary' href='/json'>ดู Public Status</a></div></form></section>";
+  body += "<form method='GET' action='/' style='margin-top:16px'><div class='field'><label>Local Admin PIN</label><input type='password' name='pin' inputmode='text' autocomplete='current-password' autocapitalize='none' spellcheck='false' placeholder='admin'></div><div class='button-row'><button class='btn-primary' type='submit'>เปิด ESP32 Dashboard</button><a class='btn btn-secondary' href='/json'>ดู Public Status</a></div></form></section>";
 
   const bool previousSetupMode = setupMode_;
   const String previousPin = pinValue_;
@@ -80,10 +80,8 @@ String PortalView::pageShell(const String &title,
   html += "</style></head><body>";
 
   if (title == "ESP32 Local Admin") {
-    html += "<div class='login-shell'><aside class='login-brand-panel'><div class='login-brand'><div class='brand-mark'>dW</div><div><h1>dotWatch</h1><p>ESP32 Product Console</p></div></div><div class='login-brand-copy'><div class='kicker'>Local Device Management</div><h2>จัดการ ESP32 ในรูปแบบเดียวกับ Dashboard</h2><p>ใช้รายละเอียดและระบบเดิมของ Firmware แต่จัดโครงสร้างใหม่ให้อ่านง่าย แยกเมนูชัดเจน และเหมาะกับการใช้งานจริง</p></div><div class='help'>";
+    html += "<div class='login-shell'><aside class='login-brand-panel'><div class='login-brand'><div class='brand-mark'>dT</div><div><h1>dotTH</h1></div></div><div class='login-brand-copy'><div class='kicker'>Local Device Management</div><h2>จัดการ ESP32 ในรูปแบบเดียวกับ Dashboard</h2><p>ใช้รายละเอียดและระบบเดิมของ Firmware แต่จัดโครงสร้างใหม่ให้อ่านง่าย แยกเมนูชัดเจน และเหมาะกับการใช้งานจริง</p></div><div class='help'>";
     html += DOTWATCH_MODEL_NAME;
-    html += " · ";
-    html += DOTWATCH_FIRMWARE_VERSION;
     html += "</div></aside><main class='login-main'>";
     html += body;
     html += "</main></div></body></html>";
@@ -91,13 +89,12 @@ String PortalView::pageShell(const String &title,
   }
 
   html += "<div class='portal-layout'><aside class='portal-sidebar'>";
-  html += "<div class='portal-brand'><div class='brand-mark'>dW</div><div class='brand-copy'><strong>dotWatch</strong><span>";
-  html += DOTWATCH_FIRMWARE_VERSION;
-  html += "</span></div></div>";
+  html += "<div class='portal-brand'><div class='brand-mark'>dT</div><div class='brand-copy'><strong>dotTH</strong>";
+  html += "</div></div>";
   html += "<div class='portal-nav-label'>Device Console</div><nav class='portal-nav'>";
   html += "<a class='portal-nav-item is-active' href='#overview' data-page-target='overview' data-page-title='ESP32 Overview' data-page-subtitle='ภาพรวมสถานะอุปกรณ์และการเชื่อมต่อ'><span class='nav-icon'>▦</span><span>Overview</span></a>";
   html += "<a class='portal-nav-item' href='#wifi' data-page-target='wifi' data-page-title='Wi-Fi Setup' data-page-subtitle='เปลี่ยนเครือข่ายด้วยระบบทดสอบและ Rollback'><span class='nav-icon'>⌁</span><span>Wi-Fi</span></a>";
-  html += "<a class='portal-nav-item' href='#device' data-page-target='device' data-page-title='Device Connection' data-page-subtitle='เชื่อม Device Code และ Backend ของ dotWatch'><span class='nav-icon'>◇</span><span>Device</span></a>";
+  html += "<a class='portal-nav-item' href='#device' data-page-target='device' data-page-title='Device Connection' data-page-subtitle='เชื่อม Device Code และ Backend ของ dotTH'><span class='nav-icon'>◇</span><span>Device</span></a>";
   html += "<a class='portal-nav-item' href='#sensor' data-page-target='sensor' data-page-title='Sensor Monitor' data-page-subtitle='ดูค่าปัจจุบันและกำหนดรอบส่งข้อมูล'><span class='nav-icon'>∿</span><span>Sensor</span></a>";
   html += "<a class='portal-nav-item' href='#security' data-page-target='security' data-page-title='Security' data-page-subtitle='จัดการ Local Admin PIN และ Root CA'><span class='nav-icon'>◆</span><span>Security</span></a>";
   html += "<a class='portal-nav-item' href='#system' data-page-target='system' data-page-title='System Operations' data-page-subtitle='ดู JSON, Restart และ Factory Reset'><span class='nav-icon'>⚙</span><span>System</span></a>";
@@ -110,7 +107,7 @@ String PortalView::pageShell(const String &title,
           "</span></div></aside>";
   html += "<button id='portalOverlay' class='portal-overlay' type='button' aria-label='ปิดเมนู'></button>";
 
-  html += "<div class='portal-workspace'><header class='portal-header'><div class='portal-header-main'><button id='portalMenuButton' class='portal-menu-button' type='button' aria-label='เปิดเมนู'>☰</button><div class='portal-header-copy'><small>ESP32 Product Console</small><h1 id='portalPageTitle'>ESP32 Overview</h1><p id='portalPageSubtitle'>ภาพรวมสถานะอุปกรณ์และการเชื่อมต่อ</p></div></div><div class='portal-header-actions'>";
+  html += "<div class='portal-workspace'><header class='portal-header'><div class='portal-header-main'><button id='portalMenuButton' class='portal-menu-button' type='button' aria-label='เปิดเมนู'>☰</button><div class='portal-header-copy'><h1 id='portalPageTitle'>ESP32 Overview</h1><p id='portalPageSubtitle'>ภาพรวมสถานะอุปกรณ์และการเชื่อมต่อ</p></div></div><div class='portal-header-actions'>";
   html += "<span id='headerStateBadge' class='badge " +
           statusBadgeClass() + "'>" +
           StringUtils::appStateText(status_->state) + "</span>";

@@ -11,7 +11,7 @@ String PortalView::sensorPageHtml() {
                                   ? String(status_->lastHumidity, 1)
                                   : String("--");
 
-  html += "<section id='sensor' class='dashboard-page' data-page-title='Sensor Monitor'><div class='card'><div class='section-head'><div><div class='kicker'>Live Sensor</div><h2>Temperature และ Humidity</h2><p class='muted'>แสดงค่าล่าสุดจาก Sensor และตั้งรอบส่งข้อมูลเข้า dotWatch</p></div><span class='badge " + String(status_->sensorReadingAvailable ? "ok'>Live" : "warn'>Waiting") + "</span></div>";
+  html += "<section id='sensor' class='dashboard-page' data-page-title='Sensor Monitor'><div class='card'><div class='section-head'><div><div class='kicker'>Live Sensor</div><h2>Temperature และ Humidity</h2><p class='muted'>แสดงค่าล่าสุดจาก Sensor และตั้งรอบส่งข้อมูลเข้า dotTH</p></div><span class='badge " + String(status_->sensorReadingAvailable ? "ok'>Live" : "warn'>Waiting") + "</span></div>";
   html += "<form method='POST' action='/device-save'>" + pinHiddenInput();
   html += "<input type='hidden' name='apiUrl' value='" + StringUtils::htmlEscape(config_->apiUrl) + "'><input type='hidden' name='deviceCode' value='" + StringUtils::htmlEscape(config_->deviceCode) + "'>";
   html += "<div class='sensor-live-grid'>";

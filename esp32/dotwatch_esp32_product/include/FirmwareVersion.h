@@ -1,6 +1,6 @@
 #pragma once
 
-#define DOTWATCH_PRODUCT_NAME "dotWatch ESP32 Product"
+#define DOTWATCH_PRODUCT_NAME "dotTH ESP32 Product"
 #define DOTWATCH_MODEL_KEY "esp32_dht3"
 #define DOTWATCH_MODEL_NAME "ESP32-DHT3"
 #define DOTWATCH_FIRMWARE_VERSION "esp32-product-1.0.0-phase12a"
