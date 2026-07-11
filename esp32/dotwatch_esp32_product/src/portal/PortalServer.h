@@ -3,13 +3,17 @@
 #include <Arduino.h>
 #include <DNSServer.h>
 #include <WebServer.h>
+
 #include "AppTypes.h"
+#include "portal/views/PortalView.h"
 
 class BackendClient;
 class ConfigStore;
 class SensorManager;
 class WiFiManager;
 
+// HTTP controller for the local ESP32 portal.
+// Presentation markup is intentionally kept in src/portal/views.
 class PortalServer {
  public:
   PortalServer();
@@ -46,27 +50,15 @@ class PortalServer {
   String defaultAdminPin() const;
   String effectiveAdminPin() const;
   String currentPinValue();
-  String pinHiddenInput();
   String authQuery();
+  String renderPage(const String &title, const String &body);
   void sendLocalAdminLogin(int statusCode = 200,
                            const String &message = "");
 
-  String pageShell(const String &title, const String &body);
-  String statusBadgeClass() const;
-  String lastSendLabel() const;
-  String readinessLabel() const;
-  String statusCardsHtml() const;
-  String wifiSectionHtml();
-  String deviceSectionHtml();
-  String advancedSectionsHtml();
-  String operationsHtml();
-  String restartPage(const String &kicker,
-                     const String &title,
-                     const String &message,
-                     const String &extraNotice = "") const;
-
   WebServer server_;
   DNSServer dnsServer_;
+  PortalView view_;
+
   bool routesRegistered_ = false;
   bool serverStarted_ = false;
   bool setupMode_ = false;

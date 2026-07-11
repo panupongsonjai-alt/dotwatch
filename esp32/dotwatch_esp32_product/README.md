@@ -1,9 +1,12 @@
 # dotWatch ESP32 Product Core — Phase 12A
 
-Firmware ชุดนี้เป็นโครงสร้างหลักสำหรับพัฒนา ESP32 ให้เหมาะกับ Product จริง
-โดยแยกโมดูลออกจาก `main.cpp` และคงความเข้ากันได้กับค่า NVS จาก Firmware รุ่นก่อนหน้า
+Firmware ชุดนี้เป็นโครงสร้างใหม่แบบ **Add-only** สำหรับพัฒนา ESP32 ให้เหมาะกับ Product จริง โดยไม่ลบหรือแทนที่ Firmware เดิม:
 
-Firmware ปัจจุบันอยู่ที่:
+```text
+esp32/dotwatch_esp32_dht3_tls_hardened
+```
+
+Firmware ใหม่อยู่ที่:
 
 ```text
 esp32/dotwatch_esp32_product
@@ -22,12 +25,37 @@ esp32/dotwatch_esp32_product
   - สำเร็จจึง Promote เป็น Active
   - ล้มเหลวจะกลับไปใช้ Wi-Fi เดิม
 - Setup AP แยกตามอุปกรณ์ เช่น `dotWatch-Setup-A1B2C3`
-- Portal แยก CSS/JavaScript ออกจาก Core logic
+- Portal แยก Presentation ออกจาก HTTP/Device logic
+  - `PortalServer.cpp` ดูแล Route, Validation, NVS และ Device operations
+  - `src/portal/views/` แยก Layout และหน้า Overview/Wi-Fi/Device/Sensor/Security/System
+  - `portal-preview/src/portal.css` และ `firmware.js` เป็น Shared UI assets
 - Payload ยังคงเดิม:
   - `metric_1` = Temperature
   - `metric_2` = Humidity
-  - `metric_3` = Wi-Fi RSSI
+
+Wi-Fi RSSI remains available in the local Portal/Status JSON for diagnostics, but this firmware version does not send RSSI as telemetry.
 - Backend URL, Device Code, Device Secret และ Root CA เดิมยังใช้ได้
+
+## แก้หน้า ESP32 Portal
+
+```text
+src/portal/views/PortalView.cpp      Layout / Sidebar / Header / Login
+src/portal/views/OverviewPage.cpp    Overview
+src/portal/views/WifiPage.cpp        Wi-Fi
+src/portal/views/DevicePage.cpp      Device
+src/portal/views/SensorPage.cpp      Sensor Monitor
+src/portal/views/SecurityPage.cpp    Security
+src/portal/views/SystemPage.cpp      System
+portal-preview/src/portal.css        Font / สี / spacing / responsive
+portal-preview/src/firmware.js       Realtime UI / navigation / Wi-Fi scan
+```
+
+หลังแก้ CSS หรือ JavaScript ให้รัน:
+
+```powershell
+cd "D:\IoT Project\dotwatch\esp32\dotwatch_esp32_product\portal-preview"
+npm run sync
+```
 
 ## Build
 
