@@ -249,7 +249,12 @@ async function performApiRequest(path, options = {}) {
         ? ` (Request ID: ${data.requestId})`
         : ''
 
-      throw new Error(`${baseMessage}${requestIdSuffix}`)
+      const requestError = new Error(`${baseMessage}${requestIdSuffix}`)
+      requestError.status = response.status
+      requestError.path = path
+      requestError.data = data
+
+      throw requestError
     }
 
     return data
@@ -476,20 +481,44 @@ export function getAlarms() {
   return apiFetch('/api/alarms')
 }
 
-export function clearAlarmEvents({ deviceId, metric, from, to } = {}) {
+export async function clearAlarmEvents({ deviceId, metric, from, to } = {}) {
+  const payload = {
+    deviceId:
+      deviceId != null && deviceId !== '' && deviceId !== 'all'
+        ? String(deviceId)
+        : 'all',
+    metric: metric && metric !== 'all' ? String(metric) : 'all',
+    from: from ? String(from) : '',
+    to: to ? String(to) : '',
+  }
+
   const params = new URLSearchParams()
 
-  if (deviceId != null && deviceId !== '' && deviceId !== 'all') {
-    params.set('deviceId', String(deviceId))
-  }
-  if (metric && metric !== 'all') params.set('metric', String(metric))
-  if (from) params.set('from', String(from))
-  if (to) params.set('to', String(to))
+  if (payload.deviceId !== 'all') params.set('deviceId', payload.deviceId)
+  if (payload.metric !== 'all') params.set('metric', payload.metric)
+  if (payload.from) params.set('from', payload.from)
+  if (payload.to) params.set('to', payload.to)
 
   const query = params.toString()
-  return apiFetch(`/api/alarms${query ? `?${query}` : ''}`, {
-    method: 'DELETE',
-  })
+
+  try {
+    // DELETE /api/alarms is supported by the previously deployed backend and
+    // remains the canonical compatibility endpoint.
+    return await apiFetch(`/api/alarms${query ? `?${query}` : ''}`, {
+      method: 'DELETE',
+    })
+  } catch (error) {
+    if (error?.status !== 404) {
+      throw error
+    }
+
+    // Newer backend builds also expose POST /api/alarms/clear. Keeping this
+    // fallback prevents a temporary dashboard/backend deploy mismatch.
+    return apiFetch('/api/alarms/clear', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  }
 }
 
 export function getNotificationFeedDeletions() {
