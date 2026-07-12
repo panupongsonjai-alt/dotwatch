@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#020617" />
+    <title>dotTH</title>
+    <link rel="stylesheet" href="/generated/portal.css" />
+    <link rel="stylesheet" href="/src/styles/preview.css" />
+  </head>
+  <body>
+    {{PREVIEW_TOOLBAR}}
+
+    <div class="preview-offset">
+      <div class="portal-layout">
+        {{SIDEBAR}}
+        {{PORTAL_OVERLAY}}
+
+        <div class="portal-workspace">
+          {{MOBILE_HEADER}}
+          <main class="portal-content">
+            {{PAGES}}
+          </main>
+          {{FOOTER}}
+        </div>
+      </div>
+    </div>
+
+    {{PREVIEW_FEEDBACK}}
+    <script type="module" src="/src/preview/preview.js"></script>
+  </body>
+</html>

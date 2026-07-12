@@ -1,0 +1,38 @@
+@media(max-width:1080px){
+  .status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .overview-grid,.security-grid{grid-template-columns:1fr}
+}
+@media(max-width:880px){
+  body.nav-open{overflow:hidden}
+  .portal-sidebar{position:fixed;left:0;top:0;transform:translateX(-102%);transition:transform .22s ease;width:278px;box-shadow:18px 0 40px rgba(2,6,23,.32)}
+  body.nav-open .portal-sidebar{transform:translateX(0)}
+  .portal-overlay{position:fixed;inset:0;z-index:35;display:none;background:rgba(2,6,23,.5);backdrop-filter:blur(2px)}
+  body.nav-open .portal-overlay{display:block}
+  .portal-menu-button{display:inline-flex}
+  .portal-header{display:flex;position:sticky;top:0;z-index:30;min-height:62px;padding:10px 16px;align-items:center;background:rgba(9,13,20,.92);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+  .portal-content{padding:18px 16px 26px}
+  .portal-footer{padding:0 16px 20px}
+  .wifi-layout{grid-template-columns:1fr}
+  .login-shell{grid-template-columns:1fr}
+  .login-brand-panel{display:none}
+}
+@media(max-width:640px){
+  .portal-header-copy p{display:none}
+  .portal-header-copy h1{font-size:18px}
+  .portal-header-actions .header-label{display:none}
+  .portal-header-actions .btn{min-width:43px;padding:0 12px}
+  .card{padding:16px;border-radius:18px}
+  h1{font-size:25px}
+  h2{font-size:19px}
+  .hero,.card-head,.section-head{align-items:flex-start;flex-direction:column}
+  .status-grid,.current-wifi,.steps,.sensor-live-grid,.system-grid,.quick-actions{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  .field.full{grid-column:auto}
+  .password-row{grid-template-columns:1fr}
+  .password-row button{width:100%}
+  .network{grid-template-columns:25px minmax(0,1fr)}
+  .rssi{grid-column:2}
+  .sensor-live-value strong{font-size:34px}
+  .button-row>*{width:100%}
+  .login-main{padding:18px}
+}

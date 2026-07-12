@@ -1,0 +1,49 @@
+<section class="dashboard-page" data-page-title="Sensor Monitor" id="sensor">
+<div class="card">
+<div class="section-head">
+<div>
+<div class="kicker">Live Sensor</div>
+<h2>Temperature และ Humidity</h2>
+<p class="muted">
+                      แสดงค่าล่าสุดจาก Sensor และตั้งรอบส่งข้อมูลเข้า dotTH
+                    </p>
+</div>
+<span class="badge ok">Live</span>
+</div>
+<form data-preview-form="sensor">
+<div class="sensor-live-grid">
+<div class="sensor-live-card">
+<div class="sensor-live-name">Temperature</div>
+<div class="sensor-live-value">
+<strong id="sensorTemperature">32.3</strong><span>°C</span>
+</div>
+</div>
+<div class="sensor-live-card">
+<div class="sensor-live-name">Humidity</div>
+<div class="sensor-live-value">
+<strong id="sensorHumidity">37.0</strong><span>%</span>
+</div>
+</div>
+</div>
+<div class="sensor-live-status" id="sensorLiveStatus">
+                    ค่าล่าสุดจาก Sensor · อัปเดตอัตโนมัติ
+                  </div>
+<div class="form-grid sensor-settings-grid">
+<div class="field">
+<label for="sendInterval">Send Interval</label><select id="sendInterval">
+<option>10 sec</option>
+<option selected="">20 sec</option>
+<option>30 sec</option>
+<option>60 sec</option>
+<option>120 sec</option>
+</select>
+</div>
+</div>
+<div class="button-row">
+<button class="btn-primary" type="submit">
+                      บันทึกรอบส่งข้อมูล
+                    </button>
+</div>
+</form>
+</div>
+</section>

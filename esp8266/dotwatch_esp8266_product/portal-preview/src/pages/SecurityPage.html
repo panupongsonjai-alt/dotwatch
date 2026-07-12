@@ -1,0 +1,39 @@
+<section class="dashboard-page" data-page-title="Security" id="security">
+<div class="card">
+<div class="section-head">
+<div>
+<div class="kicker">Local Security</div>
+<h2>Admin PIN และ Root CA</h2>
+<p class="muted">
+                      รายละเอียดเดิมถูกจัดใหม่ให้แยกจากการตั้งค่าทั่วไปและอ่านง่ายขึ้น
+                    </p>
+</div>
+</div>
+<form data-preview-form="security">
+<div class="security-grid">
+<div class="panel">
+<div class="field">
+<label for="adminPin">Local Admin PIN ใหม่</label><input id="adminPin" placeholder="เว้นว่างเพื่อใช้ PIN เดิม" type="password"/>
+<div class="help">
+                          ใช้สำหรับเปิด Local Device Console เมื่อ ESP8266 เชื่อม
+                          Wi-Fi แล้ว
+                        </div>
+</div>
+</div>
+<div class="panel">
+<div class="field">
+<label for="tlsCaCert">Root CA Certificate</label><textarea id="tlsCaCert" placeholder="เว้นว่างเพื่อใช้ค่าเดิม/Embedded CA"></textarea>
+<div class="help" id="tlsInfo">
+                          TLS: verified · Source: embedded
+                        </div>
+</div>
+</div>
+</div>
+<div class="button-row">
+<button class="btn-primary" type="submit">
+                      บันทึก Security Settings
+                    </button>
+</div>
+</form>
+</div>
+</section>

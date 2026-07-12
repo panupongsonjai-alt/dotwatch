@@ -1,0 +1,35 @@
+<section class="dashboard-page" data-page-title="Device Connection" id="device">
+<div class="card">
+<div class="section-head">
+<div>
+<div class="kicker">Device Settings</div>
+<h2>เชื่อม dotTH Backend</h2>
+<p class="muted">
+                      แก้เฉพาะเมื่อเปลี่ยน Backend หรือผูก ESP8266 กับ Device ใหม่
+                    </p>
+</div>
+<span class="badge ok" id="deviceBadge">Configured</span>
+</div>
+<form data-preview-form="device">
+<div class="form-grid">
+<div class="field full">
+<label for="apiUrl">Backend API URL</label><input id="apiUrl" value="https://dotwatch-backend.onrender.com"/>
+</div>
+<div class="field">
+<label for="deviceCode">Device Code</label><input id="deviceCode" value="DW-1783498262178"/>
+</div>
+<div class="field">
+<label for="deviceSecret">Device Secret</label><input id="deviceSecret" placeholder="เว้นว่างเพื่อใช้ Secret เดิม" type="password"/>
+</div>
+</div>
+<div class="help" id="deviceSecretMasked" style="margin-top: 8px">
+                    Secret ปัจจุบัน: ••••••••3a4f
+                  </div>
+<div class="button-row">
+<button class="btn-primary" type="submit">
+                      บันทึก Device Settings
+                    </button>
+</div>
+</form>
+</div>
+</section>
