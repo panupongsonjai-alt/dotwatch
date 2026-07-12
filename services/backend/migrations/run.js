@@ -620,6 +620,16 @@ async function createAlarmAndActivityTables() {
   `)
 
   await run(`
+    CREATE TABLE IF NOT EXISTS notification_feed_deletions (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      notification_key TEXT NOT NULL,
+      deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (user_id, notification_key)
+    );
+  `)
+
+  await run(`
     CREATE TABLE IF NOT EXISTS alarm_states (
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -895,6 +905,7 @@ async function createIndexes() {
     `CREATE INDEX IF NOT EXISTS idx_alarm_rules_user ON alarm_rules(user_id);`,
     `CREATE INDEX IF NOT EXISTS idx_alarm_rules_device ON alarm_rules(device_id);`,
     `CREATE INDEX IF NOT EXISTS idx_alarm_events_user_time ON alarm_events(user_id, triggered_at DESC);`,
+    `CREATE INDEX IF NOT EXISTS idx_notification_feed_deletions_user_time ON notification_feed_deletions(user_id, deleted_at DESC);`,
     `CREATE INDEX IF NOT EXISTS idx_alarm_states_user_state ON alarm_states(user_id, state);`,
     `CREATE INDEX IF NOT EXISTS idx_activity_logs_user_time ON activity_logs(user_id, created_at DESC);`,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_slug_unique ON organizations(slug) WHERE slug IS NOT NULL;`,

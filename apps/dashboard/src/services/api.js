@@ -476,6 +476,33 @@ export function getAlarms() {
   return apiFetch('/api/alarms')
 }
 
+export function clearAlarmEvents({ deviceId, metric, from, to } = {}) {
+  const params = new URLSearchParams()
+
+  if (deviceId != null && deviceId !== '' && deviceId !== 'all') {
+    params.set('deviceId', String(deviceId))
+  }
+  if (metric && metric !== 'all') params.set('metric', String(metric))
+  if (from) params.set('from', String(from))
+  if (to) params.set('to', String(to))
+
+  const query = params.toString()
+  return apiFetch(`/api/alarms${query ? `?${query}` : ''}`, {
+    method: 'DELETE',
+  })
+}
+
+export function getNotificationFeedDeletions() {
+  return apiFetch('/api/alarms/notification-feed-deletions')
+}
+
+export function clearNotificationFeed(keys = []) {
+  return apiFetch('/api/alarms/notification-feed/clear', {
+    method: 'POST',
+    body: JSON.stringify({ keys }),
+  })
+}
+
 export function acknowledgeAlarm(id) {
   return apiFetch(`/api/alarms/${encodeURIComponent(id)}/acknowledge`, {
     method: 'POST',

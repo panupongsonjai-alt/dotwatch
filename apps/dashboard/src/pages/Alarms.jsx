@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { auth } from '../services/firebase'
 import { connectRealtime } from '../services/realtime'
 import {
   acknowledgeAlarm,
+  clearAlarmEvents,
   deleteAlarmRule,
   getAlarmRules,
   getAlarms,
@@ -12,20 +13,24 @@ import {
 } from '../services/api'
 import {
   AlertTriangle,
+  CalendarDays,
   Bell,
   CheckCircle2,
   Download,
   RefreshCw,
-  Search,
   Trash2,
 } from 'lucide-react'
-import { PageHeader, StatCard } from '../components/common'
+import {
+  ClearFilteredDataDialog,
+  NoticeBanner,
+  PageHeader,
+  StatCard,
+} from '../components/common'
 import { confirmDeleteAction } from '../utils/typedConfirm'
 import {
   downloadCsv,
   getLocalDateInputValue,
   isDateInRange,
-  openPrintableTable,
 } from '../utils/tableExport'
 
 const TABLE_PAGE_SIZES = [20, 50, 100]
@@ -223,6 +228,28 @@ function isSameRealtimeDevice(device, reading) {
   )
 }
 
+function showDatePicker(inputRef) {
+  const input = inputRef.current
+  if (!input) return
+
+  if (typeof input.showPicker === 'function') {
+    input.showPicker()
+    return
+  }
+
+  input.focus()
+  input.click()
+}
+
+function formatDateOnly(value) {
+  if (!value) return '--'
+
+  const date = new Date(`${value}T00:00:00`)
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString('th-TH')
+}
+
 function Alarms() {
   const [alarms, setAlarms] = useState([])
   const [rules, setRules] = useState([])
@@ -235,16 +262,15 @@ function Alarms() {
   const [eventMetricFilter, setEventMetricFilter] = useState('all')
   const [eventStartDate, setEventStartDate] = useState(today)
   const [eventEndDate, setEventEndDate] = useState(today)
-  const [eventExportFormat, setEventExportFormat] = useState('pdf')
+  const eventStartDateInputRef = useRef(null)
+  const eventEndDateInputRef = useRef(null)
+  const [clearDialogOpen, setClearDialogOpen] = useState(false)
+  const [clearingAlarms, setClearingAlarms] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [pageError, setPageError] = useState('')
   const [alarmPageSize, setAlarmPageSize] = useState(20)
   const [alarmSortOrder, setAlarmSortOrder] = useState('desc')
   const [alarmPage, setAlarmPage] = useState(1)
-  const [ruleSearch, setRuleSearch] = useState('')
-  const [ruleStatusFilter, setRuleStatusFilter] = useState('all')
-  const [ruleSeverityFilter, setRuleSeverityFilter] = useState('all')
-  const [rulePageSize, setRulePageSize] = useState(20)
-  const [ruleSortOrder, setRuleSortOrder] = useState('desc')
-  const [rulePage, setRulePage] = useState(1)
 
   async function loadData() {
     try {
@@ -359,20 +385,48 @@ function Alarms() {
     }
   }
 
-  function handleClearAlarms() {
-    if (filteredAlarms.length === 0) return
+  function openClearAlarmDialog() {
+    if (filteredAlarms.length === 0 || clearingAlarms) return
+    setClearDialogOpen(true)
+  }
 
-    const ok = window.confirm(
-      `ต้องการ Clear Alarm Events ตามตัวกรองจำนวน ${filteredAlarms.length} รายการใช่ไหม?\n\nรายการจะถูกซ่อนจากหน้า Alarm Center จนกว่าจะกด Refresh หรือมีข้อมูลใหม่จาก Realtime`
-    )
+  function closeClearAlarmDialog() {
+    if (clearingAlarms) return
+    setClearDialogOpen(false)
+  }
 
-    if (!ok) return
+  async function handleClearAlarms() {
+    if (filteredAlarms.length === 0 || clearingAlarms) return
 
-    const filteredKeys = new Set(filteredAlarms.map(getAlarmKey))
-    setAlarms((prev) =>
-      prev.filter((alarm) => !filteredKeys.has(getAlarmKey(alarm)))
-    )
-    setAlarmPage(1)
+    try {
+      setClearingAlarms(true)
+      setNotice('')
+      setPageError('')
+
+      const result = await clearAlarmEvents({
+        deviceId: eventDeviceFilter,
+        metric: eventMetricFilter,
+        from: eventStartDate,
+        to: eventEndDate,
+      })
+      const deletedCount = Number(
+        result?.deletedCount ?? result?.deleted_count ?? 0
+      )
+
+      setClearDialogOpen(false)
+      setAlarmPage(1)
+      setNotice(
+        deletedCount > 0
+          ? `ลบ Alarm Events สำเร็จ ${deletedCount.toLocaleString('th-TH')} รายการ`
+          : 'ไม่พบ Alarm Events ที่ตรงกับตัวกรองสำหรับลบ'
+      )
+      await loadData()
+    } catch (error) {
+      console.error('Clear alarm events error:', error)
+      setPageError(error.message || 'ลบ Alarm Events ไม่สำเร็จ')
+    } finally {
+      setClearingAlarms(false)
+    }
   }
 
   function handleExportAlarmEvents() {
@@ -414,19 +468,7 @@ function Alarms() {
     ]
     const fileName = `dotWatch-alarm-events-${eventStartDate || 'all'}-to-${eventEndDate || 'all'}`
 
-    if (eventExportFormat === 'csv') {
-      downloadCsv({ fileName, columns, rows, metadata })
-      return
-    }
-
-    openPrintableTable({
-      title: 'dotWatch Alarm Events',
-      subtitle: 'Alarm events filtered by device, metric and date range',
-      fileName,
-      columns,
-      rows,
-      metadata,
-    })
+    downloadCsv({ fileName, columns, rows, metadata })
   }
 
 
@@ -501,49 +543,14 @@ function Alarms() {
     )
   }, [alarms])
 
-  const filteredRules = useMemo(() => {
-    const keyword = ruleSearch.trim().toLowerCase()
-
-    return rules
-      .filter((rule) => {
-        const metricInfo = getMetricInfo(rule.device_id, rule.metric)
-        const text = [
-          rule.device_name,
-          rule.device_code,
-          rule.metric,
-          rule.metric_name,
-          metricInfo.name,
-          rule.severity,
-          rule.is_active ? 'active' : 'disabled',
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-
-        const matchSearch = !keyword || text.includes(keyword)
-        const matchStatus =
-          ruleStatusFilter === 'all' ||
-          (ruleStatusFilter === 'active' && rule.is_active) ||
-          (ruleStatusFilter === 'disabled' && !rule.is_active)
-        const matchSeverity =
-          ruleSeverityFilter === 'all' || rule.severity === ruleSeverityFilter
-
-        return matchSearch && matchStatus && matchSeverity
-      })
-      .sort((a, b) => {
-        const difference =
-          getTimestamp(a, ['created_at', 'updated_at']) -
-          getTimestamp(b, ['created_at', 'updated_at'])
-        return ruleSortOrder === 'asc' ? difference : -difference
-      })
-  }, [
-    rules,
-    ruleSearch,
-    ruleStatusFilter,
-    ruleSeverityFilter,
-    ruleSortOrder,
-    deviceMetrics,
-  ])
+  const displayedRules = useMemo(() => {
+    return [...rules].sort((a, b) => {
+      return (
+        getTimestamp(b, ['created_at', 'updated_at']) -
+        getTimestamp(a, ['created_at', 'updated_at'])
+      )
+    })
+  }, [rules])
 
   const eventMetricOptions = useMemo(() => {
     const options = new Map()
@@ -604,16 +611,6 @@ function Alarms() {
   ])
 
 
-  const totalRulePages = Math.max(
-    1,
-    Math.ceil(filteredRules.length / rulePageSize)
-  )
-  const safeRulePage = Math.min(rulePage, totalRulePages)
-  const paginatedRules = filteredRules.slice(
-    (safeRulePage - 1) * rulePageSize,
-    safeRulePage * rulePageSize
-  )
-
   const totalAlarmPages = Math.max(
     1,
     Math.ceil(filteredAlarms.length / alarmPageSize)
@@ -623,10 +620,6 @@ function Alarms() {
     (safeAlarmPage - 1) * alarmPageSize,
     safeAlarmPage * alarmPageSize
   )
-
-  useEffect(() => {
-    setRulePage(1)
-  }, [ruleSearch, ruleStatusFilter, ruleSeverityFilter, rulePageSize, ruleSortOrder])
 
   useEffect(() => {
     setAlarmPage(1)
@@ -647,10 +640,6 @@ function Alarms() {
       setEventMetricFilter('all')
     }
   }, [eventMetricFilter, eventMetricOptions])
-
-  useEffect(() => {
-    if (rulePage > totalRulePages) setRulePage(totalRulePages)
-  }, [rulePage, totalRulePages])
 
   useEffect(() => {
     if (alarmPage > totalAlarmPages) setAlarmPage(totalAlarmPages)
@@ -709,54 +698,14 @@ function Alarms() {
             <h2>Alarm Rules</h2>
             <p>Rule ทั้งหมดที่ตั้งไว้ในหน้า Device</p>
           </div>
-
-          <TableViewControls
-            page={safeRulePage}
-            pageSize={rulePageSize}
-            sortOrder={ruleSortOrder}
-            total={filteredRules.length}
-            onPageSizeChange={setRulePageSize}
-            onSortOrderChange={setRuleSortOrder}
-          />
         </div>
 
-        <div className="alarm-toolbar alarm-rules-toolbar">
-          <label className="search-input">
-            <Search size={17} />
-            <input
-              value={ruleSearch}
-              onChange={(event) => setRuleSearch(event.target.value)}
-              placeholder="Search device, metric, severity..."
-              aria-label="ค้นหา Alarm Rules"
-            />
-          </label>
 
-          <select
-            value={ruleStatusFilter}
-            onChange={(event) => setRuleStatusFilter(event.target.value)}
-            aria-label="กรองสถานะ Alarm Rule"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="disabled">Disabled</option>
-          </select>
-
-          <select
-            value={ruleSeverityFilter}
-            onChange={(event) => setRuleSeverityFilter(event.target.value)}
-            aria-label="กรองระดับ Alarm Rule"
-          >
-            <option value="all">All Severity</option>
-            <option value="warning">Warning</option>
-            <option value="critical">Critical</option>
-          </select>
-        </div>
-
-        {filteredRules.length === 0 ? (
+        {displayedRules.length === 0 ? (
           <div className="app-empty-state">
             <AlertTriangle size={30} />
             <h3>ไม่พบ Alarm Rule</h3>
-            <p>ลองเปลี่ยนตัวกรอง หรือไปที่หน้า Device เพื่อตั้ง Rule</p>
+            <p>ไปที่หน้า Device เพื่อตั้ง Alarm Rule</p>
           </div>
         ) : (
           <>
@@ -774,7 +723,7 @@ function Alarms() {
                 </thead>
 
                 <tbody>
-                  {paginatedRules.map((rule) => {
+                  {displayedRules.map((rule) => {
                     const metricInfo = getMetricInfo(
                       rule.device_id,
                       rule.metric
@@ -823,116 +772,157 @@ function Alarms() {
                 </tbody>
               </table>
             </div>
-
-            <TablePagination
-              page={safeRulePage}
-              pageSize={rulePageSize}
-              total={filteredRules.length}
-              onPageChange={setRulePage}
-            />
           </>
         )}
       </section>
 
-      <section className="app-card alarm-filter-card alarm-export-filter-card alarm-standalone-filter-card">
-        <div className="alarm-filter-heading">
+      <section className="app-card history-filter-card alarm-standalone-filter-card">
+        <div className="history-section-title">
+          <div>
             <h2>Filter</h2>
-            <p>เลือก Device, ช่วงวันที่, Metric และรูปแบบไฟล์ที่ต้องการ</p>
+            <p>เลือก Device, ช่วงวันที่ และ Metric ที่ต้องการตรวจสอบ</p>
           </div>
+        </div>
 
-        <div className="alarm-filter-grid alarm-event-export-filter-grid">
-            <label className="alarm-filter-field">
-              <span>Device</span>
-              <select
-                value={eventDeviceFilter}
-                onChange={(event) => {
-                  setEventDeviceFilter(event.target.value)
-                  setEventMetricFilter('all')
-                }}
-                aria-label="กรอง Alarm Events ตาม Device"
-              >
-                <option value="all">All Devices</option>
-                {devices.map((device) => (
-                  <option key={device.id} value={device.id}>
-                    {device.name || device.device_code || `Device ${device.id}`}
-                  </option>
-                ))}
-              </select>
-            </label>
+        <div className="history-filter-grid alarm-history-filter-grid">
+          <label>
+            <span>Device</span>
+            <select
+              value={eventDeviceFilter}
+              onChange={(event) => {
+                setEventDeviceFilter(event.target.value)
+                setEventMetricFilter('all')
+              }}
+              aria-label="กรอง Alarm Events ตาม Device"
+            >
+              <option value="all">All Devices</option>
+              {devices.map((device) => (
+                <option key={device.id} value={device.id}>
+                  {device.name || device.device_code || `Device ${device.id}`}
+                </option>
+              ))}
+            </select>
+          </label>
 
-            <label className="alarm-filter-field">
-              <span>Start Date</span>
+          <div className="history-filter-field">
+            <label htmlFor="alarm-start-date-input">Start Date</label>
+            <div className="history-date-picker">
               <input
+                id="alarm-start-date-input"
+                ref={eventStartDateInputRef}
                 type="date"
                 value={eventStartDate}
                 max={eventEndDate || undefined}
-                onChange={(event) => setEventStartDate(event.target.value)}
+                onChange={(event) => {
+                  const nextStartDate = event.target.value
+                  setEventStartDate(nextStartDate)
+                  if (eventEndDate && nextStartDate > eventEndDate) {
+                    setEventEndDate(nextStartDate)
+                  }
+                }}
                 aria-label="วันที่เริ่มต้น Alarm Events"
               />
-            </label>
+              <button
+                type="button"
+                className="history-date-picker-button"
+                onClick={() => showDatePicker(eventStartDateInputRef)}
+                aria-label="เปิดปฏิทินเลือกวันเริ่มต้น Alarm Events"
+              >
+                <CalendarDays size={17} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
 
-            <label className="alarm-filter-field">
-              <span>End Date</span>
+          <div className="history-filter-field">
+            <label htmlFor="alarm-end-date-input">End Date</label>
+            <div className="history-date-picker">
               <input
+                id="alarm-end-date-input"
+                ref={eventEndDateInputRef}
                 type="date"
                 value={eventEndDate}
                 min={eventStartDate || undefined}
-                onChange={(event) => setEventEndDate(event.target.value)}
+                onChange={(event) => {
+                  const nextEndDate = event.target.value
+                  setEventEndDate(nextEndDate)
+                  if (eventStartDate && nextEndDate < eventStartDate) {
+                    setEventStartDate(nextEndDate)
+                  }
+                }}
                 aria-label="วันที่สิ้นสุด Alarm Events"
               />
-            </label>
-
-            <label className="alarm-filter-field">
-              <span>Metric</span>
-              <select
-                value={eventMetricFilter}
-                onChange={(event) => setEventMetricFilter(event.target.value)}
-                aria-label="กรอง Alarm Events ตาม Metric"
-              >
-                <option value="all">All Metrics</option>
-                {eventMetricOptions.map((metric) => (
-                  <option key={metric.key} value={metric.key}>
-                    {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="alarm-filter-field alarm-format-field">
-              <span>Export</span>
-              <select
-                value={eventExportFormat}
-                onChange={(event) => setEventExportFormat(event.target.value)}
-                aria-label="รูปแบบไฟล์ Alarm Events"
-              >
-                <option value="pdf">PDF</option>
-                <option value="csv">CSV</option>
-              </select>
-            </label>
-
-            <div className="alarm-filter-actions">
               <button
                 type="button"
-                className="primary-button alarm-export-button"
-                onClick={handleExportAlarmEvents}
-                disabled={filteredAlarms.length === 0}
+                className="history-date-picker-button"
+                onClick={() => showDatePicker(eventEndDateInputRef)}
+                aria-label="เปิดปฏิทินเลือกวันสิ้นสุด Alarm Events"
               >
-                <Download size={17} />
-                Export
-              </button>
-
-              <button
-                type="button"
-                className="danger-button alarm-filter-clear-button"
-                onClick={handleClearAlarms}
-                disabled={loading || saving || filteredAlarms.length === 0}
-              >
-                <Trash2 size={17} />
-                Clear Alarm
+                <CalendarDays size={17} aria-hidden="true" />
               </button>
             </div>
+          </div>
+
+          <label>
+            <span>Metric</span>
+            <select
+              value={eventMetricFilter}
+              onChange={(event) => setEventMetricFilter(event.target.value)}
+              aria-label="กรอง Alarm Events ตาม Metric"
+            >
+              <option value="all">All Metrics</option>
+              {eventMetricOptions.map((metric) => (
+                <option key={metric.key} value={metric.key}>
+                  {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="history-filter-actions alarm-history-filter-actions">
+            <button
+              type="button"
+              className="history-export-btn"
+              onClick={handleExportAlarmEvents}
+              disabled={filteredAlarms.length === 0}
+            >
+              <Download size={16} aria-hidden="true" />
+              Export CSV
+            </button>
+
+            <button
+              type="button"
+              className="history-clear-btn"
+              onClick={openClearAlarmDialog}
+              disabled={
+                loading ||
+                saving ||
+                clearingAlarms ||
+                filteredAlarms.length === 0
+              }
+            >
+              <Trash2 size={16} aria-hidden="true" />
+              Clear Alarm
+            </button>
+          </div>
         </div>
       </section>
+
+      {notice && (
+        <NoticeBanner
+          type="success"
+          title="Alarm Events updated"
+          message={notice}
+          onDismiss={() => setNotice('')}
+        />
+      )}
+      {pageError && (
+        <NoticeBanner
+          type="error"
+          title="Unable to clear Alarm Events"
+          message={pageError}
+          onDismiss={() => setPageError('')}
+        />
+      )}
 
       <section className="app-card alarm-data-section">
         <div className="app-section-title alarm-section-heading">
@@ -1052,6 +1042,46 @@ function Alarms() {
           </>
         )}
       </section>
+
+      <ClearFilteredDataDialog
+        open={clearDialogOpen}
+        idPrefix="alarm-events-clear"
+        title="ยืนยันการ Clear Alarm"
+        description="Alarm Events ที่ตรงกับตัวกรองจะถูกลบออกจากฐานข้อมูลจริง และไม่สามารถกู้คืนจากหน้า Dashboard ได้"
+        summaryItems={[
+          {
+            label: 'Device',
+            value:
+              eventDeviceFilter === 'all'
+                ? 'All Devices'
+                : devices.find(
+                    (device) =>
+                      String(device.id) === String(eventDeviceFilter)
+                  )?.name || `Device ${eventDeviceFilter}`,
+          },
+          { label: 'Start Date', value: formatDateOnly(eventStartDate) },
+          { label: 'End Date', value: formatDateOnly(eventEndDate) },
+          {
+            label: 'Metric',
+            value:
+              eventMetricFilter === 'all'
+                ? 'All Metrics'
+                : eventMetricOptions.find(
+                    (metric) => metric.key === eventMetricFilter
+                  )?.name || eventMetricFilter,
+          },
+          {
+            label: 'Records',
+            value: `${filteredAlarms.length.toLocaleString('th-TH')} rows`,
+          },
+        ]}
+        confirmText="ฉันตรวจสอบ Device, ช่วงวันที่ และ Metric แล้ว และยืนยันว่าต้องการลบ Alarm Events ชุดนี้จริง"
+        confirmLabel="ยืนยัน Clear Alarm"
+        busyLabel="กำลังลบ Alarm..."
+        busy={clearingAlarms}
+        onClose={closeClearAlarmDialog}
+        onConfirm={handleClearAlarms}
+      />
     </div>
   )
 }

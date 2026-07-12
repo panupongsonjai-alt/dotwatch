@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bell,
+  CalendarDays,
   CheckCheck,
   Download,
   RefreshCcw,
@@ -8,15 +9,26 @@ import {
   ShieldAlert,
   WifiOff,
 } from 'lucide-react'
-import { EmptyState, PageHeader, StatCard } from '../components/common'
-import { getAlarms, getDeviceMetrics, getDevices } from '../services/api'
+import {
+  ClearFilteredDataDialog,
+  EmptyState,
+  NoticeBanner,
+  PageHeader,
+  StatCard,
+} from '../components/common'
+import {
+  clearNotificationFeed,
+  getAlarms,
+  getDeviceMetrics,
+  getDevices,
+  getNotificationFeedDeletions,
+} from '../services/api'
 import { auth } from '../services/firebase'
 import { connectRealtime } from '../services/realtime'
 import {
   downloadCsv,
   getLocalDateInputValue,
   isDateInRange,
-  openPrintableTable,
 } from '../utils/tableExport'
 
 const READ_STORAGE_KEY = 'dotwatchReadNotifications'
@@ -180,6 +192,28 @@ function isSameRealtimeDevice(device, reading) {
   )
 }
 
+function showDatePicker(inputRef) {
+  const input = inputRef.current
+  if (!input) return
+
+  if (typeof input.showPicker === 'function') {
+    input.showPicker()
+    return
+  }
+
+  input.focus()
+  input.click()
+}
+
+function formatDateOnly(value) {
+  if (!value) return '--'
+
+  const date = new Date(`${value}T00:00:00`)
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString('th-TH')
+}
+
 function NotificationCenter() {
   const [alarms, setAlarms] = useState([])
   const [devices, setDevices] = useState([])
@@ -191,7 +225,15 @@ function NotificationCenter() {
   const [metricFilter, setMetricFilter] = useState('all')
   const [startDate, setStartDate] = useState(today)
   const [endDate, setEndDate] = useState(today)
-  const [exportFormat, setExportFormat] = useState('pdf')
+  const startDateInputRef = useRef(null)
+  const endDateInputRef = useRef(null)
+  const [deletedNotificationIds, setDeletedNotificationIds] = useState(
+    () => new Set()
+  )
+  const [clearDialogOpen, setClearDialogOpen] = useState(false)
+  const [clearingNotifications, setClearingNotifications] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [pageError, setPageError] = useState('')
   const [pageSize, setPageSize] = useState(20)
   const [sortOrder, setSortOrder] = useState('desc')
   const [page, setPage] = useState(1)
@@ -199,15 +241,23 @@ function NotificationCenter() {
   async function loadData() {
     try {
       setLoading(true)
-      const [alarmData, deviceData] = await Promise.all([
+      const [alarmData, deviceData, deletionData] = await Promise.all([
         getAlarms(),
         getDevices(),
+        getNotificationFeedDeletions().catch((error) => {
+          console.error('Load notification deletions error:', error)
+          return { keys: [] }
+        }),
       ])
 
       const nextAlarms = Array.isArray(alarmData) ? alarmData : []
       const nextDevices = Array.isArray(deviceData) ? deviceData : []
+      const deletedKeys = Array.isArray(deletionData?.keys)
+        ? deletionData.keys
+        : []
       setAlarms(nextAlarms)
       setDevices(nextDevices)
+      setDeletedNotificationIds(new Set(deletedKeys.map(String)))
 
       const metricEntries = await Promise.all(
         nextDevices.map(async (device) => {
@@ -280,37 +330,53 @@ function NotificationCenter() {
     ]
     const fileName = `dotWatch-notifications-${startDate || 'all'}-to-${endDate || 'all'}`
 
-    if (exportFormat === 'csv') {
-      downloadCsv({ fileName, columns, rows, metadata })
-      return
-    }
-
-    openPrintableTable({
-      title: 'dotWatch Notification Feed',
-      subtitle: 'Notifications filtered by device, metric and date range',
-      fileName,
-      columns,
-      rows,
-      metadata,
-    })
+    downloadCsv({ fileName, columns, rows, metadata })
   }
 
-  function handleClearAlarmNotifications() {
-    const alarmItems = filteredNotifications.filter(
-      (item) => item.type === 'alarm'
-    )
-    if (alarmItems.length === 0) return
+  function openClearNotificationDialog() {
+    if (filteredNotifications.length === 0 || clearingNotifications) return
+    setClearDialogOpen(true)
+  }
 
-    const ok = window.confirm(
-      `ต้องการ Clear Alarm ใน Notification Feed ตามตัวกรองจำนวน ${alarmItems.length} รายการใช่ไหม?\n\nรายการจะกลับมาเมื่อกด Refresh หรือมีข้อมูลใหม่จาก Realtime`
-    )
-    if (!ok) return
+  function closeClearNotificationDialog() {
+    if (clearingNotifications) return
+    setClearDialogOpen(false)
+  }
 
-    const alarmKeys = new Set(alarmItems.map((item) => item.alarmKey))
-    setAlarms((prev) =>
-      prev.filter((alarm) => !alarmKeys.has(getAlarmKey(alarm)))
-    )
-    setPage(1)
+  async function handleClearNotifications() {
+    if (filteredNotifications.length === 0 || clearingNotifications) return
+
+    const keys = filteredNotifications.map((item) => item.id)
+
+    try {
+      setClearingNotifications(true)
+      setNotice('')
+      setPageError('')
+
+      const result = await clearNotificationFeed(keys)
+      const deletedKeys = Array.isArray(result?.keys) ? result.keys : keys
+      const deletedCount = Number(
+        result?.deletedCount ?? result?.deleted_count ?? deletedKeys.length
+      )
+
+      setDeletedNotificationIds((previous) => {
+        const next = new Set(previous)
+        deletedKeys.forEach((key) => next.add(String(key)))
+        return next
+      })
+      setClearDialogOpen(false)
+      setPage(1)
+      setNotice(
+        deletedCount > 0
+          ? `ลบ Notification Feed สำเร็จ ${deletedCount.toLocaleString('th-TH')} รายการ`
+          : 'ไม่พบ Notification ที่ตรงกับตัวกรองสำหรับลบ'
+      )
+    } catch (error) {
+      console.error('Clear notification feed error:', error)
+      setPageError(error.message || 'ลบ Notification Feed ไม่สำเร็จ')
+    } finally {
+      setClearingNotifications(false)
+    }
   }
 
   function markAsRead(id) {
@@ -406,8 +472,10 @@ function NotificationCenter() {
       .filter((device) => ['offline', 'warning'].includes(device.status))
       .map(buildDeviceNotification)
 
-    return [...alarmNotifications, ...deviceAlerts]
-  }, [alarms, devices, deviceMetrics])
+    return [...alarmNotifications, ...deviceAlerts].filter(
+      (item) => !deletedNotificationIds.has(String(item.id))
+    )
+  }, [alarms, devices, deviceMetrics, deletedNotificationIds])
 
   const notificationMetricOptions = useMemo(() => {
     const options = new Map()
@@ -544,107 +612,152 @@ function NotificationCenter() {
         />
       </section>
 
-      <section className="app-card notification-filter-card notification-export-filter-card notification-standalone-filter-card">
-        <div className="notification-filter-heading">
+      <section className="app-card history-filter-card notification-standalone-filter-card">
+        <div className="history-section-title">
+          <div>
             <h2>Filter</h2>
-            <p>เลือก Device, ช่วงวันที่, Metric และรูปแบบไฟล์ที่ต้องการ</p>
+            <p>เลือก Device, ช่วงวันที่ และ Metric ที่ต้องการตรวจสอบ</p>
           </div>
+        </div>
 
-        <div className="notification-filter-grid notification-export-filter-grid">
-            <label className="notification-filter-field">
-              <span>Device</span>
-              <select
-                value={deviceFilter}
-                onChange={(event) => {
-                  setDeviceFilter(event.target.value)
-                  setMetricFilter('all')
-                }}
-                aria-label="กรอง Notification ตาม Device"
-              >
-                <option value="all">All Devices</option>
-                {devices.map((device) => (
-                  <option key={device.id} value={device.id}>
-                    {device.name || device.device_code || `Device ${device.id}`}
-                  </option>
-                ))}
-              </select>
-            </label>
+        <div className="history-filter-grid notification-history-filter-grid">
+          <label>
+            <span>Device</span>
+            <select
+              value={deviceFilter}
+              onChange={(event) => {
+                setDeviceFilter(event.target.value)
+                setMetricFilter('all')
+              }}
+              aria-label="กรอง Notification ตาม Device"
+            >
+              <option value="all">All Devices</option>
+              {devices.map((device) => (
+                <option key={device.id} value={device.id}>
+                  {device.name || device.device_code || `Device ${device.id}`}
+                </option>
+              ))}
+            </select>
+          </label>
 
-            <label className="notification-filter-field">
-              <span>Start Date</span>
+          <div className="history-filter-field">
+            <label htmlFor="notification-start-date-input">Start Date</label>
+            <div className="history-date-picker">
               <input
+                id="notification-start-date-input"
+                ref={startDateInputRef}
                 type="date"
                 value={startDate}
                 max={endDate || undefined}
-                onChange={(event) => setStartDate(event.target.value)}
+                onChange={(event) => {
+                  const nextStartDate = event.target.value
+                  setStartDate(nextStartDate)
+                  if (endDate && nextStartDate > endDate) {
+                    setEndDate(nextStartDate)
+                  }
+                }}
                 aria-label="วันที่เริ่มต้น Notification"
               />
-            </label>
+              <button
+                type="button"
+                className="history-date-picker-button"
+                onClick={() => showDatePicker(startDateInputRef)}
+                aria-label="เปิดปฏิทินเลือกวันเริ่มต้น Notification"
+              >
+                <CalendarDays size={17} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
 
-            <label className="notification-filter-field">
-              <span>End Date</span>
+          <div className="history-filter-field">
+            <label htmlFor="notification-end-date-input">End Date</label>
+            <div className="history-date-picker">
               <input
+                id="notification-end-date-input"
+                ref={endDateInputRef}
                 type="date"
                 value={endDate}
                 min={startDate || undefined}
-                onChange={(event) => setEndDate(event.target.value)}
+                onChange={(event) => {
+                  const nextEndDate = event.target.value
+                  setEndDate(nextEndDate)
+                  if (startDate && nextEndDate < startDate) {
+                    setStartDate(nextEndDate)
+                  }
+                }}
                 aria-label="วันที่สิ้นสุด Notification"
               />
-            </label>
-
-            <label className="notification-filter-field">
-              <span>Metric</span>
-              <select
-                value={metricFilter}
-                onChange={(event) => setMetricFilter(event.target.value)}
-                aria-label="กรอง Notification ตาม Metric"
-              >
-                <option value="all">All Metrics</option>
-                {notificationMetricOptions.map((metric) => (
-                  <option key={metric.key} value={metric.key}>
-                    {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="notification-filter-field notification-format-field">
-              <span>Export</span>
-              <select
-                value={exportFormat}
-                onChange={(event) => setExportFormat(event.target.value)}
-                aria-label="รูปแบบไฟล์ Notification"
-              >
-                <option value="pdf">PDF</option>
-                <option value="csv">CSV</option>
-              </select>
-            </label>
-
-            <div className="notification-filter-actions">
               <button
                 type="button"
-                className="primary-button notification-export-button"
-                onClick={handleExportNotifications}
-                disabled={filteredNotifications.length === 0}
+                className="history-date-picker-button"
+                onClick={() => showDatePicker(endDateInputRef)}
+                aria-label="เปิดปฏิทินเลือกวันสิ้นสุด Notification"
               >
-                <Download size={17} />
-                Export
-              </button>
-
-              <button
-                type="button"
-                className="danger-button notification-clear-button"
-                onClick={handleClearAlarmNotifications}
-                disabled={
-                  filteredNotifications.every((item) => item.type !== 'alarm')
-                }
-              >
-                <Trash2 size={17} />
-                Clear Alarm
+                <CalendarDays size={17} aria-hidden="true" />
               </button>
             </div>
+          </div>
+
+          <label>
+            <span>Metric</span>
+            <select
+              value={metricFilter}
+              onChange={(event) => setMetricFilter(event.target.value)}
+              aria-label="กรอง Notification ตาม Metric"
+            >
+              <option value="all">All Metrics</option>
+              {notificationMetricOptions.map((metric) => (
+                <option key={metric.key} value={metric.key}>
+                  {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="history-filter-actions notification-history-filter-actions">
+            <button
+              type="button"
+              className="history-export-btn"
+              onClick={handleExportNotifications}
+              disabled={filteredNotifications.length === 0}
+            >
+              <Download size={16} aria-hidden="true" />
+              Export CSV
+            </button>
+
+            <button
+              type="button"
+              className="history-clear-btn"
+              onClick={openClearNotificationDialog}
+              disabled={
+                loading ||
+                clearingNotifications ||
+                filteredNotifications.length === 0
+              }
+            >
+              <Trash2 size={16} aria-hidden="true" />
+              Clear Noti
+            </button>
+          </div>
         </div>
       </section>
+
+      {notice && (
+        <NoticeBanner
+          type="success"
+          title="Notification Feed updated"
+          message={notice}
+          onDismiss={() => setNotice('')}
+        />
+      )}
+      {pageError && (
+        <NoticeBanner
+          type="error"
+          title="Unable to clear Notification Feed"
+          message={pageError}
+          onDismiss={() => setPageError('')}
+        />
+      )}
 
       <section className="app-card notifications-panel">
         <div className="app-section-title notification-section-heading">
@@ -812,6 +925,45 @@ function NotificationCenter() {
           </>
         )}
       </section>
+
+      <ClearFilteredDataDialog
+        open={clearDialogOpen}
+        idPrefix="notification-feed-clear"
+        title="ยืนยันการ Clear Noti"
+        description="Notification Feed ที่ตรงกับตัวกรองจะถูกลบออกจากรายการอย่างถาวรสำหรับบัญชีนี้ และไม่กลับมาเมื่อ Refresh หน้า"
+        summaryItems={[
+          {
+            label: 'Device',
+            value:
+              deviceFilter === 'all'
+                ? 'All Devices'
+                : devices.find(
+                    (device) => String(device.id) === String(deviceFilter)
+                  )?.name || `Device ${deviceFilter}`,
+          },
+          { label: 'Start Date', value: formatDateOnly(startDate) },
+          { label: 'End Date', value: formatDateOnly(endDate) },
+          {
+            label: 'Metric',
+            value:
+              metricFilter === 'all'
+                ? 'All Metrics'
+                : notificationMetricOptions.find(
+                    (metric) => metric.key === metricFilter
+                  )?.name || metricFilter,
+          },
+          {
+            label: 'Records',
+            value: `${filteredNotifications.length.toLocaleString('th-TH')} rows`,
+          },
+        ]}
+        confirmText="ฉันตรวจสอบ Device, ช่วงวันที่ และ Metric แล้ว และยืนยันว่าต้องการลบ Notification Feed ชุดนี้จริง"
+        confirmLabel="ยืนยัน Clear Noti"
+        busyLabel="กำลังลบ Notification..."
+        busy={clearingNotifications}
+        onClose={closeClearNotificationDialog}
+        onConfirm={handleClearNotifications}
+      />
     </div>
   )
 }
