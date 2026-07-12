@@ -1,0 +1,21 @@
+<aside aria-label="เครื่องมือ Preview" class="preview-toolbar">
+<div class="preview-toolbar__brand">
+<strong>ESP32 UI Preview</strong>
+<span class="preview-connection is-loading" id="previewConnection">กำลังเชื่อมต่อ</span>
+</div>
+<div class="preview-toolbar__controls">
+<label class="preview-field"><span>ESP32 URL</span><input id="previewDeviceUrl" readonly="" value="http://192.168.1.103"/></label>
+<label class="preview-field preview-field--pin"><span>Local Admin PIN</span><input id="previewPin" inputmode="text" placeholder="admin" type="password"/></label>
+<button class="preview-button" id="previewRefresh" type="button">
+          Refresh now
+        </button>
+<button aria-pressed="false" class="preview-button" id="previewMockToggle" type="button">
+          ใช้ Mock Data
+        </button>
+</div>
+<div class="preview-toolbar__meta">
+<span>แก้ <code>portal-preview/src/styles/</code> แล้วหน้าเว็บ Reload
+          อัตโนมัติ</span>
+<span>ข้อมูลอุปกรณ์อัปเดตทุก 2 วินาที</span>
+</div>
+</aside>

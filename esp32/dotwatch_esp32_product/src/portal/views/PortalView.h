@@ -26,6 +26,15 @@ class PortalView {
 
   String dashboardPage();
   String loginPage(const String &message, bool showDefaultPinHint);
+  String noticePage(const String &pageTitle,
+                    const String &heading,
+                    const String &message,
+                    const String &backHref = "",
+                    const String &backLabel = "กลับหน้าหลัก");
+  String sensorTestPage(const MetricSnapshot &snapshot,
+                        bool readingOk,
+                        const String &homeHref,
+                        const String &jsonHref);
   String pageShell(const String &title, const String &body);
   String restartPage(const String &kicker,
                      const String &title,
@@ -43,6 +52,7 @@ class PortalView {
 
   String statusBadgeClass() const;
   String lastSendLabel() const;
+  String readinessLabel() const;
   String pinHiddenInput() const;
   String authQuery() const;
 

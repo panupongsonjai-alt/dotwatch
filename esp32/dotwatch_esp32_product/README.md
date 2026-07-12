@@ -23,6 +23,8 @@ esp32/dotwatch_esp32_product
   - ล้มเหลวจะกลับไปใช้ Wi-Fi เดิม
 - Setup AP แยกตามอุปกรณ์ เช่น `dotWatch-Setup-A1B2C3`
 - Portal แยก CSS/JavaScript ออกจาก Core logic
+- Web App แยกเป็น `components`, `pages`, `features`, `styles` และ `shared` คล้าย Dashboard
+- `PortalServer` ดูแลเฉพาะ route/validation ส่วน HTML จริงอยู่ใน `src/portal/views`
 - Payload ยังคงเดิม:
   - `metric_1` = Temperature
   - `metric_2` = Humidity
@@ -80,8 +82,8 @@ URL      : http://192.168.4.1/
 
 เมื่อ ESP32 ออนไลน์ ให้เปิด Local IP ที่แสดงใน Serial Monitor
 
-- ถ้ายังไม่ตั้ง Custom PIN: ใช้ 6 ตัวท้ายของ Device Code
-- ถ้า Device Code สั้นหรือยังไม่มี: ใช้ `123456`
+- ถ้ายังไม่ตั้ง Custom PIN: ใช้ `admin`
+- หลังเข้าสู่ระบบแล้วสามารถตั้ง Custom PIN ได้ในหน้า Security
 
 ## Wi-Fi Rollback
 

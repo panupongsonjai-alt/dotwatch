@@ -1,0 +1,94 @@
+<section class="dashboard-page" data-page-title="Wi-Fi Setup" id="wifi">
+<div class="card">
+<div class="section-head">
+<div>
+<div class="kicker">Network Setup</div>
+<h2>เปลี่ยน Wi-Fi อย่างปลอดภัย</h2>
+<p class="muted">
+                      ระบบเก็บค่าใหม่ไว้ทดสอบก่อนบันทึกจริง
+                      หากเชื่อมไม่สำเร็จจะย้อนกลับ Wi-Fi เดิม
+                    </p>
+</div>
+<span class="badge ok" id="wifiBadge">Connected</span>
+</div>
+<div class="current-wifi">
+<div>
+<small>Wi-Fi ปัจจุบัน</small><strong id="currentWifi">howtolongStudio</strong>
+</div>
+<div>
+<small>IP Address</small><strong id="currentIp">192.168.1.103</strong>
+</div>
+<div>
+<small>Remembered</small><strong id="rememberedWifi">2 networks</strong>
+</div>
+</div>
+<div class="steps">
+<div class="step">
+<b>1</b>
+<div>
+<strong>สแกนและเลือก</strong><span>เลือกชื่อ Wi-Fi จากรายการ</span>
+</div>
+</div>
+<div class="step">
+<b>2</b>
+<div>
+<strong>ใส่รหัสผ่าน</strong><span>เว้นว่างสำหรับ Open Wi-Fi</span>
+</div>
+</div>
+<div class="step">
+<b>3</b>
+<div>
+<strong>Restart และ Rollback</strong><span>Wi-Fi เดิมไม่หายเมื่อรหัสผิด</span>
+</div>
+</div>
+</div>
+<div class="wifi-layout">
+<div class="panel">
+<form data-preview-form="wifi">
+<div class="form-grid">
+<div class="field full">
+<label for="wifiSsid">ชื่อ Wi-Fi (SSID)</label><input autocomplete="off" id="wifiSsid" maxlength="32" name="wifiSsid" placeholder="เลือกจากรายการ หรือพิมพ์เอง" value="howtolongStudio"/>
+</div>
+<div class="field full">
+<label for="wifiPassword">รหัสผ่าน Wi-Fi</label>
+<div class="password-row">
+<input autocomplete="new-password" id="wifiPassword" maxlength="63" placeholder="เว้นว่างไว้เมื่อใช้ Wi-Fi เดิม" type="password"/><button class="btn-secondary" id="passwordToggle" type="button">
+                              แสดง
+                            </button>
+</div>
+<div class="help" id="selectedWifi">
+                            เลือก Wi-Fi จากรายการเพื่อกรอกชื่ออัตโนมัติ
+                          </div>
+</div>
+</div>
+<label class="check"><input checked="" type="checkbox"/><span>เก็บ Wi-Fi เดิมเป็นเครือข่ายสำรอง</span></label>
+<button class="btn-primary" style="width: 100%" type="submit">
+                        บันทึกและทดสอบหลัง Restart
+                      </button>
+</form>
+<form data-preview-form="wifi-clear" style="margin-top: 9px">
+<button class="btn-danger" style="width: 100%" type="submit">
+                        ล้างเฉพาะ Wi-Fi
+                      </button>
+</form>
+</div>
+<div class="panel">
+<div class="scan-head">
+<div>
+<h3>Wi-Fi ใกล้เคียง</h3>
+<div class="help">รายชื่อที่ ESP32 มองเห็นจริง</div>
+</div>
+<button class="btn-secondary" id="scanButton" type="button">
+                        สแกนใหม่
+                      </button>
+</div>
+<div class="scan-status" id="scanStatus">
+                      กำลังเตรียมสแกน...
+                    </div>
+<div class="network-list" id="networkList">
+<div class="empty">กำลังโหลดรายชื่อ Wi-Fi</div>
+</div>
+</div>
+</div>
+</div>
+</section>

@@ -2,13 +2,15 @@ import http from "node:http";
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildWebApp } from "./scripts/build-web.mjs";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 5174);
 const deviceTarget = String(process.env.ESP32_TARGET || "http://192.168.1.103").replace(/\/$/, "");
 const clients = new Set();
 const watchedExtensions = new Set([".html", ".css", ".js", ".json", ".mjs"]);
-const ignoredNames = new Set(["node_modules", ".git"]);
+const ignoredNames = new Set(["node_modules", ".git", "generated"]);
+const ignoredFiles = new Set([path.join(rootDir, "index.html")]);
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -131,6 +133,7 @@ async function collectFileTimes(directory, result = new Map()) {
       await collectFileTimes(fullPath, result);
       continue;
     }
+    if (ignoredFiles.has(fullPath)) continue;
     if (!watchedExtensions.has(path.extname(entry.name).toLowerCase())) continue;
     const info = await stat(fullPath);
     result.set(fullPath, info.mtimeMs);
@@ -138,6 +141,7 @@ async function collectFileTimes(directory, result = new Map()) {
   return result;
 }
 
+await buildWebApp({ quiet: true });
 let snapshot = await collectFileTimes(rootDir);
 setInterval(async () => {
   try {
@@ -155,8 +159,9 @@ setInterval(async () => {
 
     if (changed) {
       snapshot = next;
+      await buildWebApp({ quiet: true });
       broadcastReload();
-      console.log(`[reload] ${new Date().toLocaleTimeString()} preview files changed`);
+      console.log(`[reload] ${new Date().toLocaleTimeString()} modular source rebuilt`);
     }
   } catch (error) {
     console.error("File watcher error:", error);

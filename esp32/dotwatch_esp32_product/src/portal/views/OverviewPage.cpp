@@ -19,10 +19,24 @@ String PortalView::lastSendLabel() const {
   return "ยังไม่เคยส่ง";
 }
 
+String PortalView::readinessLabel() const {
+  int ready = 0;
+  if (wifi_->isConnected()) ready++;
+  if (config_->apiUrl.length() > 0) ready++;
+  if (config_->deviceCode.length() > 0 &&
+      config_->deviceSecret.length() > 0) {
+    ready++;
+  }
+  if (backend_->hasEffectiveCa()) ready++;
+  if (status_->lastSendStatus == "ok") ready++;
+  return String(ready) + "/5 พร้อมใช้งาน";
+}
+
 String PortalView::statusCardsHtml() const {
   const int rssi = wifi_->currentRssi();
   String html;
   html += "<div class='status-grid'>";
+  html += "<div class='stat'><small>Readiness</small><strong id='statusReadiness'>" + readinessLabel() + "</strong></div>";
   html += "<div class='stat'><small>Wi-Fi</small><strong id='statusWifi'>" + StringUtils::htmlEscape(wifi_->currentSsid().length() ? wifi_->currentSsid() : String("ยังไม่เชื่อมต่อ")) + "</strong></div>";
   html += "<div class='stat'><small>IP Address</small><strong id='statusIp'>" + StringUtils::htmlEscape(wifi_->currentIp()) + "</strong></div>";
   html += "<div class='stat'><small>Signal</small><strong id='statusSignal'>" + String(wifi_->isConnected() ? StringUtils::signalQualityText(rssi) + " · " + String(rssi) + " dBm" : String("Setup Mode")) + "</strong></div>";
@@ -50,6 +64,14 @@ String PortalView::overviewPageHtml() const {
   html += "</div>";
 
   html += "<div class='overview-grid'>";
+  html += "<div class='card'><div class='card-head'><div><div class='kicker'>Quick Access</div><h2>การตั้งค่าที่ใช้บ่อย</h2><p class='muted'>เปิดเฉพาะส่วนที่ต้องการโดยไม่ต้องเลื่อนหาหน้ายาว</p></div></div>";
+  html += "<div class='quick-actions'>";
+  html += "<button class='quick-action' type='button' data-page-target='wifi'><b>เปลี่ยน Wi-Fi</b><span>สแกน เลือก และทดสอบเครือข่ายใหม่</span></button>";
+  html += "<button class='quick-action' type='button' data-page-target='device'><b>Device Settings</b><span>ตรวจ Backend URL, Device Code และ Secret</span></button>";
+  html += "<button class='quick-action' type='button' data-page-target='sensor'><b>ดูค่า Sensor</b><span>Temperature, Humidity และ Send Interval</span></button>";
+  html += "<button class='quick-action' type='button' data-page-target='system'><b>System Operations</b><span>ดู JSON หรือ Restart อุปกรณ์</span></button>";
+  html += "</div></div>";
+
   const bool backendOk = status_->lastHttpStatus >= 200 &&
                          status_->lastHttpStatus < 300;
   html += "<div class='card'><div class='card-head'><div><div class='kicker'>Health Check</div><h2>สถานะระบบหลัก</h2><p class='muted'>รายละเอียดอ้างอิงจากสถานะเดิมของ Firmware</p></div></div><div class='health-list'>";

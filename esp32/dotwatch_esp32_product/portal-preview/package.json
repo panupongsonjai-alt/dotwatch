@@ -1,11 +1,12 @@
 {
-  "name": "dotwatch-esp32-portal-preview",
+  "name": "dotth-esp32-web-app",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
+    "build": "node scripts/build-web.mjs",
     "dev": "node dev-server.mjs",
-    "sync": "node sync-portal-assets.mjs",
-    "check": "node --check dev-server.mjs && node --check sync-portal-assets.mjs && node --check src/preview.js && node --check src/firmware.js"
+    "sync": "npm run build && node scripts/sync-firmware-assets.mjs",
+    "check": "npm run sync && node --check dev-server.mjs && node --check scripts/build-web.mjs && node --check scripts/sync-firmware-assets.mjs && node --check scripts/verify-structure.mjs && node --check src/preview/preview.js && node --check src/mocks/mock-device.js && node --check generated/firmware.js && node scripts/verify-structure.mjs"
   }
 }

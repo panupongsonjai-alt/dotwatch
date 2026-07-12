@@ -4,6 +4,7 @@
 #include <DNSServer.h>
 #include <WebServer.h>
 #include "AppTypes.h"
+#include "portal/views/PortalView.h"
 
 class BackendClient;
 class ConfigStore;
@@ -46,24 +47,24 @@ class PortalServer {
   String defaultAdminPin() const;
   String effectiveAdminPin() const;
   String currentPinValue();
-  String pinHiddenInput();
   String authQuery();
+  void syncViewContext();
+  String renderNoticePage(const String &pageTitle,
+                          const String &heading,
+                          const String &message,
+                          const String &backHref = "",
+                          const String &backLabel = "กลับหน้าหลัก");
+  String renderRestartPage(const String &pageTitle,
+                           const String &kicker,
+                           const String &heading,
+                           const String &message,
+                           const String &extraNotice = "");
+  String renderSensorTestPage(const MetricSnapshot &snapshot,
+                              bool readingOk);
   void sendLocalAdminLogin(int statusCode = 200,
                            const String &message = "");
 
-  String pageShell(const String &title, const String &body);
-  String statusBadgeClass() const;
-  String lastSendLabel() const;
-  String readinessLabel() const;
-  String statusCardsHtml() const;
-  String wifiSectionHtml();
-  String deviceSectionHtml();
-  String advancedSectionsHtml();
-  String operationsHtml();
-  String restartPage(const String &kicker,
-                     const String &title,
-                     const String &message,
-                     const String &extraNotice = "") const;
+
 
   WebServer server_;
   DNSServer dnsServer_;
@@ -77,4 +78,5 @@ class PortalServer {
   WiFiManager *wifi_ = nullptr;
   SensorManager *sensors_ = nullptr;
   BackendClient *backend_ = nullptr;
+  PortalView view_;
 };
