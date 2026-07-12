@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: dotwatch-ota
+    runtime: node
+    rootDir: services/ota-server
+    buildCommand: npm run check
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: OTA_ALLOW_UNREGISTERED_DEVICES
+        value: "false"
+      - key: OTA_DEVICE_SECRETS_JSON
+        sync: false

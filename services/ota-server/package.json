@@ -1,0 +1,12 @@
+{
+  "name": "dotwatch-ota-server",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check server.mjs && node --check scripts/publish-release.mjs",
+    "publish:esp32": "node scripts/publish-release.mjs"
+  }
+}
