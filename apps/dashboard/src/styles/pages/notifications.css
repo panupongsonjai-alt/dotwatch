@@ -669,9 +669,9 @@
 .notifications-page .notification-export-filter-grid {
   grid-template-columns:
     minmax(190px, 1.25fr)
+    minmax(150px, 0.78fr)
+    minmax(150px, 0.78fr)
     minmax(180px, 1fr)
-    minmax(150px, 0.78fr)
-    minmax(150px, 0.78fr)
     minmax(88px, 0.42fr)
     minmax(236px, auto);
   gap: 12px;
@@ -754,5 +754,37 @@
   .notifications-page .notification-export-filter-grid,
   .notifications-page .notification-filter-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+
+/* =========================================================
+   Notification Feed - standalone Filter card parity with History
+========================================================= */
+.notifications-page .notification-standalone-filter-card {
+  gap: 20px;
+  padding: 20px;
+  border-radius: 24px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.notifications-page .notification-standalone-filter-card .notification-filter-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.notifications-page .notifications-panel {
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
+  .notifications-page .notification-standalone-filter-card {
+    padding: 16px;
+    border-radius: 20px;
   }
 }

@@ -834,31 +834,13 @@ function Alarms() {
         )}
       </section>
 
-      <section className="app-card alarm-data-section">
-        <div className="app-section-title alarm-section-heading">
-          <div>
-            <h2>Alarm Events</h2>
-            <p>รายการแจ้งเตือนล่าสุดจาก Dynamic Metrics</p>
+      <section className="app-card alarm-filter-card alarm-export-filter-card alarm-standalone-filter-card">
+        <div className="alarm-filter-heading">
+            <h2>Filter</h2>
+            <p>เลือก Device, ช่วงวันที่, Metric และรูปแบบไฟล์ที่ต้องการ</p>
           </div>
 
-          <TableViewControls
-            page={safeAlarmPage}
-            pageSize={alarmPageSize}
-            sortOrder={alarmSortOrder}
-            total={filteredAlarms.length}
-            onPageSizeChange={setAlarmPageSize}
-            onSortOrderChange={setAlarmSortOrder}
-            pageSizes={EVENT_PAGE_SIZES}
-          />
-        </div>
-
-        <div className="alarm-filter-card alarm-export-filter-card">
-          <div className="alarm-filter-heading">
-            <h3>Filter</h3>
-            <p>เลือก Device, Metric และช่วงวันที่สำหรับ Alarm Events</p>
-          </div>
-
-          <div className="alarm-filter-grid alarm-event-export-filter-grid">
+        <div className="alarm-filter-grid alarm-event-export-filter-grid">
             <label className="alarm-filter-field">
               <span>Device</span>
               <select
@@ -873,22 +855,6 @@ function Alarms() {
                 {devices.map((device) => (
                   <option key={device.id} value={device.id}>
                     {device.name || device.device_code || `Device ${device.id}`}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="alarm-filter-field">
-              <span>Metric</span>
-              <select
-                value={eventMetricFilter}
-                onChange={(event) => setEventMetricFilter(event.target.value)}
-                aria-label="กรอง Alarm Events ตาม Metric"
-              >
-                <option value="all">All Metrics</option>
-                {eventMetricOptions.map((metric) => (
-                  <option key={metric.key} value={metric.key}>
-                    {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
                   </option>
                 ))}
               </select>
@@ -914,6 +880,22 @@ function Alarms() {
                 onChange={(event) => setEventEndDate(event.target.value)}
                 aria-label="วันที่สิ้นสุด Alarm Events"
               />
+            </label>
+
+            <label className="alarm-filter-field">
+              <span>Metric</span>
+              <select
+                value={eventMetricFilter}
+                onChange={(event) => setEventMetricFilter(event.target.value)}
+                aria-label="กรอง Alarm Events ตาม Metric"
+              >
+                <option value="all">All Metrics</option>
+                {eventMetricOptions.map((metric) => (
+                  <option key={metric.key} value={metric.key}>
+                    {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className="alarm-filter-field alarm-format-field">
@@ -949,8 +931,27 @@ function Alarms() {
                 Clear Alarm
               </button>
             </div>
-          </div>
         </div>
+      </section>
+
+      <section className="app-card alarm-data-section">
+        <div className="app-section-title alarm-section-heading">
+          <div>
+            <h2>Alarm Events</h2>
+            <p>รายการแจ้งเตือนล่าสุดจาก Dynamic Metrics</p>
+          </div>
+
+          <TableViewControls
+            page={safeAlarmPage}
+            pageSize={alarmPageSize}
+            sortOrder={alarmSortOrder}
+            total={filteredAlarms.length}
+            onPageSizeChange={setAlarmPageSize}
+            onSortOrderChange={setAlarmSortOrder}
+            pageSizes={EVENT_PAGE_SIZES}
+          />
+        </div>
+
 
         {loading ? (
           <div className="app-empty-state">

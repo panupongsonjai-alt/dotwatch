@@ -544,6 +544,108 @@ function NotificationCenter() {
         />
       </section>
 
+      <section className="app-card notification-filter-card notification-export-filter-card notification-standalone-filter-card">
+        <div className="notification-filter-heading">
+            <h2>Filter</h2>
+            <p>เลือก Device, ช่วงวันที่, Metric และรูปแบบไฟล์ที่ต้องการ</p>
+          </div>
+
+        <div className="notification-filter-grid notification-export-filter-grid">
+            <label className="notification-filter-field">
+              <span>Device</span>
+              <select
+                value={deviceFilter}
+                onChange={(event) => {
+                  setDeviceFilter(event.target.value)
+                  setMetricFilter('all')
+                }}
+                aria-label="กรอง Notification ตาม Device"
+              >
+                <option value="all">All Devices</option>
+                {devices.map((device) => (
+                  <option key={device.id} value={device.id}>
+                    {device.name || device.device_code || `Device ${device.id}`}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="notification-filter-field">
+              <span>Start Date</span>
+              <input
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(event) => setStartDate(event.target.value)}
+                aria-label="วันที่เริ่มต้น Notification"
+              />
+            </label>
+
+            <label className="notification-filter-field">
+              <span>End Date</span>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(event) => setEndDate(event.target.value)}
+                aria-label="วันที่สิ้นสุด Notification"
+              />
+            </label>
+
+            <label className="notification-filter-field">
+              <span>Metric</span>
+              <select
+                value={metricFilter}
+                onChange={(event) => setMetricFilter(event.target.value)}
+                aria-label="กรอง Notification ตาม Metric"
+              >
+                <option value="all">All Metrics</option>
+                {notificationMetricOptions.map((metric) => (
+                  <option key={metric.key} value={metric.key}>
+                    {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="notification-filter-field notification-format-field">
+              <span>Export</span>
+              <select
+                value={exportFormat}
+                onChange={(event) => setExportFormat(event.target.value)}
+                aria-label="รูปแบบไฟล์ Notification"
+              >
+                <option value="pdf">PDF</option>
+                <option value="csv">CSV</option>
+              </select>
+            </label>
+
+            <div className="notification-filter-actions">
+              <button
+                type="button"
+                className="primary-button notification-export-button"
+                onClick={handleExportNotifications}
+                disabled={filteredNotifications.length === 0}
+              >
+                <Download size={17} />
+                Export
+              </button>
+
+              <button
+                type="button"
+                className="danger-button notification-clear-button"
+                onClick={handleClearAlarmNotifications}
+                disabled={
+                  filteredNotifications.every((item) => item.type !== 'alarm')
+                }
+              >
+                <Trash2 size={17} />
+                Clear Alarm
+              </button>
+            </div>
+        </div>
+      </section>
+
       <section className="app-card notifications-panel">
         <div className="app-section-title notification-section-heading">
           <div>
@@ -585,107 +687,6 @@ function NotificationCenter() {
           </div>
         </div>
 
-        <div className="notification-filter-card notification-export-filter-card">
-          <div className="notification-filter-heading">
-            <h3>Filter</h3>
-            <p>เลือก Device, Metric และช่วงวันที่สำหรับ Notification Feed</p>
-          </div>
-
-          <div className="notification-filter-grid notification-export-filter-grid">
-            <label className="notification-filter-field">
-              <span>Device</span>
-              <select
-                value={deviceFilter}
-                onChange={(event) => {
-                  setDeviceFilter(event.target.value)
-                  setMetricFilter('all')
-                }}
-                aria-label="กรอง Notification ตาม Device"
-              >
-                <option value="all">All Devices</option>
-                {devices.map((device) => (
-                  <option key={device.id} value={device.id}>
-                    {device.name || device.device_code || `Device ${device.id}`}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="notification-filter-field">
-              <span>Metric</span>
-              <select
-                value={metricFilter}
-                onChange={(event) => setMetricFilter(event.target.value)}
-                aria-label="กรอง Notification ตาม Metric"
-              >
-                <option value="all">All Metrics</option>
-                {notificationMetricOptions.map((metric) => (
-                  <option key={metric.key} value={metric.key}>
-                    {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="notification-filter-field">
-              <span>Start Date</span>
-              <input
-                type="date"
-                value={startDate}
-                max={endDate || undefined}
-                onChange={(event) => setStartDate(event.target.value)}
-                aria-label="วันที่เริ่มต้น Notification"
-              />
-            </label>
-
-            <label className="notification-filter-field">
-              <span>End Date</span>
-              <input
-                type="date"
-                value={endDate}
-                min={startDate || undefined}
-                onChange={(event) => setEndDate(event.target.value)}
-                aria-label="วันที่สิ้นสุด Notification"
-              />
-            </label>
-
-            <label className="notification-filter-field notification-format-field">
-              <span>Export</span>
-              <select
-                value={exportFormat}
-                onChange={(event) => setExportFormat(event.target.value)}
-                aria-label="รูปแบบไฟล์ Notification"
-              >
-                <option value="pdf">PDF</option>
-                <option value="csv">CSV</option>
-              </select>
-            </label>
-
-            <div className="notification-filter-actions">
-              <button
-                type="button"
-                className="primary-button notification-export-button"
-                onClick={handleExportNotifications}
-                disabled={filteredNotifications.length === 0}
-              >
-                <Download size={17} />
-                Export
-              </button>
-
-              <button
-                type="button"
-                className="danger-button notification-clear-button"
-                onClick={handleClearAlarmNotifications}
-                disabled={
-                  filteredNotifications.every((item) => item.type !== 'alarm')
-                }
-              >
-                <Trash2 size={17} />
-                Clear Alarm
-              </button>
-            </div>
-          </div>
-        </div>
 
         {loading ? (
           <EmptyState

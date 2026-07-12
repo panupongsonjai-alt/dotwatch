@@ -959,9 +959,9 @@
 .alarms-page .alarm-event-export-filter-grid {
   grid-template-columns:
     minmax(190px, 1.25fr)
+    minmax(150px, 0.78fr)
+    minmax(150px, 0.78fr)
     minmax(180px, 1fr)
-    minmax(150px, 0.78fr)
-    minmax(150px, 0.78fr)
     minmax(88px, 0.42fr)
     minmax(236px, auto);
   gap: 12px;
@@ -1044,5 +1044,37 @@
   .alarms-page .alarm-event-export-filter-grid,
   .alarms-page .alarm-filter-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+
+/* =========================================================
+   Alarm Events - standalone Filter card parity with History
+========================================================= */
+.alarms-page .alarm-standalone-filter-card {
+  gap: 20px;
+  padding: 20px;
+  border-radius: 24px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.alarms-page .alarm-standalone-filter-card .alarm-filter-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.alarms-page .alarm-data-section {
+  min-width: 0;
+}
+
+@media (max-width: 680px) {
+  .alarms-page .alarm-standalone-filter-card {
+    padding: 16px;
+    border-radius: 20px;
   }
 }
