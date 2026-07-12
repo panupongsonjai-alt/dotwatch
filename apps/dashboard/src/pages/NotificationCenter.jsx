@@ -2,23 +2,25 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Bell,
   CheckCheck,
+  Download,
   RefreshCcw,
-  Search,
+  Trash2,
   ShieldAlert,
   WifiOff,
 } from 'lucide-react'
-import {
-  EmptyState,
-  PageHeader,
-  SectionHeader,
-  StatCard,
-  StatusBadge,
-} from '../components/common'
-import { getAlarms, getDevices } from '../services/api'
+import { EmptyState, PageHeader, StatCard } from '../components/common'
+import { getAlarms, getDeviceMetrics, getDevices } from '../services/api'
 import { auth } from '../services/firebase'
 import { connectRealtime } from '../services/realtime'
+import {
+  downloadCsv,
+  getLocalDateInputValue,
+  isDateInRange,
+  openPrintableTable,
+} from '../utils/tableExport'
 
 const READ_STORAGE_KEY = 'dotwatchReadNotifications'
+const TABLE_PAGE_SIZES = [10, 20, 50, 100]
 
 function formatDate(value) {
   if (!value) return '--'
@@ -43,6 +45,13 @@ function getRelativeTime(value) {
   if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}h ago`
 
   return `${Math.floor(diffSeconds / 86400)}d ago`
+}
+
+function getPageRange(page, pageSize, total) {
+  if (total === 0) return { start: 0, end: 0 }
+
+  const start = (page - 1) * pageSize + 1
+  return { start, end: Math.min(total, start + pageSize - 1) }
 }
 
 function readStoredIds() {
@@ -72,10 +81,11 @@ function getAlarmTitle(alarm) {
     .concat(` on ${device}`)
 }
 
-function buildAlarmNotification(alarm) {
+function buildAlarmNotification(alarm, metricInfo = {}) {
   const id = `alarm-${alarm.id}-${alarm.status || 'active'}`
-  const metric = alarm.metric_name || alarm.metric || 'Metric'
-  const unit = alarm.unit || ''
+  const metric = alarm.metric_name || metricInfo.name || alarm.metric || 'Metric'
+  const metricKey = alarm.metric || alarm.metric_key || metric
+  const unit = alarm.unit || metricInfo.unit || ''
   const valueText =
     alarm.value != null ? `${alarm.value}${unit ? ` ${unit}` : ''}` : '--'
   const thresholdText =
@@ -86,15 +96,22 @@ function buildAlarmNotification(alarm) {
 
   return {
     id,
+    alarmId: alarm.id,
+    alarmKey: getAlarmKey(alarm),
+    deviceId: alarm.device_id || alarm.deviceId || '',
+    deviceCode: alarm.device_code || '',
+    metricKey,
+    metricName: metric,
+    unit,
     type: 'alarm',
     severity: alarm.severity || 'warning',
     status: alarm.status || 'active',
-    title: getAlarmTitle(alarm),
+    title: getAlarmTitle({ ...alarm, metric_name: metric }),
     description:
       notificationMessage ||
       `${metric} value ${valueText} matched rule ${thresholdText}`,
     source: alarm.device_name || alarm.device_code || 'Unknown Device',
-    time: alarm.triggered_at || alarm.acknowledged_at,
+    time: alarm.triggered_at || alarm.acknowledged_at || alarm.created_at,
     icon: ShieldAlert,
   }
 }
@@ -106,6 +123,11 @@ function buildDeviceNotification(device) {
 
   return {
     id,
+    deviceId: device.id || '',
+    deviceCode: device.device_code || '',
+    metricKey: 'device_status',
+    metricName: 'Device Status',
+    unit: '',
     type: 'device',
     severity: isOffline ? 'critical' : 'warning',
     status,
@@ -161,10 +183,18 @@ function isSameRealtimeDevice(device, reading) {
 function NotificationCenter() {
   const [alarms, setAlarms] = useState([])
   const [devices, setDevices] = useState([])
+  const [deviceMetrics, setDeviceMetrics] = useState({})
   const [readIds, setReadIds] = useState(() => new Set(readStoredIds()))
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('all')
+  const today = getLocalDateInputValue()
+  const [deviceFilter, setDeviceFilter] = useState('all')
+  const [metricFilter, setMetricFilter] = useState('all')
+  const [startDate, setStartDate] = useState(today)
+  const [endDate, setEndDate] = useState(today)
+  const [exportFormat, setExportFormat] = useState('pdf')
+  const [pageSize, setPageSize] = useState(20)
+  const [sortOrder, setSortOrder] = useState('desc')
+  const [page, setPage] = useState(1)
 
   async function loadData() {
     try {
@@ -174,8 +204,28 @@ function NotificationCenter() {
         getDevices(),
       ])
 
-      setAlarms(Array.isArray(alarmData) ? alarmData : [])
-      setDevices(Array.isArray(deviceData) ? deviceData : [])
+      const nextAlarms = Array.isArray(alarmData) ? alarmData : []
+      const nextDevices = Array.isArray(deviceData) ? deviceData : []
+      setAlarms(nextAlarms)
+      setDevices(nextDevices)
+
+      const metricEntries = await Promise.all(
+        nextDevices.map(async (device) => {
+          try {
+            const metricResult = await getDeviceMetrics(device.id)
+            const metrics = Array.isArray(metricResult?.metrics)
+              ? metricResult.metrics
+              : Array.isArray(metricResult)
+                ? metricResult
+                : []
+            return [device.id, metrics]
+          } catch (error) {
+            console.error(`Load notification metrics error device ${device.id}:`, error)
+            return [device.id, []]
+          }
+        })
+      )
+      setDeviceMetrics(Object.fromEntries(metricEntries))
     } catch (error) {
       console.error('Load notifications error:', error)
       setAlarms([])
@@ -183,6 +233,84 @@ function NotificationCenter() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function getMetricInfo(deviceId, metricKey) {
+    const metrics = deviceMetrics[deviceId] || []
+    const metric = metrics.find((item) => item.metric_key === metricKey)
+    return {
+      name: metric?.metric_name || metricKey || '--',
+      unit: metric?.unit || '',
+    }
+  }
+
+  function handleExportNotifications() {
+    if (filteredNotifications.length === 0) return
+
+    const selectedDevice = devices.find(
+      (device) => String(device.id) === String(deviceFilter)
+    )
+    const selectedMetric = notificationMetricOptions.find(
+      (metric) => metric.key === metricFilter
+    )
+    const columns = [
+      { key: 'notification', label: 'Notification' },
+      { key: 'device', label: 'Device' },
+      { key: 'metric', label: 'Metric' },
+      { key: 'type', label: 'Type' },
+      { key: 'severity', label: 'Severity' },
+      { key: 'readStatus', label: 'Read Status' },
+      { key: 'triggered', label: 'Triggered' },
+    ]
+    const rows = filteredNotifications.map((item) => ({
+      notification: `${item.title} — ${item.description}`,
+      device: item.source,
+      metric: item.metricName || item.metricKey || '--',
+      type: item.type === 'alarm' ? 'Alarm' : 'Device',
+      severity: item.severity === 'critical' ? 'Critical' : 'Warning',
+      readStatus: readIds.has(item.id) ? 'Read' : 'Unread',
+      triggered: formatDate(item.time),
+    }))
+    const metadata = [
+      ['Device', selectedDevice?.name || 'All Devices'],
+      ['Metric', selectedMetric?.name || 'All Metrics'],
+      ['Start Date', startDate || '--'],
+      ['End Date', endDate || '--'],
+      ['Records', filteredNotifications.length],
+    ]
+    const fileName = `dotWatch-notifications-${startDate || 'all'}-to-${endDate || 'all'}`
+
+    if (exportFormat === 'csv') {
+      downloadCsv({ fileName, columns, rows, metadata })
+      return
+    }
+
+    openPrintableTable({
+      title: 'dotWatch Notification Feed',
+      subtitle: 'Notifications filtered by device, metric and date range',
+      fileName,
+      columns,
+      rows,
+      metadata,
+    })
+  }
+
+  function handleClearAlarmNotifications() {
+    const alarmItems = filteredNotifications.filter(
+      (item) => item.type === 'alarm'
+    )
+    if (alarmItems.length === 0) return
+
+    const ok = window.confirm(
+      `ต้องการ Clear Alarm ใน Notification Feed ตามตัวกรองจำนวน ${alarmItems.length} รายการใช่ไหม?\n\nรายการจะกลับมาเมื่อกด Refresh หรือมีข้อมูลใหม่จาก Realtime`
+    )
+    if (!ok) return
+
+    const alarmKeys = new Set(alarmItems.map((item) => item.alarmKey))
+    setAlarms((prev) =>
+      prev.filter((alarm) => !alarmKeys.has(getAlarmKey(alarm)))
+    )
+    setPage(1)
   }
 
   function markAsRead(id) {
@@ -268,40 +396,85 @@ function NotificationCenter() {
   }, [])
 
   const notifications = useMemo(() => {
-    const activeAlarms = alarms.map(buildAlarmNotification)
+    const alarmNotifications = alarms.map((alarm) =>
+      buildAlarmNotification(
+        alarm,
+        getMetricInfo(alarm.device_id, alarm.metric || alarm.metric_key)
+      )
+    )
     const deviceAlerts = devices
       .filter((device) => ['offline', 'warning'].includes(device.status))
       .map(buildDeviceNotification)
 
-    return [...activeAlarms, ...deviceAlerts].sort((a, b) => {
-      const aTime = new Date(a.time || 0).getTime()
-      const bTime = new Date(b.time || 0).getTime()
-      return bTime - aTime
+    return [...alarmNotifications, ...deviceAlerts]
+  }, [alarms, devices, deviceMetrics])
+
+  const notificationMetricOptions = useMemo(() => {
+    const options = new Map()
+
+    notifications.forEach((item) => {
+      if (
+        deviceFilter !== 'all' &&
+        String(item.deviceId) !== String(deviceFilter)
+      ) {
+        return
+      }
+
+      if (!item.metricKey) return
+      options.set(item.metricKey, {
+        key: item.metricKey,
+        name: item.metricName || item.metricKey,
+        unit: item.unit || '',
+      })
     })
-  }, [alarms, devices])
+
+    return Array.from(options.values()).sort((a, b) =>
+      String(a.name).localeCompare(String(b.name))
+    )
+  }, [notifications, deviceFilter])
 
   const filteredNotifications = useMemo(() => {
-    const keyword = search.trim().toLowerCase()
+    return notifications
+      .filter((item) => {
+        const matchesDevice =
+          deviceFilter === 'all' ||
+          String(item.deviceId) === String(deviceFilter)
+        const matchesMetric =
+          metricFilter === 'all' || item.metricKey === metricFilter
+        const matchesDate = isDateInRange(item.time, startDate, endDate)
+        return matchesDevice && matchesMetric && matchesDate
+      })
+      .sort((a, b) => {
+        const aTime = new Date(a.time || 0).getTime() || 0
+        const bTime = new Date(b.time || 0).getTime() || 0
+        return sortOrder === 'asc' ? aTime - bTime : bTime - aTime
+      })
+  }, [notifications, deviceFilter, metricFilter, startDate, endDate, sortOrder])
 
-    return notifications.filter((item) => {
-      const matchesFilter =
-        filter === 'all' ||
-        item.type === filter ||
-        item.status === filter ||
-        item.severity === filter ||
-        (filter === 'unread' && !readIds.has(item.id))
+  const totalPages = Math.max(1, Math.ceil(filteredNotifications.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const paginatedNotifications = filteredNotifications.slice(
+    (safePage - 1) * pageSize,
+    safePage * pageSize
+  )
+  const range = getPageRange(safePage, pageSize, filteredNotifications.length)
 
-      const matchesSearch =
-        !keyword ||
-        [item.title, item.description, item.source, item.type, item.status]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-          .includes(keyword)
+  useEffect(() => {
+    setPage(1)
+  }, [deviceFilter, metricFilter, startDate, endDate, pageSize, sortOrder])
 
-      return matchesFilter && matchesSearch
-    })
-  }, [filter, notifications, readIds, search])
+  useEffect(() => {
+    if (
+      metricFilter !== 'all' &&
+      !notificationMetricOptions.some((metric) => metric.key === metricFilter)
+    ) {
+      setMetricFilter('all')
+    }
+  }, [metricFilter, notificationMetricOptions])
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [page, totalPages])
 
   const unreadCount = notifications.filter(
     (item) => !readIds.has(item.id)
@@ -337,6 +510,7 @@ function NotificationCenter() {
               type="button"
               className="primary-button"
               onClick={markAllAsRead}
+              disabled={notifications.length === 0 || unreadCount === 0}
             >
               <CheckCheck size={16} />
               Mark all read
@@ -371,38 +545,146 @@ function NotificationCenter() {
       </section>
 
       <section className="app-card notifications-panel">
-        <SectionHeader
-          title="Notification Feed"
-          description="รายการแจ้งเตือนเรียงตามเวลาล่าสุด ใช้สำหรับตรวจสอบเหตุการณ์ที่ต้องติดตาม"
-          actions={
-            <span className="notification-count-chip">
-              {filteredNotifications.length} items
-            </span>
-          }
-        />
-
-        <div className="notifications-toolbar">
-          <div className="notifications-search-box">
-            <Search size={16} />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search notifications..."
-            />
+        <div className="app-section-title notification-section-heading">
+          <div>
+            <h2>Notification Feed</h2>
+            <p>รายการแจ้งเตือนตามตัวกรองและลำดับเวลาที่เลือก</p>
           </div>
 
-          <select
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-          >
-            <option value="all">All notifications</option>
-            <option value="unread">Unread</option>
-            <option value="alarm">Alarm events</option>
-            <option value="device">Device alerts</option>
-            <option value="critical">Critical</option>
-            <option value="warning">Warning</option>
-            <option value="acknowledged">Acknowledged</option>
-          </select>
+          <div className="notification-table-actions">
+            <span>
+              {range.start}-{range.end} / {filteredNotifications.length} rows
+            </span>
+
+            <label>
+              <span>Show</span>
+              <select
+                value={pageSize}
+                onChange={(event) => setPageSize(Number(event.target.value))}
+                aria-label="จำนวนแถว Notification ต่อหน้า"
+              >
+                {TABLE_PAGE_SIZES.map((size) => (
+                  <option key={size} value={size}>
+                    {size} rows
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Sort</span>
+              <select
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value)}
+                aria-label="ลำดับ Notification"
+              >
+                <option value="desc">ล่าสุดก่อน</option>
+                <option value="asc">เก่าสุดก่อน</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div className="notification-filter-card notification-export-filter-card">
+          <div className="notification-filter-heading">
+            <h3>Filter</h3>
+            <p>เลือก Device, Metric และช่วงวันที่สำหรับ Notification Feed</p>
+          </div>
+
+          <div className="notification-filter-grid notification-export-filter-grid">
+            <label className="notification-filter-field">
+              <span>Device</span>
+              <select
+                value={deviceFilter}
+                onChange={(event) => {
+                  setDeviceFilter(event.target.value)
+                  setMetricFilter('all')
+                }}
+                aria-label="กรอง Notification ตาม Device"
+              >
+                <option value="all">All Devices</option>
+                {devices.map((device) => (
+                  <option key={device.id} value={device.id}>
+                    {device.name || device.device_code || `Device ${device.id}`}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="notification-filter-field">
+              <span>Metric</span>
+              <select
+                value={metricFilter}
+                onChange={(event) => setMetricFilter(event.target.value)}
+                aria-label="กรอง Notification ตาม Metric"
+              >
+                <option value="all">All Metrics</option>
+                {notificationMetricOptions.map((metric) => (
+                  <option key={metric.key} value={metric.key}>
+                    {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="notification-filter-field">
+              <span>Start Date</span>
+              <input
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(event) => setStartDate(event.target.value)}
+                aria-label="วันที่เริ่มต้น Notification"
+              />
+            </label>
+
+            <label className="notification-filter-field">
+              <span>End Date</span>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(event) => setEndDate(event.target.value)}
+                aria-label="วันที่สิ้นสุด Notification"
+              />
+            </label>
+
+            <label className="notification-filter-field notification-format-field">
+              <span>Export</span>
+              <select
+                value={exportFormat}
+                onChange={(event) => setExportFormat(event.target.value)}
+                aria-label="รูปแบบไฟล์ Notification"
+              >
+                <option value="pdf">PDF</option>
+                <option value="csv">CSV</option>
+              </select>
+            </label>
+
+            <div className="notification-filter-actions">
+              <button
+                type="button"
+                className="primary-button notification-export-button"
+                onClick={handleExportNotifications}
+                disabled={filteredNotifications.length === 0}
+              >
+                <Download size={17} />
+                Export
+              </button>
+
+              <button
+                type="button"
+                className="danger-button notification-clear-button"
+                onClick={handleClearAlarmNotifications}
+                disabled={
+                  filteredNotifications.every((item) => item.type !== 'alarm')
+                }
+              >
+                <Trash2 size={17} />
+                Clear Alarm
+              </button>
+            </div>
+          </div>
         </div>
 
         {loading ? (
@@ -416,54 +698,117 @@ function NotificationCenter() {
             description="ยังไม่มี Notification ตามเงื่อนไขที่เลือก"
           />
         ) : (
-          <div className="notification-list">
-            {filteredNotifications.map((item) => {
-              const Icon = item.icon || Bell
-              const isUnread = !readIds.has(item.id)
+          <>
+            <div className="history-table-wrap notification-table-wrap">
+              <table className="history-table notification-history-table">
+                <thead>
+                  <tr>
+                    <th>Notification</th>
+                    <th>Source</th>
+                    <th>Type</th>
+                    <th>Severity</th>
+                    <th>Read Status</th>
+                    <th>Triggered</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
 
-              return (
-                <article
-                  key={item.id}
-                  className={`notification-card ${item.severity} ${isUnread ? 'unread' : ''}`}
-                >
-                  <div className="notification-icon">
-                    <Icon size={20} />
-                  </div>
+                <tbody>
+                  {paginatedNotifications.map((item) => {
+                    const isUnread = !readIds.has(item.id)
 
-                  <div className="notification-content">
-                    <div className="notification-title-row">
-                      <h3>{item.title}</h3>
-                      <div className="notification-badges">
-                        {isUnread && (
-                          <span className="notification-unread-dot">New</span>
-                        )}
-                        <StatusBadge status={item.severity} size="sm" />
-                      </div>
-                    </div>
+                    return (
+                      <tr key={item.id} className={isUnread ? 'unread' : ''}>
+                        <td className="notification-message-cell">
+                          <strong>{item.title}</strong>
+                          <span>{item.description}</span>
+                        </td>
+                        <td>{item.source}</td>
+                        <td>
+                          <span className={`notification-type ${item.type}`}>
+                            {item.type === 'alarm' ? 'Alarm' : 'Device'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`status ${item.severity}`}>
+                            {item.severity === 'critical'
+                              ? 'Critical'
+                              : 'Warning'}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`notification-read-status ${
+                              isUnread ? 'unread' : 'read'
+                            }`}
+                          >
+                            {isUnread ? 'New' : 'Read'}
+                          </span>
+                        </td>
+                        <td>
+                          <strong>{formatDate(item.time)}</strong>
+                          <span>{getRelativeTime(item.time)}</span>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="secondary-button notification-mark-button"
+                            disabled={!isUnread}
+                            onClick={() => markAsRead(item.id)}
+                          >
+                            {isUnread ? 'Mark read' : 'Read'}
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-                    <p>{item.description}</p>
+            {filteredNotifications.length > pageSize && (
+              <div className="notification-table-pagination">
+                <div>
+                  Showing {range.start}-{range.end} of{' '}
+                  {filteredNotifications.length}
+                </div>
 
-                    <div className="notification-meta">
-                      <span>{item.source}</span>
-                      <span>{formatDate(item.time)}</span>
-                      <strong>{getRelativeTime(item.time)}</strong>
-                    </div>
-                  </div>
-
-                  <div className="notification-actions">
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      disabled={!isUnread}
-                      onClick={() => markAsRead(item.id)}
-                    >
-                      {isUnread ? 'Mark read' : 'Read'}
-                    </button>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
+                <div className="notification-pagination-actions">
+                  <button
+                    type="button"
+                    onClick={() => setPage(1)}
+                    disabled={safePage <= 1}
+                  >
+                    First
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.max(1, safePage - 1))}
+                    disabled={safePage <= 1}
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    Page {safePage} / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.min(totalPages, safePage + 1))}
+                    disabled={safePage >= totalPages}
+                  >
+                    Next
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPage(totalPages)}
+                    disabled={safePage >= totalPages}
+                  >
+                    Last
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>
