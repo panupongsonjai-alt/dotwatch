@@ -1,4 +1,18 @@
 {
   "schemaVersion": 1,
-  "releases": []
+  "releases": [
+    {
+      "modelKey": "esp32_dht3",
+      "channel": "stable",
+      "version": "esp32-product-1.2.0-ota",
+      "buildNumber": 1200,
+      "file": "esp32_dht3-stable-build-1200.bin",
+      "size": 1136336,
+      "sha256": "c0e9c41ae1f23a875cd66e666bf595d004c7fb4dc9d30438a8d7d66a8eb96176",
+      "mandatory": false,
+      "autoInstall": false,
+      "releaseNotes": "ESP32 OTA release 1.2.0",
+      "publishedAt": "2026-07-12T11:54:07.842Z"
+    }
+  ]
 }
