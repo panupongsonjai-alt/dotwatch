@@ -22,6 +22,7 @@ const pageFiles = [
   "pages/DevicePage.html",
   "pages/SensorPage.html",
   "pages/SecurityPage.html",
+  "pages/FirmwarePage.html",
   "pages/SystemPage.html"
 ];
 
@@ -39,6 +40,7 @@ const firmwareScriptFiles = [
   "app/navigation.js",
   "features/wifi/wifi.js",
   "features/status/status.js",
+  "features/ota/ota.js",
   "app/bootstrap.js"
 ];
 

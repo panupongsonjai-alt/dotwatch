@@ -16,11 +16,20 @@
 <small>Wi-Fi ปัจจุบัน</small><strong id="currentWifi">howtolongStudio</strong>
 </div>
 <div>
-<small>IP Address</small><strong id="currentIp">192.168.1.103</strong>
+<small>IP Address</small><strong id="currentIp">192.168.1.212</strong>
+</div>
+<div>
+<small>IP Mode</small><strong id="wifiIpMode">Fixed from first connection</strong>
+</div>
+<div>
+<small>Locked First IP</small><strong id="wifiLockedIp">192.168.1.212</strong>
 </div>
 <div>
 <small>Remembered</small><strong id="rememberedWifi">2 networks</strong>
 </div>
+</div>
+<div class="notice info" style="margin-bottom:14px">
+ESP32 จะจำ IP ที่ Router แจกให้ครั้งแรกของแต่ละ Wi-Fi และใช้ IP เดิมเป็น Fixed IP หลัง Restart หากเปลี่ยน Router หรือโครงข่าย ให้กด <strong>เรียนรู้ Fixed IP ใหม่</strong>
 </div>
 <div class="steps">
 <div class="step">
@@ -64,6 +73,11 @@
 <label class="check"><input checked="" type="checkbox"/><span>เก็บ Wi-Fi เดิมเป็นเครือข่ายสำรอง</span></label>
 <button class="btn-primary" style="width: 100%" type="submit">
                         บันทึกและทดสอบหลัง Restart
+                      </button>
+</form>
+<form data-preview-form="wifi-ip-relearn" style="margin-top: 9px">
+<button class="btn-secondary" style="width: 100%" type="submit">
+                        เรียนรู้ Fixed IP ใหม่
                       </button>
 </form>
 <form data-preview-form="wifi-clear" style="margin-top: 9px">

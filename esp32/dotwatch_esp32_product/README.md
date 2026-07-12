@@ -1,126 +1,96 @@
-# dotWatch ESP32 Product Core — Phase 12A
+# dotTH ESP32 Product — Dashboard Portal + Internet OTA
 
-Firmware ชุดนี้เป็นโครงสร้างหลักสำหรับพัฒนา ESP32 ให้เหมาะกับ Product จริง
-โดยแยกโมดูลออกจาก `main.cpp` และคงความเข้ากันได้กับค่า NVS จาก Firmware รุ่นก่อนหน้า
+Firmware สำหรับ ESP32 Temperature/Humidity ที่แยกโครงสร้างเป็นโมดูลและรองรับการอัปเดตผ่านอินเทอร์เน็ต
 
-Firmware ปัจจุบันอยู่ที่:
+## Current Firmware
 
 ```text
-esp32/dotwatch_esp32_product
+Version : esp32-product-1.1.0-ota
+Build   : 1100
+Model   : esp32_dht3
 ```
 
-## สิ่งที่เปลี่ยนใน Phase 12A
+## Main modules
 
-- `main.cpp` เหลือเฉพาะเรียก `AppController`
-- แยก Config, Wi-Fi, Portal, Backend, Sensor, LED และ Recovery ออกจากกัน
-- ใช้ State ชัดเจน: `BOOTING`, `SETUP_PORTAL`, `CONNECTING_WIFI`, `CONNECTING_BACKEND`, `ONLINE`, `DEGRADED`, `RECOVERY`
-- อ่านค่า NVS เดิมได้ โดยใช้ namespace และ key เดิม
-- เพิ่ม Config Schema Version โดยไม่ล้างค่าเก่า
-- เพิ่ม Pending Wi-Fi + Rollback
-  - Wi-Fi ใหม่ยังไม่ทับ Wi-Fi เดิมทันที
-  - หลัง Restart ระบบจะลอง Wi-Fi ใหม่ก่อน
-  - สำเร็จจึง Promote เป็น Active
-  - ล้มเหลวจะกลับไปใช้ Wi-Fi เดิม
-- Setup AP แยกตามอุปกรณ์ เช่น `dotWatch-Setup-A1B2C3`
-- Portal แยก CSS/JavaScript ออกจาก Core logic
-- Web App แยกเป็น `components`, `pages`, `features`, `styles` และ `shared` คล้าย Dashboard
-- `PortalServer` ดูแลเฉพาะ route/validation ส่วน HTML จริงอยู่ใน `src/portal/views`
-- Payload ยังคงเดิม:
-  - `metric_1` = Temperature
-  - `metric_2` = Humidity
-  - Wi-Fi RSSI is sent as operational metadata (`rssi`), not as a dashboard metric.
-- Backend URL, Device Code, Device Secret และ Root CA เดิมยังใช้ได้
+```text
+src/app            Application orchestration
+src/backend        Telemetry client
+src/config         NVS configuration
+src/network        Wi-Fi and time
+src/ota            HTTPS Internet OTA
+src/portal         Local web server and generated assets
+src/portal/views   Page renderers
+src/sensors        Temperature/Humidity
+src/recovery       Recovery logic
+portal-preview     Modular editable web app
+```
 
-## Build
+## OTA safety
 
-PowerShell:
+- Dual OTA slots from `partitions_ota.csv`
+- Manifest validation by Model and Build Number
+- HTTPS with configured/embedded Root CA
+- Device Code/Secret headers
+- Firmware size check
+- SHA-256 validation before activating the new image
+- Manual and controlled Auto Install
+- OTA status available through `/json`
+
+## First installation
+
+The first OTA-capable version must be uploaded through USB because the partition table changes.
 
 ```powershell
 cd "D:\IoT Project\dotwatch\esp32\dotwatch_esp32_product"
-python -m platformio run
+py -m platformio run -t clean
+py -m platformio run
+py -m platformio run -t upload --upload-port COM6
+py -m platformio device monitor --port COM6 --baud 115200
 ```
 
-## Upload
+Future application firmware releases can be installed from the local `Firmware` page through the internet.
 
-```powershell
-python -m platformio run --target upload
-```
+## Edit the web app
 
-ระบุพอร์ตเมื่อมีหลายอุปกรณ์:
-
-```powershell
-python -m platformio run --target upload --upload-port COM5
-```
-
-## Serial Monitor
-
-```powershell
-python -m platformio device monitor --baud 115200
-```
-
-หรือระบุพอร์ต:
-
-```powershell
-python -m platformio device monitor --port COM5 --baud 115200
-```
-
-ออกจาก Monitor ด้วย `Ctrl + C`
-
-## เปิด Setup Portal
-
-เมื่อยังไม่มี Wi-Fi หรือเชื่อม Wi-Fi ไม่สำเร็จ:
+Edit only modular files:
 
 ```text
-SSID     : dotWatch-Setup-XXXXXX
-Password : dotwatch-setup
-URL      : http://192.168.4.1/
+portal-preview/src/components
+portal-preview/src/pages
+portal-preview/src/features
+portal-preview/src/styles
+portal-preview/src/shared
 ```
 
-`XXXXXX` คือ 6 ตัวท้ายของ MAC Address ทำให้แยกอุปกรณ์หลายตัวได้ง่ายขึ้น
+Generate preview and firmware assets:
 
-## Local Admin PIN
+```powershell
+cd "D:\IoT Project\dotwatch\esp32\dotwatch_esp32_product\portal-preview"
+npm run check
+npm run dev
+```
 
-เมื่อ ESP32 ออนไลน์ ให้เปิด Local IP ที่แสดงใน Serial Monitor
+Do not edit these generated files directly:
 
-- ถ้ายังไม่ตั้ง Custom PIN: ใช้ `admin`
-- หลังเข้าสู่ระบบแล้วสามารถตั้ง Custom PIN ได้ในหน้า Security
+```text
+portal-preview/index.html
+portal-preview/generated/*
+src/portal/PortalAssets.h
+```
 
-## Wi-Fi Rollback
+## Detailed OTA guide
 
-เมื่อกดบันทึก Wi-Fi ใหม่:
+See:
 
-1. Firmware เก็บค่าเป็น `Pending Wi-Fi`
-2. Restart
-3. ลองเชื่อม Pending Wi-Fi
-4. ถ้าสำเร็จ จึงบันทึกเป็น Active Wi-Fi
-5. ถ้าไม่สำเร็จ ลบ Pending และกลับไปลอง Active/Backup เดิม
+```text
+README_ESP32_INTERNET_OTA.md
+```
 
-จึงไม่จำเป็นต้อง Factory Reset เมื่อพิมพ์รหัส Wi-Fi ผิด
 
-## Compatibility
+## First IP Lock
 
-Firmware นี้อ่านค่าเดิมจาก Firmware รุ่น `dotwatch_esp32_dht3_tls_hardened` ได้ ได้แก่:
+Firmware รุ่นนี้จำ IP ที่ได้รับจาก DHCP ครั้งแรกของแต่ละ SSID แล้วใช้เป็น Fixed IP หลัง Restart ดูรายละเอียดใน `README_ESP32_FIRST_IP_LOCK.md` ที่โฟลเดอร์หลักของแพ็กเกจ
 
-- `wifiSsid`
-- `wifiPass`
-- `wifiProfiles`
-- `apiUrl`
-- `devCode`
-- `devSecret`
-- `adminPin`
-- `tlsCaCert`
-- `dhtPin`
-- `dhtType`
-- `sendMs`
-- `dummy`
+## Fixed-IP hotfix 1.1.2
 
-## ยังไม่รวมใน Phase 12A
-
-- Activation Code / QR Provisioning
-- Signed OTA และ Firmware Rollback
-- Secure Boot / Flash Encryption
-- Setup password แยกรายเครื่องบน Sticker
-- Offline telemetry queue
-- Factory test mode
-
-หัวข้อเหล่านี้จะทำใน Phase 12B–12D หลังทดสอบ Core ใหม่บนบอร์ดจริงผ่านแล้ว
+This release rejects `0.0.0.0` and `255.255.255.255`, waits for a real DHCP address after Wi-Fi association, and automatically replaces any invalid lease previously stored by version 1.1.1. No factory reset is required after flashing 1.1.2.

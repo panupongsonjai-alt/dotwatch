@@ -1,1 +1,1 @@
-window.addEventListener('load',()=>{initDashboardNavigation();if(byId('networkList'))setTimeout(scanWifi,450);if(byId('sensorTemperature')||byId('statusDeviceCode')){setTimeout(refreshSensorValues,300);setInterval(refreshSensorValues,2000)}})
+window.addEventListener('load',()=>{initDashboardNavigation();initOtaActions();if(byId('networkList'))setTimeout(scanWifi,450);if(byId('sensorTemperature')||byId('statusDeviceCode')){setTimeout(refreshSensorValues,300);setInterval(refreshSensorValues,2000)}})

@@ -8,6 +8,7 @@
 #include "backend/BackendClient.h"
 #include "config/ConfigStore.h"
 #include "network/WiFiManager.h"
+#include "ota/OtaManager.h"
 #include "sensors/SensorManager.h"
 #include "utils/StringUtils.h"
 
@@ -18,13 +19,15 @@ void PortalServer::begin(DeviceConfig &config,
                          ConfigStore &store,
                          WiFiManager &wifi,
                          SensorManager &sensors,
-                         BackendClient &backend) {
+                         BackendClient &backend,
+                         OtaManager &ota) {
   config_ = &config;
   status_ = &status;
   store_ = &store;
   wifi_ = &wifi;
   sensors_ = &sensors;
   backend_ = &backend;
+  ota_ = &ota;
   view_.begin(config, status, store, wifi, sensors, backend);
 }
 
@@ -83,7 +86,12 @@ void PortalServer::registerRoutes() {
   server_.on("/wifi-scan", HTTP_GET, [this]() { handleWiFiScan(); });
   server_.on("/wifi-save", HTTP_POST, [this]() { handleWiFiSave(); });
   server_.on("/wifi-clear", HTTP_POST, [this]() { handleWiFiClear(); });
+  server_.on("/wifi-ip-relearn", HTTP_POST,
+             [this]() { handleWiFiIpRelearn(); });
   server_.on("/device-save", HTTP_POST, [this]() { handleDeviceSave(); });
+  server_.on("/ota-save", HTTP_POST, [this]() { handleOtaSave(); });
+  server_.on("/ota-check", HTTP_POST, [this]() { handleOtaCheck(); });
+  server_.on("/ota-install", HTTP_POST, [this]() { handleOtaInstall(); });
   server_.on("/json", HTTP_GET, [this]() { handleJson(); });
   server_.on("/test", HTTP_GET, [this]() { handleTest(); });
   server_.on("/reset", HTTP_POST, [this]() { handleReset(); });
@@ -238,6 +246,42 @@ void PortalServer::handleWiFiClear() {
   ESP.restart();
 }
 
+void PortalServer::handleWiFiIpRelearn() {
+  if (!requireAdmin()) return;
+
+  const String ssid = wifi_->currentSsid().length() > 0
+                          ? wifi_->currentSsid()
+                          : config_->wifiSsid;
+  if (!wifi_->forgetCurrentIpLease()) {
+    server_.send(
+        400,
+        "text/html; charset=utf-8",
+        renderNoticePage(
+            "IP Relearn Error",
+            "ยังไม่สามารถลืม Fixed IP ได้",
+            "ไม่พบ Wi-Fi ปัจจุบันหรือข้อมูล IP ที่บันทึกไว้",
+            "/" + authQuery() + "#wifi",
+            "กลับหน้า Wi-Fi"));
+    return;
+  }
+
+  String notice = "หลัง Restart ระบบจะใช้ DHCP หนึ่งครั้งเพื่อรับ IP ของ <strong>";
+  notice += StringUtils::htmlEscape(ssid);
+  notice += "</strong> แล้วจำ IP นั้นเป็น Fixed IP ใหม่โดยอัตโนมัติ";
+
+  server_.send(
+      200,
+      "text/html; charset=utf-8",
+      renderRestartPage(
+          "เรียนรู้ Fixed IP ใหม่",
+          "First IP relearn",
+          "ลืม Fixed IP เดิมแล้ว",
+          "ESP32 จะ Restart ภายใน 2 วินาที",
+          notice));
+  delay(1700);
+  ESP.restart();
+}
+
 void PortalServer::handleDeviceSave() {
   if (!requireAdmin()) return;
 
@@ -340,6 +384,91 @@ void PortalServer::handleDeviceSave() {
   ESP.restart();
 }
 
+
+void PortalServer::handleOtaSave() {
+  if (!requireAdmin()) return;
+
+  DeviceConfig next = *config_;
+  if (server_.hasArg("otaBaseUrl")) {
+    next.otaBaseUrl = server_.arg("otaBaseUrl");
+    next.otaBaseUrl.trim();
+    while (next.otaBaseUrl.endsWith("/")) {
+      next.otaBaseUrl.remove(next.otaBaseUrl.length() - 1);
+    }
+  }
+  if (server_.hasArg("otaChannel")) {
+    next.otaChannel = server_.arg("otaChannel");
+    next.otaChannel.trim();
+  }
+  next.otaEnabled = server_.hasArg("otaEnabled");
+  next.otaAutoInstall = server_.hasArg("otaAutoInstall");
+
+  if (server_.hasArg("otaCheckIntervalMinutes")) {
+    long minutes = server_.arg("otaCheckIntervalMinutes").toInt();
+    if (minutes < 15) minutes = 15;
+    if (minutes > 1440) minutes = 1440;
+    next.otaCheckIntervalMs = static_cast<unsigned long>(minutes) * 60UL * 1000UL;
+  }
+
+  if (next.otaChannel.length() == 0) {
+    next.otaChannel = ProductConfig::DEFAULT_OTA_CHANNEL;
+  }
+  if (next.otaBaseUrl.length() > 0 &&
+      !next.otaBaseUrl.startsWith("https://") &&
+      !next.otaBaseUrl.startsWith("http://")) {
+    server_.send(
+        400,
+        "text/html; charset=utf-8",
+        renderNoticePage(
+            "OTA Settings",
+            "OTA Base URL ไม่ถูกต้อง",
+            "ต้องขึ้นต้นด้วย https:// หรือ http:// หรือเว้นว่างเพื่อใช้ Backend API URL",
+            "/" + authQuery() + "#firmware",
+            "กลับหน้า Firmware Update"));
+    return;
+  }
+
+  if (!store_->save(next)) {
+    server_.send(
+        500,
+        "text/html; charset=utf-8",
+        renderNoticePage(
+            "OTA Settings",
+            "บันทึก OTA Settings ไม่สำเร็จ",
+            "ไม่สามารถเขียนค่า OTA ลง NVS ได้",
+            "/" + authQuery() + "#firmware",
+            "กลับหน้า Firmware Update"));
+    return;
+  }
+
+  *config_ = next;
+  server_.sendHeader("Location", "/" + authQuery() + "#firmware", true);
+  server_.send(303, "text/plain; charset=utf-8", "OTA settings saved");
+}
+
+void PortalServer::handleOtaCheck() {
+  if (!requireAdmin()) return;
+  if (ota_ == nullptr || !config_->otaEnabled) {
+    server_.send(409, "application/json; charset=utf-8",
+                 "{\"ok\":false,\"message\":\"Internet OTA is disabled\"}");
+    return;
+  }
+  ota_->requestCheck();
+  server_.send(202, "application/json; charset=utf-8",
+               "{\"ok\":true,\"message\":\"OTA check queued\"}");
+}
+
+void PortalServer::handleOtaInstall() {
+  if (!requireAdmin()) return;
+  if (ota_ == nullptr || !ota_->requestInstall()) {
+    server_.send(409, "application/json; charset=utf-8",
+                 "{\"ok\":false,\"message\":\"No verified update is ready. Run Check first.\"}");
+    return;
+  }
+  server_.send(202, "application/json; charset=utf-8",
+               "{\"ok\":true,\"message\":\"OTA install queued\"}");
+}
+
 void PortalServer::handleJson() {
   if (!setupMode_ && !isAdminAuthorized()) {
     JsonDocument publicDocument;
@@ -367,6 +496,9 @@ void PortalServer::handleJson() {
   document["wifiConnected"] = wifi_->isConnected();
   document["wifiSsid"] = wifi_->currentSsid();
   document["ip"] = wifi_->currentIp();
+  document["ipMode"] = wifi_->currentIpMode();
+  document["lockedIp"] = wifi_->lockedIp();
+  document["rememberFirstIp"] = ProductConfig::WIFI_REMEMBER_FIRST_IP;
   document["rssi"] = wifi_->currentRssi();
   document["rememberedWifiProfiles"] =
       store_->knownWiFiProfileCount(*config_);
@@ -402,6 +534,32 @@ void PortalServer::handleJson() {
   document["lastSensorFallbackUsed"] = status_->lastSensorFallbackUsed;
   document["statusLedPin"] = ProductConfig::STATUS_LED_PIN;
   document["resetButtonPin"] = ProductConfig::RESET_BUTTON_PIN;
+  document["firmwareBuild"] = DOTWATCH_FIRMWARE_BUILD;
+  document["otaEnabled"] = config_->otaEnabled;
+  document["otaAutoInstall"] = config_->otaAutoInstall;
+  document["otaBaseUrl"] = config_->otaBaseUrl.length() > 0
+                               ? config_->otaBaseUrl
+                               : config_->apiUrl;
+  document["otaChannel"] = config_->otaChannel;
+  document["otaCheckIntervalMinutes"] = config_->otaCheckIntervalMs / 60000UL;
+  document["otaState"] = status_->otaState;
+  document["otaMessage"] = status_->otaMessage;
+  document["otaUpdateAvailable"] = status_->otaUpdateAvailable;
+  document["otaAvailableVersion"] = status_->otaAvailableVersion;
+  document["otaAvailableBuild"] = status_->otaAvailableBuild;
+  document["otaReleaseNotes"] = status_->otaReleaseNotes;
+  document["otaMandatory"] = status_->otaMandatory;
+  document["otaProgressPercent"] = status_->otaProgressPercent;
+  document["otaDownloadedBytes"] = status_->otaDownloadedBytes;
+  document["otaTotalBytes"] = status_->otaTotalBytes;
+  document["otaBusy"] = status_->otaBusy;
+  document["otaLastCheckAgeSeconds"] = status_->otaLastCheckAtMs > 0
+                                           ? (millis() - status_->otaLastCheckAtMs) / 1000UL
+                                           : 0;
+  document["otaNextCheckInSeconds"] =
+      static_cast<long>(status_->otaNextCheckAtMs - millis()) > 0
+          ? (status_->otaNextCheckAtMs - millis()) / 1000UL
+          : 0;
 
   String output;
   serializeJsonPretty(document, output);

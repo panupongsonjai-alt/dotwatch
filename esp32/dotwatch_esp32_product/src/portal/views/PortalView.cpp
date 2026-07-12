@@ -38,6 +38,7 @@ String PortalView::dashboardPage() {
   body += devicePageHtml();
   body += sensorPageHtml();
   body += securityPageHtml();
+  body += firmwarePageHtml();
   body += systemPageHtml();
   return pageShell("dotTH ESP32", body);
 }
@@ -97,6 +98,7 @@ String PortalView::pageShell(const String &title,
   html += "<a class='portal-nav-item' href='#device' data-page-target='device' data-page-title='Device Connection' data-page-subtitle='เชื่อม Device Code และ Backend ของ dotTH'><span class='nav-icon'>◇</span><span>Device</span></a>";
   html += "<a class='portal-nav-item' href='#sensor' data-page-target='sensor' data-page-title='Sensor Monitor' data-page-subtitle='ดูค่าปัจจุบันและกำหนดรอบส่งข้อมูล'><span class='nav-icon'>∿</span><span>Sensor</span></a>";
   html += "<a class='portal-nav-item' href='#security' data-page-target='security' data-page-title='Security' data-page-subtitle='จัดการ Local Admin PIN และ Root CA'><span class='nav-icon'>◆</span><span>Security</span></a>";
+  html += "<a class='portal-nav-item' href='#firmware' data-page-target='firmware' data-page-title='Firmware Update' data-page-subtitle='ตรวจสอบและติดตั้ง Firmware ผ่านอินเทอร์เน็ต'><span class='nav-icon'>⇧</span><span>Firmware</span></a>";
   html += "<a class='portal-nav-item' href='#system' data-page-target='system' data-page-title='System Operations' data-page-subtitle='ดู JSON, Restart และ Factory Reset'><span class='nav-icon'>⚙</span><span>System</span></a>";
   html += "</nav><div class='portal-sidebar-status'><div class='sidebar-status-head'><small>Device Status</small><i id='sidebarStateDot' class='sidebar-status-dot " + statusBadgeClass() + "'></i></div><strong id='sidebarDeviceCode'>";
   html += StringUtils::htmlEscape(config_->deviceCode.length()

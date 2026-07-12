@@ -10,6 +10,7 @@ class BackendClient;
 class ConfigStore;
 class SensorManager;
 class WiFiManager;
+class OtaManager;
 
 class PortalServer {
  public:
@@ -20,7 +21,8 @@ class PortalServer {
              ConfigStore &store,
              WiFiManager &wifi,
              SensorManager &sensors,
-             BackendClient &backend);
+             BackendClient &backend,
+             OtaManager &ota);
 
   void startSetupPortal();
   void startLocalAdmin();
@@ -34,7 +36,11 @@ class PortalServer {
   void handleWiFiScan();
   void handleWiFiSave();
   void handleWiFiClear();
+  void handleWiFiIpRelearn();
   void handleDeviceSave();
+  void handleOtaSave();
+  void handleOtaCheck();
+  void handleOtaInstall();
   void handleJson();
   void handleTest();
   void handleReset();
@@ -78,5 +84,6 @@ class PortalServer {
   WiFiManager *wifi_ = nullptr;
   SensorManager *sensors_ = nullptr;
   BackendClient *backend_ = nullptr;
+  OtaManager *ota_ = nullptr;
   PortalView view_;
 };

@@ -115,8 +115,51 @@ function applySensorStatus(data) {
   );
 }
 
+function formatOtaBytes(value) {
+  const bytes = Number(value || 0);
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function applyOtaPreviewStatus(data) {
+  setText("otaCurrentVersion", data.firmwareVersion);
+  setText("otaCurrentBuild", data.firmwareBuild ? `Build ${data.firmwareBuild}` : "—");
+  setText("otaAvailableVersion", data.otaAvailableVersion, "—");
+  setText("otaAvailableBuild", data.otaAvailableBuild ? `Build ${data.otaAvailableBuild}` : "ยังไม่พบอัปเดต");
+  setText("otaChannelValue", data.otaChannel || "stable");
+  setText("otaCheckIntervalValue", `ตรวจทุก ${Number(data.otaCheckIntervalMinutes || 360)} นาที`);
+  setText("otaPolicyValue", data.otaAutoInstall ? "Auto install" : "Manual install");
+  setText("otaEnabledValue", data.otaEnabled === false ? "Internet OTA disabled" : "Internet OTA enabled");
+  setText("otaStatusMessage", data.otaMessage || "—");
+  setText("otaByteProgress", `${formatOtaBytes(data.otaDownloadedBytes)} / ${formatOtaBytes(data.otaTotalBytes)}`);
+  setText("otaProgressValue", `${Number(data.otaProgressPercent || 0)}%`);
+  setText("otaReleaseNotes", data.otaReleaseNotes || "Release notes จะแสดงหลังตรวจพบ Firmware ใหม่");
+  const bar = byId("otaProgressBar");
+  if (bar) bar.style.width = `${Math.max(0, Math.min(100, Number(data.otaProgressPercent || 0)))}%`;
+  const badge = byId("otaStateBadge");
+  if (badge) {
+    const stateValue = String(data.otaState || "IDLE").toUpperCase();
+    badge.className = `badge ${stateValue === "ERROR" ? "bad" : ["UP_TO_DATE", "UPDATE_AVAILABLE", "REBOOTING"].includes(stateValue) ? "ok" : "warn"}`;
+    badge.textContent = stateValue;
+  }
+  const install = byId("otaInstallButton");
+  if (install) install.disabled = !data.otaUpdateAvailable || data.otaBusy;
+  const check = byId("otaCheckButton");
+  if (check) check.disabled = data.otaBusy || data.otaEnabled === false;
+  const url = byId("otaBaseUrl");
+  if (url && document.activeElement !== url) url.value = data.otaBaseUrl || "";
+  setText("otaEffectiveUrl", `Effective URL: ${data.otaBaseUrl || data.apiUrl || "—"}`);
+  if (byId("otaChannel")) byId("otaChannel").value = data.otaChannel || "stable";
+  if (byId("otaCheckInterval")) byId("otaCheckInterval").value = String(data.otaCheckIntervalMinutes || 360);
+  if (byId("otaEnabled")) byId("otaEnabled").checked = data.otaEnabled !== false;
+  if (byId("otaAutoInstall")) byId("otaAutoInstall").checked = data.otaAutoInstall === true;
+}
+
 function applyStatus(data) {
   state.lastStatus = data;
+  applyOtaPreviewStatus(data);
 
   setText("firmwareVersion", data.firmwareVersion);
   setText("statusReadiness", data.readiness || (data.state === "ONLINE" ? "5/5 พร้อมใช้งาน" : "4/5 พร้อมใช้งาน"));
@@ -129,6 +172,8 @@ function applyStatus(data) {
   setText("statusUptime", data.uptime);
   setText("currentWifi", data.wifiSsid, "ยังไม่ได้ตั้ง");
   setText("currentIp", data.ip);
+  setText("wifiIpMode", data.ipMode || "DHCP learning");
+  setText("wifiLockedIp", data.lockedIp || "ยังไม่เรียนรู้");
   setText("rememberedWifi", `${Number(data.rememberedWifiProfiles || 0)} networks`);
   setText("sidebarDeviceCode", data.deviceCode, "ยังไม่ได้ตั้ง Device");
   setText("sidebarDeviceIp", data.ip, "ยังไม่มี IP");
@@ -382,6 +427,13 @@ function bindEvents() {
 
   document.querySelectorAll("[data-preview-action]").forEach((element) => {
     element.addEventListener("click", () => handlePreviewAction(element.dataset.previewAction));
+  });
+
+  byId("otaCheckButton")?.addEventListener("click", () => {
+    showToast(state.useMock ? "Mock mode: พบ Firmware ใหม่" : "Preview mode: ใช้หน้า ESP32 จริงเพื่อสั่ง Check");
+  });
+  byId("otaInstallButton")?.addEventListener("click", () => {
+    showToast("Preview mode: ปิดการติดตั้ง OTA เพื่อความปลอดภัย");
   });
 
   document.querySelectorAll("[data-preview-form]").forEach((form) => {

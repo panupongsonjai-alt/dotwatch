@@ -16,6 +16,7 @@ const requiredFiles = [
   "src/pages/DevicePage.html",
   "src/pages/SensorPage.html",
   "src/pages/SecurityPage.html",
+  "src/pages/FirmwarePage.html",
   "src/pages/SystemPage.html",
   "../src/portal/views/CommonPages.cpp",
   "src/styles/01-tokens.css",
@@ -28,6 +29,7 @@ const requiredFiles = [
   "src/app/navigation.js",
   "src/features/wifi/wifi.js",
   "src/features/status/status.js",
+  "src/features/ota/ota.js",
   "src/app/bootstrap.js",
   "generated/portal.css",
   "generated/firmware.js",
@@ -39,7 +41,7 @@ for (const file of requiredFiles) {
 }
 
 const html = await readFile(path.join(previewDir, "index.html"), "utf8");
-for (const pageId of ["overview", "wifi", "device", "sensor", "security", "system"]) {
+for (const pageId of ["overview", "wifi", "device", "sensor", "security", "firmware", "system"]) {
   if (!html.includes(`id=\"${pageId}\"`)) {
     throw new Error(`Generated index.html is missing page: ${pageId}`);
   }

@@ -242,21 +242,256 @@ bool WiFiManager::connectSingle(const String &ssid,
                                 const String &password,
                                 unsigned long timeoutMs,
                                 bool keepAccessPoint) {
-  if (ssid.length() == 0) return false;
+  if (ssid.length() == 0 || store_ == nullptr) return false;
 
+  resetIpRuntimeState();
   WiFi.mode(keepAccessPoint || accessPointActive_ ? WIFI_AP_STA : WIFI_STA);
   WiFi.disconnect(false, false);
   delay(150);
-  WiFi.begin(ssid.c_str(), password.c_str());
 
+  WiFiIpLease savedLease;
+  const bool hasSavedLease =
+      ProductConfig::WIFI_REMEMBER_FIRST_IP &&
+      store_->loadWiFiIpLease(ssid, savedLease);
+
+  bool fixedConfigurationReady = false;
+  if (hasSavedLease) {
+    Serial.print("WiFiManager: applying remembered first IP ");
+    Serial.print(savedLease.localIp);
+    Serial.print(" for ");
+    Serial.println(ssid);
+    fixedConfigurationReady = applyIpLease(savedLease);
+    if (!fixedConfigurationReady) {
+      Serial.println("WiFiManager: remembered IP is invalid; clearing it and using DHCP");
+      if (!store_->forgetWiFiIpLease(ssid)) {
+        Serial.println("WiFiManager: warning - invalid remembered IP could not be removed");
+      }
+    }
+  }
+
+  if (!fixedConfigurationReady) {
+    enableDhcp();
+  }
+
+  WiFi.begin(ssid.c_str(), password.c_str());
+  if (waitForConnection(timeoutMs)) {
+    if (fixedConfigurationReady) {
+      usingFixedIp_ = true;
+      activeLockedIp_ = savedLease.localIp;
+      activeLeaseSsid_ = ssid;
+      Serial.print("WiFiManager: connected with fixed first IP ");
+      Serial.println(WiFi.localIP());
+    } else if (ProductConfig::WIFI_REMEMBER_FIRST_IP) {
+      learnFirstIp(ssid);
+    }
+    return true;
+  }
+
+  if (!fixedConfigurationReady) return false;
+
+  // Safety recovery: if a remembered address no longer works (router or
+  // network changed), reconnect with DHCP so the device is still reachable.
+  // The original first IP remains stored until the user chooses Relearn IP.
+  Serial.println(
+      "WiFiManager: fixed first IP connection failed; retrying with DHCP");
+  WiFi.disconnect(false, false);
+  delay(150);
+  if (!enableDhcp()) {
+    Serial.println("WiFiManager: unable to restore DHCP mode");
+    return false;
+  }
+
+  WiFi.begin(ssid.c_str(), password.c_str());
+  if (!waitForConnection(ProductConfig::WIFI_DHCP_RECOVERY_TIMEOUT_MS)) {
+    return false;
+  }
+
+  usingDhcpFallback_ = true;
+  activeLockedIp_ = savedLease.localIp;
+  activeLeaseSsid_ = ssid;
+  Serial.print("WiFiManager: DHCP recovery connected. Current IP=");
+  Serial.print(WiFi.localIP());
+  Serial.print(" Locked IP remains=");
+  Serial.println(activeLockedIp_);
+  return true;
+}
+
+bool WiFiManager::waitForConnection(unsigned long timeoutMs) {
   const unsigned long startedAt = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - startedAt < timeoutMs) {
+  bool reportedInvalidAddress = false;
+
+  while (millis() - startedAt < timeoutMs) {
+    if (WiFi.status() == WL_CONNECTED) {
+      const IPAddress address = WiFi.localIP();
+      if (isUsableHostIp(address)) {
+        Serial.println();
+        return true;
+      }
+
+      // WL_CONNECTED means association completed, but DHCP may still be
+      // negotiating. Never accept 0.0.0.0 or 255.255.255.255 as a usable IP.
+      if (!reportedInvalidAddress) {
+        Serial.print("WiFiManager: associated; waiting for usable IP (current=");
+        Serial.print(address);
+        Serial.println(")");
+        reportedInvalidAddress = true;
+      }
+    }
+
     delay(250);
     Serial.print(".");
   }
-  Serial.println();
 
-  return WiFi.status() == WL_CONNECTED;
+  Serial.println();
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("WiFiManager: connection has no usable IP. Current=");
+    Serial.println(WiFi.localIP());
+  }
+  return false;
+}
+
+bool WiFiManager::enableDhcp() {
+  // INADDR_NONE is the Arduino-ESP32 marker that clears a previous static
+  // station configuration. Only the three network fields are reset here;
+  // passing the marker as DNS values can leave localIP() at 255.255.255.255
+  // on some Arduino-ESP32 versions until a later reconnect.
+  const IPAddress automaticIp(static_cast<uint32_t>(INADDR_NONE));
+  const bool configured = WiFi.config(
+      automaticIp, automaticIp, automaticIp);
+  if (!configured) {
+    Serial.println("WiFiManager: DHCP configuration request failed");
+  }
+  return configured;
+}
+
+bool WiFiManager::applyIpLease(const WiFiIpLease &lease) {
+  IPAddress localIp;
+  IPAddress gateway;
+  IPAddress subnet;
+  IPAddress dns1;
+  IPAddress dns2;
+
+  if (!parseIp(lease.localIp, localIp) ||
+      !parseIp(lease.gateway, gateway) ||
+      !parseIp(lease.subnet, subnet) ||
+      !isUsableHostIp(localIp) ||
+      !isUsableHostIp(gateway) ||
+      !isUsableSubnet(subnet)) {
+    return false;
+  }
+
+  if (!parseIp(lease.dns1, dns1) || !isUsableHostIp(dns1)) dns1 = gateway;
+  if (!parseIp(lease.dns2, dns2) || !isUsableHostIp(dns2)) {
+    dns2 = IPAddress(0, 0, 0, 0);
+  }
+
+  return WiFi.config(localIp, gateway, subnet, dns1, dns2);
+}
+
+bool WiFiManager::learnFirstIp(const String &ssid) {
+  if (store_ == nullptr || !isConnected()) return false;
+
+  WiFiIpLease lease;
+  lease.ssid = ssid;
+  lease.localIp = WiFi.localIP().toString();
+  lease.gateway = WiFi.gatewayIP().toString();
+  lease.subnet = WiFi.subnetMask().toString();
+  lease.dns1 = WiFi.dnsIP(0).toString();
+  lease.dns2 = WiFi.dnsIP(1).toString();
+
+  IPAddress localIp;
+  IPAddress gateway;
+  IPAddress subnet;
+  if (!parseIp(lease.localIp, localIp) ||
+      !parseIp(lease.gateway, gateway) ||
+      !parseIp(lease.subnet, subnet) ||
+      !isUsableHostIp(localIp) ||
+      !isUsableHostIp(gateway) ||
+      !isUsableSubnet(subnet)) {
+    Serial.print("WiFiManager: DHCP values are incomplete or invalid; IP not locked. local=");
+    Serial.print(lease.localIp);
+    Serial.print(" gateway=");
+    Serial.print(lease.gateway);
+    Serial.print(" subnet=");
+    Serial.println(lease.subnet);
+    return false;
+  }
+
+  if (!store_->rememberWiFiIpLease(lease)) {
+    Serial.println("WiFiManager: unable to persist first IP lease");
+    return false;
+  }
+
+  learnedIpThisConnection_ = true;
+  activeLockedIp_ = lease.localIp;
+  activeLeaseSsid_ = ssid;
+  Serial.print("WiFiManager: remembered first IP ");
+  Serial.print(lease.localIp);
+  Serial.print(" for SSID ");
+  Serial.println(ssid);
+  Serial.println("WiFiManager: this IP will be static after the next restart");
+  return true;
+}
+
+bool WiFiManager::parseIp(const String &text, IPAddress &result) const {
+  String cleaned = text;
+  cleaned.trim();
+  if (cleaned.length() == 0) return false;
+  return result.fromString(cleaned);
+}
+
+bool WiFiManager::isUsableHostIp(const IPAddress &address) const {
+  if (address == IPAddress(0, 0, 0, 0) ||
+      address == IPAddress(255, 255, 255, 255)) {
+    return false;
+  }
+
+  const uint8_t first = address[0];
+  if (first == 0 || first == 127 || first >= 224) return false;
+  return true;
+}
+
+bool WiFiManager::isUsableSubnet(const IPAddress &address) const {
+  return address != IPAddress(0, 0, 0, 0) &&
+         address != IPAddress(255, 255, 255, 255);
+}
+
+void WiFiManager::resetIpRuntimeState() {
+  usingFixedIp_ = false;
+  learnedIpThisConnection_ = false;
+  usingDhcpFallback_ = false;
+  activeLockedIp_ = "";
+  activeLeaseSsid_ = "";
+}
+
+String WiFiManager::currentIpMode() const {
+  if (usingDhcpFallback_) return "DHCP recovery";
+  if (usingFixedIp_) return "Fixed from first connection";
+  if (learnedIpThisConnection_) return "First IP learned";
+  if (ProductConfig::WIFI_REMEMBER_FIRST_IP) return "DHCP learning";
+  return "DHCP";
+}
+
+String WiFiManager::lockedIp() const {
+  if (activeLockedIp_.length() > 0) return activeLockedIp_;
+  if (store_ == nullptr) return "—";
+
+  const String ssid = currentSsid();
+  WiFiIpLease lease;
+  if (store_->loadWiFiIpLease(ssid, lease)) return lease.localIp;
+  return "ยังไม่เรียนรู้";
+}
+
+bool WiFiManager::forgetCurrentIpLease() {
+  if (store_ == nullptr) return false;
+  String ssid = currentSsid();
+  if (ssid.length() == 0 && config_ != nullptr) ssid = config_->wifiSsid;
+  ssid.trim();
+  if (ssid.length() == 0) return false;
+
+  const bool forgotten = store_->forgetWiFiIpLease(ssid);
+  if (forgotten) resetIpRuntimeState();
+  return forgotten;
 }
 
 void WiFiManager::sortProfiles(WiFiProfile profiles[], int count) {

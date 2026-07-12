@@ -48,6 +48,7 @@ class PortalView {
   String devicePageHtml();
   String sensorPageHtml();
   String securityPageHtml();
+  String firmwarePageHtml();
   String systemPageHtml();
 
   String statusBadgeClass() const;

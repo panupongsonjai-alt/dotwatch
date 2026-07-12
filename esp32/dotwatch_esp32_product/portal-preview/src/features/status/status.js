@@ -2,6 +2,7 @@ function hasSensorNumber(value){return value!==null&&value!==undefined&&value!==
 function applySensorValues(data){const available=data.sensorReadingAvailable!==false&&hasSensorNumber(data.temperature)&&hasSensorNumber(data.humidity);setText('sensorTemperature',available?Number(data.temperature).toFixed(1):'--');setText('sensorHumidity',available?Number(data.humidity).toFixed(1):'--');if(data.lastSensorError){setText('sensorLiveStatus','ยังอ่านค่า Sensor ไม่สำเร็จ');return}const age=Number(data.sensorReadingAgeSeconds);if(available&&Number.isFinite(age)){setText('sensorLiveStatus','ค่าล่าสุดจาก Sensor · '+Math.max(0,Math.round(age))+' วินาทีที่แล้ว')}else{setText('sensorLiveStatus',available?'ค่าล่าสุดจาก Sensor · อัปเดตอัตโนมัติ':'กำลังรอค่าจาก Sensor')}}
 function applyPortalStatus(data){
   applySensorValues(data);
+  applyOtaStatus(data);
   const httpStatus=Number(data.lastHttpStatus||0);
   const backendOk=httpStatus>=200&&httpStatus<300;
   const wifiConnected=data.wifiConnected===true;
@@ -16,6 +17,8 @@ function applyPortalStatus(data){
   setText('statusUptime',data.uptime||'—');
   setText('currentWifi',data.wifiSsid||'ยังไม่ได้ตั้ง');
   setText('currentIp',data.ip||'—');
+  setText('wifiIpMode',data.ipMode||'DHCP learning');
+  setText('wifiLockedIp',data.lockedIp||'ยังไม่เรียนรู้');
   if(data.rememberedWifiProfiles!==undefined)setText('rememberedWifi',String(data.rememberedWifiProfiles)+' networks');
   setText('healthWifi',wifiConnected?'Connected':'Disconnected');
   setText('healthBackend',backendOk?'Connected':(data.lastSendError||'Waiting'));

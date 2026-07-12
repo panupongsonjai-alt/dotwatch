@@ -34,6 +34,11 @@ class ConfigStore {
   int knownWiFiProfileCount(const DeviceConfig &config);
   String knownWiFiProfileSummary(const DeviceConfig &config);
 
+  bool loadWiFiIpLease(const String &ssid, WiFiIpLease &lease);
+  bool rememberWiFiIpLease(const WiFiIpLease &lease);
+  bool forgetWiFiIpLease(const String &ssid);
+  void clearWiFiIpLeases();
+
  private:
   int appendProfile(WiFiProfile profiles[],
                     int count,
@@ -41,5 +46,7 @@ class ConfigStore {
                     String ssid,
                     String password,
                     bool primary);
+  int loadWiFiIpLeases(WiFiIpLease leases[], int maxLeases);
+  bool saveWiFiIpLeases(WiFiIpLease leases[], int count);
   bool writeSchemaVersion(uint16_t version);
 };

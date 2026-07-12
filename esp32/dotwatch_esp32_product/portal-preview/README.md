@@ -63,7 +63,7 @@ portal-preview/
 
 ```powershell
 cd "D:\IoT Project\dotwatch\esp32\dotwatch_esp32_product\portal-preview"
-$env:ESP32_TARGET = "http://192.168.1.212"
+$env:ESP32_TARGET = "http://192.168.1.100"
 npm run dev
 ```
 

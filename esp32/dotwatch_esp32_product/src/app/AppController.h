@@ -6,6 +6,7 @@
 #include "config/ConfigStore.h"
 #include "network/TimeService.h"
 #include "network/WiFiManager.h"
+#include "ota/OtaManager.h"
 #include "portal/PortalServer.h"
 #include "recovery/RecoveryManager.h"
 #include "sensors/SensorManager.h"
@@ -33,6 +34,7 @@ class AppController {
   TimeService timeService_;
   SensorManager sensorManager_;
   BackendClient backendClient_;
+  OtaManager otaManager_;
   PortalServer portalServer_;
   StatusLed statusLed_;
   RecoveryManager recoveryManager_;

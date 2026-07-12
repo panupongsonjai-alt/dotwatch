@@ -11,6 +11,7 @@ constexpr const char *KEY_SCHEMA = "cfgVer";
 constexpr const char *KEY_WIFI_SSID = "wifiSsid";
 constexpr const char *KEY_WIFI_PASS = "wifiPass";
 constexpr const char *KEY_WIFI_PROFILES = "wifiProfiles";
+constexpr const char *KEY_WIFI_IP_LEASES = "wifiIpLeases";
 constexpr const char *KEY_PENDING_SSID = "pendSsid";
 constexpr const char *KEY_PENDING_PASS = "pendPass";
 constexpr const char *KEY_PENDING_FLAG = "pendWifi";
@@ -24,6 +25,11 @@ constexpr const char *KEY_DHT_PIN = "dhtPin";
 constexpr const char *KEY_DHT_TYPE = "dhtType";
 constexpr const char *KEY_SEND_MS = "sendMs";
 constexpr const char *KEY_DUMMY = "dummy";
+constexpr const char *KEY_OTA_URL = "otaUrl";
+constexpr const char *KEY_OTA_CHANNEL = "otaChannel";
+constexpr const char *KEY_OTA_ENABLED = "otaEnabled";
+constexpr const char *KEY_OTA_AUTO = "otaAuto";
+constexpr const char *KEY_OTA_INTERVAL = "otaInterval";
 
 }  // namespace
 
@@ -54,6 +60,13 @@ bool ConfigStore::load(DeviceConfig &config) {
   config.sendIntervalMs = prefs.getULong(
       KEY_SEND_MS, ProductConfig::DEFAULT_SEND_INTERVAL_MS);
   config.fallbackDummy = prefs.getBool(KEY_DUMMY, true);
+  config.otaBaseUrl = prefs.getString(KEY_OTA_URL, "");
+  config.otaChannel = prefs.getString(
+      KEY_OTA_CHANNEL, ProductConfig::DEFAULT_OTA_CHANNEL);
+  config.otaEnabled = prefs.getBool(KEY_OTA_ENABLED, true);
+  config.otaAutoInstall = prefs.getBool(KEY_OTA_AUTO, false);
+  config.otaCheckIntervalMs = prefs.getULong(
+      KEY_OTA_INTERVAL, ProductConfig::OTA_DEFAULT_CHECK_INTERVAL_MS);
   prefs.end();
 
   config.wifiSsid.trim();
@@ -62,6 +75,11 @@ bool ConfigStore::load(DeviceConfig &config) {
   config.deviceSecret.trim();
   config.adminPin.trim();
   config.tlsCaCert.trim();
+  config.otaBaseUrl.trim();
+  while (config.otaBaseUrl.endsWith("/")) {
+    config.otaBaseUrl.remove(config.otaBaseUrl.length() - 1);
+  }
+  config.otaChannel.trim();
 
   if (config.dhtPin < 0 || config.dhtPin > 39) {
     config.dhtPin = ProductConfig::DEFAULT_DHT_PIN;
@@ -71,6 +89,15 @@ bool ConfigStore::load(DeviceConfig &config) {
   }
   if (config.sendIntervalMs < ProductConfig::MIN_SEND_INTERVAL_MS) {
     config.sendIntervalMs = ProductConfig::MIN_SEND_INTERVAL_MS;
+  }
+  if (config.otaChannel.length() == 0) {
+    config.otaChannel = ProductConfig::DEFAULT_OTA_CHANNEL;
+  }
+  if (config.otaCheckIntervalMs < ProductConfig::OTA_MIN_CHECK_INTERVAL_MS) {
+    config.otaCheckIntervalMs = ProductConfig::OTA_MIN_CHECK_INTERVAL_MS;
+  }
+  if (config.otaCheckIntervalMs > ProductConfig::OTA_MAX_CHECK_INTERVAL_MS) {
+    config.otaCheckIntervalMs = ProductConfig::OTA_MAX_CHECK_INTERVAL_MS;
   }
 
   if (!config.hasPendingWifi || config.pendingWifiSsid.length() == 0) {
@@ -112,6 +139,11 @@ bool ConfigStore::save(const DeviceConfig &config) {
   prefs.putInt(KEY_DHT_TYPE, config.dhtType);
   prefs.putULong(KEY_SEND_MS, config.sendIntervalMs);
   prefs.putBool(KEY_DUMMY, config.fallbackDummy);
+  prefs.putString(KEY_OTA_URL, config.otaBaseUrl);
+  prefs.putString(KEY_OTA_CHANNEL, config.otaChannel);
+  prefs.putBool(KEY_OTA_ENABLED, config.otaEnabled);
+  prefs.putBool(KEY_OTA_AUTO, config.otaAutoInstall);
+  prefs.putULong(KEY_OTA_INTERVAL, config.otaCheckIntervalMs);
   prefs.end();
   return true;
 }
@@ -137,6 +169,7 @@ void ConfigStore::clearWiFi(DeviceConfig &config) {
     prefs.remove(KEY_WIFI_SSID);
     prefs.remove(KEY_WIFI_PASS);
     prefs.remove(KEY_WIFI_PROFILES);
+    prefs.remove(KEY_WIFI_IP_LEASES);
     prefs.remove(KEY_PENDING_SSID);
     prefs.remove(KEY_PENDING_PASS);
     prefs.remove(KEY_PENDING_FLAG);
@@ -353,6 +386,183 @@ String ConfigStore::knownWiFiProfileSummary(const DeviceConfig &config) {
     if (profiles[index].primary) output += "*";
   }
   return output;
+}
+
+int ConfigStore::loadWiFiIpLeases(WiFiIpLease leases[], int maxLeases) {
+  if (leases == nullptr || maxLeases <= 0) return 0;
+
+  Preferences prefs;
+  String stored;
+  if (prefs.begin(ProductConfig::NVS_NAMESPACE, true)) {
+    stored = prefs.getString(KEY_WIFI_IP_LEASES, "");
+    prefs.end();
+  }
+
+  if (stored.length() == 0) return 0;
+
+  JsonDocument document;
+  const DeserializationError error = deserializeJson(document, stored);
+  if (error || !document.is<JsonArray>()) {
+    Serial.println("ConfigStore: invalid remembered IP lease data");
+    return 0;
+  }
+
+  int count = 0;
+  for (JsonObject item : document.as<JsonArray>()) {
+    if (count >= maxLeases) break;
+
+    WiFiIpLease lease;
+    lease.ssid = item["s"] | "";
+    lease.localIp = item["i"] | "";
+    lease.gateway = item["g"] | "";
+    lease.subnet = item["n"] | "";
+    lease.dns1 = item["d1"] | "";
+    lease.dns2 = item["d2"] | "";
+    lease.ssid.trim();
+
+    if (lease.ssid.length() == 0 ||
+        lease.localIp.length() == 0 ||
+        lease.gateway.length() == 0 ||
+        lease.subnet.length() == 0 ||
+        lease.localIp == "0.0.0.0" ||
+        lease.localIp == "255.255.255.255" ||
+        lease.gateway == "0.0.0.0" ||
+        lease.gateway == "255.255.255.255" ||
+        lease.subnet == "0.0.0.0" ||
+        lease.subnet == "255.255.255.255") {
+      Serial.print("ConfigStore: ignored invalid remembered IP lease for SSID ");
+      Serial.println(lease.ssid);
+      continue;
+    }
+
+    leases[count++] = lease;
+  }
+
+  return count;
+}
+
+bool ConfigStore::saveWiFiIpLeases(WiFiIpLease leases[], int count) {
+  JsonDocument document;
+  JsonArray array = document.to<JsonArray>();
+
+  for (int index = 0;
+       index < count && index < ProductConfig::WIFI_PROFILE_MAX;
+       index++) {
+    const WiFiIpLease &lease = leases[index];
+    if (lease.ssid.length() == 0 || lease.localIp.length() == 0) continue;
+
+    JsonObject item = array.add<JsonObject>();
+    item["s"] = lease.ssid;
+    item["i"] = lease.localIp;
+    item["g"] = lease.gateway;
+    item["n"] = lease.subnet;
+    item["d1"] = lease.dns1;
+    item["d2"] = lease.dns2;
+  }
+
+  String output;
+  serializeJson(document, output);
+
+  Preferences prefs;
+  if (!prefs.begin(ProductConfig::NVS_NAMESPACE, false)) return false;
+  const size_t written = prefs.putString(KEY_WIFI_IP_LEASES, output);
+  prefs.end();
+  return written > 0 || output == "[]";
+}
+
+bool ConfigStore::loadWiFiIpLease(const String &ssid, WiFiIpLease &lease) {
+  String cleanedSsid = ssid;
+  cleanedSsid.trim();
+  if (cleanedSsid.length() == 0) return false;
+
+  WiFiIpLease leases[ProductConfig::WIFI_PROFILE_MAX];
+  const int count = loadWiFiIpLeases(
+      leases, ProductConfig::WIFI_PROFILE_MAX);
+
+  for (int index = 0; index < count; index++) {
+    if (leases[index].ssid == cleanedSsid) {
+      lease = leases[index];
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool ConfigStore::rememberWiFiIpLease(const WiFiIpLease &lease) {
+  WiFiIpLease cleaned = lease;
+  cleaned.ssid.trim();
+  if (cleaned.ssid.length() == 0 ||
+      cleaned.localIp.length() == 0 ||
+      cleaned.gateway.length() == 0 ||
+      cleaned.subnet.length() == 0 ||
+      cleaned.localIp == "0.0.0.0" ||
+      cleaned.localIp == "255.255.255.255" ||
+      cleaned.gateway == "0.0.0.0" ||
+      cleaned.gateway == "255.255.255.255" ||
+      cleaned.subnet == "0.0.0.0" ||
+      cleaned.subnet == "255.255.255.255") {
+    Serial.println("ConfigStore: refused invalid remembered IP lease");
+    return false;
+  }
+
+  WiFiIpLease leases[ProductConfig::WIFI_PROFILE_MAX];
+  int count = loadWiFiIpLeases(
+      leases, ProductConfig::WIFI_PROFILE_MAX);
+
+  int existingIndex = -1;
+  for (int index = 0; index < count; index++) {
+    if (leases[index].ssid == cleaned.ssid) {
+      existingIndex = index;
+      break;
+    }
+  }
+
+  if (existingIndex >= 0) {
+    leases[existingIndex] = cleaned;
+  } else {
+    if (count >= ProductConfig::WIFI_PROFILE_MAX) {
+      // Keep the newest learned network and discard the oldest entry.
+      for (int index = 1; index < count; index++) {
+        leases[index - 1] = leases[index];
+      }
+      count--;
+    }
+    leases[count++] = cleaned;
+  }
+
+  return saveWiFiIpLeases(leases, count);
+}
+
+bool ConfigStore::forgetWiFiIpLease(const String &ssid) {
+  String cleanedSsid = ssid;
+  cleanedSsid.trim();
+  if (cleanedSsid.length() == 0) return false;
+
+  WiFiIpLease leases[ProductConfig::WIFI_PROFILE_MAX];
+  const int count = loadWiFiIpLeases(
+      leases, ProductConfig::WIFI_PROFILE_MAX);
+
+  int outputCount = 0;
+  bool removed = false;
+  for (int index = 0; index < count; index++) {
+    if (leases[index].ssid == cleanedSsid) {
+      removed = true;
+      continue;
+    }
+    leases[outputCount++] = leases[index];
+  }
+
+  if (!removed) return true;
+  return saveWiFiIpLeases(leases, outputCount);
+}
+
+void ConfigStore::clearWiFiIpLeases() {
+  Preferences prefs;
+  if (prefs.begin(ProductConfig::NVS_NAMESPACE, false)) {
+    prefs.remove(KEY_WIFI_IP_LEASES);
+    prefs.end();
+  }
 }
 
 bool ConfigStore::writeSchemaVersion(uint16_t version) {

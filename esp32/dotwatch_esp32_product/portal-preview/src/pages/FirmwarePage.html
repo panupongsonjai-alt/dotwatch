@@ -1,0 +1,67 @@
+<section class="dashboard-page" data-page-title="Firmware Update" id="firmware">
+  <div class="card">
+    <div class="section-head">
+      <div>
+        <div class="kicker">Internet OTA</div>
+        <h2>Firmware Update</h2>
+        <p class="muted">ตรวจสอบ ดาวน์โหลด ยืนยัน SHA-256 และติดตั้ง Firmware ใหม่โดยไม่ต้องต่อสาย USB</p>
+      </div>
+      <span class="badge warn" id="otaStateBadge">IDLE</span>
+    </div>
+
+    <div class="ota-summary-grid">
+      <div class="stat"><small>Current Version</small><strong id="otaCurrentVersion">esp32-product-1.1.0-ota</strong><span class="help" id="otaCurrentBuild">Build 1100</span></div>
+      <div class="stat"><small>Available Version</small><strong id="otaAvailableVersion">—</strong><span class="help" id="otaAvailableBuild">ยังไม่พบอัปเดต</span></div>
+      <div class="stat"><small>Channel</small><strong id="otaChannelValue">stable</strong><span class="help" id="otaCheckIntervalValue">ตรวจทุก 360 นาที</span></div>
+      <div class="stat"><small>Update Policy</small><strong id="otaPolicyValue">Manual install</strong><span class="help" id="otaEnabledValue">Internet OTA enabled</span></div>
+    </div>
+
+    <div class="ota-progress-card">
+      <div class="ota-progress-head">
+        <div><strong id="otaStatusMessage">พร้อมตรวจสอบ Firmware ผ่านอินเทอร์เน็ต</strong><span id="otaByteProgress">0 / 0 bytes</span></div>
+        <b id="otaProgressValue">0%</b>
+      </div>
+      <div class="ota-progress-track"><i id="otaProgressBar" style="width:0%"></i></div>
+      <p class="help" id="otaReleaseNotes">Release notes จะแสดงหลังตรวจพบ Firmware ใหม่</p>
+    </div>
+
+    <div class="button-row">
+      <button class="btn-secondary" id="otaCheckButton" type="button">Check for Update</button>
+      <button class="btn-primary" disabled id="otaInstallButton" type="button">Install Update</button>
+    </div>
+    <div class="notice info" id="otaActionMessage" style="display:none;margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-head">
+      <div>
+        <div class="kicker">OTA Settings</div>
+        <h2>แหล่งอัปเดตและนโยบาย</h2>
+        <p class="muted">เว้น OTA Base URL ว่างเพื่อใช้ Backend API URL เดียวกับการส่งค่า Sensor</p>
+      </div>
+    </div>
+    <form action="/ota-save" class="form-grid" data-preview-form method="POST">
+      <div class="field full">
+        <label>OTA Base URL</label>
+        <input id="otaBaseUrl" name="otaBaseUrl" placeholder="https://dotwatch-backend.onrender.com" type="url" />
+        <div class="help" id="otaEffectiveUrl">Effective URL: Backend API URL</div>
+      </div>
+      <div class="field">
+        <label>Update Channel</label>
+        <select id="otaChannel" name="otaChannel"><option value="stable">Stable</option><option value="beta">Beta</option></select>
+      </div>
+      <div class="field">
+        <label>Check Interval</label>
+        <select id="otaCheckInterval" name="otaCheckIntervalMinutes">
+          <option value="15">15 min</option><option value="30">30 min</option><option value="60">60 min</option><option value="180">180 min</option><option selected value="360">360 min</option><option value="720">720 min</option><option value="1440">1440 min</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label class="check"><input checked id="otaEnabled" name="otaEnabled" type="checkbox" value="true" /><span><strong>Enable Internet OTA</strong><small>อนุญาตให้อุปกรณ์ตรวจสอบ Firmware ผ่าน HTTPS</small></span></label>
+        <label class="check"><input id="otaAutoInstall" name="otaAutoInstall" type="checkbox" value="true" /><span><strong>Auto Install</strong><small>ติดตั้งอัตโนมัติเฉพาะ Release ที่ Server อนุญาต</small></span></label>
+      </div>
+      <div class="field full"><div class="notice info">ครั้งแรกต้อง Upload Firmware ชุด OTA นี้ผ่านสาย USB เพื่อเปลี่ยน Partition Table หลังจากนั้นจึงอัปเดตผ่านอินเทอร์เน็ตได้</div></div>
+      <div class="field full"><div class="button-row"><button class="btn-primary" type="submit">Save OTA Settings</button></div></div>
+    </form>
+  </div>
+</section>

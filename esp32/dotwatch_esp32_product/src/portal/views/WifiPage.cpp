@@ -15,8 +15,11 @@ String PortalView::wifiPageHtml() {
   html += "<div class='current-wifi'>";
   html += "<div><small>Wi-Fi ปัจจุบัน</small><strong id='currentWifi'>" + StringUtils::htmlEscape(wifi_->currentSsid().length() ? wifi_->currentSsid() : String("ยังไม่ได้ตั้ง")) + "</strong></div>";
   html += "<div><small>IP Address</small><strong id='currentIp'>" + StringUtils::htmlEscape(wifi_->currentIp()) + "</strong></div>";
+  html += "<div><small>IP Mode</small><strong id='wifiIpMode'>" + StringUtils::htmlEscape(wifi_->currentIpMode()) + "</strong></div>";
+  html += "<div><small>Locked First IP</small><strong id='wifiLockedIp'>" + StringUtils::htmlEscape(wifi_->lockedIp()) + "</strong></div>";
   html += "<div><small>Remembered</small><strong id='rememberedWifi'>" + String(store_->knownWiFiProfileCount(*config_)) + " networks</strong></div>";
   html += "</div>";
+  html += "<div class='notice info' style='margin-bottom:14px'>ESP32 จะจำ IP ที่ Router แจกให้ครั้งแรกของแต่ละ Wi-Fi และใช้ IP เดิมเป็น Fixed IP หลัง Restart หากเปลี่ยน Router หรือโครงข่าย ให้กด <strong>เรียนรู้ Fixed IP ใหม่</strong></div>";
 
   html += "<div class='steps'>";
   html += "<div class='step'><b>1</b><div><strong>สแกนและเลือก</strong><span>เลือกชื่อ Wi-Fi จากรายการ</span></div></div>";
@@ -35,7 +38,8 @@ String PortalView::wifiPageHtml() {
   html += "<div class='field full'><label>รหัสผ่าน Wi-Fi</label><div class='password-row'><input id='wifiPassword' type='password' name='wifiPassword' maxlength='63' autocomplete='new-password' placeholder='เว้นว่างไว้เมื่อใช้ Wi-Fi เดิม'><button id='passwordToggle' class='btn-secondary' type='button' onclick='togglePassword()'>แสดง</button></div><div id='selectedWifi' class='help'>เลือก Wi-Fi จากรายการเพื่อกรอกชื่ออัตโนมัติ</div></div>";
   html += "</div><label class='check'><input type='checkbox' name='keepWifiBackups' value='true' checked><span>เก็บ Wi-Fi เดิมเป็นเครือข่ายสำรอง</span></label>";
   html += "<button class='btn-primary' type='submit' style='width:100%'>บันทึกและทดสอบหลัง Restart</button></form>";
-  html += "<form method='POST' action='/wifi-clear' onsubmit='return confirm(\"ล้าง Wi-Fi ที่จำไว้ทั้งหมดหรือไม่?\")' style='margin-top:9px'>" + pinHiddenInput() + "<button class='btn-danger' type='submit' style='width:100%'>ล้างเฉพาะ Wi-Fi</button></form>";
+  html += "<form method='POST' action='/wifi-ip-relearn' onsubmit='return confirm(\"ลืม Fixed IP เดิมและเรียนรู้ IP ใหม่หลัง Restart หรือไม่?\")' style='margin-top:9px'>" + pinHiddenInput() + "<button class='btn-secondary' type='submit' style='width:100%'>เรียนรู้ Fixed IP ใหม่</button></form>";
+  html += "<form method='POST' action='/wifi-clear' onsubmit='return confirm(\"ล้าง Wi-Fi และ Fixed IP ที่จำไว้ทั้งหมดหรือไม่?\")' style='margin-top:9px'>" + pinHiddenInput() + "<button class='btn-danger' type='submit' style='width:100%'>ล้างเฉพาะ Wi-Fi</button></form>";
   html += "</div>";
 
   html += "<div class='panel'><div class='scan-head'><div><h3>Wi-Fi ใกล้เคียง</h3><div class='help'>รายชื่อที่ ESP32 มองเห็นจริง</div></div><button id='scanButton' class='btn-secondary' type='button' onclick='scanWifi()'>สแกนใหม่</button></div><div id='scanStatus' class='scan-status'>กำลังเตรียมสแกน...</div><div id='networkList' class='network-list'><div class='empty'>กำลังโหลดรายชื่อ Wi-Fi</div></div></div></div>";

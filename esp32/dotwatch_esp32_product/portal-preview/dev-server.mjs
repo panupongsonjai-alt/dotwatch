@@ -6,7 +6,7 @@ import { buildWebApp } from "./scripts/build-web.mjs";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 5174);
-const deviceTarget = String(process.env.ESP32_TARGET || "http://192.168.1.103").replace(/\/$/, "");
+const deviceTarget = String(process.env.ESP32_TARGET || "http://192.168.1.100").replace(/\/$/, "");
 const clients = new Set();
 const watchedExtensions = new Set([".html", ".css", ".js", ".json", ".mjs"]);
 const ignoredNames = new Set(["node_modules", ".git", "generated"]);

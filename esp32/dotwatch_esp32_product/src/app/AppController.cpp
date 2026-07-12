@@ -20,6 +20,7 @@ void AppController::begin() {
   sensorManager_.begin(config_);
   wifiManager_.begin(config_, configStore_);
   backendClient_.begin(config_, status_, timeService_);
+  otaManager_.begin(config_, status_, backendClient_);
   recoveryManager_.begin(configStore_, status_);
   portalServer_.begin(
       config_,
@@ -27,7 +28,8 @@ void AppController::begin() {
       configStore_,
       wifiManager_,
       sensorManager_,
-      backendClient_);
+      backendClient_,
+      otaManager_);
 
   setState(AppState::CONNECTING_WIFI);
   const bool wifiConnected = wifiManager_.connectWithRollback(false);
@@ -60,6 +62,7 @@ void AppController::loop() {
 
   portalServer_.loop();
   serviceWiFi();
+  otaManager_.tick(status_.wifiConnected, portalServer_.isSetupMode());
   serviceTelemetry();
   statusLed_.tick(status_);
 
@@ -77,7 +80,7 @@ void AppController::printBootBanner() {
   Serial.print(" (");
   Serial.print(DOTWATCH_MODEL_KEY);
   Serial.println(")");
-  Serial.println("Architecture: Phase 12A modular add-only product core");
+  Serial.println("Architecture: Modular dashboard portal + HTTPS Internet OTA");
   Serial.println("============================================================");
 }
 
@@ -123,6 +126,7 @@ void AppController::serviceWiFi() {
 }
 
 void AppController::serviceTelemetry() {
+  if (otaManager_.busy() || status_.state == AppState::UPDATING) return;
   if (!status_.wifiConnected) return;
   if (!configStore_.hasRequiredConfig(config_)) return;
 
