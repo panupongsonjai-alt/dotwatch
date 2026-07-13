@@ -7041,7 +7041,7 @@
   padding: 18px !important;
   border: 1px solid var(--border) !important;
   border-radius: 18px !important;
-  background: color-mix(in srgb, var(--panel-2) 86%, transparent) !important;
+  background: transparent !important;
 }
 
 .metric-config-toolbar-main {
