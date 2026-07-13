@@ -4,6 +4,7 @@ import L from 'leaflet'
 
 const DEFAULT_CENTER = [13.7563, 100.5018]
 const GROUP_DISTANCE_METERS = 5
+const LABEL_COLLISION_DISTANCE_METERS = 250
 const EARTH_RADIUS_METERS = 6371000
 const STATUS_PRIORITY = {
   critical: 0,
@@ -11,6 +12,7 @@ const STATUS_PRIORITY = {
   offline: 2,
   online: 3,
 }
+const TOOLTIP_DIRECTIONS = ['top', 'bottom', 'left', 'right']
 
 function getStatus(device = {}) {
   return String(device.status || 'offline')
@@ -152,6 +154,77 @@ function groupDevicesByDistance(items) {
   })
 }
 
+function addTooltipLayouts(groups) {
+  const parents = groups.map((_, index) => index)
+
+  const find = (index) => {
+    if (parents[index] !== index) parents[index] = find(parents[index])
+    return parents[index]
+  }
+
+  const union = (leftIndex, rightIndex) => {
+    const leftRoot = find(leftIndex)
+    const rightRoot = find(rightIndex)
+    if (leftRoot !== rightRoot) parents[rightRoot] = leftRoot
+  }
+
+  for (let leftIndex = 0; leftIndex < groups.length; leftIndex += 1) {
+    for (
+      let rightIndex = leftIndex + 1;
+      rightIndex < groups.length;
+      rightIndex += 1
+    ) {
+      if (
+        getDistanceMeters(
+          groups[leftIndex].position,
+          groups[rightIndex].position
+        ) <= LABEL_COLLISION_DISTANCE_METERS
+      ) {
+        union(leftIndex, rightIndex)
+      }
+    }
+  }
+
+  const collisionGroups = new Map()
+  groups.forEach((group, index) => {
+    const root = find(index)
+    if (!collisionGroups.has(root)) collisionGroups.set(root, [])
+    collisionGroups.get(root).push({ group, index })
+  })
+
+  const layouts = new Map()
+  collisionGroups.forEach((items) => {
+    items
+      .sort((left, right) => {
+        return (
+          left.group.position[0] - right.group.position[0] ||
+          left.group.position[1] - right.group.position[1]
+        )
+      })
+      .forEach(({ index }, layoutIndex) => {
+        const direction = TOOLTIP_DIRECTIONS[layoutIndex % TOOLTIP_DIRECTIONS.length]
+        const tier = Math.floor(layoutIndex / TOOLTIP_DIRECTIONS.length)
+        const distance = 16 + tier * 34
+        const offsets = {
+          top: [0, -distance],
+          bottom: [0, distance],
+          left: [-distance, 0],
+          right: [distance, 0],
+        }
+
+        layouts.set(index, { direction, offset: offsets[direction] })
+      })
+  })
+
+  return groups.map((group, index) => ({
+    ...group,
+    tooltipLayout: layouts.get(index) || {
+      direction: 'top',
+      offset: [0, -16],
+    },
+  }))
+}
+
 function createDeviceIcon(devices) {
   const primaryDevice = devices[0]
   const status = getStatus(primaryDevice)
@@ -234,7 +307,7 @@ function DeviceMap({ devices = [], onOpenDevice }) {
   }, [visibleDevices])
 
   const deviceGroups = useMemo(
-    () => groupDevicesByDistance(devicesWithPositions),
+    () => addTooltipLayouts(groupDevicesByDistance(devicesWithPositions)),
     [devicesWithPositions]
   )
 
@@ -267,7 +340,8 @@ function DeviceMap({ devices = [], onOpenDevice }) {
 
         <MapAutoFit positions={positions} />
 
-        {deviceGroups.map(({ devices: groupedDevices, key, position }) => {
+        {deviceGroups.map(
+          ({ devices: groupedDevices, key, position, tooltipLayout }) => {
           const isGroup = groupedDevices.length > 1
           const firstDevice = groupedDevices[0]
 
@@ -286,8 +360,8 @@ function DeviceMap({ devices = [], onOpenDevice }) {
             >
               <Tooltip
                 permanent
-                direction="top"
-                offset={[0, -16]}
+                direction={tooltipLayout.direction}
+                offset={tooltipLayout.offset}
                 opacity={1}
                 className="device-map-label"
                 interactive={isGroup && typeof onOpenDevice === 'function'}
@@ -334,7 +408,8 @@ function DeviceMap({ devices = [], onOpenDevice }) {
               </Tooltip>
             </Marker>
           )
-        })}
+          }
+        )}
       </MapContainer>
     </div>
   )
