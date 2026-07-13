@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import {
   ClearFilteredDataDialog,
+  FilterActionsMenu,
   NoticeBanner,
   PageHeader,
   StatCard,
@@ -802,6 +803,13 @@ function Alarms() {
             <h2>Filter</h2>
             <p>เลือก Device, ช่วงวันที่ และ Metric ที่ต้องการตรวจสอบ</p>
           </div>
+          <FilterActionsMenu
+            label="Alarm filter actions"
+            items={[
+              { key: 'csv', label: 'Export CSV', icon: Download, disabled: filteredAlarms.length === 0, onSelect: handleExportAlarmEvents },
+              { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: loading || saving || clearingAlarms || filteredAlarms.length === 0, onSelect: openClearAlarmDialog },
+            ]}
+          />
         </div>
 
         <div className="history-filter-grid alarm-history-filter-grid">

@@ -12,6 +12,7 @@ import {
 import {
   ClearFilteredDataDialog,
   EmptyState,
+  FilterActionsMenu,
   NoticeBanner,
   PageHeader,
   StatCard,
@@ -638,6 +639,13 @@ function NotificationCenter() {
             <h2>Filter</h2>
             <p>เลือก Device, ช่วงวันที่ และ Metric ที่ต้องการตรวจสอบ</p>
           </div>
+          <FilterActionsMenu
+            label="Notification filter actions"
+            items={[
+              { key: 'csv', label: 'Export CSV', icon: Download, disabled: filteredNotifications.length === 0, onSelect: handleExportNotifications },
+              { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: loading || clearingNotifications || filteredNotifications.length === 0, onSelect: openClearNotificationDialog },
+            ]}
+          />
         </div>
 
         <div className="history-filter-grid notification-history-filter-grid">

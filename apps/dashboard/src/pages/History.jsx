@@ -12,6 +12,7 @@ import {
 import { CalendarDays, Download, Trash2 } from 'lucide-react'
 import {
   ClearFilteredDataDialog,
+  FilterActionsMenu,
   PageHeader,
   StatCard,
 } from '../components/common'
@@ -813,7 +814,6 @@ function History() {
   const [chartResolution, setChartResolution] = useState(
     initialHistoryState.chartResolution
   )
-  const [exportFormat, setExportFormat] = useState('pdf')
   const [loadingDevices, setLoadingDevices] = useState(true)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [loadingChart, setLoadingChart] = useState(false)
@@ -821,6 +821,7 @@ function History() {
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [exportFormat, setExportFormat] = useState('pdf')
 
   const selectedDevice = useMemo(
     () =>
@@ -1293,7 +1294,7 @@ function History() {
     showSuccessToast('ส่งออกไฟล์ CSV สำเร็จ')
   }
 
-  function handleExport() {
+  function handleExport(exportFormat) {
     setNotice('')
     setError('')
 
@@ -1800,6 +1801,14 @@ function History() {
             <h2>Filter</h2>
             <p>เลือก Device, ช่วงวันที่, Metric และช่วงเวลาที่ต้องการแสดงผล</p>
           </div>
+          <FilterActionsMenu
+            label="History filter actions"
+            items={[
+              { key: 'csv', label: 'Export CSV', icon: Download, disabled: !filteredRows.length || loadingHistory, onSelect: () => handleExport('csv') },
+              { key: 'pdf', label: 'Export PDF', icon: Download, disabled: !filteredRows.length || loadingHistory, onSelect: () => handleExport('pdf') },
+              { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: !historyTableRows.length || loadingHistory || clearingHistory, onSelect: openClearDialog },
+            ]}
+          />
         </div>
 
         <div className="history-filter-grid">

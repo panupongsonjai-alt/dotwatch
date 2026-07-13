@@ -1,0 +1,298 @@
+/* Keep the three main page filters on one fluid row without overflowing. */
+
+.history-filter-card,
+.alarm-standalone-filter-card,
+.notification-standalone-filter-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.history-page-v2 .history-filter-grid,
+.alarms-page .alarm-history-filter-grid,
+.notifications-page .notification-history-filter-grid {
+  display: grid !important;
+  gap: clamp(6px, 0.8vw, 12px) !important;
+  align-items: end !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* History has five fluid filter fields. */
+.history-page-v2 .history-filter-grid {
+  grid-template-columns:
+    minmax(0, 1.35fr)
+    minmax(0, 0.92fr)
+    minmax(0, 0.92fr)
+    minmax(0, 1.25fr)
+    minmax(0, 1fr) !important;
+}
+
+/* Alarm and Notification each have four fluid filter fields. */
+.alarms-page .alarm-history-filter-grid,
+.notifications-page .notification-history-filter-grid {
+  grid-template-columns:
+    minmax(0, 1.35fr)
+    minmax(0, 1.05fr)
+    minmax(0, 1.05fr)
+    minmax(0, 1.35fr) !important;
+}
+
+.history-page-v2 .history-filter-grid > *,
+.alarms-page .alarm-history-filter-grid > *,
+.notifications-page .notification-history-filter-grid > * {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.history-page-v2 .history-filter-grid :is(input, select, button),
+.alarms-page .alarm-history-filter-grid :is(input, select, button),
+.notifications-page .notification-history-filter-grid :is(input, select, button) {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.history-filter-actions,
+.alarms-page .alarm-history-filter-actions,
+.notifications-page .notification-history-filter-actions {
+  display: none !important;
+  grid-column: auto !important;
+  align-self: end !important;
+  justify-self: stretch !important;
+  display: grid !important;
+  grid-auto-flow: column !important;
+  gap: clamp(4px, 0.55vw, 8px) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.history-page-v2 .history-filter-actions {
+  grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr) minmax(0, 1.16fr) !important;
+}
+
+.alarms-page .alarm-history-filter-actions,
+.notifications-page .notification-history-filter-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.history-filter-actions > *,
+.alarms-page .alarm-history-filter-actions > *,
+.notifications-page .notification-history-filter-actions > * {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding-inline: clamp(5px, 0.7vw, 12px) !important;
+  gap: clamp(3px, 0.4vw, 7px) !important;
+  font-size: clamp(10px, 0.82vw, 13px) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.history-filter-actions svg,
+.alarms-page .alarm-history-filter-actions svg,
+.notifications-page .notification-history-filter-actions svg {
+  flex: 0 0 auto !important;
+}
+
+/* Preserve one row on narrow windows; scroll the filter card only if the
+   controls reach their practical minimum instead of letting buttons escape. */
+@media (max-width: 760px) {
+  .history-filter-card,
+  .alarm-standalone-filter-card,
+  .notification-standalone-filter-card {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  .history-page-v2 .history-filter-grid {
+    min-width: 720px !important;
+  }
+
+  .alarms-page .alarm-history-filter-grid,
+  .notifications-page .notification-history-filter-grid {
+    min-width: 650px !important;
+  }
+}
+
+.activity-filter-row,
+.alarm-filter-row,
+[class*='filter-row']:has(> :is(input, select, button, label)) {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* The legacy inline action groups remain hidden; actions live in the header menu. */
+.history-filter-grid > .history-filter-actions,
+.alarm-history-filter-grid > .alarm-history-filter-actions,
+.notification-history-filter-grid > .notification-history-filter-actions {
+  display: none !important;
+}
+
+.history-filter-card .history-section-title {
+  position: relative;
+  align-items: flex-start;
+  overflow: visible;
+}
+
+.filter-actions-menu {
+  position: relative;
+  z-index: 20;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.filter-actions-menu-trigger {
+  width: 42px;
+  min-width: 42px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.filter-actions-menu-trigger:hover,
+.filter-actions-menu-trigger[aria-expanded='true'] {
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  background: color-mix(in srgb, var(--primary) 10%, var(--panel-2));
+}
+
+.filter-actions-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: max-content;
+  min-width: 180px;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.24);
+}
+
+.filter-actions-menu-dropdown button {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.filter-actions-menu-dropdown button:hover:not(:disabled) {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.filter-actions-menu-dropdown button.danger {
+  color: var(--danger, #ef4444);
+}
+
+.filter-actions-menu-dropdown button.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.filter-actions-menu-dropdown button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Date-picker buttons are compact overlays, not full-width filter buttons. */
+.history-page-v2 .history-date-picker,
+.alarms-page .history-date-picker,
+.notifications-page .history-date-picker {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 44px !important;
+}
+
+.history-page-v2 .history-date-picker input[type='date'],
+.alarms-page .history-date-picker input[type='date'],
+.notifications-page .history-date-picker input[type='date'] {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 44px !important;
+  padding: 0 52px 0 14px !important;
+  box-sizing: border-box !important;
+}
+
+.history-page-v2 .history-date-picker-button,
+.alarms-page .history-date-picker-button,
+.notifications-page .history-date-picker-button {
+  position: absolute !important;
+  top: 50% !important;
+  right: 6px !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 3 !important;
+  width: 34px !important;
+  min-width: 34px !important;
+  max-width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transform: translateY(-50%) !important;
+  overflow: hidden !important;
+}
+
+.history-page-v2 .history-date-picker-button:hover,
+.alarms-page .history-date-picker-button:hover,
+.notifications-page .history-date-picker-button:hover {
+  transform: translateY(-50%) !important;
+}
+
+.history-page-v2 .history-date-picker-button svg,
+.alarms-page .history-date-picker-button svg,
+.notifications-page .history-date-picker-button svg {
+  width: 17px !important;
+  height: 17px !important;
+  flex: 0 0 17px !important;
+}
+
+/* Specificity guard: override the full-width button rule inside filter grids. */
+.history-page-v2 .history-filter-grid .history-date-picker > .history-date-picker-button,
+.alarms-page .alarm-history-filter-grid .history-date-picker > .history-date-picker-button,
+.notifications-page .notification-history-filter-grid .history-date-picker > .history-date-picker-button {
+  position: absolute !important;
+  inset: 50% 6px auto auto !important;
+  width: 34px !important;
+  min-width: 34px !important;
+  max-width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transform: translateY(-50%) !important;
+}
