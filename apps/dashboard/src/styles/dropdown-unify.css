@@ -160,14 +160,16 @@
 /* Compact table controls preserve their original footprint. */
 .history-table-actions .unified-select,
 .alarm-table-actions .unified-select,
-.notification-table-actions .unified-select {
-  width: auto;
-  min-width: 108px;
+.notification-table-actions .unified-select,
+.activity-table-actions .unified-select {
+  width: 120px;
+  min-width: 120px;
 }
 
 .history-table-actions .unified-select-trigger,
 .alarm-table-actions .unified-select-trigger,
-.notification-table-actions .unified-select-trigger {
+.notification-table-actions .unified-select-trigger,
+.activity-table-actions .unified-select-trigger {
   height: 36px;
   min-height: 36px;
   padding-inline: 12px;

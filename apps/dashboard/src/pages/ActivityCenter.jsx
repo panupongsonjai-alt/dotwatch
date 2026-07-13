@@ -506,8 +506,8 @@ function ActivityCenter() {
                 onChange={(event) => setActivitySortOrder(event.target.value)}
                 aria-label="ลำดับ Operations Activity"
               >
-                <option value="desc">ล่าสุดก่อน</option>
-                <option value="asc">เก่าสุดก่อน</option>
+                <option value="desc">ล่าสุด</option>
+                <option value="asc">เก่าสุด</option>
               </UnifiedSelect>
             </label>
           </div>
