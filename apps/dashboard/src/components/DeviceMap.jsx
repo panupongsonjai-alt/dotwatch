@@ -15,7 +15,7 @@ const STATUS_PRIORITY = {
   offline: 2,
   online: 3,
 }
-const TOOLTIP_DIRECTIONS = ['top', 'bottom', 'left', 'right']
+const TOOLTIP_DIRECTIONS = ['right', 'top', 'bottom', 'left']
 
 function getStatus(device = {}) {
   return String(device.status || 'offline')
@@ -209,10 +209,10 @@ function addTooltipLayouts(groups) {
         const tier = Math.floor(layoutIndex / TOOLTIP_DIRECTIONS.length)
         const distance = 16 + tier * 34
         const offsets = {
-          top: [0, -distance],
-          bottom: [0, distance],
-          left: [-distance, 0],
-          right: [distance, 0],
+          top: [18, -distance],
+          bottom: [18, distance],
+          left: [-distance, -28],
+          right: [distance, -28],
         }
 
         layouts.set(index, { direction, offset: offsets[direction] })
@@ -222,8 +222,8 @@ function addTooltipLayouts(groups) {
   return groups.map((group, index) => ({
     ...group,
     tooltipLayout: layouts.get(index) || {
-      direction: 'top',
-      offset: [0, -16],
+      direction: 'right',
+      offset: [16, -28],
     },
   }))
 }
