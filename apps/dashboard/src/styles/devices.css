@@ -1380,29 +1380,6 @@
   text-align: right;
 }
 
-.devices-v3-device-settings-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 7px;
-  color: var(--accent);
-  font: inherit;
-  text-decoration: none;
-}
-
-.devices-v3-device-settings-link:hover,
-.devices-v3-device-settings-link:focus-visible {
-  color: var(--text);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.devices-v3-device-settings-link:focus-visible {
-  border-radius: 5px;
-  outline: 2px solid var(--accent);
-  outline-offset: 4px;
-}
-
 .devices-v3-info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
