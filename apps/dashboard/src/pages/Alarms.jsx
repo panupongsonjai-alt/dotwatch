@@ -40,9 +40,15 @@ import {
   getLocalDateInputValue,
   isDateInRange,
 } from '../utils/tableExport'
+import {
+  readTablePageSize,
+  TABLE_PAGE_SIZE_OPTIONS,
+  TABLE_PAGE_SIZE_STORAGE_KEYS,
+  writeTablePageSize,
+} from '../utils/tablePageSizePreference'
 
-const TABLE_PAGE_SIZES = [20, 50, 100]
-const EVENT_PAGE_SIZES = [10, 20, 50, 100]
+const TABLE_PAGE_SIZES = TABLE_PAGE_SIZE_OPTIONS
+const EVENT_PAGE_SIZES = TABLE_PAGE_SIZE_OPTIONS
 
 function getTimestamp(item, fields) {
   for (const field of fields) {
@@ -56,30 +62,15 @@ function getTimestamp(item, fields) {
   return 0
 }
 
-function getPageRange(page, pageSize, total) {
-  if (total === 0) return { start: 0, end: 0 }
-
-  const start = (page - 1) * pageSize + 1
-  return { start, end: Math.min(total, start + pageSize - 1) }
-}
-
 function TableViewControls({
-  page,
   pageSize,
   sortOrder,
-  total,
   onPageSizeChange,
   onSortOrderChange,
   pageSizes = TABLE_PAGE_SIZES,
 }) {
-  const range = getPageRange(page, pageSize, total)
-
   return (
     <div className="alarm-table-actions">
-      <span>
-        {range.start}-{range.end} / {total} rows
-      </span>
-
       <label>
         <span>Show</span>
         <UnifiedSelect
@@ -216,7 +207,9 @@ function Alarms() {
   const [clearingAlarms, setClearingAlarms] = useState(false)
   const [notice, setNotice] = useState('')
   const [pageError, setPageError] = useState('')
-  const [alarmPageSize, setAlarmPageSize] = useState(20)
+  const [alarmPageSize, setAlarmPageSize] = useState(() =>
+    readTablePageSize(TABLE_PAGE_SIZE_STORAGE_KEYS.alarms)
+  )
   const [alarmSortOrder, setAlarmSortOrder] = useState('desc')
   const [alarmPage, setAlarmPage] = useState(1)
 
@@ -606,6 +599,10 @@ function Alarms() {
   ])
 
   useEffect(() => {
+    writeTablePageSize(TABLE_PAGE_SIZE_STORAGE_KEYS.alarms, alarmPageSize)
+  }, [alarmPageSize])
+
+  useEffect(() => {
     if (
       eventMetricFilter !== 'all' &&
       !eventMetricOptions.some((metric) => metric.key === eventMetricFilter)
@@ -747,7 +744,12 @@ function Alarms() {
             <button
               type="button"
               className="secondary-button filter-refresh-button"
-              onClick={loadData}
+              onClick={() => {
+                const currentDate = getLocalDateInputValue()
+                setEventStartDate(currentDate)
+                setEventEndDate(currentDate)
+                loadData()
+              }}
               disabled={loading || saving}
             >
               <RefreshCw size={16} />
@@ -912,10 +914,8 @@ function Alarms() {
           </div>
 
           <TableViewControls
-            page={safeAlarmPage}
             pageSize={alarmPageSize}
             sortOrder={alarmSortOrder}
-            total={filteredAlarms.length}
             onPageSizeChange={setAlarmPageSize}
             onSortOrderChange={setAlarmSortOrder}
             pageSizes={EVENT_PAGE_SIZES}

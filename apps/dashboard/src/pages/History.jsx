@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { CalendarDays, Download, Trash2 } from 'lucide-react'
+import { CalendarDays, Download, RefreshCw, Trash2 } from 'lucide-react'
 import {
   ClearFilteredDataDialog,
   FilterActionsMenu,
@@ -19,6 +19,7 @@ import {
   UnifiedSelect,
 } from '../components/common'
 import { isWifiRssiMetricConfig } from '../utils/metricDisplayConfig'
+import { TABLE_PAGE_SIZE_OPTIONS } from '../utils/tablePageSizePreference'
 import {
   showErrorToast,
   showSuccessToast,
@@ -34,8 +35,8 @@ import {
 } from '../services/api'
 import '../styles/history.css'
 
-const TABLE_PAGE_SIZES = [20, 50, 100]
-const DEFAULT_TABLE_PAGE_SIZE = TABLE_PAGE_SIZES[0]
+const TABLE_PAGE_SIZES = TABLE_PAGE_SIZE_OPTIONS
+const DEFAULT_TABLE_PAGE_SIZE = 20
 
 const CHART_RESOLUTION_OPTIONS = [
   { value: '1m', label: '1 minute' },
@@ -117,7 +118,7 @@ function getInitialHistoryState() {
         params.get('metricKey') || params.get('metric') || fallback.metricKey,
       tablePage: getSafeTablePage(params.get('page') || fallback.tablePage),
       tablePageSize: getSafeTablePageSize(
-        params.get('pageSize') || fallback.tablePageSize
+        params.get('pageSize') || saved.tablePageSize || fallback.tablePageSize
       ),
       sortOrder: params.get('sort') || saved.sortOrder || fallback.sortOrder,
       chartResolution: getSafeChartResolution(
@@ -1803,14 +1804,28 @@ function History() {
             <h2>Filter</h2>
             <p>เลือก Device, ช่วงวันที่, Metric และช่วงเวลาที่ต้องการแสดงผล</p>
           </div>
-          <FilterActionsMenu
-            label="History filter actions"
-            items={[
-              { key: 'csv', label: 'Export CSV', icon: Download, disabled: !filteredRows.length || loadingHistory, onSelect: () => handleExport('csv') },
-              { key: 'pdf', label: 'Export PDF', icon: Download, disabled: !filteredRows.length || loadingHistory, onSelect: () => handleExport('pdf') },
-              { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: !historyTableRows.length || loadingHistory || clearingHistory, onSelect: openClearDialog },
-            ]}
-          />
+          <div className="filter-header-actions">
+            <button
+              type="button"
+              className="secondary-button filter-refresh-button"
+              onClick={() => {
+                const today = todayInputValue()
+                setStartDate(today)
+                setEndDate(today)
+              }}
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+            <FilterActionsMenu
+              label="History filter actions"
+              items={[
+                { key: 'csv', label: 'Export CSV', icon: Download, disabled: !filteredRows.length || loadingHistory, onSelect: () => handleExport('csv') },
+                { key: 'pdf', label: 'Export PDF', icon: Download, disabled: !filteredRows.length || loadingHistory, onSelect: () => handleExport('pdf') },
+                { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: !historyTableRows.length || loadingHistory || clearingHistory, onSelect: openClearDialog },
+              ]}
+            />
+          </div>
         </div>
 
         <div className="history-filter-grid">
@@ -2157,11 +2172,6 @@ function History() {
           </div>
 
           <div className="history-table-actions">
-            <span>
-              {historyTableStartRow}-{historyTableEndRow} /{' '}
-              {historyTableRows.length} rows
-            </span>
-
             <label>
               <span>Show</span>
               <UnifiedSelect
