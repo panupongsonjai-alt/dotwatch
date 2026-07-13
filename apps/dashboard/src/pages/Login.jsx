@@ -5,6 +5,7 @@ import {
   resetPassword,
 } from '../services/auth'
 import { firebaseConfigHelp, isFirebaseConfigured } from '../services/firebase'
+import { recordUserActivity } from '../services/activityTracker'
 import {
   showErrorToast,
   showSuccessToast,
@@ -54,10 +55,24 @@ function Login() {
 
       if (isLogin) {
         await loginWithEmail(email.trim(), password)
+        await recordUserActivity({
+          activityType: 'session.login',
+          title: 'Signed in',
+          description: 'User signed in to dotWatch successfully.',
+          severity: 'success',
+          metadata: { method: 'email_password' },
+        })
       }
 
       if (isRegister) {
         await registerWithEmail(email.trim(), password)
+        await recordUserActivity({
+          activityType: 'session.account_created',
+          title: 'Account created',
+          description: 'A new dotWatch account was created.',
+          severity: 'success',
+          metadata: { method: 'email_password' },
+        })
       }
 
       if (isForgot) {

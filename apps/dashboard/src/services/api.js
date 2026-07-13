@@ -1,5 +1,6 @@
 import { auth } from './firebase'
 import { showErrorToast, showWarningToast } from '../utils/uiFeedback'
+import { recordApiMutation } from './activityTracker'
 
 const API_URL = normalizeApiUrl(
   import.meta.env.VITE_API_URL || 'http://localhost:4000'
@@ -326,6 +327,7 @@ async function apiFetch(path, options = {}) {
       writeMemoryCache(cacheKey, data, getMemoryCacheTtl(path))
     } else if (method !== 'GET') {
       clearApiCache()
+      recordApiMutation(path, method)
     }
 
     return cloneData(data)

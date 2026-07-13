@@ -256,6 +256,7 @@ export async function listActivityLogs({ userId, deviceId, limit }) {
     LEFT JOIN devices d
       ON d.id = al.device_id
     WHERE al.user_id = $1
+      AND al.activity_type NOT LIKE 'alarm.%'
       ${deviceWhere}
     ORDER BY al.created_at DESC
     LIMIT $${params.length}

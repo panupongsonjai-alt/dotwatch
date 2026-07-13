@@ -5,6 +5,7 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '../services/firebase'
+import { recordUserActivity } from '../services/activityTracker'
 import {
   getBrowserName,
   getOperatingSystem,
@@ -70,6 +71,11 @@ function Profile() {
       setMessage('')
       setError('')
       await sendPasswordResetEmail(auth, user.email)
+      void recordUserActivity({
+        activityType: 'profile.password_reset_requested',
+        title: 'Password reset requested',
+        description: 'A password reset email was requested from Profile.',
+      })
       const successMessage = 'ส่งอีเมลสำหรับเปลี่ยนรหัสผ่านเรียบร้อย'
       setMessage(successMessage)
       showSuccessToast(successMessage)
@@ -96,6 +102,11 @@ function Profile() {
       setMessage('')
       setError('')
       await sendEmailVerification(user)
+      void recordUserActivity({
+        activityType: 'profile.verification_requested',
+        title: 'Email verification requested',
+        description: 'A new verification email was requested.',
+      })
       const successMessage =
         'ส่งอีเมลยืนยันตัวตนเรียบร้อย กรุณาตรวจสอบกล่องอีเมล'
       setMessage(successMessage)
@@ -118,6 +129,11 @@ function Profile() {
       setMessage('')
       setError('')
       await updateProfile(user, { displayName })
+      void recordUserActivity({
+        activityType: 'profile.updated',
+        title: 'Profile updated',
+        description: 'The account display name was updated.',
+      })
       const successMessage = 'บันทึกข้อมูลโปรไฟล์เรียบร้อย'
       setMessage(successMessage)
       showSuccessToast(successMessage)

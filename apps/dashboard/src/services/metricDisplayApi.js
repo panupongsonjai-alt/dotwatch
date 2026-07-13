@@ -1,4 +1,5 @@
 import { auth } from './firebase'
+import { recordApiMutation } from './activityTracker'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
@@ -30,6 +31,8 @@ async function request(path, options = {}) {
   if (!response.ok) {
     throw new Error(data?.message || 'API request failed')
   }
+
+  recordApiMutation(path, options.method || 'GET')
 
   return data
 }
