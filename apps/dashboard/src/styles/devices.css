@@ -7031,6 +7031,121 @@
   }
 }
 
+/* Metrics & Alarms summary header */
+.metric-alarm-reference-layout .metric-config-toolbar.metric-config-toolbar-redesign {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 20px !important;
+  margin: 0 0 16px !important;
+  padding: 18px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 18px !important;
+  background: color-mix(in srgb, var(--panel-2) 86%, transparent) !important;
+}
+
+.metric-config-toolbar-main {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+}
+
+.metric-config-toolbar-title {
+  min-width: 0;
+}
+
+.metric-config-toolbar-title h3 {
+  margin: 3px 0 0;
+  color: var(--text);
+  font-size: clamp(18px, 2vw, 22px);
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+}
+
+.metric-alarm-reference-layout .metric-config-toolbar-title .metric-config-helper {
+  display: block !important;
+  margin: 6px 0 0 !important;
+  color: var(--muted) !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  font-weight: 750 !important;
+}
+
+.metric-config-toolbar-summary {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.metric-config-toolbar-summary > span {
+  display: grid;
+  min-width: 86px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.metric-config-toolbar-summary > span strong {
+  margin-bottom: 3px;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.metric-alarm-reference-layout .metric-config-toolbar .metric-config-add-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-width: 128px !important;
+  min-height: 44px !important;
+  padding: 0 16px !important;
+}
+
+@container (max-width: 900px) {
+  .metric-config-toolbar-main {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .metric-config-toolbar-summary {
+    justify-content: flex-start;
+  }
+}
+
+@container (max-width: 620px) {
+  .metric-alarm-reference-layout .metric-config-toolbar.metric-config-toolbar-redesign {
+    grid-template-columns: 1fr !important;
+    padding: 15px !important;
+  }
+
+  .metric-config-toolbar-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .metric-config-toolbar-summary > span {
+    min-width: 0;
+    padding-inline: 7px;
+  }
+
+  .metric-alarm-reference-layout .metric-config-toolbar .metric-config-add-btn {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
+
 /* =========================================================
    Metrics & Alarms - Interval Record compact full-width row
    Matches the selected-device setting row reference.

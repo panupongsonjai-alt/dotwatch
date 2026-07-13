@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { RotateCcw, Save, Trash2 } from 'lucide-react'
+import { Plus, RotateCcw, Save, Trash2 } from 'lucide-react'
 import { useDeviceMetrics } from '../hooks/useDeviceMetrics'
 import { createBlankMetric } from '../utils/metricDisplayConfig'
 import { METRIC_ICON_OPTIONS, MetricIcon } from '../utils/metricIcons'
@@ -558,28 +558,56 @@ export default function MetricConfigPanel({
     (metric) => metric.visible !== false
   ).length
 
+  const activeAlarmRuleCount = draftMetrics.reduce((total, metric, index) => {
+    const metricKey = metric.metric_key || `metric_${index + 1}`
+    const metricDrafts = alarmDrafts?.[metricKey] || {}
+
+    return (
+      total +
+      ALARM_SEVERITIES.filter((severity) => {
+        const draft = metricDrafts[severity]
+        return draft && !isThresholdEmpty(draft.threshold) && draft.is_active !== false
+      }).length
+    )
+  }, 0)
+
   const panelMessage = alarmMessage || message
 
   return (
     <section className="metric-config-panel metric-config-panel-v2 metric-config-panel-easy metric-config-panel-clean metric-alarm-combined-panel metric-alarm-combined-panel-refined metric-alarm-reference-layout">
-      <div className="metric-config-toolbar">
-        <div>
-          <span className="page-eyebrow">Display Fields & Alarm Rules</span>
-          <strong>
-            {visibleMetricCount}/{draftMetrics.length} Visible
-          </strong>
-          <small className="metric-config-helper">
-            กรอก Threshold เพื่อสร้างหรือแก้ไข Alarm และล้าง Threshold เพื่อลบ
-            Rule เดิม
-          </small>
+      <div className="metric-config-toolbar metric-config-toolbar-redesign">
+        <div className="metric-config-toolbar-main">
+          <div className="metric-config-toolbar-title">
+            <span className="page-eyebrow">Metric Configuration</span>
+            <h3>Display Fields & Alarm Rules</h3>
+            <p className="metric-config-helper">
+              กำหนดข้อมูลที่แสดงผล และตั้ง Warning หรือ Critical Threshold ของแต่ละ Metric
+            </p>
+          </div>
+
+          <div className="metric-config-toolbar-summary" aria-label="Metric configuration summary">
+            <span>
+              <strong>{draftMetrics.length}</strong>
+              Metrics
+            </span>
+            <span>
+              <strong>{visibleMetricCount}</strong>
+              Visible
+            </span>
+            <span>
+              <strong>{activeAlarmRuleCount}</strong>
+              Active Rules
+            </span>
+          </div>
         </div>
 
         <button
           type="button"
-          className="ghost-button"
+          className="ghost-button metric-config-add-btn"
           onClick={addMetric}
           disabled={busy}
         >
+          <Plus size={16} />
           Add Metric
         </button>
       </div>
