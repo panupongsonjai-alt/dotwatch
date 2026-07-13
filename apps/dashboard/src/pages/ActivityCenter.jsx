@@ -4,12 +4,12 @@ import { auth } from '../services/firebase'
 import { clearActivityLogs, getActivityLogs, getDevices } from '../services/api'
 import { connectRealtime } from '../services/realtime'
 import {
-  ActivityList,
   ClearFilteredDataDialog,
+  EmptyState,
   FilterActionsMenu,
   PageHeader,
-  SectionHeader,
   StatCard,
+  TablePagination,
   UnifiedSelect,
 } from '../components/common'
 import { getLocalDateInputValue, isDateInRange } from '../utils/tableExport'
@@ -22,6 +22,41 @@ const ACTIVITY_TYPE_LABELS = {
   changes: 'Changes',
   device: 'Device Events',
   other: 'Other',
+}
+
+const ACTIVITY_PAGE_SIZES = [10, 20, 50, 100]
+
+function formatActivityDate(value) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '--' : date.toLocaleString('th-TH')
+}
+
+function formatRelativeActivityTime(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '--'
+
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000))
+  if (diffSeconds < 10) return 'just now'
+  if (diffSeconds < 60) return `${diffSeconds}s ago`
+
+  const diffMinutes = Math.floor(diffSeconds / 60)
+  if (diffMinutes < 60) return `${diffMinutes}m ago`
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays}d ago`
+}
+
+function formatActivityType(value) {
+  const type = String(value || '').trim()
+  if (!type) return 'Other'
+
+  return type
+    .split('.')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' · ')
 }
 
 function showDatePicker(inputRef) {
@@ -74,6 +109,9 @@ function ActivityCenter() {
   const [refreshing, setRefreshing] = useState(false)
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [clearingActivities, setClearingActivities] = useState(false)
+  const [activityPage, setActivityPage] = useState(1)
+  const [activityPageSize, setActivityPageSize] = useState(20)
+  const [activitySortOrder, setActivitySortOrder] = useState('desc')
 
   async function loadActivity({ quiet = false } = {}) {
     try {
@@ -200,6 +238,39 @@ function ActivityCenter() {
       return matchesDate && matchesType
     })
   }, [activities, activityTypeFilter, endDate, startDate])
+
+  const sortedActivities = useMemo(() => {
+    return [...filteredActivities].sort((left, right) => {
+      const leftTime = new Date(left.created_at || left.createdAt).getTime() || 0
+      const rightTime = new Date(right.created_at || right.createdAt).getTime() || 0
+      return activitySortOrder === 'asc' ? leftTime - rightTime : rightTime - leftTime
+    })
+  }, [activitySortOrder, filteredActivities])
+
+  const activityTotalPages = Math.max(
+    1,
+    Math.ceil(sortedActivities.length / activityPageSize)
+  )
+  const safeActivityPage = Math.min(activityPage, activityTotalPages)
+  const activityRangeStart = sortedActivities.length
+    ? (safeActivityPage - 1) * activityPageSize + 1
+    : 0
+  const activityRangeEnd = Math.min(
+    safeActivityPage * activityPageSize,
+    sortedActivities.length
+  )
+  const paginatedActivities = sortedActivities.slice(
+    (safeActivityPage - 1) * activityPageSize,
+    safeActivityPage * activityPageSize
+  )
+
+  useEffect(() => {
+    setActivityPage(1)
+  }, [selectedDeviceId, startDate, endDate, activityTypeFilter, activityPageSize, activitySortOrder])
+
+  useEffect(() => {
+    if (activityPage > activityTotalPages) setActivityPage(activityTotalPages)
+  }, [activityPage, activityTotalPages])
 
   function openClearActivityDialog() {
     if (filteredActivities.length === 0 || clearingActivities) return
@@ -396,17 +467,113 @@ function ActivityCenter() {
       </section>
 
       <section className="app-card activity-feed-card">
-        <SectionHeader
-          title="Recent Activity"
-          description="รายการใช้งานล่าสุดจะถูกเพิ่มอัตโนมัติเมื่อผู้ใช้ดำเนินการสำเร็จ"
-        />
+        <div className="app-section-title activity-section-heading">
+          <div>
+            <h2>Recent Activity</h2>
+            <p>รายการใช้งานตามตัวกรองและลำดับเวลาที่เลือก</p>
+          </div>
 
-        <ActivityList
-          activities={filteredActivities}
-          loading={loading}
-          emptyTitle="ยังไม่มี Activity"
-          emptyDescription="เมื่อมีการ Login เข้าหน้า หรือเปลี่ยนค่าระบบ รายการจะแสดงที่นี่"
-        />
+          <div className="activity-table-actions">
+            <span>
+              {activityRangeStart}-{activityRangeEnd} / {sortedActivities.length} rows
+            </span>
+
+            <label>
+              <span>Show</span>
+              <UnifiedSelect
+                value={activityPageSize}
+                onChange={(event) => setActivityPageSize(Number(event.target.value))}
+                aria-label="จำนวนแถว Operations Activity ต่อหน้า"
+              >
+                {ACTIVITY_PAGE_SIZES.map((size) => (
+                  <option key={size} value={size}>
+                    {size} rows
+                  </option>
+                ))}
+              </UnifiedSelect>
+            </label>
+
+            <label>
+              <span>Sort</span>
+              <UnifiedSelect
+                value={activitySortOrder}
+                onChange={(event) => setActivitySortOrder(event.target.value)}
+                aria-label="ลำดับ Operations Activity"
+              >
+                <option value="desc">ล่าสุดก่อน</option>
+                <option value="asc">เก่าสุดก่อน</option>
+              </UnifiedSelect>
+            </label>
+          </div>
+        </div>
+
+        {loading ? (
+          <EmptyState
+            title="Loading activity"
+            description="กำลังดึงข้อมูล Operations Activity ล่าสุดจากระบบ"
+          />
+        ) : sortedActivities.length === 0 ? (
+          <EmptyState
+            title="ยังไม่มี Activity"
+            description="เมื่อมีการ Login เข้าหน้า หรือเปลี่ยนค่าระบบ รายการจะแสดงที่นี่"
+          />
+        ) : (
+          <>
+            <div className="history-table-wrap activity-table-wrap">
+              <table className="history-table activity-history-table">
+                <thead>
+                  <tr>
+                    <th>Activity</th>
+                    <th>Device</th>
+                    <th>Type</th>
+                    <th>Severity</th>
+                    <th>Occurred</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedActivities.map((item, index) => {
+                    const createdAt = item.created_at || item.createdAt
+                    const severity = String(item.severity || 'info').toLowerCase()
+
+                    return (
+                      <tr key={item.id || `${item.activity_type}-${createdAt}-${index}`}>
+                        <td className="activity-message-cell">
+                          <strong>{item.title || 'System activity'}</strong>
+                          <span>{item.description || '--'}</span>
+                        </td>
+                        <td>
+                          <strong>{item.device_name || 'System'}</strong>
+                          <span>{item.device_code || 'Account activity'}</span>
+                        </td>
+                        <td>
+                          <span className="activity-type-badge">
+                            {formatActivityType(item.activity_type)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`status ${severity}`}>
+                            {severity.charAt(0).toUpperCase() + severity.slice(1)}
+                          </span>
+                        </td>
+                        <td>
+                          <strong>{formatActivityDate(createdAt)}</strong>
+                          <span>{formatRelativeActivityTime(createdAt)}</span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <TablePagination
+              page={safeActivityPage}
+              pageSize={activityPageSize}
+              total={sortedActivities.length}
+              onPageChange={setActivityPage}
+            />
+          </>
+        )}
       </section>
 
       <ClearFilteredDataDialog
