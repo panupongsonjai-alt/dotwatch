@@ -20,6 +20,7 @@ import {
   getRealtimeStatus,
   subscribeRealtimeStatus,
 } from '../services/realtime'
+import { showErrorToast, showSuccessToast } from '../utils/uiFeedback'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
@@ -66,7 +67,7 @@ function SystemHealth() {
     getRealtimeStatus()
   )
 
-  async function checkHealth() {
+  async function checkHealth({ notify = false } = {}) {
     try {
       setLoading(true)
       setError('')
@@ -89,9 +90,12 @@ function SystemHealth() {
         status: response.status,
       })
       setCheckedAt(new Date().toISOString())
+      if (notify) showSuccessToast('System health check completed')
     } catch (healthError) {
       setHealth(null)
-      setError(healthError.message || 'Cannot connect to backend')
+      const errorMessage = healthError.message || 'Cannot connect to backend'
+      setError(errorMessage)
+      showErrorToast(errorMessage)
       setCheckedAt(new Date().toISOString())
     } finally {
       setLoading(false)
@@ -170,7 +174,7 @@ function SystemHealth() {
           <button
             type="button"
             className="primary-button"
-            onClick={checkHealth}
+            onClick={() => checkHealth({ notify: true })}
             disabled={loading}
           >
             <RefreshCw size={16} />

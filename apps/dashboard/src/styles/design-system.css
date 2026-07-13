@@ -20,7 +20,7 @@
 }
 
 .dw-page-header::after {
-  content: '';
+  content: "";
   position: absolute;
   right: -84px;
   top: -84px;
@@ -184,7 +184,7 @@
 }
 
 .dw-stat-card::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0 0 auto;
   height: 3px;
@@ -240,7 +240,7 @@
 }
 
 .dw-metric-card::after {
-  content: '';
+  content: "";
   position: absolute;
   right: -34px;
   bottom: -34px;
@@ -385,91 +385,91 @@
    Used by Settings > Interface Preferences
 ========================================================= */
 
-:root[data-accent='blue'] {
+:root[data-accent="blue"] {
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
 }
 
-:root[data-accent='sky'] {
+:root[data-accent="sky"] {
   --primary: #0ea5e9;
   --primary-hover: #0284c7;
 }
 
-:root[data-accent='cyan'] {
+:root[data-accent="cyan"] {
   --primary: #06b6d4;
   --primary-hover: #0891b2;
 }
 
-:root[data-accent='teal'] {
+:root[data-accent="teal"] {
   --primary: #14b8a6;
   --primary-hover: #0f766e;
 }
 
-:root[data-accent='emerald'] {
+:root[data-accent="emerald"] {
   --primary: #10b981;
   --primary-hover: #059669;
 }
 
-:root[data-accent='lime'] {
+:root[data-accent="lime"] {
   --primary: #84cc16;
   --primary-hover: #65a30d;
 }
 
-:root[data-accent='amber'] {
+:root[data-accent="amber"] {
   --primary: #f59e0b;
   --primary-hover: #d97706;
 }
 
-:root[data-accent='orange'] {
+:root[data-accent="orange"] {
   --primary: #f97316;
   --primary-hover: #ea580c;
 }
 
-:root[data-accent='red'] {
+:root[data-accent="red"] {
   --primary: #ef4444;
   --primary-hover: #dc2626;
 }
 
-:root[data-accent='rose'] {
+:root[data-accent="rose"] {
   --primary: #f43f5e;
   --primary-hover: #e11d48;
 }
 
-:root[data-accent='pink'] {
+:root[data-accent="pink"] {
   --primary: #ec4899;
   --primary-hover: #db2777;
 }
 
-:root[data-accent='violet'] {
+:root[data-accent="violet"] {
   --primary: #8b5cf6;
   --primary-hover: #7c3aed;
 }
 
-:root[data-accent='indigo'] {
+:root[data-accent="indigo"] {
   --primary: #6366f1;
   --primary-hover: #4f46e5;
 }
 
 
-:root[data-density='compact'] .dw-page-header,
-:root[data-density='compact'] .app-card,
-:root[data-density='compact'] .panel,
-:root[data-density='compact'] .settings-panel {
+:root[data-density="compact"] .dw-page-header,
+:root[data-density="compact"] .app-card,
+:root[data-density="compact"] .panel,
+:root[data-density="compact"] .settings-panel {
   padding: 18px;
 }
 
-:root[data-density='compact'] .dw-stat-card {
+:root[data-density="compact"] .dw-stat-card {
   min-height: 78px;
   padding: 14px 16px;
 }
 
-:root[data-density='compact'] .dw-stat-card strong {
+:root[data-density="compact"] .dw-stat-card strong {
   font-size: 25px;
 }
 
-:root[data-reduce-motion='true'] *,
-:root[data-reduce-motion='true'] *::before,
-:root[data-reduce-motion='true'] *::after {
+:root[data-reduce-motion="true"] *,
+:root[data-reduce-motion="true"] *::before,
+:root[data-reduce-motion="true"] *::after {
   scroll-behavior: auto !important;
   transition-duration: 0.01ms !important;
   animation-duration: 0.01ms !important;
@@ -481,18 +481,18 @@
    Phase 21 - Global UI Preferences + Navigation Polish
 ========================================================= */
 
-:root[data-compact-cards='true'] .dw-stat-card,
-:root[data-compact-cards='true'] .summary-card,
-:root[data-compact-cards='true'] .stat-card,
-:root[data-compact-cards='true'] .compact-summary-card {
+:root[data-compact-cards="true"] .dw-stat-card,
+:root[data-compact-cards="true"] .summary-card,
+:root[data-compact-cards="true"] .stat-card,
+:root[data-compact-cards="true"] .compact-summary-card {
   min-height: 78px;
   padding: 14px 16px;
 }
 
-:root[data-compact-cards='true'] .dw-stat-card strong,
-:root[data-compact-cards='true'] .summary-card strong,
-:root[data-compact-cards='true'] .stat-card strong,
-:root[data-compact-cards='true'] .compact-summary-card strong {
+:root[data-compact-cards="true"] .dw-stat-card strong,
+:root[data-compact-cards="true"] .summary-card strong,
+:root[data-compact-cards="true"] .stat-card strong,
+:root[data-compact-cards="true"] .compact-summary-card strong {
   font-size: 25px !important;
 }
 
@@ -535,10 +535,7 @@
   gap: 14px;
 }
 
-.menu-section {
-  display: grid;
-  gap: 7px;
-}
+
 
 .menu-section + .menu-section {
   margin-top: 4px;
@@ -566,7 +563,7 @@
 }
 
 .menu-item.active::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 11px;
@@ -606,10 +603,7 @@
   display: none;
 }
 
-.sidebar.collapsed .menu-section + .menu-section {
-  margin-top: 10px;
-  padding-top: 10px;
-}
+
 
 .sidebar.collapsed .menu {
   gap: 10px;
@@ -1387,4 +1381,3 @@
     align-items: flex-start;
   }
 }
-

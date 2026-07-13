@@ -11,16 +11,16 @@
 .device-detail-page .device-detail-timeline,
 .device-detail-page .device-timeline,
 .device-detail-page .timeline-list,
-.device-detail-page [class*='timeline'] {
+.device-detail-page [class*="timeline"] {
   --device-timeline-title-font: 13px;
   --device-timeline-detail-font: 11.5px;
   --device-timeline-meta-font: 10.5px;
 }
 
 /* Title ยังคงอ่านง่าย แต่ลดลงเล็กน้อย */
-.device-detail-page [class*='timeline'] strong,
-.device-detail-page [class*='timeline'] h3,
-.device-detail-page [class*='timeline'] h4,
+.device-detail-page [class*="timeline"] strong,
+.device-detail-page [class*="timeline"] h3,
+.device-detail-page [class*="timeline"] h4,
 .device-detail-page .timeline-title,
 .device-detail-page .device-timeline-title,
 .device-detail-page .device-detail-timeline-title {
@@ -30,11 +30,11 @@
 }
 
 /* รายละเอียดหลักใน Timeline ให้เล็กลง */
-.device-detail-page [class*='timeline'] p,
-.device-detail-page [class*='timeline'] small,
-.device-detail-page [class*='timeline'] .description,
-.device-detail-page [class*='timeline'] [class*='description'],
-.device-detail-page [class*='timeline'] [class*='detail'],
+.device-detail-page [class*="timeline"] p,
+.device-detail-page [class*="timeline"] small,
+.device-detail-page [class*="timeline"] .description,
+.device-detail-page [class*="timeline"] [class*="description"],
+.device-detail-page [class*="timeline"] [class*="detail"],
 .device-detail-page .timeline-description,
 .device-detail-page .timeline-detail,
 .device-detail-page .device-timeline-description,
@@ -48,13 +48,13 @@
 }
 
 /* เวลา / meta / badge ใน Timeline ให้เล็กลงอีกนิด */
-.device-detail-page [class*='timeline'] time,
-.device-detail-page [class*='timeline'] .time,
-.device-detail-page [class*='timeline'] [class*='time'],
-.device-detail-page [class*='timeline'] .meta,
-.device-detail-page [class*='timeline'] [class*='meta'],
-.device-detail-page [class*='timeline'] .badge,
-.device-detail-page [class*='timeline'] b {
+.device-detail-page [class*="timeline"] time,
+.device-detail-page [class*="timeline"] .time,
+.device-detail-page [class*="timeline"] [class*="time"],
+.device-detail-page [class*="timeline"] .meta,
+.device-detail-page [class*="timeline"] [class*="meta"],
+.device-detail-page [class*="timeline"] .badge,
+.device-detail-page [class*="timeline"] b {
   font-size: var(--device-timeline-meta-font) !important;
   line-height: 1.25 !important;
   font-weight: 800 !important;
@@ -64,15 +64,15 @@
 .device-detail-page .timeline-item,
 .device-detail-page .device-timeline-item,
 .device-detail-page .device-detail-timeline-item,
-.device-detail-page [class*='timeline-item'] {
+.device-detail-page [class*="timeline-item"] {
   padding: 12px !important;
   gap: 10px !important;
 }
 
 /* ถ้ามี card detail box ใน timeline */
-.device-detail-page [class*='timeline'] .app-card,
-.device-detail-page [class*='timeline'] .panel,
-.device-detail-page [class*='timeline'] article {
+.device-detail-page [class*="timeline"] .app-card,
+.device-detail-page [class*="timeline"] .panel,
+.device-detail-page [class*="timeline"] article {
   font-size: var(--device-timeline-detail-font) !important;
 }
 
@@ -80,7 +80,7 @@
   .device-detail-page .device-detail-timeline,
   .device-detail-page .device-timeline,
   .device-detail-page .timeline-list,
-  .device-detail-page [class*='timeline'] {
+  .device-detail-page [class*="timeline"] {
     --device-timeline-title-font: 12.5px;
     --device-timeline-detail-font: 11px;
     --device-timeline-meta-font: 10px;
@@ -89,7 +89,7 @@
   .device-detail-page .timeline-item,
   .device-detail-page .device-timeline-item,
   .device-detail-page .device-detail-timeline-item,
-  .device-detail-page [class*='timeline-item'] {
+  .device-detail-page [class*="timeline-item"] {
     padding: 11px !important;
   }
 }

@@ -3,6 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth, firebaseConfigError } from '../../services/firebase'
 import LoginPage from '../../pages/LoginPage'
 import LoadingState from '../common/LoadingState'
+import { showAdminToast } from '../../utils/uiFeedback'
 
 function AuthGate({ children, getAdminMe, onReady }) {
   const [firebaseUser, setFirebaseUser] = useState(null)
@@ -13,7 +14,6 @@ function AuthGate({ children, getAdminMe, onReady }) {
   useEffect(() => {
     if (!auth) {
       onReady?.(null)
-      setChecking(false)
       return undefined
     }
 
@@ -37,9 +37,14 @@ function AuthGate({ children, getAdminMe, onReady }) {
         if (role !== 'admin' && role !== 'super_admin') {
           await auth.signOut()
 
-          setError(
+          const permissionMessage =
             'บัญชีนี้ไม่มีสิทธิ์เข้า dotWatch Admin กรุณาใช้บัญชี Admin หรือ Super Admin'
-          )
+          setError(permissionMessage)
+          showAdminToast({
+            type: 'error',
+            title: 'Admin access denied',
+            message: permissionMessage,
+          })
           onReady?.(null)
           setChecking(false)
           return
@@ -49,7 +54,14 @@ function AuthGate({ children, getAdminMe, onReady }) {
         onReady?.(me)
       } catch (fetchError) {
         console.error(fetchError)
-        setError(fetchError.message || 'ไม่สามารถตรวจสอบสิทธิ์ Admin ได้')
+        const errorMessage =
+          fetchError.message || 'ไม่สามารถตรวจสอบสิทธิ์ Admin ได้'
+        setError(errorMessage)
+        showAdminToast({
+          type: 'error',
+          title: 'Admin access check failed',
+          message: errorMessage,
+        })
         onReady?.(null)
       } finally {
         setChecking(false)

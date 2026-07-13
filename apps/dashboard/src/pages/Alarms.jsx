@@ -22,11 +22,18 @@ import {
 } from 'lucide-react'
 import {
   ClearFilteredDataDialog,
+  FilterActionsMenu,
   NoticeBanner,
   PageHeader,
   StatCard,
+  UnifiedSelect,
 } from '../components/common'
 import { confirmDeleteAction } from '../utils/typedConfirm'
+import { showErrorToast, showSuccessToast } from '../utils/uiFeedback'
+import {
+  formatMetricValue,
+  getMetricDecimalPlaces,
+} from '../utils/metricDisplayConfig'
 import {
   downloadCsv,
   getLocalDateInputValue,
@@ -74,7 +81,7 @@ function TableViewControls({
 
       <label>
         <span>Show</span>
-        <select
+        <UnifiedSelect
           value={pageSize}
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
           aria-label="จำนวนแถวต่อหน้า"
@@ -84,19 +91,19 @@ function TableViewControls({
               {size} rows
             </option>
           ))}
-        </select>
+        </UnifiedSelect>
       </label>
 
       <label>
         <span>Sort</span>
-        <select
+        <UnifiedSelect
           value={sortOrder}
           onChange={(event) => onSortOrderChange(event.target.value)}
           aria-label="ลำดับข้อมูล"
         >
           <option value="desc">ล่าสุดก่อน</option>
           <option value="asc">เก่าสุดก่อน</option>
-        </select>
+        </UnifiedSelect>
       </label>
     </div>
   )
@@ -161,17 +168,8 @@ function formatDate(value) {
   }
 }
 
-function formatValue(value, unit = '') {
-  if (value == null || value === '' || Number.isNaN(Number(value))) {
-    return '--'
-  }
-
-  const numberValue = Number(value)
-  const displayValue = Number.isInteger(numberValue)
-    ? String(numberValue)
-    : numberValue.toFixed(1)
-
-  return `${displayValue}${unit ? ` ${unit}` : ''}`
+function formatValue(value, unit = '', decimalPlaces = 2) {
+  return formatMetricValue(value, unit, decimalPlaces)
 }
 
 function getSeverityLabel(severity) {
@@ -245,9 +243,7 @@ function formatDateOnly(value) {
   if (!value) return '--'
 
   const date = new Date(`${value}T00:00:00`)
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString('th-TH')
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('th-TH')
 }
 
 function Alarms() {
@@ -311,7 +307,7 @@ function Alarms() {
       setDeviceMetrics(Object.fromEntries(metricEntries))
     } catch (error) {
       console.error('Load alarms error:', error)
-      alert(error.message || 'โหลดข้อมูล Alarm ไม่สำเร็จ')
+      showErrorToast(error.message || 'โหลดข้อมูล Alarm ไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -369,6 +365,7 @@ function Alarms() {
     return {
       name: metric?.metric_name || metricKey || '--',
       unit: metric?.unit || '',
+      decimalPlaces: getMetricDecimalPlaces(metric),
     }
   }
 
@@ -377,9 +374,10 @@ function Alarms() {
       setSaving(true)
       await acknowledgeAlarm(alarmId)
       await loadData()
+      showSuccessToast('Acknowledge Alarm สำเร็จ')
     } catch (error) {
       console.error('Acknowledge alarm error:', error)
-      alert(error.message || 'Acknowledge ไม่สำเร็จ')
+      showErrorToast(error.message || 'Acknowledge ไม่สำเร็จ')
     } finally {
       setSaving(false)
     }
@@ -415,12 +413,28 @@ function Alarms() {
 
       setClearDialogOpen(false)
       setAlarmPage(1)
-      setNotice(
+
+      if (deletedCount > 0) {
+        const clearedKeys = new Set(
+          filteredAlarms.map((alarm) => getAlarmKey(alarm))
+        )
+        setAlarms((current) =>
+          current.filter((alarm) => !clearedKeys.has(getAlarmKey(alarm)))
+        )
+      }
+
+      const clearMessage =
         deletedCount > 0
           ? `ลบ Alarm Events สำเร็จ ${deletedCount.toLocaleString('th-TH')} รายการ`
           : 'ไม่พบ Alarm Events ที่ตรงกับตัวกรองสำหรับลบ'
-      )
-      await loadData()
+      setNotice(clearMessage)
+      showSuccessToast(clearMessage)
+
+      try {
+        await loadData()
+      } catch (refreshError) {
+        console.error('Reload alarms after clear error:', refreshError)
+      }
     } catch (error) {
       console.error('Clear alarm events error:', error)
       setPageError(error.message || 'ลบ Alarm Events ไม่สำเร็จ')
@@ -452,8 +466,9 @@ function Alarms() {
       return {
         device: alarm.device_name || alarm.device_code || 'Unnamed Device',
         metric: alarm.metric_name || metricInfo.name,
-        condition: `${alarm.operator || ''} ${formatValue(alarm.threshold, metricInfo.unit)}`.trim(),
-        value: formatValue(alarm.value, metricInfo.unit),
+        condition:
+          `${alarm.operator || ''} ${formatValue(alarm.threshold, metricInfo.unit, metricInfo.decimalPlaces)}`.trim(),
+        value: formatValue(alarm.value, metricInfo.unit, metricInfo.decimalPlaces),
         severity: getSeverityLabel(alarm.severity),
         status: getStatusLabel(alarm.status),
         triggered: formatDate(alarm.triggered_at),
@@ -469,8 +484,8 @@ function Alarms() {
     const fileName = `dotWatch-alarm-events-${eventStartDate || 'all'}-to-${eventEndDate || 'all'}`
 
     downloadCsv({ fileName, columns, rows, metadata })
+    showSuccessToast('ส่งออก Alarm Events เป็น CSV สำเร็จ')
   }
-
 
   async function handleToggleRule(rule) {
     try {
@@ -487,9 +502,14 @@ function Alarms() {
       })
 
       await loadData()
+      showSuccessToast(
+        rule.is_active
+          ? 'Paused Alarm Rule สำเร็จ'
+          : 'เปิดใช้งาน Alarm Rule สำเร็จ'
+      )
     } catch (error) {
       console.error('Toggle rule error:', error)
-      alert(error.message || 'แก้ไขสถานะ Rule ไม่สำเร็จ')
+      showErrorToast(error.message || 'แก้ไขสถานะ Rule ไม่สำเร็จ')
     } finally {
       setSaving(false)
     }
@@ -497,14 +517,14 @@ function Alarms() {
 
   async function handleDeleteRule(ruleId) {
     const rule = rules.find((item) => String(item.id) === String(ruleId))
-    const ok = confirmDeleteAction({
+    const ok = await confirmDeleteAction({
       title: 'Confirm Delete Alarm Rule',
       targetName:
         rule?.metric || rule?.metric_key
           ? `${rule.metric || rule.metric_key} / ${rule.severity || 'rule'}`
           : `Rule ID ${ruleId}`,
       description:
-        'Alarm Rule นี้จะถูกลบออกจากระบบ กรุณาพิมพ์ delete เพื่อยืนยัน',
+        'Alarm Rule นี้จะถูกลบออกจากระบบ กรุณาพิมพ์ Delete เพื่อยืนยัน',
     })
 
     if (!ok) return
@@ -513,9 +533,10 @@ function Alarms() {
       setSaving(true)
       await deleteAlarmRule(ruleId)
       await loadData()
+      showSuccessToast('ลบ Alarm Rule สำเร็จ')
     } catch (error) {
       console.error('Delete rule error:', error)
-      alert(error.message || 'ลบ Alarm Rule ไม่สำเร็จ')
+      showErrorToast(error.message || 'ลบ Alarm Rule ไม่สำเร็จ')
     } finally {
       setSaving(false)
     }
@@ -570,6 +591,7 @@ function Alarms() {
         key: metricKey,
         name: alarm.metric_name || metricInfo.name,
         unit: metricInfo.unit,
+        decimalPlaces: metricInfo.decimalPlaces,
       })
     })
 
@@ -609,7 +631,6 @@ function Alarms() {
     eventEndDate,
     alarmSortOrder,
   ])
-
 
   const totalAlarmPages = Math.max(
     1,
@@ -700,7 +721,6 @@ function Alarms() {
           </div>
         </div>
 
-
         {displayedRules.length === 0 ? (
           <div className="app-empty-state">
             <AlertTriangle size={30} />
@@ -732,7 +752,9 @@ function Alarms() {
                     return (
                       <tr key={rule.id}>
                         <td>
-                          <strong>{rule.device_name || 'Unnamed Device'}</strong>
+                          <strong>
+                            {rule.device_name || 'Unnamed Device'}
+                          </strong>
                         </td>
 
                         <td>
@@ -741,7 +763,7 @@ function Alarms() {
 
                         <td>
                           {rule.operator}{' '}
-                          {formatValue(rule.threshold, metricInfo.unit)}
+                          {formatValue(rule.threshold, metricInfo.unit, metricInfo.decimalPlaces)}
                         </td>
 
                         <td>
@@ -782,12 +804,19 @@ function Alarms() {
             <h2>Filter</h2>
             <p>เลือก Device, ช่วงวันที่ และ Metric ที่ต้องการตรวจสอบ</p>
           </div>
+          <FilterActionsMenu
+            label="Alarm filter actions"
+            items={[
+              { key: 'csv', label: 'Export CSV', icon: Download, disabled: filteredAlarms.length === 0, onSelect: handleExportAlarmEvents },
+              { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: loading || saving || clearingAlarms || filteredAlarms.length === 0, onSelect: openClearAlarmDialog },
+            ]}
+          />
         </div>
 
         <div className="history-filter-grid alarm-history-filter-grid">
           <label>
             <span>Device</span>
-            <select
+            <UnifiedSelect
               value={eventDeviceFilter}
               onChange={(event) => {
                 setEventDeviceFilter(event.target.value)
@@ -801,7 +830,7 @@ function Alarms() {
                   {device.name || device.device_code || `Device ${device.id}`}
                 </option>
               ))}
-            </select>
+            </UnifiedSelect>
           </label>
 
           <div className="history-filter-field">
@@ -864,7 +893,7 @@ function Alarms() {
 
           <label>
             <span>Metric</span>
-            <select
+            <UnifiedSelect
               value={eventMetricFilter}
               onChange={(event) => setEventMetricFilter(event.target.value)}
               aria-label="กรอง Alarm Events ตาม Metric"
@@ -872,10 +901,11 @@ function Alarms() {
               <option value="all">All Metrics</option>
               {eventMetricOptions.map((metric) => (
                 <option key={metric.key} value={metric.key}>
-                  {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
+                  {metric.name}
+                  {metric.unit ? ` (${metric.unit})` : ''}
                 </option>
               ))}
-            </select>
+            </UnifiedSelect>
           </label>
 
           <div className="history-filter-actions alarm-history-filter-actions">
@@ -942,7 +972,6 @@ function Alarms() {
           />
         </div>
 
-
         {loading ? (
           <div className="app-empty-state">
             <h3>กำลังโหลดข้อมูล</h3>
@@ -981,21 +1010,25 @@ function Alarms() {
                     return (
                       <tr key={alarm.id}>
                         <td>
-                          <strong>{alarm.device_name || 'Unnamed Device'}</strong>
-                        </td>
-
-                        <td>
-                          <strong>{alarm.metric_name || metricInfo.name}</strong>
-                        </td>
-
-                        <td>
-                          {alarm.operator}{' '}
-                          {formatValue(alarm.threshold, metricInfo.unit)}
+                          <strong>
+                            {alarm.device_name || 'Unnamed Device'}
+                          </strong>
                         </td>
 
                         <td>
                           <strong>
-                            {formatValue(alarm.value, metricInfo.unit)}
+                            {alarm.metric_name || metricInfo.name}
+                          </strong>
+                        </td>
+
+                        <td>
+                          {alarm.operator}{' '}
+                          {formatValue(alarm.threshold, metricInfo.unit, metricInfo.decimalPlaces)}
+                        </td>
+
+                        <td>
+                          <strong>
+                            {formatValue(alarm.value, metricInfo.unit, metricInfo.decimalPlaces)}
                           </strong>
                         </td>
 
@@ -1055,8 +1088,7 @@ function Alarms() {
               eventDeviceFilter === 'all'
                 ? 'All Devices'
                 : devices.find(
-                    (device) =>
-                      String(device.id) === String(eventDeviceFilter)
+                    (device) => String(device.id) === String(eventDeviceFilter)
                   )?.name || `Device ${eventDeviceFilter}`,
           },
           { label: 'Start Date', value: formatDateOnly(eventStartDate) },
@@ -1075,8 +1107,9 @@ function Alarms() {
             value: `${filteredAlarms.length.toLocaleString('th-TH')} rows`,
           },
         ]}
-        confirmText="ฉันตรวจสอบ Device, ช่วงวันที่ และ Metric แล้ว และยืนยันว่าต้องการลบ Alarm Events ชุดนี้จริง"
-        confirmLabel="ยืนยัน Clear Alarm"
+        confirmationKeyword="Delete"
+        confirmationHelp="ตรวจสอบ Device, ช่วงวันที่ และ Metric ให้ถูกต้องก่อนยืนยัน"
+        confirmLabel="Delete Alarm Events"
         busyLabel="กำลังลบ Alarm..."
         busy={clearingAlarms}
         onClose={closeClearAlarmDialog}

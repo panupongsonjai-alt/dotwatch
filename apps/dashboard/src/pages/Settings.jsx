@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { PageHeader, SectionHeader, StatCard } from '../components/common'
+import { PageHeader, SectionHeader, StatCard, UnifiedSelect } from '../components/common'
 import { getDevices } from '../services/api'
 import {
   getDeviceRecordSettings,
@@ -15,6 +15,7 @@ import {
   readUiPreferences,
   writeUiPreferences,
 } from '../utils/uiPreferences'
+import { showErrorToast, showSuccessToast } from '../utils/uiFeedback'
 
 const RECORD_INTERVAL_OPTIONS = [
   { value: 10, label: '10 seconds' },
@@ -223,7 +224,7 @@ function Settings() {
     window.dispatchEvent(new Event('dashboardSettingsChanged'))
     broadcastUiPreferencesChanged(savedPreferences)
 
-    alert('บันทึกการตั้งค่าเรียบร้อย')
+    showSuccessToast('บันทึกการตั้งค่าเรียบร้อย')
   }
 
   async function handleSaveRecordInterval() {
@@ -246,6 +247,7 @@ function Settings() {
         'บันทึก Interval Record เรียบร้อย ค่าถัดไปจะถูกบันทึกทันที'
       )
       setRecordMessageTone('success')
+      showSuccessToast('บันทึก Interval Record เรียบร้อย')
 
       window.dispatchEvent(
         new CustomEvent('dotwatchRecordSettingsChanged', {
@@ -259,8 +261,10 @@ function Settings() {
       )
     } catch (error) {
       console.error('Settings save record interval error:', error)
-      setRecordMessage(error.message || 'บันทึก Interval Record ไม่สำเร็จ')
+      const message = error.message || 'บันทึก Interval Record ไม่สำเร็จ'
+      setRecordMessage(message)
       setRecordMessageTone('error')
+      showErrorToast(message)
     } finally {
       setRecordSaving(false)
     }
@@ -329,7 +333,7 @@ function Settings() {
             <div className="settings-recording-fields">
               <label className="settings-recording-field">
                 <span>Device</span>
-                <select
+                <UnifiedSelect
                   value={recordDeviceId}
                   onChange={(event) => setRecordDeviceId(event.target.value)}
                   disabled={
@@ -346,12 +350,12 @@ function Settings() {
                         `Device ${device.id}`}
                     </option>
                   ))}
-                </select>
+                </UnifiedSelect>
               </label>
 
               <label className="settings-recording-field settings-recording-interval-row">
                 <span>Interval Record</span>
-                <select
+                <UnifiedSelect
                   value={Number(recordIntervalSeconds)}
                   onChange={(event) =>
                     setRecordIntervalSeconds(Number(event.target.value))
@@ -363,7 +367,7 @@ function Settings() {
                       {option.label}
                     </option>
                   ))}
-                </select>
+                </UnifiedSelect>
               </label>
             </div>
 

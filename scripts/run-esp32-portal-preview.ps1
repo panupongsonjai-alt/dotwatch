@@ -52,7 +52,7 @@ if (-not $NoBrowser) {
 Write-Host ""
 Write-Host "Edit these files while the server is running:" -ForegroundColor Yellow
 Write-Host "- esp32\dotwatch_esp32_product\portal-preview\index.html"
-Write-Host "- esp32\dotwatch_esp32_product\portal-preview\src\portal.css"
+Write-Host "- esp32\dotwatch_esp32_product\portal-preview\src\styles\ (modular CSS)"
 Write-Host ""
 Write-Host "Stop the preview with Ctrl+C" -ForegroundColor Yellow
 Write-Host ""

@@ -1,4 +1,5 @@
 import { useAlarm } from "../context/AlarmContext";
+import { formatMetricValue } from "../utils/metricDisplayConfig";
 
 function AlarmPanel() {
   const { alarms } = useAlarm();
@@ -19,7 +20,9 @@ function AlarmPanel() {
             <strong>{alarm.metric}</strong>
 
             <p>
-              {alarm.value} {alarm.operator} {alarm.threshold}
+              {formatMetricValue(alarm.value, alarm.unit, alarm.decimal_places)}{' '}
+              {alarm.operator}{' '}
+              {formatMetricValue(alarm.threshold, alarm.unit, alarm.decimal_places)}
             </p>
 
             <small>{alarm.severity}</small>

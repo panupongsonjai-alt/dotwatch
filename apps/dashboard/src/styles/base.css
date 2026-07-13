@@ -4,16 +4,16 @@
    duplicate chart/modal/profile overrides, and unused legacy blocks.
 ========================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Prompt:wght@400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Prompt:wght@400;500;600;700;800&display=swap");
 
 :root {
   font-family:
-    'Inter',
-    'Prompt',
+    "Inter",
+    "Prompt",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
 
   --bg: #eef3f8;
@@ -42,7 +42,7 @@
   background: var(--bg);
 }
 
-:root[data-theme='light'] {
+:root[data-theme="light"] {
   --bg: #eef3f8;
   --panel: #ffffff;
   --panel-2: #f8fafc;
@@ -57,7 +57,7 @@
   --shadow-hover: 0 24px 60px rgba(15, 23, 42, 0.11);
 }
 
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   --bg: #0f172a;
   --panel: #1e293b;
   --panel-2: #111827;

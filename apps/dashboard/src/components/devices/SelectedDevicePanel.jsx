@@ -25,6 +25,9 @@ import LocationPicker from '../LocationPicker.jsx'
 import MetricConfigPanel from '../MetricConfigPanel.jsx'
 import { auth } from '../../services/firebase'
 import { getDeviceSecret } from '../../services/api'
+import { showWarningToast } from '../../utils/uiFeedback'
+import UnifiedSelect from '../common/UnifiedSelect.jsx'
+import { formatMetricValue } from '../../utils/metricDisplayConfig'
 import {
   getDeviceMetricPills,
   getEsp32DefaultPinHint,
@@ -57,14 +60,8 @@ function getHealthTone(status) {
 const OPERATORS = ['>', '>=', '<', '<=', '=']
 const SEVERITIES = ['warning', 'critical']
 
-function formatThreshold(value, unit = '') {
-  if (value == null || value === '') return '--'
-  const numberValue = Number(value)
-  const displayValue = Number.isInteger(numberValue)
-    ? String(numberValue)
-    : numberValue.toFixed(1)
-
-  return `${displayValue}${unit ? ` ${unit}` : ''}`
+function formatThreshold(value, unit = '', decimalPlaces = 2) {
+  return formatMetricValue(value, unit, decimalPlaces)
 }
 
 function getMetricLabel(metrics, metricKey, rule = {}) {
@@ -75,6 +72,11 @@ function getMetricLabel(metrics, metricKey, rule = {}) {
 function getMetricUnit(metrics, metricKey, rule = {}) {
   const metric = metrics.find((item) => item.metric_key === metricKey)
   return metric?.unit || rule.unit || ''
+}
+
+function getMetricDecimals(metrics, metricKey, rule = {}) {
+  const metric = metrics.find((item) => item.metric_key === metricKey)
+  return metric?.decimal_places ?? metric?.decimalPlaces ?? rule.decimal_places ?? 2
 }
 
 function getMetricKeyDisplay(metricKey = '') {
@@ -189,7 +191,7 @@ function DeviceAlarmRulesPanel({
     if (!draft) return
 
     if (draft.threshold === '' || Number.isNaN(Number(draft.threshold))) {
-      alert('กรุณากรอก Threshold ให้ถูกต้อง')
+      showWarningToast('กรุณากรอก Threshold ให้ถูกต้อง')
       return
     }
 
@@ -289,7 +291,7 @@ function DeviceAlarmRulesPanel({
 
                       <label className="metric-alarm-field metric-alarm-operator">
                         <span>Condition</span>
-                        <select
+                        <UnifiedSelect
                           value={draft.operator || '>'}
                           onChange={(event) =>
                             updateAlarmDraft(
@@ -306,7 +308,7 @@ function DeviceAlarmRulesPanel({
                               {operator}
                             </option>
                           ))}
-                        </select>
+                        </UnifiedSelect>
                       </label>
 
                       <label className="metric-alarm-field metric-alarm-threshold">
@@ -335,10 +337,10 @@ function DeviceAlarmRulesPanel({
                           className="metric-alarm-rule-preview"
                           title={`Trigger when ${metricName} ${
                             draft.operator || '>'
-                          } ${formatThreshold(draft.threshold, metricUnit)}`}
+                          } ${formatThreshold(draft.threshold, metricUnit, getMetricDecimals(visibleMetrics, metricKey, draft))}`}
                         >
                           Trigger when {metricName} {draft.operator || '>'}{' '}
-                          {formatThreshold(draft.threshold, metricUnit)}
+                          {formatThreshold(draft.threshold, metricUnit, getMetricDecimals(visibleMetrics, metricKey, draft))}
                         </p>
                       </div>
 

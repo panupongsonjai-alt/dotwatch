@@ -7,7 +7,7 @@
 .profile-page .recent-activity-card,
 .profile-page .profile-activity-card,
 .profile-page .profile-activity-panel,
-.profile-page [class*='recent-activity'],
-.profile-page [class*='profile-activity'] {
+.profile-page [class*="recent-activity"],
+.profile-page [class*="profile-activity"] {
   display: none !important;
 }

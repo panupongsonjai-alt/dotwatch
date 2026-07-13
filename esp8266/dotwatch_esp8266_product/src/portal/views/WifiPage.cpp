@@ -35,7 +35,7 @@ String PortalView::wifiPageHtml() {
   html += "<div class='field full'><label>รหัสผ่าน Wi-Fi</label><div class='password-row'><input id='wifiPassword' type='password' name='wifiPassword' maxlength='63' autocomplete='new-password' placeholder='เว้นว่างไว้เมื่อใช้ Wi-Fi เดิม'><button id='passwordToggle' class='btn-secondary' type='button' onclick='togglePassword()'>แสดง</button></div><div id='selectedWifi' class='help'>เลือก Wi-Fi จากรายการเพื่อกรอกชื่ออัตโนมัติ</div></div>";
   html += "</div><label class='check'><input type='checkbox' name='keepWifiBackups' value='true' checked><span>เก็บ Wi-Fi เดิมเป็นเครือข่ายสำรอง</span></label>";
   html += "<button class='btn-primary' type='submit' style='width:100%'>บันทึกและทดสอบหลัง Restart</button></form>";
-  html += "<form method='POST' action='/wifi-clear' onsubmit='return confirm(\"ล้าง Wi-Fi ที่จำไว้ทั้งหมดหรือไม่?\")' style='margin-top:9px'>" + pinHiddenInput() + "<button class='btn-danger' type='submit' style='width:100%'>ล้างเฉพาะ Wi-Fi</button></form>";
+  html += "<form method='POST' action='/wifi-clear' onsubmit='return prompt(\"พิมพ์ Delete เพื่อล้าง Wi-Fi ที่จำไว้ทั้งหมด\") === \"Delete\"' style='margin-top:9px'>" + pinHiddenInput() + "<button class='btn-danger' type='submit' style='width:100%'>ล้างเฉพาะ Wi-Fi</button></form>";
   html += "</div>";
 
   html += "<div class='panel'><div class='scan-head'><div><h3>Wi-Fi ใกล้เคียง</h3><div class='help'>รายชื่อที่ ESP8266 มองเห็นจริง</div></div><button id='scanButton' class='btn-secondary' type='button' onclick='scanWifi()'>สแกนใหม่</button></div><div id='scanStatus' class='scan-status'>กำลังเตรียมสแกน...</div><div id='networkList' class='network-list'><div class='empty'>กำลังโหลดรายชื่อ Wi-Fi</div></div></div></div>";

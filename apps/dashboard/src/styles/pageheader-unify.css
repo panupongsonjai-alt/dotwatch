@@ -52,7 +52,7 @@
 .dw-page-header::after,
 .page-header::after,
 .page-hero::after {
-  content: '' !important;
+  content: "" !important;
   position: absolute !important;
   right: -72px !important;
   top: -76px !important;
@@ -88,10 +88,10 @@
 .dw-page-header .page-eyebrow,
 .page-header .page-eyebrow,
 .page-hero .page-eyebrow,
-.app-page-header [class*='eyebrow'],
-.dw-page-header [class*='eyebrow'],
-.page-header [class*='eyebrow'],
-.page-hero [class*='eyebrow'] {
+.app-page-header [class*="eyebrow"],
+.dw-page-header [class*="eyebrow"],
+.page-header [class*="eyebrow"],
+.page-hero [class*="eyebrow"] {
   display: inline-flex !important;
   margin: 0 0 8px !important;
   color: var(--danger) !important;

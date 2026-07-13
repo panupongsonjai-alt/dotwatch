@@ -8,6 +8,7 @@ import {
   PageHeader,
   SectionHeader,
   StatCard,
+  UnifiedSelect,
 } from '../components/common'
 
 function normalizeActivity(item = {}) {
@@ -49,7 +50,11 @@ function ActivityCenter() {
         getDevices(),
       ])
 
-      setActivities(Array.isArray(activityData) ? activityData : [])
+      setActivities(
+        (Array.isArray(activityData) ? activityData : []).filter(
+          (item) => !String(item.activity_type || '').startsWith('alarm.')
+        )
+      )
       setDevices(Array.isArray(deviceData) ? deviceData : [])
     } catch (error) {
       console.error('Load activity error:', error)
@@ -83,6 +88,9 @@ function ActivityCenter() {
         const nextItems = incoming
           .filter(Boolean)
           .map(normalizeActivity)
+          .filter(
+            (item) => !String(item.activity_type || '').startsWith('alarm.')
+          )
           .filter((item) => {
             if (!selectedDeviceId) return true
             return String(item.device_id) === String(selectedDeviceId)
@@ -102,19 +110,42 @@ function ActivityCenter() {
     }
   }, [selectedDeviceId])
 
+  useEffect(() => {
+    const handleRecordedActivity = (event) => {
+      const item = normalizeActivity(event.detail)
+      if (String(item.activity_type || '').startsWith('alarm.')) return
+      if (
+        selectedDeviceId &&
+        String(item.device_id || '') !== String(selectedDeviceId)
+      ) return
+
+      setActivities((previous) =>
+        dedupeActivity([item, ...previous]).slice(0, 100)
+      )
+    }
+
+    window.addEventListener('dotwatchActivityRecorded', handleRecordedActivity)
+    return () => {
+      window.removeEventListener(
+        'dotwatchActivityRecorded',
+        handleRecordedActivity
+      )
+    }
+  }, [selectedDeviceId])
+
   const summary = useMemo(() => {
     const total = activities.length
-    const alarms = activities.filter(
-      (item) => item.activity_type === 'alarm.triggered'
+    const signIns = activities.filter(
+      (item) => item.activity_type === 'session.login'
     ).length
-    const deviceEvents = activities.filter((item) =>
-      String(item.activity_type || '').startsWith('device.')
+    const changes = activities.filter((item) =>
+      /^(operation|preference|profile)\./.test(String(item.activity_type || ''))
     ).length
-    const critical = activities.filter(
-      (item) => item.severity === 'critical' || item.severity === 'danger'
+    const pageViews = activities.filter((item) =>
+      String(item.activity_type || '').startsWith('navigation.')
     ).length
 
-    return { total, alarms, deviceEvents, critical }
+    return { total, signIns, changes, pageViews }
   }, [activities])
 
   return (
@@ -122,7 +153,7 @@ function ActivityCenter() {
       <PageHeader
         eyebrow="Activity Center"
         title="Operations Activity"
-        description="ติดตามเหตุการณ์ล่าสุดของ Device, Alarm, และระบบแบบ realtime"
+        description="Audit trail การใช้งานตั้งแต่ Login การเข้าหน้า และการเปลี่ยนค่าระบบ โดยไม่รวม Alarm"
         actions={
           <button
             type="button"
@@ -143,22 +174,22 @@ function ActivityCenter() {
           hint="จำนวนเหตุการณ์ทั้งหมด"
         />
         <StatCard
-          label="Device Events"
-          value={loading ? '...' : summary.deviceEvents}
-          hint="จำนวนเหตุการณ์อุปกรณ์"
+          label="Sign-ins"
+          value={loading ? '...' : summary.signIns}
+          hint="จำนวนการเข้าสู่ระบบ"
           tone="success"
         />
         <StatCard
-          label="Alarm Events"
-          value={loading ? '...' : summary.alarms}
-          hint="จำนวนเหตุการณ์ Alarm ที่เกิดขึ้น"
-          tone={summary.alarms > 0 ? 'warning' : 'success'}
+          label="Changes"
+          value={loading ? '...' : summary.changes}
+          hint="การแก้ไข Device, Metric และการตั้งค่า"
+          tone="warning"
         />
         <StatCard
-          label="Critical"
-          value={loading ? '...' : summary.critical}
-          hint="จำนวนเหตุการณ์ที่มีความสำคัญสูง"
-          tone={summary.critical > 0 ? 'danger' : 'success'}
+          label="Page Views"
+          value={loading ? '...' : summary.pageViews}
+          hint="จำนวนการเปิดส่วนต่าง ๆ ของระบบ"
+          tone="success"
         />
       </section>
 
@@ -171,7 +202,7 @@ function ActivityCenter() {
         <div className="activity-filter-row">
           <label>
             Device
-            <select
+            <UnifiedSelect
               value={selectedDeviceId}
               onChange={(event) => setSelectedDeviceId(event.target.value)}
             >
@@ -181,7 +212,7 @@ function ActivityCenter() {
                   {device.name || device.device_code}
                 </option>
               ))}
-            </select>
+            </UnifiedSelect>
           </label>
         </div>
       </section>
@@ -189,14 +220,14 @@ function ActivityCenter() {
       <section className="app-card activity-feed-card">
         <SectionHeader
           title="Recent Activity"
-          description="เหตุการณ์ล่าสุดจะเพิ่มเข้ามาอัตโนมัติเมื่อ WebSocket ส่ง activity event"
+          description="รายการใช้งานล่าสุดจะถูกเพิ่มอัตโนมัติเมื่อผู้ใช้ดำเนินการสำเร็จ"
         />
 
         <ActivityList
-          items={activities}
+          activities={activities}
           loading={loading}
           emptyTitle="ยังไม่มี Activity"
-          emptyDescription="เมื่อ Device ส่งข้อมูล หรือมี Alarm เกิดขึ้น รายการจะแสดงที่นี่"
+          emptyDescription="เมื่อมีการ Login เข้าหน้า หรือเปลี่ยนค่าระบบ รายการจะแสดงที่นี่"
         />
       </section>
     </div>

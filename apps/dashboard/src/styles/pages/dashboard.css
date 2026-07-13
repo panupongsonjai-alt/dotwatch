@@ -3,475 +3,149 @@
    dotWatch Operations Center
 ========================================================= */
 
-.dashboard-page {
-  display: grid;
-  gap: 20px;
-}
 
-.dashboard-v2-page {
-  gap: 20px;
-}
 
-.dashboard-kpi-grid,
-.summary-grid,
-.stats-grid,
-.app-summary-grid,
-.compact-summary-grid {
-  display: grid;
-  gap: 12px;
-}
 
-.dashboard-kpi-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
 
-.summary-grid,
-.stats-grid,
-.app-summary-grid {
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
-}
 
-.compact-summary-grid,
-.app-summary-grid.compact-summary-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-}
 
-.summary-card,
-.stat-card,
-.compact-summary-card {
-  position: relative;
-  overflow: hidden;
-  min-height: 98px;
-  padding: 18px;
-  border-radius: 20px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-soft, var(--shadow));
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease;
-}
 
-.compact-summary-card {
-  min-height: 82px !important;
-  padding: 13px 15px !important;
-  border-radius: 16px;
-}
 
-.summary-card:hover,
-.stat-card:hover,
-.compact-summary-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(37, 99, 235, 0.32);
-  box-shadow: var(--shadow-lift, var(--shadow-hover));
-}
 
-.summary-card::before,
-.stat-card::before,
-.compact-summary-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary), #06b6d4);
-  opacity: 0.9;
-}
 
-.summary-card span,
-.stat-card h3,
-.compact-summary-card span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
 
-.summary-card strong,
-.stat-card strong,
-.compact-summary-card strong {
-  display: block;
-  margin-top: 7px;
-  color: var(--text);
-  font-size: 28px !important;
-  line-height: 1;
-  font-weight: 900;
-  letter-spacing: -0.05em;
-}
 
-.dashboard-main-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 18px;
-  align-items: start;
-}
 
-.dashboard-alarm-column {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  position: sticky;
-  top: 96px;
-}
 
-.dashboard-section-title-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
 
-.devices-overview-panel,
-.dashboard-devices-card {
-  min-height: auto;
-}
 
-.device-count-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 900;
-  white-space: nowrap;
-}
 
-.overview-grid,
-.dashboard-device-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
-}
 
-.overview-card,
-.overview-card.compact,
-.dashboard-device-card-v2 {
-  transition:
-    transform 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-}
 
-.overview-card.compact,
-.dashboard-device-card-v2 {
-  min-height: 124px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-}
 
-.dashboard-device-card-v2 {
-  width: 100%;
-  display: grid;
-  align-content: start;
-  gap: 10px;
-}
 
-.overview-card:hover,
-.overview-card.compact:hover,
-.dashboard-device-card-v2:hover {
-  transform: translateY(-3px);
-  border-color: var(--primary);
-  box-shadow: var(--shadow-hover);
-}
 
-.dashboard-device-topline {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
 
-.device-status-dot {
-  width: 10px;
-  height: 10px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--danger);
-}
 
-.device-status-dot.online {
-  background: var(--success);
-  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
-}
 
-.device-status-dot.warning {
-  background: var(--warning);
-  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.12);
-}
 
-.device-status-dot.offline,
-.device-status-dot.critical {
-  background: var(--danger);
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
-}
 
-.dashboard-device-status {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
 
-.device-model-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 22px;
-  margin-left: auto;
-  padding: 0 8px;
-  border-radius: 999px;
-  color: var(--primary);
-  background: rgba(37, 99, 235, 0.1);
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  font-size: 10px;
-  font-weight: 900;
-  white-space: nowrap;
-}
 
-.overview-name,
-.dashboard-device-name {
-  color: var(--text);
-  font-size: 15px;
-  font-weight: 900;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
-.overview-values,
-.dynamic-overview-values,
-.dashboard-device-values {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 800;
-}
 
-.dashboard-device-values span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-width: fit-content;
-  padding: 5px 8px;
-  border-radius: 999px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-}
 
-.dashboard-device-values b {
-  color: var(--text);
-  font-weight: 900;
-}
 
-.overview-last-update {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
 
-.dashboard-map-card-v2 {
-  padding: 16px;
-  overflow: hidden;
-}
 
-.dashboard-map-card-v2 .device-map-wrapper,
-.dashboard-map-card-v2 .device-map-empty,
-.dashboard-map-card-v2 .dashboard-map {
-  height: 320px;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @media (max-width: 1200px) {
-  .dashboard-main-grid {
-    grid-template-columns: 1fr;
-  }
 
-  .dashboard-alarm-column {
-    position: static;
-  }
+
+
 }
 
 @media (max-width: 900px) {
-  .dashboard-kpi-grid,
-  .summary-grid,
-  .stats-grid,
-  .app-summary-grid,
-  .compact-summary-grid,
-  .app-summary-grid.compact-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
 
-  .dashboard-section-title-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+
+
 }
 
 @media (max-width: 560px) {
-  .dashboard-kpi-grid,
-  .summary-grid,
-  .stats-grid,
-  .app-summary-grid,
-  .compact-summary-grid,
-  .app-summary-grid.compact-summary-grid,
-  .overview-grid,
-  .dashboard-device-grid {
-    grid-template-columns: 1fr !important;
-  }
 
-  .summary-card strong,
-  .stat-card strong,
-  .compact-summary-card strong {
-    font-size: 22px !important;
-  }
 
-  .dashboard-map-card-v2 .device-map-wrapper,
-  .dashboard-map-card-v2 .device-map-empty,
-  .dashboard-map-card-v2 .dashboard-map {
-    height: 300px;
-  }
+
+
+
 }
 
 /* =========================================================
    Phase 30 - Lazy Device Map Loading State
 ========================================================= */
 
-.dashboard-map-loading {
-  min-height: 320px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  border-radius: 18px;
-  background: var(--panel-2);
-  border: 1px dashed var(--border);
-  color: var(--muted);
-  text-align: left;
-}
 
-.dashboard-map-loading-icon {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  border: 3px solid rgba(37, 99, 235, 0.16);
-  border-top-color: var(--primary);
-  animation: dashboard-map-spin 0.9s linear infinite;
-}
 
-.dashboard-map-loading strong {
-  display: block;
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 950;
-}
 
-.dashboard-map-loading p {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 750;
-}
+
+
+
+
 
 @keyframes dashboard-map-spin {
-  to {
-    transform: rotate(360deg);
-  }
+
 }
 
-:root[data-reduce-motion='true'] .dashboard-map-loading-icon {
-  animation: none;
-}
+
 
 @media (max-width: 560px) {
-  .dashboard-map-loading {
-    min-height: 300px;
-    align-items: center;
-    flex-direction: column;
-    text-align: center;
-  }
+
 }
 
 /* =========================================================
    Dashboard Layout - Full Width Device Overview
 ========================================================= */
 
-.dashboard-main-grid {
-  display: grid;
-  grid-template-columns: 1fr !important;
-  gap: 18px;
-  align-items: start;
-}
 
-.dashboard-devices-card,
-.devices-overview-panel {
-  width: 100%;
-}
 
-.dashboard-alerts-under-map {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 18px;
-  align-items: start;
-}
 
-.dashboard-alerts-under-map > * {
-  min-width: 0;
-}
 
-.dashboard-alerts-under-map .dashboard-alarm-column,
-.dashboard-alarm-column {
-  position: static;
-}
+
+
+
+
+
 
 @media (max-width: 1100px) {
-  .dashboard-alerts-under-map {
-    grid-template-columns: 1fr;
-  }
+
 }
 
 /* =========================================================
    Dashboard Data Overview - Live Metrics Card Design
 ========================================================= */
 
-.dashboard-data-overview-card,
-.live-metrics-overview-card {
-  display: grid;
-  gap: 16px;
-  overflow: hidden;
-}
 
-.live-metrics-overview-header {
-  margin-bottom: 4px;
-}
 
-.live-metrics-count-badge {
-  min-height: 34px;
-  padding: 0 13px;
-  color: var(--primary);
-  background: rgba(37, 99, 235, 0.1);
-  border-color: rgba(37, 99, 235, 0.24);
-}
 
-.live-metrics-overview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 14px;
-  align-items: stretch;
-}
+
+
+
+
 
 .live-metric-overview-card {
   position: relative;
@@ -496,7 +170,7 @@
   box-shadow: 0 18px 36px rgba(2, 6, 23, 0.22);
 }
 
-:root[data-theme='light'] .live-metric-overview-card {
+:root[data-theme="light"] .live-metric-overview-card {
   background:
     radial-gradient(
       circle at 94% 96%,
@@ -507,185 +181,63 @@
     linear-gradient(145deg, #ffffff, #f8fafc);
 }
 
-.live-metric-overview-card.warning {
-  border-color: rgba(245, 158, 11, 0.28);
-}
 
-.live-metric-overview-card.critical {
-  border-color: rgba(239, 68, 68, 0.32);
-}
+
+
 
 .live-metric-overview-card.offline {
   border-color: rgba(33, 57, 90, 0.28);
   opacity: 0.86;
 }
 
-.live-metric-bg-shape {
-  position: absolute;
-  right: -28px;
-  bottom: -30px;
-  width: 108px;
-  height: 108px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.16);
-  pointer-events: none;
-}
 
-.live-metric-overview-title,
-.live-metric-overview-value,
-.live-metric-overview-device {
-  position: relative;
-  z-index: 1;
-  min-width: 0;
-}
 
-.live-metric-overview-title strong {
-  min-width: 0;
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.1;
-  font-weight: 950;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
-.live-metric-overview-value {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
 
-.live-metric-overview-value strong {
-  min-width: 0;
-  color: var(--text);
-  font-size: clamp(34px, 4vw, 46px);
-  line-height: 0.95;
-  font-weight: 950;
-  letter-spacing: -0.08em;
-  text-shadow: 0 2px 0 rgba(37, 99, 235, 0.5);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
-.live-metric-overview-value span {
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 950;
-}
 
-.live-metric-overview-device {
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 850;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+
+
+
+
+
+
+
 
 /* =========================================================
    Dashboard Alerts - Full Width Under Map
 ========================================================= */
 
-.dashboard-alerts-under-map {
-  display: grid;
-  grid-template-columns: 1fr !important;
-  gap: 18px;
-  align-items: stretch;
-}
 
-.dashboard-alerts-under-map > * {
-  width: 100%;
-  min-width: 0;
-}
 
-.dashboard-alerts-under-map .dashboard-alarm-column,
-.dashboard-alarm-column {
-  position: static;
-}
+
+
+
 
 /* =========================================================
    Device Map - Permanent Device Name Labels
 ========================================================= */
 
-.device-map-wrapper {
-  position: relative;
-  overflow: hidden;
-  border-radius: 20px;
-  background: var(--panel-2);
-}
 
-.dashboard-map {
-  width: 100%;
-  min-height: 320px;
-  border-radius: 20px;
-  overflow: hidden;
-  background: var(--panel-2);
-}
 
-.device-map-empty {
-  min-height: 320px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border-radius: 20px;
-  background: var(--panel-2);
-  border: 1px dashed var(--border);
-  color: var(--muted);
-  text-align: center;
-}
 
-.device-map-empty strong {
-  color: var(--text);
-  font-size: 15px;
-  font-weight: 950;
-}
 
-.device-map-empty p {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 750;
-}
 
-.device-map-marker-shell {
-  border: 0;
-  background: transparent;
-}
 
-.device-map-marker-dot {
-  width: 18px;
-  height: 18px;
-  display: block;
-  border-radius: 999px;
-  border: 3px solid rgba(255, 255, 255, 0.96);
-}
 
-.leaflet-tooltip.device-map-label {
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 999px;
-  padding: 5px 9px;
-  background: rgba(15, 23, 42, 0.9);
-  color: #f8fafc;
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.22);
-  font-size: 11px;
-  font-weight: 950;
-  line-height: 1;
-  letter-spacing: 0.01em;
-  pointer-events: none;
-}
 
-.leaflet-tooltip.device-map-label::before {
-  display: none;
-}
+
+
+
+
+
+
+
+
+
 
 @media (max-width: 560px) {
-  .dashboard-map,
-  .device-map-empty {
-    min-height: 300px;
-  }
+
 }
 
 /* =========================================================
@@ -767,8 +319,8 @@
 .devices-overview-panel .device-count-badge,
 .dashboard-devices-card .device-count-badge,
 .dashboard-map-card-v2 .device-count-badge,
-.dashboard-alerts-under-map > * [class*='badge'],
-.dashboard-alerts-under-map > * [class*='count'] {
+.dashboard-alerts-under-map > * [class*="badge"],
+.dashboard-alerts-under-map > * [class*="count"] {
   min-height: 30px !important;
   display: inline-flex !important;
   align-items: center;
@@ -786,9 +338,9 @@
 }
 
 /* Alarm card: keep warning/critical active badge red when needed */
-.dashboard-alerts-under-map > * [class*='critical'],
-.dashboard-alerts-under-map > * [class*='danger'],
-.dashboard-alerts-under-map > * [class*='active'] {
+.dashboard-alerts-under-map > * [class*="critical"],
+.dashboard-alerts-under-map > * [class*="danger"],
+.dashboard-alerts-under-map > * [class*="active"] {
   font-weight: 950;
 }
 
@@ -838,8 +390,8 @@
 
 /* Try to normalize common alarm component header patterns */
 .dashboard-alerts-under-map > * > header,
-.dashboard-alerts-under-map > * [class*='header']:first-child,
-.dashboard-alerts-under-map > * [class*='section-title']:first-child,
+.dashboard-alerts-under-map > * [class*="header"]:first-child,
+.dashboard-alerts-under-map > * [class*="section-title"]:first-child,
 .dashboard-alerts-under-map > * .app-section-title:first-child {
   margin: 0 0 18px !important;
   display: flex;
@@ -848,7 +400,7 @@
   gap: 16px;
 }
 
-.dashboard-alerts-under-map > * [class*='eyebrow'],
+.dashboard-alerts-under-map > * [class*="eyebrow"],
 .dashboard-alerts-under-map > * .page-eyebrow {
   color: var(--success);
   font-size: 12px !important;
@@ -875,8 +427,8 @@
   .dashboard-devices-card .app-section-title,
   .dashboard-map-card-v2 .app-section-title,
   .dashboard-alerts-under-map > * > header,
-  .dashboard-alerts-under-map > * [class*='header']:first-child,
-  .dashboard-alerts-under-map > * [class*='section-title']:first-child,
+  .dashboard-alerts-under-map > * [class*="header"]:first-child,
+  .dashboard-alerts-under-map > * [class*="section-title"]:first-child,
   .dashboard-alerts-under-map > * .app-section-title:first-child {
     flex-direction: column;
     align-items: flex-start;
@@ -904,11 +456,7 @@
     font-size: 20px !important;
   }
 
-  .dashboard-map-card-v2 .device-map-wrapper,
-  .dashboard-map-card-v2 .device-map-empty,
-  .dashboard-map-card-v2 .dashboard-map {
-    height: 300px;
-  }
+
 }
 
 /* =========================================================
@@ -933,12 +481,7 @@
   align-items: stretch !important;
 }
 
-.live-metric-overview-card {
-  min-height: 148px !important;
-  padding: 18px 18px 20px !important;
-  align-content: start !important;
-  gap: 10px !important;
-}
+
 
 .live-metric-overview-title strong {
   display: block;
@@ -1024,6 +567,3 @@
 }
 
 /* Data Overview metric values: keep cards flat without drop shadows. */
-.live-metric-overview-card {
-  box-shadow: none !important;
-}

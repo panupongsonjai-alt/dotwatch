@@ -3,6 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { getDevice, getDeviceMetrics } from '../services/api'
 import { auth } from '../services/firebase'
 import { connectRealtime } from '../services/realtime'
+import { showErrorToast } from '../utils/uiFeedback'
 import {
   EmptyState,
   PageHeader,
@@ -64,9 +65,14 @@ function getAlarmDescription(alarm) {
   const value = alarm?.value ?? alarm?.reading_value ?? alarm?.current_value
   const parts = []
 
-  if (value != null) parts.push(`Current value ${formatMetricNumber(value)}`)
+  const decimalPlaces = alarm?.decimal_places ?? alarm?.decimalPlaces ?? 2
+  if (value != null) {
+    parts.push(`Current value ${formatMetricNumber(value, decimalPlaces)}`)
+  }
   if (operator || threshold !== '') {
-    parts.push(`Rule ${operator} ${threshold}`.trim())
+    parts.push(
+      `Rule ${operator} ${formatMetricNumber(threshold, decimalPlaces)}`.trim()
+    )
   }
 
   return parts.length > 0
@@ -237,7 +243,7 @@ function DeviceDetail({ deviceId, onBack }) {
       )
     } catch (error) {
       console.error('Load device detail error:', error)
-      alert('โหลดข้อมูล Device ไม่สำเร็จ')
+      showErrorToast('โหลดข้อมูล Device ไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -436,9 +442,7 @@ function DeviceDetail({ deviceId, onBack }) {
       </nav>
 
       <Suspense fallback={<TabLoading />}>
-        {activeTab === 'overview' && (
-          <DeviceOverviewTab device={device} />
-        )}
+        {activeTab === 'overview' && <DeviceOverviewTab device={device} />}
 
         {activeTab === 'metrics' && (
           <DeviceMetricsTab

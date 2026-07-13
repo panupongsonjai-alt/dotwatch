@@ -14,7 +14,6 @@ import { connectRealtime } from '../services/realtime'
 import { useAlarm } from '../context/AlarmContext'
 import { EmptyState, PageHeader, StatCard } from '../components/common'
 import '../styles/dashboard.css'
-import '../styles/page-system.css'
 const DeviceMap = lazy(() => import('../components/DeviceMap'))
 
 function getMetricIconName(metricConfig = {}) {

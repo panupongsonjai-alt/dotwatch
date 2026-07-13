@@ -1,12 +1,13 @@
 import { useEffect, useMemo } from 'react'
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 
 const DEFAULT_CENTER = [13.7563, 100.5018]
 
 function getStatus(device = {}) {
-  return String(device.status || 'offline').trim().toLowerCase()
+  return String(device.status || 'offline')
+    .trim()
+    .toLowerCase()
 }
 
 function getStatusColor(status) {

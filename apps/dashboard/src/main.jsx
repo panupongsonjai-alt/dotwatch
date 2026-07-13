@@ -3,15 +3,19 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { AlarmProvider } from './context/AlarmContext.jsx'
+import UiFeedbackHost from './components/common/UiFeedbackHost.jsx'
 import './styles.css'
 import 'leaflet/dist/leaflet.css'
 
 const app = (
-  <AuthProvider>
-    <AlarmProvider>
-      <App />
-    </AlarmProvider>
-  </AuthProvider>
+  <>
+    <AuthProvider>
+      <AlarmProvider>
+        <App />
+      </AlarmProvider>
+    </AuthProvider>
+    <UiFeedbackHost />
+  </>
 )
 
 const rootElement = document.getElementById('root')

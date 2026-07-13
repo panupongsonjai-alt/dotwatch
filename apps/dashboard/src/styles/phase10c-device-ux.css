@@ -71,7 +71,7 @@
 }
 
 .devices-v3-item::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0 auto 0 0;
   width: 4px;

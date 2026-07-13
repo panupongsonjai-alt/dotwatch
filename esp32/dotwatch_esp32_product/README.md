@@ -91,6 +91,6 @@ README_ESP32_INTERNET_OTA.md
 
 Firmware รุ่นนี้จำ IP ที่ได้รับจาก DHCP ครั้งแรกของแต่ละ SSID แล้วใช้เป็น Fixed IP หลัง Restart ดูรายละเอียดใน `README_ESP32_FIRST_IP_LOCK.md` ที่โฟลเดอร์หลักของแพ็กเกจ
 
-## Fixed-IP hotfix 1.1.2
+## Fixed-IP recovery 1.1.3
 
-This release rejects `0.0.0.0` and `255.255.255.255`, waits for a real DHCP address after Wi-Fi association, and automatically replaces any invalid lease previously stored by version 1.1.1. No factory reset is required after flashing 1.1.2.
+This release keeps the invalid-address checks from 1.1.2 and fixes DHCP recovery for Arduino-ESP32 2.0.17 by using `0.0.0.0` for all DHCP fields instead of `INADDR_NONE` (`255.255.255.255`). It fully resets the STA interface before retrying and replaces an unusable locked lease with the DHCP address that successfully reconnects. No factory reset is required after flashing 1.1.3.

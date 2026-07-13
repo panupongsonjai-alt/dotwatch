@@ -5,12 +5,23 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '../services/firebase'
+import { recordUserActivity } from '../services/activityTracker'
 import {
   getBrowserName,
   getOperatingSystem,
   getProfileLanguage,
 } from '../utils/profileStorage'
-import { PageHeader, SectionHeader, StatCard, StatusBadge } from '../components/common'
+import {
+  PageHeader,
+  SectionHeader,
+  StatCard,
+  StatusBadge,
+} from '../components/common'
+import {
+  showErrorToast,
+  showSuccessToast,
+  showWarningToast,
+} from '../utils/uiFeedback'
 
 function Profile() {
   const user = auth.currentUser
@@ -49,7 +60,9 @@ function Profile() {
 
   async function handleResetPassword() {
     if (!user?.email) {
-      setError('ไม่พบอีเมลผู้ใช้งาน')
+      const validationMessage = 'ไม่พบอีเมลผู้ใช้งาน'
+      setError(validationMessage)
+      showWarningToast(validationMessage)
       return
     }
 
@@ -58,10 +71,19 @@ function Profile() {
       setMessage('')
       setError('')
       await sendPasswordResetEmail(auth, user.email)
-      setMessage('ส่งอีเมลสำหรับเปลี่ยนรหัสผ่านเรียบร้อย')
+      void recordUserActivity({
+        activityType: 'profile.password_reset_requested',
+        title: 'Password reset requested',
+        description: 'A password reset email was requested from Profile.',
+      })
+      const successMessage = 'ส่งอีเมลสำหรับเปลี่ยนรหัสผ่านเรียบร้อย'
+      setMessage(successMessage)
+      showSuccessToast(successMessage)
     } catch (err) {
       console.error(err)
-      setError('ไม่สามารถส่งอีเมลเปลี่ยนรหัสผ่านได้')
+      const errorMessage = 'ไม่สามารถส่งอีเมลเปลี่ยนรหัสผ่านได้'
+      setError(errorMessage)
+      showErrorToast(errorMessage)
     } finally {
       setSendingReset(false)
     }
@@ -69,7 +91,9 @@ function Profile() {
 
   async function handleSendVerifyEmail() {
     if (!user) {
-      setError('ไม่พบข้อมูลผู้ใช้งาน')
+      const validationMessage = 'ไม่พบข้อมูลผู้ใช้งาน'
+      setError(validationMessage)
+      showWarningToast(validationMessage)
       return
     }
 
@@ -78,10 +102,20 @@ function Profile() {
       setMessage('')
       setError('')
       await sendEmailVerification(user)
-      setMessage('ส่งอีเมลยืนยันตัวตนเรียบร้อย กรุณาตรวจสอบกล่องอีเมล')
+      void recordUserActivity({
+        activityType: 'profile.verification_requested',
+        title: 'Email verification requested',
+        description: 'A new verification email was requested.',
+      })
+      const successMessage =
+        'ส่งอีเมลยืนยันตัวตนเรียบร้อย กรุณาตรวจสอบกล่องอีเมล'
+      setMessage(successMessage)
+      showSuccessToast(successMessage)
     } catch (err) {
       console.error(err)
-      setError('ไม่สามารถส่งอีเมลยืนยันตัวตนได้')
+      const errorMessage = 'ไม่สามารถส่งอีเมลยืนยันตัวตนได้'
+      setError(errorMessage)
+      showErrorToast(errorMessage)
     } finally {
       setSendingVerify(false)
     }
@@ -95,10 +129,19 @@ function Profile() {
       setMessage('')
       setError('')
       await updateProfile(user, { displayName })
-      setMessage('บันทึกข้อมูลโปรไฟล์เรียบร้อย')
+      void recordUserActivity({
+        activityType: 'profile.updated',
+        title: 'Profile updated',
+        description: 'The account display name was updated.',
+      })
+      const successMessage = 'บันทึกข้อมูลโปรไฟล์เรียบร้อย'
+      setMessage(successMessage)
+      showSuccessToast(successMessage)
     } catch (err) {
       console.error(err)
-      setError('ไม่สามารถบันทึกข้อมูลได้')
+      const errorMessage = 'ไม่สามารถบันทึกข้อมูลได้'
+      setError(errorMessage)
+      showErrorToast(errorMessage)
     } finally {
       setSavingProfile(false)
     }
@@ -202,7 +245,9 @@ function Profile() {
               <label>
                 Organization
                 <input
-                  value={localStorage.getItem('organization') || 'Personal Account'}
+                  value={
+                    localStorage.getItem('organization') || 'Personal Account'
+                  }
                   disabled
                 />
               </label>
@@ -244,7 +289,9 @@ function Profile() {
                 >
                   <span>📧</span>
                   <div>
-                    <strong>{sendingVerify ? 'Sending...' : 'Verify Email'}</strong>
+                    <strong>
+                      {sendingVerify ? 'Sending...' : 'Verify Email'}
+                    </strong>
                     <small>ส่งอีเมลยืนยันตัวตน</small>
                   </div>
                   <b>›</b>

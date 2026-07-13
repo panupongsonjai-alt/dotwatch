@@ -45,7 +45,7 @@
 .alarm-stat-card::before,
 .notification-stat-card::before,
 .activity-stat-card::before {
-  content: '' !important;
+  content: "" !important;
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;

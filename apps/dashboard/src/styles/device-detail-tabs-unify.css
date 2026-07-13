@@ -5,10 +5,7 @@
 ========================================================= */
 
 /* Same outer rhythm for every tab */
-.device-detail-tab-panel {
-  display: grid;
-  gap: 16px;
-}
+
 
 /* Same card surface as Overview */
 .device-detail-unified-card,
@@ -122,10 +119,7 @@
   box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.12);
 }
 
-.device-timeline-item-ds.warning .device-timeline-dot-ds {
-  background: var(--warning);
-  box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.13);
-}
+
 
 .device-timeline-item-ds.danger .device-timeline-dot-ds {
   background: var(--danger);
@@ -137,9 +131,7 @@
   box-shadow: 0 0 0 5px rgba(14, 165, 233, 0.12);
 }
 
-.device-timeline-content-ds {
-  min-width: 0;
-}
+
 
 .device-timeline-title-row-ds {
   display: flex;
@@ -185,7 +177,7 @@
 
 /* Overview info grid should align with the new shared rhythm if present */
 .device-overview-grid-card-ds .device-info-grid,
-.device-overview-grid-card-ds [class*='info-grid'] {
+.device-overview-grid-card-ds [class*="info-grid"] {
   gap: 12px;
 }
 

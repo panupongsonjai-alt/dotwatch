@@ -64,10 +64,7 @@
 }
 
 /* Device Detail tab card consistency */
-.device-detail-tab-panel {
-  display: grid;
-  gap: 16px;
-}
+
 
 .device-detail-unified-card {
   padding: 24px !important;

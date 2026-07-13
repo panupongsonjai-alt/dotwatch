@@ -26,6 +26,12 @@ function getActivityIcon(activity) {
   const severity = String(activity?.severity || '').toLowerCase()
 
   if (type.includes('alarm')) return '🚨'
+  if (type.startsWith('session.login')) return '🔐'
+  if (type.startsWith('session.logout')) return '↪'
+  if (type.startsWith('navigation.')) return '🧭'
+  if (type.startsWith('preference.')) return '🎨'
+  if (type.startsWith('profile.')) return '👤'
+  if (type.startsWith('operation.')) return '⚙️'
   if (type.includes('offline') || severity === 'danger') return '🔴'
   if (type.includes('online') || severity === 'success') return '🟢'
   if (type.includes('reading')) return '📡'

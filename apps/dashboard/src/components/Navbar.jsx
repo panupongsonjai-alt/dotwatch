@@ -1,8 +1,17 @@
 import { Moon, Sun, LogOut } from 'lucide-react'
 
+import { recordUserActivity } from '../services/activityTracker'
+
 function Navbar({ user, onLogout, theme, setTheme }) {
   const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark')
+    const nextTheme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(nextTheme)
+    void recordUserActivity({
+      activityType: 'preference.theme_changed',
+      title: 'Theme changed',
+      description: `Dashboard theme was changed to ${nextTheme}.`,
+      metadata: { theme: nextTheme },
+    })
   }
 
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'User'

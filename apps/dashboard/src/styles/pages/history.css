@@ -32,11 +32,7 @@
   white-space: nowrap;
 }
 
-.history-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
+
 
 .history-filter-card,
 .history-table-card,
@@ -88,12 +84,7 @@
   min-height: 42px;
 }
 
-.history-content-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 18px;
-  align-items: start;
-}
+
 
 .history-card-title-row,
 .history-table-header {
@@ -186,16 +177,7 @@
   font-weight: 800;
 }
 
-.history-device-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 14px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-}
+
 
 .history-device-meta span {
   color: var(--muted);

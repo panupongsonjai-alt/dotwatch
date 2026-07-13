@@ -38,6 +38,7 @@ class WiFiManager {
                      unsigned long timeoutMs,
                      bool keepAccessPoint);
   bool waitForConnection(unsigned long timeoutMs);
+  bool resetStationForConnection(bool keepAccessPoint);
   bool enableDhcp();
   bool applyIpLease(const WiFiIpLease &lease);
   bool learnFirstIp(const String &ssid);

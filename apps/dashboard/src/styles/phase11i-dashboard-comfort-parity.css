@@ -7,7 +7,7 @@
 ========================================================= */
 
 :root {
-  --dw-font-sans: 'Inter', 'Prompt', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --dw-font-sans: "Inter", "Prompt", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --dw-shell-sidebar-width: 280px;
   --dw-shell-sidebar-collapsed-width: 88px;
   --dw-shell-sidebar-padding-x: 16px;
@@ -100,14 +100,9 @@ body {
   margin-top: 12px;
 }
 
-.sidebar.collapsed .menu-section {
-  justify-items: center;
-}
 
-.sidebar.collapsed .menu-section + .menu-section {
-  margin-top: 10px;
-  padding-top: 10px;
-}
+
+
 
 .sidebar.collapsed .menu-item {
   width: var(--dw-shell-nav-item);
@@ -121,16 +116,7 @@ body {
   gap: 0;
 }
 
-.sidebar.collapsed .menu-icon {
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 0;
-}
+
 
 .sidebar.collapsed .menu-icon svg {
   width: 20px;
@@ -138,9 +124,7 @@ body {
   margin: 0 auto;
 }
 
-.sidebar.collapsed .menu-item.active::before {
-  left: -1px;
-}
+
 
 .top-header {
   min-height: var(--dw-shell-topbar-height);
@@ -190,20 +174,20 @@ textarea:focus-visible {
   box-shadow: var(--dw-shell-focus);
 }
 
-:root[data-theme='dark'] .panel-card,
-:root[data-theme='dark'] .table-card,
-:root[data-theme='dark'] .dw-page-header,
-:root[data-theme='dark'] .page-header,
-:root[data-theme='dark'] .summary-card,
-:root[data-theme='dark'] .stat-card,
-:root[data-theme='dark'] .dw-stat-card,
-:root[data-theme='dark'] .device-map-card,
-:root[data-theme='dark'] .chart-card,
-:root[data-theme='dark'] .settings-panel,
-:root[data-theme='dark'] .profile-card,
-:root[data-theme='dark'] .alarm-card,
-:root[data-theme='dark'] .notification-card,
-:root[data-theme='dark'] .activity-card {
+:root[data-theme="dark"] .panel-card,
+:root[data-theme="dark"] .table-card,
+:root[data-theme="dark"] .dw-page-header,
+:root[data-theme="dark"] .page-header,
+:root[data-theme="dark"] .summary-card,
+:root[data-theme="dark"] .stat-card,
+:root[data-theme="dark"] .dw-stat-card,
+:root[data-theme="dark"] .device-map-card,
+:root[data-theme="dark"] .chart-card,
+:root[data-theme="dark"] .settings-panel,
+:root[data-theme="dark"] .profile-card,
+:root[data-theme="dark"] .alarm-card,
+:root[data-theme="dark"] .notification-card,
+:root[data-theme="dark"] .activity-card {
   box-shadow: var(--dw-shell-soft-shadow-dark);
 }
 

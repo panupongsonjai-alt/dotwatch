@@ -132,7 +132,7 @@
 .alarm-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
 .notification-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after,
 .activity-stat-card:not(:has(p, small, .stat-hint, .stat-detail, .summary-detail))::after {
-  content: ' ';
+  content: " ";
   display: block;
   min-height: var(--dotwatch-stat-card-detail-height);
   pointer-events: none;

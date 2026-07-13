@@ -12,9 +12,11 @@ import {
 import {
   ClearFilteredDataDialog,
   EmptyState,
+  FilterActionsMenu,
   NoticeBanner,
   PageHeader,
   StatCard,
+  UnifiedSelect,
 } from '../components/common'
 import {
   clearNotificationFeed,
@@ -31,7 +33,14 @@ import {
   isDateInRange,
 } from '../utils/tableExport'
 
+import { showSuccessToast } from '../utils/uiFeedback'
+import {
+  formatMetricValue,
+  getMetricDecimalPlaces,
+} from '../utils/metricDisplayConfig'
+
 const READ_STORAGE_KEY = 'dotwatchReadNotifications'
+
 const TABLE_PAGE_SIZES = [10, 20, 50, 100]
 
 function formatDate(value) {
@@ -95,14 +104,20 @@ function getAlarmTitle(alarm) {
 
 function buildAlarmNotification(alarm, metricInfo = {}) {
   const id = `alarm-${alarm.id}-${alarm.status || 'active'}`
-  const metric = alarm.metric_name || metricInfo.name || alarm.metric || 'Metric'
+  const metric =
+    alarm.metric_name || metricInfo.name || alarm.metric || 'Metric'
   const metricKey = alarm.metric || alarm.metric_key || metric
   const unit = alarm.unit || metricInfo.unit || ''
+  const decimalPlaces = getMetricDecimalPlaces(
+    { decimal_places: alarm.decimal_places ?? metricInfo.decimalPlaces }
+  )
   const valueText =
-    alarm.value != null ? `${alarm.value}${unit ? ` ${unit}` : ''}` : '--'
+    alarm.value != null
+      ? formatMetricValue(alarm.value, unit, decimalPlaces)
+      : '--'
   const thresholdText =
     alarm.threshold != null
-      ? `${alarm.operator || ''} ${alarm.threshold}${unit ? ` ${unit}` : ''}`
+      ? `${alarm.operator || ''} ${formatMetricValue(alarm.threshold, unit, decimalPlaces)}`
       : '--'
   const notificationMessage = String(alarm.notification_message || '').trim()
 
@@ -209,9 +224,7 @@ function formatDateOnly(value) {
   if (!value) return '--'
 
   const date = new Date(`${value}T00:00:00`)
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString('th-TH')
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('th-TH')
 }
 
 function NotificationCenter() {
@@ -270,7 +283,10 @@ function NotificationCenter() {
                 : []
             return [device.id, metrics]
           } catch (error) {
-            console.error(`Load notification metrics error device ${device.id}:`, error)
+            console.error(
+              `Load notification metrics error device ${device.id}:`,
+              error
+            )
             return [device.id, []]
           }
         })
@@ -291,6 +307,7 @@ function NotificationCenter() {
     return {
       name: metric?.metric_name || metricKey || '--',
       unit: metric?.unit || '',
+      decimalPlaces: getMetricDecimalPlaces(metric),
     }
   }
 
@@ -331,6 +348,7 @@ function NotificationCenter() {
     const fileName = `dotWatch-notifications-${startDate || 'all'}-to-${endDate || 'all'}`
 
     downloadCsv({ fileName, columns, rows, metadata })
+    showSuccessToast('ส่งออก Notification Feed เป็น CSV สำเร็จ')
   }
 
   function openClearNotificationDialog() {
@@ -366,11 +384,12 @@ function NotificationCenter() {
       })
       setClearDialogOpen(false)
       setPage(1)
-      setNotice(
+      const clearMessage =
         deletedCount > 0
           ? `ลบ Notification Feed สำเร็จ ${deletedCount.toLocaleString('th-TH')} รายการ`
           : 'ไม่พบ Notification ที่ตรงกับตัวกรองสำหรับลบ'
-      )
+      setNotice(clearMessage)
+      showSuccessToast(clearMessage)
     } catch (error) {
       console.error('Clear notification feed error:', error)
       setPageError(error.message || 'ลบ Notification Feed ไม่สำเร็จ')
@@ -519,7 +538,10 @@ function NotificationCenter() {
       })
   }, [notifications, deviceFilter, metricFilter, startDate, endDate, sortOrder])
 
-  const totalPages = Math.max(1, Math.ceil(filteredNotifications.length / pageSize))
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredNotifications.length / pageSize)
+  )
   const safePage = Math.min(page, totalPages)
   const paginatedNotifications = filteredNotifications.slice(
     (safePage - 1) * pageSize,
@@ -618,12 +640,19 @@ function NotificationCenter() {
             <h2>Filter</h2>
             <p>เลือก Device, ช่วงวันที่ และ Metric ที่ต้องการตรวจสอบ</p>
           </div>
+          <FilterActionsMenu
+            label="Notification filter actions"
+            items={[
+              { key: 'csv', label: 'Export CSV', icon: Download, disabled: filteredNotifications.length === 0, onSelect: handleExportNotifications },
+              { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: loading || clearingNotifications || filteredNotifications.length === 0, onSelect: openClearNotificationDialog },
+            ]}
+          />
         </div>
 
         <div className="history-filter-grid notification-history-filter-grid">
           <label>
             <span>Device</span>
-            <select
+            <UnifiedSelect
               value={deviceFilter}
               onChange={(event) => {
                 setDeviceFilter(event.target.value)
@@ -637,7 +666,7 @@ function NotificationCenter() {
                   {device.name || device.device_code || `Device ${device.id}`}
                 </option>
               ))}
-            </select>
+            </UnifiedSelect>
           </label>
 
           <div className="history-filter-field">
@@ -700,7 +729,7 @@ function NotificationCenter() {
 
           <label>
             <span>Metric</span>
-            <select
+            <UnifiedSelect
               value={metricFilter}
               onChange={(event) => setMetricFilter(event.target.value)}
               aria-label="กรอง Notification ตาม Metric"
@@ -708,10 +737,11 @@ function NotificationCenter() {
               <option value="all">All Metrics</option>
               {notificationMetricOptions.map((metric) => (
                 <option key={metric.key} value={metric.key}>
-                  {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
+                  {metric.name}
+                  {metric.unit ? ` (${metric.unit})` : ''}
                 </option>
               ))}
-            </select>
+            </UnifiedSelect>
           </label>
 
           <div className="history-filter-actions notification-history-filter-actions">
@@ -773,7 +803,7 @@ function NotificationCenter() {
 
             <label>
               <span>Show</span>
-              <select
+              <UnifiedSelect
                 value={pageSize}
                 onChange={(event) => setPageSize(Number(event.target.value))}
                 aria-label="จำนวนแถว Notification ต่อหน้า"
@@ -783,23 +813,22 @@ function NotificationCenter() {
                     {size} rows
                   </option>
                 ))}
-              </select>
+              </UnifiedSelect>
             </label>
 
             <label>
               <span>Sort</span>
-              <select
+              <UnifiedSelect
                 value={sortOrder}
                 onChange={(event) => setSortOrder(event.target.value)}
                 aria-label="ลำดับ Notification"
               >
                 <option value="desc">ล่าสุดก่อน</option>
                 <option value="asc">เก่าสุดก่อน</option>
-              </select>
+              </UnifiedSelect>
             </label>
           </div>
         </div>
-
 
         {loading ? (
           <EmptyState
@@ -957,8 +986,9 @@ function NotificationCenter() {
             value: `${filteredNotifications.length.toLocaleString('th-TH')} rows`,
           },
         ]}
-        confirmText="ฉันตรวจสอบ Device, ช่วงวันที่ และ Metric แล้ว และยืนยันว่าต้องการลบ Notification Feed ชุดนี้จริง"
-        confirmLabel="ยืนยัน Clear Noti"
+        confirmationKeyword="Delete"
+        confirmationHelp="ตรวจสอบ Device, ช่วงวันที่ และ Metric ให้ถูกต้องก่อนยืนยัน"
+        confirmLabel="Delete Notifications"
         busyLabel="กำลังลบ Notification..."
         busy={clearingNotifications}
         onClose={closeClearNotificationDialog}

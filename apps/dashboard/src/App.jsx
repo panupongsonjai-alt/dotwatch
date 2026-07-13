@@ -17,6 +17,7 @@ import {
 
 import { useAuth } from './context/AuthContext'
 import { applyUiPreferences, UI_PREFERENCE_EVENT } from './utils/uiPreferences'
+import { recordUserActivity } from './services/activityTracker'
 
 import AlarmToast from './components/AlarmToast.jsx'
 import ApiStatusBanner from './components/ApiStatusBanner.jsx'
@@ -508,13 +509,24 @@ function App() {
       applyUiPreferences()
     }
 
+    function trackUiPreferences(event) {
+      void recordUserActivity({
+        activityType: 'preference.interface_updated',
+        title: 'Interface preferences updated',
+        description: 'Dashboard appearance or density settings were changed.',
+        metadata: event.detail || {},
+      })
+    }
+
     refreshUiPreferences()
 
     window.addEventListener(UI_PREFERENCE_EVENT, refreshUiPreferences)
+    window.addEventListener(UI_PREFERENCE_EVENT, trackUiPreferences)
     window.addEventListener('storage', refreshUiPreferences)
 
     return () => {
       window.removeEventListener(UI_PREFERENCE_EVENT, refreshUiPreferences)
+      window.removeEventListener(UI_PREFERENCE_EVENT, trackUiPreferences)
       window.removeEventListener('storage', refreshUiPreferences)
     }
   }, [])
@@ -562,6 +574,12 @@ function App() {
   }, [])
 
   const handleLogout = async () => {
+    await recordUserActivity({
+      activityType: 'session.logout',
+      title: 'Signed out',
+      description: 'User signed out of dotWatch.',
+      severity: 'success',
+    })
     clearSensitiveWorkspaceState()
     clearWorkspaceRoute()
     await logout()
@@ -576,18 +594,39 @@ function App() {
     }
 
     setPage(nextPage)
+    if (nextPage !== page) {
+      void recordUserActivity({
+        activityType: 'navigation.page_view',
+        title: `Opened ${PAGE_META[nextPage]?.title || nextPage}`,
+        description: 'User navigated to another dashboard section.',
+        metadata: { page: nextPage },
+      })
+    }
   }
 
   function openDeviceDetail(deviceId) {
     setSelectedDeviceId(deviceId)
     saveWorkspaceRoute('device-detail', deviceId)
     setPage('device-detail')
+    void recordUserActivity({
+      activityType: 'navigation.device_detail_view',
+      title: 'Opened device details',
+      description: 'User opened a device detail workspace.',
+      deviceId,
+      metadata: { page: 'device-detail' },
+    })
   }
 
   function backToDashboard() {
     setSelectedDeviceId(null)
     saveWorkspaceRoute('dashboard')
     setPage('dashboard')
+    void recordUserActivity({
+      activityType: 'navigation.page_view',
+      title: 'Returned to Dashboard',
+      description: 'User returned from device details to Dashboard.',
+      metadata: { page: 'dashboard' },
+    })
   }
 
   if (authLoading) {

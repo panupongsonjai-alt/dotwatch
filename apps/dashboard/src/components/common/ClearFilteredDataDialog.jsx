@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AlertTriangle, Trash2, X } from 'lucide-react'
 
 function ClearFilteredDataDialog({
@@ -6,26 +7,47 @@ function ClearFilteredDataDialog({
   title,
   description,
   summaryItems = [],
-  confirmText = 'ยืนยันการลบข้อมูล',
-  confirmLabel = 'ยืนยันการลบ',
-  busyLabel = 'กำลังลบข้อมูล...',
+  confirmationKeyword = 'Delete',
+  confirmationHelp = '',
+  confirmLabel = 'Delete',
+  busyLabel = 'Deleting...',
   busy = false,
   onClose,
   onConfirm,
   idPrefix = 'filtered-clear',
 }) {
-  const [confirmed, setConfirmed] = useState(false)
+  const [typedValue, setTypedValue] = useState('')
+  const expectedKeyword = String(confirmationKeyword || 'Delete').trim()
+  const canConfirm = typedValue.trim() === expectedKeyword
 
   useEffect(() => {
-    if (open) setConfirmed(false)
+    if (open) setTypedValue('')
   }, [open])
 
-  if (!open) return null
+  useEffect(() => {
+    if (!open || typeof document === 'undefined') return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !busy) onClose?.()
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [busy, onClose, open])
+
+  if (!open || typeof document === 'undefined') return null
 
   const titleId = `${idPrefix}-dialog-title`
   const descriptionId = `${idPrefix}-dialog-description`
 
-  return (
+  return createPortal(
     <div
       className="history-clear-dialog-backdrop"
       role="presentation"
@@ -46,7 +68,7 @@ function ClearFilteredDataDialog({
           </div>
 
           <div>
-            <span>Confirm destructive action</span>
+            <span>Typed confirmation required</span>
             <h2 id={titleId}>{title}</h2>
           </div>
 
@@ -61,10 +83,7 @@ function ClearFilteredDataDialog({
           </button>
         </div>
 
-        <p
-          id={descriptionId}
-          className="history-clear-dialog-description"
-        >
+        <p id={descriptionId} className="history-clear-dialog-description">
           {description}
         </p>
 
@@ -77,14 +96,22 @@ function ClearFilteredDataDialog({
           ))}
         </dl>
 
-        <label className="history-clear-confirm-check">
+        <label className="history-clear-confirm-typed">
+          <span>
+            พิมพ์คำว่า <strong>{expectedKeyword}</strong> เพื่อยืนยัน
+          </span>
+          {confirmationHelp && <small>{confirmationHelp}</small>}
           <input
-            type="checkbox"
-            checked={confirmed}
-            onChange={(event) => setConfirmed(event.target.checked)}
+            autoFocus
+            value={typedValue}
+            onChange={(event) => setTypedValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && canConfirm && !busy) onConfirm?.()
+            }}
             disabled={busy}
+            autoComplete="off"
+            spellCheck="false"
           />
-          <span>{confirmText}</span>
         </label>
 
         <div className="history-clear-dialog-actions">
@@ -100,14 +127,15 @@ function ClearFilteredDataDialog({
             type="button"
             className="history-clear-confirm-button"
             onClick={onConfirm}
-            disabled={!confirmed || busy}
+            disabled={!canConfirm || busy}
           >
             <Trash2 size={16} aria-hidden="true" />
             {busy ? busyLabel : confirmLabel}
           </button>
         </div>
       </section>
-    </div>
+    </div>,
+    document.body
   )
 }
 

@@ -2,6 +2,7 @@
 @import './styles/layout.css';
 @import './styles/components.css';
 @import './styles/design-system.css';
+@import './styles/page-system.css';
 @import './styles/legacy.css';
 @import './styles/pages/dashboard.css';
 @import './styles/pages/devices.css';
@@ -39,5 +40,7 @@
 @import './styles/phase11h-dashboard-sidebar-vertical-restore.css';
 @import './styles/phase11i-dashboard-comfort-parity.css';
 @import './styles/phase11j-dashboard-sidebar-admin-spacing.css';
-
-@import './styles/alarm-notification-filter-final-fix.css';
+@import './styles/shared-ui.css';
+@import './styles/statcard-single-row.css';
+@import './styles/filter-layout.css';
+@import './styles/dropdown-unify.css';

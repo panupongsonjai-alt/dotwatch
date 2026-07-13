@@ -1,4 +1,5 @@
 import { useAlarm } from "../context/AlarmContext";
+import { formatMetricValue } from "../utils/metricDisplayConfig";
 
 function AlarmToast() {
   const { alarms, removeAlarm } = useAlarm();
@@ -26,7 +27,7 @@ function AlarmToast() {
 
           <p>
             {alarm.notification_message ||
-              `${alarm.metric}: ${alarm.value} ${alarm.operator} ${alarm.threshold}`}
+              `${alarm.metric}: ${formatMetricValue(alarm.value, alarm.unit, alarm.decimal_places)} ${alarm.operator} ${formatMetricValue(alarm.threshold, alarm.unit, alarm.decimal_places)}`}
           </p>
 
           <small>

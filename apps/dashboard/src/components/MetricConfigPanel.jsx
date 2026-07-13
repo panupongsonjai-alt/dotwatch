@@ -4,10 +4,11 @@ import { useDeviceMetrics } from '../hooks/useDeviceMetrics'
 import { createBlankMetric } from '../utils/metricDisplayConfig'
 import { METRIC_ICON_OPTIONS, MetricIcon } from '../utils/metricIcons'
 import { confirmDeleteAction } from '../utils/typedConfirm'
+import { showErrorToast, showSuccessToast } from '../utils/uiFeedback'
+import UnifiedSelect from './common/UnifiedSelect.jsx'
 
 const ALARM_OPERATORS = ['>', '>=', '<', '<=', '=']
 const ALARM_SEVERITIES = ['warning', 'critical']
-
 
 const DECIMAL_PLACE_OPTIONS = [0, 1, 2, 3, 4, 5, 6]
 
@@ -36,7 +37,9 @@ function reindexMetrics(metrics = []) {
 
 function createNextMetricKey(metrics = []) {
   const usedKeys = new Set(
-    metrics.map((metric) => String(metric.metric_key || '').trim()).filter(Boolean)
+    metrics
+      .map((metric) => String(metric.metric_key || '').trim())
+      .filter(Boolean)
   )
   let candidateIndex = 1
 
@@ -60,7 +63,9 @@ function getRuleSortValue(rule = {}) {
 function buildRulesByMetricAndSeverity(alarmRules = []) {
   return alarmRules.reduce((collection, rule) => {
     const metricKey = String(rule.metric || rule.metric_key || '').trim()
-    const severity = String(rule.severity || 'warning').trim().toLowerCase()
+    const severity = String(rule.severity || 'warning')
+      .trim()
+      .toLowerCase()
 
     if (!metricKey || !ALARM_SEVERITIES.includes(severity)) return collection
 
@@ -70,7 +75,10 @@ function buildRulesByMetricAndSeverity(alarmRules = []) {
 
     const currentRule = collection[metricKey][severity]
 
-    if (!currentRule || getRuleSortValue(rule) >= getRuleSortValue(currentRule)) {
+    if (
+      !currentRule ||
+      getRuleSortValue(rule) >= getRuleSortValue(currentRule)
+    ) {
       collection[metricKey][severity] = rule
     }
 
@@ -128,7 +136,9 @@ function mergeSavedAlarmRuleIds(currentDrafts = {}, savedRules = []) {
 
   savedRules.forEach((rule) => {
     const metricKey = String(rule.metric || rule.metric_key || '').trim()
-    const severity = String(rule.severity || 'warning').trim().toLowerCase()
+    const severity = String(rule.severity || 'warning')
+      .trim()
+      .toLowerCase()
 
     if (!metricKey || !ALARM_SEVERITIES.includes(severity)) return
 
@@ -149,13 +159,7 @@ function mergeSavedAlarmRuleIds(currentDrafts = {}, savedRules = []) {
   return nextDrafts
 }
 
-function MetricIconPicker({
-  value,
-  disabled,
-  isOpen,
-  onOpenChange,
-  onChange,
-}) {
+function MetricIconPicker({ value, disabled, isOpen, onOpenChange, onChange }) {
   const selectedIcon = value || 'Activity'
   const selectedOptionRef = useRef(null)
 
@@ -323,16 +327,16 @@ export default function MetricConfigPanel({
     })
   }
 
-  function removeMetric(indexToRemove) {
+  async function removeMetric(indexToRemove) {
     const metric = draftMetrics[indexToRemove]
-    const ok = confirmDeleteAction({
+    const ok = await confirmDeleteAction({
       title: 'Confirm Delete Metric',
       targetName:
         metric?.metric_name ||
         metric?.metric_key ||
         `Metric ${indexToRemove + 1}`,
       description:
-        'Metric นี้จะถูกลบออกจากรายการ Draft กรุณาพิมพ์ delete เพื่อยืนยัน',
+        'Metric นี้จะถูกลบออกจากรายการ Draft กรุณาพิมพ์ Delete เพื่อยืนยัน',
     })
 
     if (!ok) return
@@ -431,8 +435,7 @@ export default function MetricConfigPanel({
         const threshold = Number(draft.threshold)
 
         if (!Number.isFinite(threshold)) {
-          const severityLabel =
-            severity === 'critical' ? 'Critical' : 'Warning'
+          const severityLabel = severity === 'critical' ? 'Critical' : 'Warning'
           const metricLabel =
             metric.metric_name || metric.metric_key || 'Metric'
 
@@ -448,9 +451,7 @@ export default function MetricConfigPanel({
           threshold,
           severity,
           is_active: draft.is_active !== false,
-          notification_message: String(
-            draft.notification_message || ''
-          ).trim(),
+          notification_message: String(draft.notification_message || '').trim(),
         })
       }
     }
@@ -468,8 +469,10 @@ export default function MetricConfigPanel({
     try {
       operations = collectAlarmDraftsForSave(normalizedMetrics)
     } catch (error) {
-      setAlarmMessage(error.message)
+      const errorMessage = error.message || 'ตรวจสอบ Alarm Rules ไม่สำเร็จ'
+      setAlarmMessage(errorMessage)
       setAlarmMessageTone('error')
+      showErrorToast(errorMessage)
       return
     }
 
@@ -481,7 +484,9 @@ export default function MetricConfigPanel({
       const metricSaved = await saveDraftMetrics(normalizedMetrics)
 
       if (!metricSaved) {
-        throw new Error('บันทึก Metric ไม่สำเร็จ จึงยังไม่ได้บันทึก Alarm Rules')
+        throw new Error(
+          'บันทึก Metric ไม่สำเร็จ จึงยังไม่ได้บันทึก Alarm Rules'
+        )
       }
 
       let canonicalRules = []
@@ -495,14 +500,10 @@ export default function MetricConfigPanel({
           )
         }
 
-        canonicalRules = Array.isArray(saveResult.rules)
-          ? saveResult.rules
-          : []
+        canonicalRules = Array.isArray(saveResult.rules) ? saveResult.rules : []
       } else {
         for (const draft of operations.filter((item) => !item.delete)) {
-          const saveAlarm = draft.id
-            ? onUpdateMetricAlarm
-            : onCreateMetricAlarm
+          const saveAlarm = draft.id ? onUpdateMetricAlarm : onCreateMetricAlarm
 
           if (typeof saveAlarm !== 'function') {
             throw new Error('ไม่พบฟังก์ชันสำหรับบันทึก Alarm Rules')
@@ -538,14 +539,16 @@ export default function MetricConfigPanel({
         (rule) => rule.is_active !== false
       ).length
 
-      setAlarmMessage(
-        `บันทึกสำเร็จ: ${normalizedMetrics.length} Metrics และ ${activeRuleCount} Active Alarm Rules`
-      )
+      const successMessage = `บันทึกสำเร็จ: ${normalizedMetrics.length} Metrics และ ${activeRuleCount} Active Alarm Rules`
+      setAlarmMessage(successMessage)
       setAlarmMessageTone('success')
+      showSuccessToast(successMessage)
     } catch (error) {
       console.error(error)
-      setAlarmMessage(error.message || 'บันทึกการตั้งค่าไม่สำเร็จ')
+      const errorMessage = error.message || 'บันทึกการตั้งค่าไม่สำเร็จ'
+      setAlarmMessage(errorMessage)
       setAlarmMessageTone('error')
+      showErrorToast(errorMessage)
     } finally {
       setSavingAll(false)
     }
@@ -566,7 +569,8 @@ export default function MetricConfigPanel({
             {visibleMetricCount}/{draftMetrics.length} Visible
           </strong>
           <small className="metric-config-helper">
-            กรอก Threshold เพื่อสร้างหรือแก้ไข Alarm และล้าง Threshold เพื่อลบ Rule เดิม
+            กรอก Threshold เพื่อสร้างหรือแก้ไข Alarm และล้าง Threshold เพื่อลบ
+            Rule เดิม
           </small>
         </div>
 
@@ -656,7 +660,7 @@ export default function MetricConfigPanel({
 
                     <label className="metric-alarm-config-field metric-alarm-config-decimals">
                       <span>Decimals</span>
-                      <select
+                      <UnifiedSelect
                         value={Number(metric.decimal_places ?? 2)}
                         onChange={(event) =>
                           updateMetric(
@@ -673,7 +677,7 @@ export default function MetricConfigPanel({
                             {decimalPlaces}
                           </option>
                         ))}
-                      </select>
+                      </UnifiedSelect>
                     </label>
 
                     <div className="metric-alarm-config-field metric-alarm-config-icon">
@@ -704,11 +708,7 @@ export default function MetricConfigPanel({
                           type="checkbox"
                           checked={metric.visible !== false}
                           onChange={(event) =>
-                            updateMetric(
-                              index,
-                              'visible',
-                              event.target.checked
-                            )
+                            updateMetric(index, 'visible', event.target.checked)
                           }
                           disabled={busy}
                         />
@@ -717,7 +717,6 @@ export default function MetricConfigPanel({
                         </span>
                       </label>
                     </div>
-
                   </div>
 
                   <div className="metric-alarm-config-rules">
@@ -749,7 +748,7 @@ export default function MetricConfigPanel({
 
                           <label className="metric-alarm-config-control metric-alarm-config-condition">
                             <span>Condition</span>
-                            <select
+                            <UnifiedSelect
                               value={draft.operator || '>'}
                               aria-label={`${metricLabel} ${severityLabel} condition`}
                               onChange={(event) =>
@@ -767,7 +766,7 @@ export default function MetricConfigPanel({
                                   {operator}
                                 </option>
                               ))}
-                            </select>
+                            </UnifiedSelect>
                           </label>
 
                           <label className="metric-alarm-config-control metric-alarm-config-threshold">

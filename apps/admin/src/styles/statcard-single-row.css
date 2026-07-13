@@ -1,0 +1,25 @@
+/* Keep every Admin StatCard group on one horizontal row. */
+
+.admin-stat-grid:has(> :is(.dw-stat-card, .admin-stat-card, .stat-card)) {
+  display: grid !important;
+  grid-template-columns: none !important;
+  grid-auto-flow: column !important;
+  grid-auto-columns: minmax(180px, 1fr) !important;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+.admin-stat-grid > :is(.dw-stat-card, .admin-stat-card, .stat-card) {
+  min-width: 0;
+  width: auto !important;
+}
+
+@media (max-width: 900px) {
+  .admin-stat-grid:has(> :is(.dw-stat-card, .admin-stat-card, .stat-card)) {
+    grid-auto-columns: minmax(210px, 78vw) !important;
+    padding-bottom: 6px;
+  }
+}

@@ -5,6 +5,7 @@ import {
   getAdminDeviceModels,
   updateAdminDeviceModel,
 } from '../services/adminApi'
+import { confirmAdminDelete, showAdminToast } from '../utils/uiFeedback'
 
 const EMPTY_FORM = {
   id: null,
@@ -20,13 +21,26 @@ const DEFAULT_ESP32_FORM = {
   id: null,
   modelKey: 'esp32_dht3',
   modelName: 'ESP32-DHT3',
-  metricCount: 3,
-  description: 'ESP32 Wi-Fi model with DHT temperature/humidity and Wi-Fi RSSI',
+  metricCount: 2,
+  description: 'ESP32 Wi-Fi model with DHT temperature and humidity',
   isActive: true,
   metrics: [
-    { metricKey: 'metric_1', defaultName: 'Temperature', defaultType: 'temperature', defaultUnit: '°C', defaultIcon: 'Thermometer', sortOrder: 0 },
-    { metricKey: 'metric_2', defaultName: 'Humidity', defaultType: 'humidity', defaultUnit: '%', defaultIcon: 'Droplets', sortOrder: 1 },
-    { metricKey: 'metric_3', defaultName: 'WiFi RSSI', defaultType: 'signal', defaultUnit: 'dBm', defaultIcon: 'Wifi', sortOrder: 2 },
+    {
+      metricKey: 'metric_1',
+      defaultName: 'Temperature',
+      defaultType: 'temperature',
+      defaultUnit: '°C',
+      defaultIcon: 'Thermometer',
+      sortOrder: 0,
+    },
+    {
+      metricKey: 'metric_2',
+      defaultName: 'Humidity',
+      defaultType: 'humidity',
+      defaultUnit: '%',
+      defaultIcon: 'Droplets',
+      sortOrder: 1,
+    },
   ],
 }
 
@@ -35,7 +49,8 @@ function buildMetrics(metricCount, existingMetrics = []) {
 
   return Array.from({ length: count }, (_, index) => {
     const key = `metric_${index + 1}`
-    const existing = existingMetrics.find((metric) => metric.metricKey === key) || {}
+    const existing =
+      existingMetrics.find((metric) => metric.metricKey === key) || {}
 
     return {
       metricKey: key,
@@ -59,16 +74,26 @@ function normalizeModel(model) {
     deviceCount: Number(model.deviceCount || model.device_count || 0),
     metrics: Array.isArray(model.metrics)
       ? model.metrics.map((metric, index) => ({
-          metricKey: metric.metricKey || metric.metric_key || `metric_${index + 1}`,
+          metricKey:
+            metric.metricKey || metric.metric_key || `metric_${index + 1}`,
           defaultName:
             metric.defaultName ||
             metric.default_name ||
             metric.metricName ||
             metric.metric_name ||
             `Metric ${index + 1}`,
-          defaultType: metric.defaultType || metric.default_type || metric.metricType || 'custom',
-          defaultUnit: metric.defaultUnit || metric.default_unit || metric.unit || '',
-          defaultIcon: metric.defaultIcon || metric.default_icon || metric.icon || 'Activity',
+          defaultType:
+            metric.defaultType ||
+            metric.default_type ||
+            metric.metricType ||
+            'custom',
+          defaultUnit:
+            metric.defaultUnit || metric.default_unit || metric.unit || '',
+          defaultIcon:
+            metric.defaultIcon ||
+            metric.default_icon ||
+            metric.icon ||
+            'Activity',
           sortOrder: metric.sortOrder ?? metric.sort_order ?? index,
         }))
       : [],
@@ -85,33 +110,79 @@ function AdminModels({ adminUser }) {
 
   const canWrite = adminUser?.role === 'super_admin'
 
+  function showModelNotice(message, type = 'info', title = '') {
+    const normalizedMessage = String(message || '').trim()
+    if (!normalizedMessage) return
+
+    setNotice(normalizedMessage)
+    showAdminToast({
+      type,
+      title:
+        title ||
+        (type === 'success'
+          ? 'Success'
+          : type === 'error'
+            ? 'Unable to complete action'
+            : 'Information'),
+      message: normalizedMessage,
+    })
+  }
+
   const filteredModels = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return models
 
     return models.filter((model) =>
-      [model.modelKey, model.modelName, model.description, model.isActive ? 'active' : 'inactive']
+      [
+        model.modelKey,
+        model.modelName,
+        model.description,
+        model.isActive ? 'active' : 'inactive',
+      ]
         .join(' ')
         .toLowerCase()
         .includes(q)
     )
   }, [models, query])
 
-  async function loadModels() {
+  async function loadModels({ showLoading = true } = {}) {
     try {
-      setLoading(true)
+      if (showLoading) setLoading(true)
       const data = await getAdminDeviceModels()
       setModels(Array.isArray(data) ? data.map(normalizeModel) : [])
+      return true
     } catch (error) {
       console.error(error)
-      setNotice(error.message || 'Failed to load device models')
+      showModelNotice(error.message || 'Failed to load device models', 'error')
+      return false
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadModels()
+    let active = true
+
+    getAdminDeviceModels()
+      .then((data) => {
+        if (active)
+          setModels(Array.isArray(data) ? data.map(normalizeModel) : [])
+      })
+      .catch((error) => {
+        if (!active) return
+        console.error(error)
+        showModelNotice(
+          error.message || 'Failed to load device models',
+          'error'
+        )
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   function resetForm(nextForm = DEFAULT_ESP32_FORM) {
@@ -164,7 +235,7 @@ function AdminModels({ adminUser }) {
     event.preventDefault()
 
     if (!canWrite) {
-      setNotice('Super admin access required to edit models')
+      showModelNotice('Super admin access required to edit models', 'error')
       return
     }
 
@@ -181,17 +252,17 @@ function AdminModels({ adminUser }) {
 
       if (form.id) {
         await updateAdminDeviceModel(form.id, payload)
-        setNotice('Model updated')
+        showModelNotice('Model updated', 'success')
       } else {
         await createAdminDeviceModel(payload)
-        setNotice('Model created')
+        showModelNotice('Model created', 'success')
       }
 
       await loadModels()
       resetForm(EMPTY_FORM)
     } catch (error) {
       console.error(error)
-      setNotice(error.message || 'Failed to save model')
+      showModelNotice(error.message || 'Failed to save model', 'error')
     } finally {
       setSaving(false)
     }
@@ -199,33 +270,46 @@ function AdminModels({ adminUser }) {
 
   async function handleDelete(model) {
     if (!canWrite) {
-      setNotice('Super admin access required to delete models')
+      showModelNotice('Super admin access required to delete models', 'error')
       return
     }
 
-    const ok = window.confirm(
-      `Deactivate model ${model.modelName}? Existing devices will remain, but this model will disappear from Create Device.`
-    )
+    const ok = await confirmAdminDelete({
+      title: 'Confirm Delete Device Model',
+      targetName: model.modelName,
+      description:
+        'Existing devices will remain, but this model will disappear from Create Device.',
+    })
 
     if (!ok) return
 
     try {
       setSaving(true)
       await deleteAdminDeviceModel(model.id)
-      setNotice('Model deactivated')
+      showModelNotice('Model deactivated', 'success')
+      showAdminToast({
+        type: 'success',
+        title: 'Success',
+        message: 'Model deactivated',
+      })
       await loadModels()
     } catch (error) {
       console.error(error)
-      setNotice(error.message || 'Failed to deactivate model')
+      const message = error.message || 'Failed to deactivate model'
+      showModelNotice(message, 'error')
+      showAdminToast({
+        type: 'error',
+        title: 'Unable to delete model',
+        message,
+      })
     } finally {
       setSaving(false)
     }
   }
 
-
   async function handleRestore(model) {
     if (!canWrite) {
-      setNotice('Super admin access required to restore models')
+      showModelNotice('Super admin access required to restore models', 'error')
       return
     }
 
@@ -239,11 +323,11 @@ function AdminModels({ adminUser }) {
         isActive: true,
         metrics: buildMetrics(model.metricCount, model.metrics),
       })
-      setNotice('Model restored')
+      showModelNotice('Model restored', 'success')
       await loadModels()
     } catch (error) {
       console.error(error)
-      setNotice(error.message || 'Failed to restore model')
+      showModelNotice(error.message || 'Failed to restore model', 'error')
     } finally {
       setSaving(false)
     }
@@ -255,15 +339,21 @@ function AdminModels({ adminUser }) {
         <div>
           <p className="eyebrow">Device catalog</p>
           <h1>Model List</h1>
-          <span>เพิ่ม ลบ แก้ไข model ที่ใช้ในหน้า Create Device ของ Dashboard</span>
+          <span>
+            เพิ่ม ลบ แก้ไข model ที่ใช้ในหน้า Create Device ของ Dashboard
+          </span>
         </div>
-        <span className="page-chip">{models.filter((model) => model.isActive).length} active</span>
+        <span className="page-chip">
+          {models.filter((model) => model.isActive).length} active
+        </span>
       </div>
 
       {notice ? (
         <div className="admin-notice">
           <span>{notice}</span>
-          <button type="button" onClick={() => setNotice('')}>Dismiss</button>
+          <button type="button" onClick={() => setNotice('')}>
+            Dismiss
+          </button>
         </div>
       ) : null}
 
@@ -274,7 +364,12 @@ function AdminModels({ adminUser }) {
               <h3>{form.id ? 'Edit Model' : 'Create Model'}</h3>
               <span>Metric rows will become defaults for new devices.</span>
             </div>
-            <button type="button" className="primary-button" onClick={() => resetForm(DEFAULT_ESP32_FORM)} disabled={saving}>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => resetForm(DEFAULT_ESP32_FORM)}
+              disabled={saving}
+            >
               ESP32 template
             </button>
           </div>
@@ -284,7 +379,9 @@ function AdminModels({ adminUser }) {
               Model Key
               <input
                 value={form.modelKey}
-                onChange={(event) => updateField('modelKey', event.target.value)}
+                onChange={(event) =>
+                  updateField('modelKey', event.target.value)
+                }
                 placeholder="esp32_dht3"
                 disabled={saving || !canWrite}
               />
@@ -294,7 +391,9 @@ function AdminModels({ adminUser }) {
               Model Name
               <input
                 value={form.modelName}
-                onChange={(event) => updateField('modelName', event.target.value)}
+                onChange={(event) =>
+                  updateField('modelName', event.target.value)
+                }
                 placeholder="ESP32-DHT3"
                 disabled={saving || !canWrite}
               />
@@ -307,7 +406,9 @@ function AdminModels({ adminUser }) {
                 min="0"
                 max="100"
                 value={form.metricCount}
-                onChange={(event) => updateField('metricCount', event.target.value)}
+                onChange={(event) =>
+                  updateField('metricCount', event.target.value)
+                }
                 disabled={saving || !canWrite}
               />
             </label>
@@ -316,7 +417,9 @@ function AdminModels({ adminUser }) {
               Description
               <input
                 value={form.description}
-                onChange={(event) => updateField('description', event.target.value)}
+                onChange={(event) =>
+                  updateField('description', event.target.value)
+                }
                 placeholder="Short model description"
                 disabled={saving || !canWrite}
               />
@@ -326,7 +429,9 @@ function AdminModels({ adminUser }) {
               <input
                 type="checkbox"
                 checked={Boolean(form.isActive)}
-                onChange={(event) => updateField('isActive', event.target.checked)}
+                onChange={(event) =>
+                  updateField('isActive', event.target.checked)
+                }
                 disabled={saving || !canWrite}
               />
               Active in Dashboard Create Device
@@ -343,25 +448,33 @@ function AdminModels({ adminUser }) {
                   <strong>{metric.metricKey}</strong>
                   <input
                     value={metric.defaultName}
-                    onChange={(event) => updateMetric(index, 'defaultName', event.target.value)}
+                    onChange={(event) =>
+                      updateMetric(index, 'defaultName', event.target.value)
+                    }
                     placeholder="Display name"
                     disabled={saving || !canWrite}
                   />
                   <input
                     value={metric.defaultType}
-                    onChange={(event) => updateMetric(index, 'defaultType', event.target.value)}
+                    onChange={(event) =>
+                      updateMetric(index, 'defaultType', event.target.value)
+                    }
                     placeholder="type"
                     disabled={saving || !canWrite}
                   />
                   <input
                     value={metric.defaultUnit}
-                    onChange={(event) => updateMetric(index, 'defaultUnit', event.target.value)}
+                    onChange={(event) =>
+                      updateMetric(index, 'defaultUnit', event.target.value)
+                    }
                     placeholder="unit"
                     disabled={saving || !canWrite}
                   />
                   <input
                     value={metric.defaultIcon}
-                    onChange={(event) => updateMetric(index, 'defaultIcon', event.target.value)}
+                    onChange={(event) =>
+                      updateMetric(index, 'defaultIcon', event.target.value)
+                    }
                     placeholder="icon"
                     disabled={saving || !canWrite}
                   />
@@ -370,10 +483,18 @@ function AdminModels({ adminUser }) {
             </div>
 
             <div className="table-actions">
-              <button type="submit" className="success" disabled={saving || !canWrite}>
+              <button
+                type="submit"
+                className="success"
+                disabled={saving || !canWrite}
+              >
                 {form.id ? 'Save Changes' : 'Create Model'}
               </button>
-              <button type="button" onClick={() => resetForm(EMPTY_FORM)} disabled={saving}>
+              <button
+                type="button"
+                onClick={() => resetForm(EMPTY_FORM)}
+                disabled={saving}
+              >
                 Clear
               </button>
             </div>
@@ -409,7 +530,9 @@ function AdminModels({ adminUser }) {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="5">Loading models...</td></tr>
+                  <tr>
+                    <td colSpan="5">Loading models...</td>
+                  </tr>
                 ) : filteredModels.length ? (
                   filteredModels.map((model) => (
                     <tr key={model.id}>
@@ -420,21 +543,37 @@ function AdminModels({ adminUser }) {
                       <td>{model.metricCount}</td>
                       <td>{model.deviceCount}</td>
                       <td>
-                        <span className={`status-badge ${model.isActive ? 'active' : 'suspended'}`}>
+                        <span
+                          className={`status-badge ${model.isActive ? 'active' : 'suspended'}`}
+                        >
                           {model.isActive ? 'active' : 'inactive'}
                         </span>
                       </td>
                       <td>
                         <div className="table-actions">
-                          <button type="button" onClick={() => editModel(model)} disabled={saving}>
+                          <button
+                            type="button"
+                            onClick={() => editModel(model)}
+                            disabled={saving}
+                          >
                             Edit
                           </button>
                           {model.isActive ? (
-                            <button type="button" className="danger" onClick={() => handleDelete(model)} disabled={saving || !canWrite}>
+                            <button
+                              type="button"
+                              className="danger"
+                              onClick={() => handleDelete(model)}
+                              disabled={saving || !canWrite}
+                            >
                               Delete
                             </button>
                           ) : (
-                            <button type="button" className="success" onClick={() => handleRestore(model)} disabled={saving || !canWrite}>
+                            <button
+                              type="button"
+                              className="success"
+                              onClick={() => handleRestore(model)}
+                              disabled={saving || !canWrite}
+                            >
                               Restore
                             </button>
                           )}
@@ -443,7 +582,9 @@ function AdminModels({ adminUser }) {
                     </tr>
                   ))
                 ) : (
-                  <tr><td colSpan="5">No models found.</td></tr>
+                  <tr>
+                    <td colSpan="5">No models found.</td>
+                  </tr>
                 )}
               </tbody>
             </table>
