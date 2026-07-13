@@ -32,6 +32,10 @@ import {
 } from '../utils/tableExport'
 
 import { showSuccessToast } from '../utils/uiFeedback'
+import {
+  formatMetricValue,
+  getMetricDecimalPlaces,
+} from '../utils/metricDisplayConfig'
 
 const READ_STORAGE_KEY = 'dotwatchReadNotifications'
 
@@ -102,11 +106,16 @@ function buildAlarmNotification(alarm, metricInfo = {}) {
     alarm.metric_name || metricInfo.name || alarm.metric || 'Metric'
   const metricKey = alarm.metric || alarm.metric_key || metric
   const unit = alarm.unit || metricInfo.unit || ''
+  const decimalPlaces = getMetricDecimalPlaces(
+    { decimal_places: alarm.decimal_places ?? metricInfo.decimalPlaces }
+  )
   const valueText =
-    alarm.value != null ? `${alarm.value}${unit ? ` ${unit}` : ''}` : '--'
+    alarm.value != null
+      ? formatMetricValue(alarm.value, unit, decimalPlaces)
+      : '--'
   const thresholdText =
     alarm.threshold != null
-      ? `${alarm.operator || ''} ${alarm.threshold}${unit ? ` ${unit}` : ''}`
+      ? `${alarm.operator || ''} ${formatMetricValue(alarm.threshold, unit, decimalPlaces)}`
       : '--'
   const notificationMessage = String(alarm.notification_message || '').trim()
 
@@ -296,6 +305,7 @@ function NotificationCenter() {
     return {
       name: metric?.metric_name || metricKey || '--',
       unit: metric?.unit || '',
+      decimalPlaces: getMetricDecimalPlaces(metric),
     }
   }
 

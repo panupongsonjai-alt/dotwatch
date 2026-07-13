@@ -65,9 +65,14 @@ function getAlarmDescription(alarm) {
   const value = alarm?.value ?? alarm?.reading_value ?? alarm?.current_value
   const parts = []
 
-  if (value != null) parts.push(`Current value ${formatMetricNumber(value)}`)
+  const decimalPlaces = alarm?.decimal_places ?? alarm?.decimalPlaces ?? 2
+  if (value != null) {
+    parts.push(`Current value ${formatMetricNumber(value, decimalPlaces)}`)
+  }
   if (operator || threshold !== '') {
-    parts.push(`Rule ${operator} ${threshold}`.trim())
+    parts.push(
+      `Rule ${operator} ${formatMetricNumber(threshold, decimalPlaces)}`.trim()
+    )
   }
 
   return parts.length > 0

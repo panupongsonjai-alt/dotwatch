@@ -1,22 +1,11 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, BellRing, CheckCircle2 } from 'lucide-react'
 import { getActiveAlarms } from '../services/api'
+import { formatMetricValue } from '../utils/metricDisplayConfig'
 import './LatestActiveAlarms.css'
 
-function formatValue(value, unit = '') {
-  if (value == null || value === '') return '--'
-
-  const numberValue = Number(value)
-
-  if (!Number.isFinite(numberValue)) {
-    return `${value}${unit ? ` ${unit}` : ''}`
-  }
-
-  const displayValue = Number.isInteger(numberValue)
-    ? String(numberValue)
-    : numberValue.toFixed(2)
-
-  return `${displayValue}${unit ? ` ${unit}` : ''}`
+function formatValue(value, unit = '', decimalPlaces = 2) {
+  return formatMetricValue(value, unit, decimalPlaces)
 }
 
 function formatRelativeTime(value) {
@@ -125,14 +114,14 @@ function LatestActiveAlarms({ limit = 6 }) {
                     <>
                       {alarm.metric_name || alarm.metric}
                       {alarm.operator && alarm.threshold != null
-                        ? ` ${alarm.operator} ${formatValue(alarm.threshold, alarm.unit)}`
+                        ? ` ${alarm.operator} ${formatValue(alarm.threshold, alarm.unit, alarm.decimal_places)}`
                         : ''}
                     </>
                   )}
                 </p>
 
                 <small>
-                  Current {formatValue(alarm.current_value, alarm.unit)}
+                  Current {formatValue(alarm.current_value, alarm.unit, alarm.decimal_places)}
                   {' • '}
                   Updated{' '}
                   {formatRelativeTime(alarm.updated_at || alarm.triggered_at)}

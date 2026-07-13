@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState } from 'react'
 import { showUiToast } from '../utils/uiFeedback'
+import { formatMetricValue } from '../utils/metricDisplayConfig'
 
 const AlarmContext = createContext()
 
@@ -16,7 +17,11 @@ export function AlarmProvider({ children }) {
         title: 'Critical Alarm',
         message:
           notificationMessage ||
-          `${alarm.metric || 'Metric'} • Value: ${alarm.value ?? '-'} `,
+          `${alarm.metric || 'Metric'} • Value: ${formatMetricValue(
+            alarm.value,
+            alarm.unit,
+            alarm.decimal_places
+          )}`,
         duration: 8000,
         dedupeKey: `critical|${alarm.id || alarm.metric}|${alarm.value}`,
       })

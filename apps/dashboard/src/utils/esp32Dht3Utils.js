@@ -10,6 +10,7 @@ export const ESP32_DHT3_METRICS = [
     icon: 'Thermometer',
     visible: true,
     sort_order: 0,
+    decimal_places: 2,
   },
   {
     metric_key: 'metric_2',
@@ -20,6 +21,7 @@ export const ESP32_DHT3_METRICS = [
     icon: 'Droplets',
     visible: true,
     sort_order: 1,
+    decimal_places: 2,
   },
 ]
 
@@ -76,14 +78,16 @@ export function getMetricValueFromAnyShape(device = {}, metricKey) {
   return null
 }
 
-export function formatEsp32MetricValue(value, unit = '') {
+export function formatEsp32MetricValue(value, unit = '', decimalPlaces = 2) {
   if (value == null || value === '') return '--'
 
   const numberValue = Number(value)
+  const normalizedDecimals = Math.min(
+    6,
+    Math.max(0, Number.isInteger(Number(decimalPlaces)) ? Number(decimalPlaces) : 2)
+  )
   const displayValue = Number.isFinite(numberValue)
-    ? Number.isInteger(numberValue)
-      ? String(numberValue)
-      : numberValue.toFixed(1)
+    ? numberValue.toFixed(normalizedDecimals)
     : String(value)
 
   return unit ? `${displayValue} ${unit}` : displayValue
@@ -121,16 +125,26 @@ export function getVisibleMetricsForDevice(device = {}, metrics = []) {
 
 export function getDeviceMetricPills(device = {}, limit = 3) {
   if (isEsp32Dht3Device(device)) {
+    const configuredMetrics =
+      device.metric_configs || device.metricConfigs || device.device_metrics || []
     return ESP32_DHT3_METRICS.map((metric) => {
+      const configuredMetric = configuredMetrics.find(
+        (item) => (item.metric_key || item.metricKey) === metric.metric_key
+      )
+      const displayMetric = { ...metric, ...(configuredMetric || {}) }
       const value = getMetricValueFromAnyShape(device, metric.metric_key)
 
       return {
         key: metric.metric_key,
-        label: metric.short_label || metric.metric_name,
-        name: metric.metric_name,
-        unit: metric.unit,
+        label: displayMetric.short_label || displayMetric.metric_name,
+        name: displayMetric.metric_name,
+        unit: displayMetric.unit,
         value,
-        displayValue: formatEsp32MetricValue(value, metric.unit),
+        displayValue: formatEsp32MetricValue(
+          value,
+          displayMetric.unit,
+          displayMetric.decimal_places ?? displayMetric.decimalPlaces
+        ),
       }
     })
       .filter((metric) => metric.value !== null && metric.value !== undefined)

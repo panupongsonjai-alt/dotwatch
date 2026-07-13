@@ -162,6 +162,13 @@ export function formatMetricValue(value, unit = '', decimalPlaces = 2) {
   return unit ? `${displayValue} ${unit}` : displayValue
 }
 
+export function getMetricDecimalPlaces(metric = {}, fallback = 2) {
+  return normalizeDecimalPlaces(
+    metric.decimal_places ?? metric.decimalPlaces,
+    fallback
+  )
+}
+
 export function getDeviceMetricConfig(device, metricConfigs = []) {
   const deviceId = device?.id || device?.device_id || device?.device_code
 

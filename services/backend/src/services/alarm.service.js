@@ -189,7 +189,8 @@ export async function checkAlarms({ userId, deviceId, reading }) {
       ar.severity,
       ar.notification_message,
       dm.metric_name,
-      dm.unit
+      dm.unit,
+      COALESCE(dm.decimal_places, 2) AS decimal_places
     FROM alarm_rules ar
     LEFT JOIN device_metrics dm
       ON dm.device_id = $2
@@ -271,6 +272,7 @@ export async function checkAlarms({ userId, deviceId, reading }) {
         ...event,
         metric_name: recoveryRule?.metric_name || metric,
         unit: recoveryRule?.unit || '',
+        decimal_places: recoveryRule?.decimal_places ?? 2,
         state_transition: `${previousStateName}->normal`,
       })
 
@@ -291,6 +293,7 @@ export async function checkAlarms({ userId, deviceId, reading }) {
       ...event,
       metric_name: triggeredRule.metric_name || metric,
       unit: triggeredRule.unit || '',
+      decimal_places: triggeredRule.decimal_places ?? 2,
       state_transition: `${previousStateName}->${nextState}`,
     })
   }

@@ -92,6 +92,7 @@ export async function listAlarms(req, res) {
       ae.metric,
       COALESCE(dm.metric_name, ae.metric) AS metric_name,
       COALESCE(dm.unit, '') AS unit,
+      COALESCE(dm.decimal_places, 2) AS decimal_places,
       ae.operator,
       ae.threshold,
       ae.value,

@@ -1,0 +1,65 @@
+/* Keep every StatCard group on one horizontal row across Dashboard pages. */
+
+:is(
+    .dw-page-stat-grid,
+    .dashboard-kpi-grid,
+    .dashboard-health-kpi-grid,
+    .devices-ops-stat-grid,
+    .alarms-stat-grid,
+    .dashboard-style-stat-grid,
+    .history-stat-grid,
+    .settings-v3-stat-grid,
+    .profile-v3-stat-grid,
+    .device-detail-stat-grid,
+    .device-detail-state-grid,
+    .device-detail-stats-grid,
+    .device-detail-summary-grid,
+    .device-detail-overview-grid,
+    .notifications-stat-grid,
+    .activity-stat-grid,
+    .system-health-stat-grid,
+    [class*='stat-grid']
+  ):has(> .dw-stat-card),
+:is([class*='stat-grid'], [class*='summary-grid']):has(> .stat-card) {
+  display: grid !important;
+  grid-template-columns: none !important;
+  grid-auto-flow: column !important;
+  grid-auto-columns: minmax(180px, 1fr) !important;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+:is(
+    .dw-page-stat-grid,
+    .dashboard-kpi-grid,
+    .dashboard-health-kpi-grid,
+    .devices-ops-stat-grid,
+    .alarms-stat-grid,
+    .dashboard-style-stat-grid,
+    .history-stat-grid,
+    .settings-v3-stat-grid,
+    .profile-v3-stat-grid,
+    .device-detail-stat-grid,
+    .notifications-stat-grid,
+    .activity-stat-grid,
+    .system-health-stat-grid,
+    [class*='stat-grid']
+  ):has(> .dw-stat-card)
+  > .dw-stat-card,
+:is([class*='stat-grid'], [class*='summary-grid']):has(> .stat-card)
+  > .stat-card {
+  min-width: 0;
+  width: auto !important;
+}
+
+@media (max-width: 900px) {
+  :is([class*='stat-grid'], [class*='summary-grid']):has(
+      > :is(.dw-stat-card, .stat-card)
+    ) {
+    grid-auto-columns: minmax(210px, 78vw) !important;
+    padding-bottom: 6px;
+  }
+}

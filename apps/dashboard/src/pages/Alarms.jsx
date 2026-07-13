@@ -29,6 +29,10 @@ import {
 import { confirmDeleteAction } from '../utils/typedConfirm'
 import { showErrorToast, showSuccessToast } from '../utils/uiFeedback'
 import {
+  formatMetricValue,
+  getMetricDecimalPlaces,
+} from '../utils/metricDisplayConfig'
+import {
   downloadCsv,
   getLocalDateInputValue,
   isDateInRange,
@@ -162,17 +166,8 @@ function formatDate(value) {
   }
 }
 
-function formatValue(value, unit = '') {
-  if (value == null || value === '' || Number.isNaN(Number(value))) {
-    return '--'
-  }
-
-  const numberValue = Number(value)
-  const displayValue = Number.isInteger(numberValue)
-    ? String(numberValue)
-    : numberValue.toFixed(1)
-
-  return `${displayValue}${unit ? ` ${unit}` : ''}`
+function formatValue(value, unit = '', decimalPlaces = 2) {
+  return formatMetricValue(value, unit, decimalPlaces)
 }
 
 function getSeverityLabel(severity) {
@@ -368,6 +363,7 @@ function Alarms() {
     return {
       name: metric?.metric_name || metricKey || '--',
       unit: metric?.unit || '',
+      decimalPlaces: getMetricDecimalPlaces(metric),
     }
   }
 
@@ -469,8 +465,8 @@ function Alarms() {
         device: alarm.device_name || alarm.device_code || 'Unnamed Device',
         metric: alarm.metric_name || metricInfo.name,
         condition:
-          `${alarm.operator || ''} ${formatValue(alarm.threshold, metricInfo.unit)}`.trim(),
-        value: formatValue(alarm.value, metricInfo.unit),
+          `${alarm.operator || ''} ${formatValue(alarm.threshold, metricInfo.unit, metricInfo.decimalPlaces)}`.trim(),
+        value: formatValue(alarm.value, metricInfo.unit, metricInfo.decimalPlaces),
         severity: getSeverityLabel(alarm.severity),
         status: getStatusLabel(alarm.status),
         triggered: formatDate(alarm.triggered_at),
@@ -593,6 +589,7 @@ function Alarms() {
         key: metricKey,
         name: alarm.metric_name || metricInfo.name,
         unit: metricInfo.unit,
+        decimalPlaces: metricInfo.decimalPlaces,
       })
     })
 
@@ -764,7 +761,7 @@ function Alarms() {
 
                         <td>
                           {rule.operator}{' '}
-                          {formatValue(rule.threshold, metricInfo.unit)}
+                          {formatValue(rule.threshold, metricInfo.unit, metricInfo.decimalPlaces)}
                         </td>
 
                         <td>
@@ -1017,12 +1014,12 @@ function Alarms() {
 
                         <td>
                           {alarm.operator}{' '}
-                          {formatValue(alarm.threshold, metricInfo.unit)}
+                          {formatValue(alarm.threshold, metricInfo.unit, metricInfo.decimalPlaces)}
                         </td>
 
                         <td>
                           <strong>
-                            {formatValue(alarm.value, metricInfo.unit)}
+                            {formatValue(alarm.value, metricInfo.unit, metricInfo.decimalPlaces)}
                           </strong>
                         </td>
 
