@@ -34,7 +34,7 @@ import {
   isEsp32Dht3Device,
 } from '../../utils/esp32Dht3Utils.js'
 import { useDeviceMetrics } from '../../hooks/useDeviceMetrics'
-import { EmptyState, StatCard, StatusBadge } from '../common'
+import { EmptyState, StatusBadge } from '../common'
 import {
   formatDate,
   getDeviceDisplayName,
@@ -988,47 +988,47 @@ function SelectedDevicePanel({
             description="ข้อมูลภาพรวมล่าสุดของ Device นี้ รวมถึงรุ่น Firmware และเวลาที่รับค่าล่าสุด"
             meta={getStatusLabel(status)}
           />
-          <section className="devices-v3-overview-grid devices-v3-overview-grid-fit">
-            <div className="devices-v3-overview-stat devices-v3-overview-stat-model">
-              <StatCard
-                label="Model"
-                value={getModelLabel(selectedDevice)}
-                hint="Device model"
-              />
+          <dl className="devices-v3-overview-list">
+            <div className="devices-v3-overview-list-item">
+              <dt>
+                <span>Model</span>
+                <small>Device model</small>
+              </dt>
+              <dd>{getModelLabel(selectedDevice)}</dd>
             </div>
 
-            <div className="devices-v3-overview-stat devices-v3-overview-stat-firmware">
-              <StatCard
-                label="Firmware"
-                value={selectedDevice.firmware_version || '--'}
-                hint="Firmware version"
-              />
+            <div className="devices-v3-overview-list-item">
+              <dt>
+                <span>Firmware</span>
+                <small>Firmware version</small>
+              </dt>
+              <dd>{selectedDevice.firmware_version || '--'}</dd>
             </div>
 
-            <div className="devices-v3-overview-stat devices-v3-overview-stat-ip">
-              <StatCard
-                label="IP Address"
-                value={selectedDevice.last_ip_address || '--'}
-                hint="Latest ingest IP"
-              />
+            <div className="devices-v3-overview-list-item">
+              <dt>
+                <span>IP Address</span>
+                <small>Latest ingest IP</small>
+              </dt>
+              <dd>{selectedDevice.last_ip_address || '--'}</dd>
             </div>
 
-            <div className="devices-v3-overview-stat devices-v3-overview-stat-wifi">
-              <StatCard
-                label="Wi-Fi"
-                value={selectedDevice.last_wifi_ssid || '--'}
-                hint="Connected network"
-              />
+            <div className="devices-v3-overview-list-item">
+              <dt>
+                <span>Wi-Fi</span>
+                <small>Connected network</small>
+              </dt>
+              <dd>{selectedDevice.last_wifi_ssid || '--'}</dd>
             </div>
 
-            <div className="devices-v3-overview-stat devices-v3-overview-stat-last-seen">
-              <StatCard
-                label="Last Seen"
-                value={getLastSeen(selectedDevice)}
-                hint="Latest ingest"
-              />
+            <div className="devices-v3-overview-list-item">
+              <dt>
+                <span>Last Seen</span>
+                <small>Latest ingest</small>
+              </dt>
+              <dd>{getLastSeen(selectedDevice)}</dd>
             </div>
-          </section>
+          </dl>
         </div>
       )}
 

@@ -1326,6 +1326,60 @@
   gap: 12px;
 }
 
+.devices-v3-overview-list {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel-2);
+}
+
+.devices-v3-overview-list-item {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.35fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  min-height: 72px;
+  padding: 14px 18px;
+}
+
+.devices-v3-overview-list-item + .devices-v3-overview-list-item {
+  border-top: 1px solid var(--border);
+}
+
+.devices-v3-overview-list-item dt,
+.devices-v3-overview-list-item dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.devices-v3-overview-list-item dt span,
+.devices-v3-overview-list-item dt small {
+  display: block;
+}
+
+.devices-v3-overview-list-item dt span {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.devices-v3-overview-list-item dt small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.devices-v3-overview-list-item dd {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
 .devices-v3-info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1398,6 +1452,12 @@
     align-items: stretch;
   }
 
+  .devices-v3-overview-list-item {
+    grid-template-columns: minmax(120px, 0.45fr) minmax(0, 1fr);
+    gap: 14px;
+    padding: 13px 14px;
+  }
+
   .devices-v3-action-bar button {
     width: 100%;
   }
@@ -1411,6 +1471,15 @@
   .devices-ops-stat-grid,
   .devices-v3-overview-grid {
     grid-template-columns: 1fr;
+  }
+
+  .devices-v3-overview-list-item {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .devices-v3-overview-list-item dd {
+    text-align: left;
   }
 
   .devices-v3-detail-card {
