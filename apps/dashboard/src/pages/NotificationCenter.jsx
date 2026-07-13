@@ -4,7 +4,7 @@ import {
   CalendarDays,
   CheckCheck,
   Download,
-  RefreshCcw,
+  RefreshCw,
   Trash2,
   ShieldAlert,
   WifiOff,
@@ -587,26 +587,15 @@ function NotificationCenter() {
         title="Notifications"
         description="รวมเหตุการณ์สำคัญของระบบ เช่น Alarm, Device Offline และ Warning เพื่อให้ติดตามได้ในหน้าเดียว"
         actions={
-          <>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={loadData}
-            >
-              <RefreshCcw size={16} />
-              Refresh
-            </button>
-
-            <button
-              type="button"
-              className="primary-button"
-              onClick={markAllAsRead}
-              disabled={notifications.length === 0 || unreadCount === 0}
-            >
-              <CheckCheck size={16} />
-              Mark all read
-            </button>
-          </>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={markAllAsRead}
+            disabled={notifications.length === 0 || unreadCount === 0}
+          >
+            <CheckCheck size={16} />
+            Mark all read
+          </button>
         }
       />
 
@@ -641,13 +630,23 @@ function NotificationCenter() {
             <h2>Filter</h2>
             <p>เลือก Device, ช่วงวันที่ และ Metric ที่ต้องการตรวจสอบ</p>
           </div>
-          <FilterActionsMenu
-            label="Notification filter actions"
-            items={[
-              { key: 'csv', label: 'Export CSV', icon: Download, disabled: filteredNotifications.length === 0, onSelect: handleExportNotifications },
-              { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: loading || clearingNotifications || filteredNotifications.length === 0, onSelect: openClearNotificationDialog },
-            ]}
-          />
+          <div className="filter-header-actions">
+            <button
+              type="button"
+              className="secondary-button filter-refresh-button"
+              onClick={loadData}
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+            <FilterActionsMenu
+              label="Notification filter actions"
+              items={[
+                { key: 'csv', label: 'Export CSV', icon: Download, disabled: filteredNotifications.length === 0, onSelect: handleExportNotifications },
+                { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: loading || clearingNotifications || filteredNotifications.length === 0, onSelect: openClearNotificationDialog },
+              ]}
+            />
+          </div>
         </div>
 
         <div className="history-filter-grid notification-history-filter-grid">

@@ -1061,7 +1061,7 @@ function SelectedDevicePanel({
             title="Location"
             description="จัดการตำแหน่ง Latitude, Longitude และลิงก์แผนที่ของ Device นี้"
             meta={
-              selectedDevice.latitude && selectedDevice.longitude
+              selectedDevice.latitude != null && selectedDevice.longitude != null
                 ? 'Mapped'
                 : 'No Location'
             }

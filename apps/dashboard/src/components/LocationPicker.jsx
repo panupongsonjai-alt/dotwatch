@@ -21,6 +21,38 @@ const GEOLOCATION_OPTIONS = {
   maximumAge: 60000,
 }
 
+function normalizePosition(latitude, longitude) {
+  if (
+    latitude === null ||
+    latitude === undefined ||
+    latitude === '' ||
+    longitude === null ||
+    longitude === undefined ||
+    longitude === ''
+  ) {
+    return null
+  }
+
+  const normalizedLatitude = Number(latitude)
+  const normalizedLongitude = Number(longitude)
+
+  if (
+    !Number.isFinite(normalizedLatitude) ||
+    !Number.isFinite(normalizedLongitude) ||
+    normalizedLatitude < -90 ||
+    normalizedLatitude > 90 ||
+    normalizedLongitude < -180 ||
+    normalizedLongitude > 180
+  ) {
+    return null
+  }
+
+  return {
+    latitude: normalizedLatitude,
+    longitude: normalizedLongitude,
+  }
+}
+
 const markerIcon = new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -76,14 +108,9 @@ function getGeolocationErrorMessage(error) {
 }
 
 function LocationPicker({ latitude, longitude, onChange }) {
-  const hasInitialLocation = latitude != null && longitude != null
+  const initialPosition = normalizePosition(latitude, longitude)
   const [position, setPosition] = useState(
-    hasInitialLocation
-      ? {
-          latitude: Number(latitude),
-          longitude: Number(longitude),
-        }
-      : DEFAULT_CENTER
+    initialPosition || DEFAULT_CENTER
   )
 
   const [keyword, setKeyword] = useState('')
@@ -94,6 +121,11 @@ function LocationPicker({ latitude, longitude, onChange }) {
   const searchTimerRef = useRef(null)
   const autoLocateRequestedRef = useRef(false)
   const geolocationRequestRef = useRef(0)
+  const onChangeRef = useRef(onChange)
+
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
 
   const updateMessage = useCallback((nextMessage, { popup = true } = {}) => {
     setMessage(nextMessage)
@@ -114,16 +146,30 @@ function LocationPicker({ latitude, longitude, onChange }) {
 
   const handleSelect = useCallback(
     (nextPosition, source = 'manual') => {
+      const normalizedPosition = normalizePosition(
+        nextPosition?.latitude,
+        nextPosition?.longitude
+      )
+
+      if (!normalizedPosition) {
+        updateMessage({
+          type: 'error',
+          text: 'พิกัดไม่ถูกต้อง Latitude ต้องอยู่ระหว่าง -90 ถึง 90 และ Longitude ระหว่าง -180 ถึง 180',
+        })
+        return false
+      }
+
       if (source !== 'geolocation') {
         geolocationRequestRef.current += 1
         setLocating(false)
       }
 
-      setPosition(nextPosition)
+      setPosition(normalizedPosition)
       updateMessage({ type: '', text: '' }, { popup: false })
-      onChange?.(nextPosition)
+      onChangeRef.current?.(normalizedPosition)
+      return true
     },
-    [onChange, updateMessage]
+    [updateMessage]
   )
 
   const requestCurrentLocation = useCallback(
@@ -177,10 +223,18 @@ function LocationPicker({ latitude, longitude, onChange }) {
   )
 
   useEffect(() => {
-    if (latitude != null && longitude != null) {
-      setPosition({
-        latitude: Number(latitude),
-        longitude: Number(longitude),
+    const nextPosition = normalizePosition(latitude, longitude)
+
+    if (nextPosition) {
+      setPosition((currentPosition) => {
+        if (
+          currentPosition.latitude === nextPosition.latitude &&
+          currentPosition.longitude === nextPosition.longitude
+        ) {
+          return currentPosition
+        }
+
+        return nextPosition
       })
       return
     }
@@ -203,9 +257,14 @@ function LocationPicker({ latitude, longitude, onChange }) {
   )
 
   function selectSuggestion(place) {
-    const nextPosition = {
-      latitude: Number(place.lat),
-      longitude: Number(place.lon),
+    const nextPosition = normalizePosition(place.lat, place.lon)
+
+    if (!nextPosition) {
+      updateMessage({
+        type: 'error',
+        text: 'พิกัดของสถานที่นี้ไม่ถูกต้อง กรุณาเลือกตำแหน่งอื่น',
+      })
+      return
     }
 
     setKeyword(place.display_name)
@@ -221,9 +280,25 @@ function LocationPicker({ latitude, longitude, onChange }) {
       return
     }
 
-    const coordinateMatch = text.match(/(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/)
+    const coordinateMatch = text.match(
+      /^(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)$/
+    )
 
     if (coordinateMatch) {
+      const coordinatePosition = normalizePosition(
+        coordinateMatch[1],
+        coordinateMatch[2]
+      )
+
+      if (!coordinatePosition) {
+        setSuggestions([])
+        updateMessage({
+          type: 'error',
+          text: 'พิกัดไม่ถูกต้อง Latitude ต้องอยู่ระหว่าง -90 ถึง 90 และ Longitude ระหว่าง -180 ถึง 180',
+        })
+        return
+      }
+
       setSuggestions([
         {
           place_id: 'coordinate',

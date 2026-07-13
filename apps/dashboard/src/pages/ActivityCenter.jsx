@@ -311,17 +311,6 @@ function ActivityCenter() {
         eyebrow="Activity Center"
         title="Operations Activity"
         description="Audit trail การใช้งานตั้งแต่ Login การเข้าหน้า และการเปลี่ยนค่าระบบ โดยไม่รวม Alarm"
-        actions={
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => loadActivity({ quiet: true })}
-            disabled={refreshing}
-          >
-            <RefreshCw size={16} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
-        }
       />
 
       <section className="activity-stat-grid">
@@ -356,22 +345,33 @@ function ActivityCenter() {
             <h2>Filter</h2>
             <p>เลือก Device, ช่วงวันที่ และประเภท Activity ที่ต้องการตรวจสอบ</p>
           </div>
-          <FilterActionsMenu
-            label="Activity filter actions"
-            items={[
-              {
-                key: 'clear',
-                label: 'Clear Data',
-                icon: Trash2,
-                tone: 'danger',
-                disabled:
-                  loading ||
-                  clearingActivities ||
-                  filteredActivities.length === 0,
-                onSelect: openClearActivityDialog,
-              },
-            ]}
-          />
+          <div className="filter-header-actions">
+            <button
+              type="button"
+              className="secondary-button filter-refresh-button"
+              onClick={() => loadActivity({ quiet: true })}
+              disabled={refreshing}
+            >
+              <RefreshCw size={16} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+            <FilterActionsMenu
+              label="Activity filter actions"
+              items={[
+                {
+                  key: 'clear',
+                  label: 'Clear Data',
+                  icon: Trash2,
+                  tone: 'danger',
+                  disabled:
+                    loading ||
+                    clearingActivities ||
+                    filteredActivities.length === 0,
+                  onSelect: openClearActivityDialog,
+                },
+              ]}
+            />
+          </div>
         </div>
 
         <div className="history-filter-grid activity-history-filter-grid">

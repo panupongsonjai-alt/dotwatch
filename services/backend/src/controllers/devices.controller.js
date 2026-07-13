@@ -771,6 +771,31 @@ export async function updateDevice(req, res) {
     allowedRoles: ORG_MANAGE_DEVICE_ROLES,
   })
 
+  const hasLatitude = latitude !== undefined && latitude !== null
+  const hasLongitude = longitude !== undefined && longitude !== null
+
+  if (hasLatitude !== hasLongitude) {
+    return res.status(400).json({
+      message: 'Latitude and longitude must be provided together',
+    })
+  }
+
+  const normalizedLatitude = hasLatitude ? Number(latitude) : null
+  const normalizedLongitude = hasLongitude ? Number(longitude) : null
+
+  if (
+    (hasLatitude && !Number.isFinite(normalizedLatitude)) ||
+    (hasLongitude && !Number.isFinite(normalizedLongitude)) ||
+    (hasLatitude && (normalizedLatitude < -90 || normalizedLatitude > 90)) ||
+    (hasLongitude &&
+      (normalizedLongitude < -180 || normalizedLongitude > 180))
+  ) {
+    return res.status(400).json({
+      message:
+        'Invalid coordinates: latitude must be between -90 and 90, and longitude between -180 and 180',
+    })
+  }
+
   let placement = {
     organizationId: requestedOrganizationId,
     siteId: requestedSiteId,
@@ -841,8 +866,8 @@ export async function updateDevice(req, res) {
     [
       name ?? null,
       groupName ?? null,
-      latitude ?? null,
-      longitude ?? null,
+      normalizedLatitude,
+      normalizedLongitude,
       mapUrl ?? null,
       placement?.organizationId || null,
       placement?.siteId || null,
@@ -1518,4 +1543,3 @@ export async function getHistory(req, res) {
 
   res.json(result.rows)
 }
-

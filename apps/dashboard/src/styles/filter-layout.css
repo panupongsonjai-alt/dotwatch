@@ -155,6 +155,24 @@
   margin-left: auto;
 }
 
+.filter-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.filter-header-actions .filter-actions-menu {
+  margin-left: 0;
+}
+
+.filter-refresh-button {
+  min-height: 38px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
 .filter-actions-menu-trigger {
   width: 42px;
   min-width: 42px;

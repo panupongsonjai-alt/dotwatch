@@ -624,19 +624,6 @@ function Alarms() {
         eyebrow="Alarm Center"
         title="Alarms"
         description="ติดตาม Alarm Events และ Alarm Rules ของอุปกรณ์ทั้งหมด"
-        actions={
-          <>
-            <button
-              type="button"
-              className="ghost-button"
-              onClick={loadData}
-              disabled={loading || saving}
-            >
-              <RefreshCw size={17} />
-              Refresh
-            </button>
-          </>
-        }
       />
 
       <section className="alarms-stat-grid dashboard-style-stat-grid">
@@ -756,13 +743,24 @@ function Alarms() {
             <h2>Filter</h2>
             <p>เลือก Device, ช่วงวันที่ และ Metric ที่ต้องการตรวจสอบ</p>
           </div>
-          <FilterActionsMenu
-            label="Alarm filter actions"
-            items={[
-              { key: 'csv', label: 'Export CSV', icon: Download, disabled: filteredAlarms.length === 0, onSelect: handleExportAlarmEvents },
-              { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: loading || saving || clearingAlarms || filteredAlarms.length === 0, onSelect: openClearAlarmDialog },
-            ]}
-          />
+          <div className="filter-header-actions">
+            <button
+              type="button"
+              className="secondary-button filter-refresh-button"
+              onClick={loadData}
+              disabled={loading || saving}
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+            <FilterActionsMenu
+              label="Alarm filter actions"
+              items={[
+                { key: 'csv', label: 'Export CSV', icon: Download, disabled: filteredAlarms.length === 0, onSelect: handleExportAlarmEvents },
+                { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: loading || saving || clearingAlarms || filteredAlarms.length === 0, onSelect: openClearAlarmDialog },
+              ]}
+            />
+          </div>
         </div>
 
         <div className="history-filter-grid alarm-history-filter-grid">
