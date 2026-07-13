@@ -4,7 +4,7 @@ import {
   CalendarDays,
   CheckCheck,
   Download,
-  RefreshCcw,
+  RefreshCw,
   Trash2,
   ShieldAlert,
   WifiOff,
@@ -636,7 +636,7 @@ function NotificationCenter() {
               className="secondary-button filter-refresh-button"
               onClick={loadData}
             >
-              <RefreshCcw size={16} />
+              <RefreshCw size={16} />
               Refresh
             </button>
             <FilterActionsMenu
