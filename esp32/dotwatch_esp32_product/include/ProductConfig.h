@@ -24,6 +24,28 @@ static constexpr int DEFAULT_DHT_TYPE = 11;
 static constexpr unsigned long DEFAULT_SEND_INTERVAL_MS = 20000UL;
 static constexpr unsigned long MIN_SEND_INTERVAL_MS = 10000UL;
 
+// 2.4-inch SPI TFT, 240x320, ILI9341.
+// TFT pin label mapping:
+// SCK/CLK -> GPIO 18, MOSI/SDI -> GPIO 23, MISO/SDO -> GPIO 19,
+// CS -> GPIO 25, DC/RS -> GPIO 27, RST/RESET -> GPIO 26.
+// LED/BL is connected to 3V3 for an always-on backlight.
+static constexpr bool TFT_ENABLED = true;
+static constexpr int TFT_SCK_PIN = 18;
+static constexpr int TFT_MOSI_PIN = 23;
+static constexpr int TFT_MISO_PIN = 19;
+static constexpr int TFT_CS_PIN = 25;
+static constexpr int TFT_DC_PIN = 27;
+static constexpr int TFT_RST_PIN = 26;
+static constexpr uint8_t TFT_ROTATION = 0;
+static constexpr bool TFT_INVERT_COLORS = false;
+static constexpr uint32_t TFT_SPI_FREQUENCY_HZ = 40000000UL;
+static constexpr unsigned long TFT_REFRESH_INTERVAL_MS = 200UL;
+
+// A DHT22 should not be sampled faster than roughly every two seconds.
+// This rate also provides a responsive local display independently of telemetry.
+static constexpr unsigned long SENSOR_FIRST_SAMPLE_DELAY_MS = 2000UL;
+static constexpr unsigned long SENSOR_SAMPLE_INTERVAL_MS = 2500UL;
+
 static constexpr int WIFI_PROFILE_MAX = 5;
 static constexpr int WIFI_SCAN_MAX = 20;
 static constexpr unsigned long WIFI_PROFILE_ATTEMPT_TIMEOUT_MS = 20000UL;

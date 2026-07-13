@@ -16,6 +16,8 @@ void AppController::begin() {
   setState(AppState::BOOTING);
 
   statusLed_.begin();
+  tftDisplay_.begin();
+
   configStore_.load(config_);
   sensorManager_.begin(config_);
   wifiManager_.begin(config_, configStore_);
@@ -49,7 +51,9 @@ void AppController::begin() {
     portalServer_.startLocalAdmin();
   }
 
+  scheduleNextSensorSample(ProductConfig::SENSOR_FIRST_SAMPLE_DELAY_MS);
   scheduleNextSend(ProductConfig::FIRST_SEND_DELAY_MS);
+  tftDisplay_.tick(status_);
 }
 
 void AppController::loop() {
@@ -63,8 +67,10 @@ void AppController::loop() {
   portalServer_.loop();
   serviceWiFi();
   otaManager_.tick(status_.wifiConnected, portalServer_.isSetupMode());
+  serviceSensor();
   serviceTelemetry();
   statusLed_.tick(status_);
+  tftDisplay_.tick(status_);
 
   delay(2);
 }
@@ -80,7 +86,7 @@ void AppController::printBootBanner() {
   Serial.print(" (");
   Serial.print(DOTWATCH_MODEL_KEY);
   Serial.println(")");
-  Serial.println("Architecture: Modular dashboard portal + HTTPS Internet OTA");
+  Serial.println("Architecture: Modular portal + ILI9341 TFT + HTTPS Internet OTA");
   Serial.println("============================================================");
 }
 
@@ -125,6 +131,28 @@ void AppController::serviceWiFi() {
   }
 }
 
+void AppController::serviceSensor() {
+  if (otaManager_.busy() || status_.state == AppState::UPDATING) return;
+
+  const unsigned long now = millis();
+  if (!sensorSampleDue(now)) return;
+  scheduleNextSensorSample(ProductConfig::SENSOR_SAMPLE_INTERVAL_MS);
+
+  MetricSnapshot snapshot;
+  if (!sensorManager_.read(snapshot, config_)) {
+    hasLatestSnapshot_ = false;
+    status_.sensorReadingAvailable = false;
+    status_.lastSensorError = "DHT read failed";
+    status_.lastSensorFallbackUsed = false;
+    Serial.println("SensorManager: DHT display sample failed");
+    return;
+  }
+
+  latestSnapshot_ = snapshot;
+  hasLatestSnapshot_ = true;
+  publishSnapshotToStatus(snapshot);
+}
+
 void AppController::serviceTelemetry() {
   if (otaManager_.busy() || status_.state == AppState::UPDATING) return;
   if (!status_.wifiConnected) return;
@@ -132,26 +160,20 @@ void AppController::serviceTelemetry() {
 
   const unsigned long now = millis();
   if (!sendDue(now)) return;
-  scheduleNextSend(config_.sendIntervalMs);
 
-  MetricSnapshot snapshot;
-  if (!sensorManager_.read(snapshot, config_)) {
-    status_.lastSensorError = "DHT read failed";
-    status_.lastSensorFallbackUsed = false;
-    status_.lastSendStatus = "error";
-    status_.lastSendError = "DHT read failed";
-    status_.totalSendFail++;
+  if (!hasLatestSnapshot_) {
+    status_.lastSendStatus = "waiting_sensor";
+    status_.lastSendError = "No valid DHT sample";
     setState(AppState::DEGRADED);
-    Serial.println("SensorManager: DHT read failed; telemetry not sent");
+    scheduleNextSend(ProductConfig::SENSOR_SAMPLE_INTERVAL_MS);
     return;
   }
 
-  status_.lastSensorError = "";
-  status_.lastSensorFallbackUsed = snapshot.fallbackUsed;
-  status_.sensorReadingAvailable = true;
-  status_.lastTemperature = snapshot.temperature;
-  status_.lastHumidity = snapshot.humidity;
-  status_.lastSensorReadAtMs = snapshot.readAtMs;
+  scheduleNextSend(config_.sendIntervalMs);
+
+  MetricSnapshot snapshot = latestSnapshot_;
+  snapshot.rssi = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0;
+  latestSnapshot_.rssi = snapshot.rssi;
 
   Serial.print("Telemetry metric_1=");
   Serial.print(snapshot.temperature, 2);
@@ -171,10 +193,27 @@ void AppController::serviceTelemetry() {
   Serial.println(sent ? "SERVER_OK" : "SERVER_ERROR");
 }
 
+bool AppController::sensorSampleDue(unsigned long now) const {
+  return static_cast<long>(now - nextSensorSampleAt_) >= 0;
+}
+
 bool AppController::sendDue(unsigned long now) const {
   return static_cast<long>(now - nextSendAt_) >= 0;
 }
 
+void AppController::scheduleNextSensorSample(unsigned long delayMs) {
+  nextSensorSampleAt_ = millis() + delayMs;
+}
+
 void AppController::scheduleNextSend(unsigned long delayMs) {
   nextSendAt_ = millis() + delayMs;
+}
+
+void AppController::publishSnapshotToStatus(const MetricSnapshot &snapshot) {
+  status_.lastSensorError = "";
+  status_.lastSensorFallbackUsed = snapshot.fallbackUsed;
+  status_.sensorReadingAvailable = true;
+  status_.lastTemperature = snapshot.temperature;
+  status_.lastHumidity = snapshot.humidity;
+  status_.lastSensorReadAtMs = snapshot.readAtMs;
 }
