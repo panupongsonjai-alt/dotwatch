@@ -667,3 +667,22 @@ export function getActivityLogs({ deviceId, limit } = {}) {
 
   return apiFetch(`/api/activity${query ? `?${query}` : ''}`)
 }
+
+export function clearActivityLogs({
+  ids,
+  deviceId,
+  startDate,
+  endDate,
+  activityType,
+} = {}) {
+  return apiFetch('/api/activity/clear', {
+    method: 'POST',
+    body: JSON.stringify({
+      ids: Array.isArray(ids) ? ids : [],
+      deviceId: deviceId || 'all',
+      startDate: startDate || '',
+      endDate: endDate || '',
+      activityType: activityType || 'all',
+    }),
+  })
+}

@@ -2,14 +2,16 @@
 
 .history-filter-card,
 .alarm-standalone-filter-card,
-.notification-standalone-filter-card {
+.notification-standalone-filter-card,
+.activity-standalone-filter-card {
   min-width: 0;
   overflow: hidden;
 }
 
 .history-page-v2 .history-filter-grid,
 .alarms-page .alarm-history-filter-grid,
-.notifications-page .notification-history-filter-grid {
+.notifications-page .notification-history-filter-grid,
+.activity-center-page .activity-history-filter-grid {
   display: grid !important;
   gap: clamp(6px, 0.8vw, 12px) !important;
   align-items: end !important;
@@ -28,9 +30,10 @@
     minmax(0, 1fr) !important;
 }
 
-/* Alarm and Notification each have four fluid filter fields. */
+/* Alarm, Notification, and Activity each have four fluid filter fields. */
 .alarms-page .alarm-history-filter-grid,
-.notifications-page .notification-history-filter-grid {
+.notifications-page .notification-history-filter-grid,
+.activity-center-page .activity-history-filter-grid {
   grid-template-columns:
     minmax(0, 1.35fr)
     minmax(0, 1.05fr)
@@ -40,7 +43,8 @@
 
 .history-page-v2 .history-filter-grid > *,
 .alarms-page .alarm-history-filter-grid > *,
-.notifications-page .notification-history-filter-grid > * {
+.notifications-page .notification-history-filter-grid > *,
+.activity-center-page .activity-history-filter-grid > * {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
@@ -48,7 +52,8 @@
 
 .history-page-v2 .history-filter-grid :is(input, select, button),
 .alarms-page .alarm-history-filter-grid :is(input, select, button),
-.notifications-page .notification-history-filter-grid :is(input, select, button) {
+.notifications-page .notification-history-filter-grid :is(input, select, button),
+.activity-center-page .activity-history-filter-grid :is(input, select, button) {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
@@ -106,7 +111,8 @@
 @media (max-width: 760px) {
   .history-filter-card,
   .alarm-standalone-filter-card,
-  .notification-standalone-filter-card {
+  .notification-standalone-filter-card,
+  .activity-standalone-filter-card {
     overflow-x: auto;
     overscroll-behavior-inline: contain;
   }
@@ -116,7 +122,8 @@
   }
 
   .alarms-page .alarm-history-filter-grid,
-  .notifications-page .notification-history-filter-grid {
+  .notifications-page .notification-history-filter-grid,
+  .activity-center-page .activity-history-filter-grid {
     min-width: 650px !important;
   }
 }
@@ -225,7 +232,8 @@
 /* Date-picker buttons are compact overlays, not full-width filter buttons. */
 .history-page-v2 .history-date-picker,
 .alarms-page .history-date-picker,
-.notifications-page .history-date-picker {
+.notifications-page .history-date-picker,
+.activity-center-page .history-date-picker {
   position: relative !important;
   display: block !important;
   width: 100% !important;
@@ -235,7 +243,8 @@
 
 .history-page-v2 .history-date-picker input[type='date'],
 .alarms-page .history-date-picker input[type='date'],
-.notifications-page .history-date-picker input[type='date'] {
+.notifications-page .history-date-picker input[type='date'],
+.activity-center-page .history-date-picker input[type='date'] {
   width: 100% !important;
   min-width: 0 !important;
   height: 44px !important;
@@ -245,7 +254,8 @@
 
 .history-page-v2 .history-date-picker-button,
 .alarms-page .history-date-picker-button,
-.notifications-page .history-date-picker-button {
+.notifications-page .history-date-picker-button,
+.activity-center-page .history-date-picker-button {
   position: absolute !important;
   top: 50% !important;
   right: 6px !important;
@@ -268,13 +278,15 @@
 
 .history-page-v2 .history-date-picker-button:hover,
 .alarms-page .history-date-picker-button:hover,
-.notifications-page .history-date-picker-button:hover {
+.notifications-page .history-date-picker-button:hover,
+.activity-center-page .history-date-picker-button:hover {
   transform: translateY(-50%) !important;
 }
 
 .history-page-v2 .history-date-picker-button svg,
 .alarms-page .history-date-picker-button svg,
-.notifications-page .history-date-picker-button svg {
+.notifications-page .history-date-picker-button svg,
+.activity-center-page .history-date-picker-button svg {
   width: 17px !important;
   height: 17px !important;
   flex: 0 0 17px !important;
@@ -283,7 +295,8 @@
 /* Specificity guard: override the full-width button rule inside filter grids. */
 .history-page-v2 .history-filter-grid .history-date-picker > .history-date-picker-button,
 .alarms-page .alarm-history-filter-grid .history-date-picker > .history-date-picker-button,
-.notifications-page .notification-history-filter-grid .history-date-picker > .history-date-picker-button {
+.notifications-page .notification-history-filter-grid .history-date-picker > .history-date-picker-button,
+.activity-center-page .activity-history-filter-grid .history-date-picker > .history-date-picker-button {
   position: absolute !important;
   inset: 50% 6px auto auto !important;
   width: 34px !important;

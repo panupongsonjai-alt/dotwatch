@@ -266,3 +266,61 @@ export async function listActivityLogs({ userId, deviceId, limit }) {
 
   return result.rows
 }
+
+export async function clearActivityLogs({
+  userId,
+  ids,
+  deviceId = null,
+  startDate = '',
+  endDate = '',
+  category = 'all',
+}) {
+  const params = [userId, ids]
+  const conditions = [
+    'user_id = $1',
+    'id = ANY($2::bigint[])',
+    "activity_type NOT LIKE 'alarm.%'",
+  ]
+
+  if (deviceId) {
+    params.push(deviceId)
+    conditions.push(`device_id = $${params.length}`)
+  }
+
+  if (startDate) {
+    params.push(startDate)
+    conditions.push(
+      `created_at >= ($${params.length}::date::timestamp AT TIME ZONE 'Asia/Bangkok')`
+    )
+  }
+
+  if (endDate) {
+    params.push(endDate)
+    conditions.push(
+      `created_at < (($${params.length}::date + 1)::timestamp AT TIME ZONE 'Asia/Bangkok')`
+    )
+  }
+
+  const categoryConditions = {
+    session: "activity_type LIKE 'session.%'",
+    navigation: "activity_type LIKE 'navigation.%'",
+    changes: "activity_type ~ '^(operation|preference|profile)\\.'",
+    device: "(activity_type LIKE 'device.%' OR activity_type LIKE 'reading.%')",
+    other: `activity_type !~ '^(session|navigation|operation|preference|profile|device|reading)\\.'`,
+  }
+
+  if (category !== 'all') {
+    conditions.push(categoryConditions[category])
+  }
+
+  const result = await pool.query(
+    `
+    DELETE FROM activity_logs
+    WHERE ${conditions.join('\n      AND ')}
+    RETURNING id
+    `,
+    params
+  )
+
+  return result.rows.map((row) => row.id)
+}
