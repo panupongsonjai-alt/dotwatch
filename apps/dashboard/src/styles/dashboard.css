@@ -1014,17 +1014,17 @@
 }
 
 .device-map-label-row-static:hover {
-  background: transparent;
+  background: var(--device-map-label-surface);
 }
 
 .leaflet-tooltip.device-map-label {
-  padding: 2px !important;
-  border-radius: 11px !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
   border: 0 !important;
   color: var(--device-map-ui-text) !important;
-  background: var(--device-map-label-surface) !important;
-  box-shadow: 0 10px 24px var(--device-map-ui-shadow) !important;
-  backdrop-filter: blur(10px);
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none;
   font-family: "Inter", "Prompt", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
   pointer-events: auto !important;
 }
@@ -1070,7 +1070,7 @@
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 4px;
+  gap: 6px;
 }
 
 .device-map-label-row {
@@ -1084,9 +1084,10 @@
   gap: 6px;
   padding: 4px 7px;
   color: var(--device-map-ui-text);
-  background: transparent;
+  background: var(--device-map-label-surface);
   border: 0;
-  border-radius: 8px;
+  border-radius: 11px;
+  box-shadow: 0 8px 18px var(--device-map-ui-shadow);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -1094,7 +1095,7 @@
 
 .device-map-label-row:hover,
 .device-map-label-row:focus-visible {
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  background: color-mix(in srgb, var(--device-map-label-surface) 90%, var(--primary) 10%);
   outline: none;
 }
 
@@ -1110,10 +1111,6 @@
   min-width: 0;
   max-width: none;
   font-size: 11px;
-}
-
-.device-map-label-row:not(:last-child) strong::after {
-  content: ",";
 }
 
 @media (min-width: 1240px) {
