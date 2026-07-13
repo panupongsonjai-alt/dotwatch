@@ -439,16 +439,39 @@ function Devices() {
       return
     }
 
+    const latitude = Number(location.latitude)
+    const longitude = Number(location.longitude)
+
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      showNotice(
+        'warning',
+        'พิกัดไม่ถูกต้อง Latitude ต้องอยู่ระหว่าง -90 ถึง 90 และ Longitude ระหว่าง -180 ถึง 180'
+      )
+      return
+    }
+
     try {
       setSaving(true)
 
       await updateDeviceLocation(device.id, {
-        latitude: location.latitude,
-        longitude: location.longitude,
+        latitude,
+        longitude,
         mapUrl: null,
       })
 
       await loadDevices()
+      setLocations((currentLocations) => {
+        const nextLocations = { ...currentLocations }
+        delete nextLocations[device.id]
+        return nextLocations
+      })
       showNotice('success', 'บันทึกตำแหน่ง Device สำเร็จ')
     } catch (error) {
       console.error('Save picked location error:', error)
