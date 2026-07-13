@@ -339,20 +339,11 @@ function DeviceMap({ devices = [], onOpenDevice }) {
                 className="device-map-label"
                 interactive={typeof onOpenDevice === 'function'}
               >
-                <div
-                  className={`device-map-label-content ${
-                    isGroup ? 'device-map-label-group' : ''
-                  }`}
-                >
-                  {isGroup && (
-                    <span className="device-map-label-group-count">
-                      {groupedDevices.length} devices · within {GROUP_DISTANCE_METERS} m
-                    </span>
-                  )}
-
+                <div className="device-map-label-content device-map-label-list">
                   {groupedDevices.map((device) => {
                     const deviceName = getDeviceName(device)
                     const deviceStatus = getStatus(device)
+                    const statusColor = getStatusColor(deviceStatus)
 
                     return typeof onOpenDevice === 'function' ? (
                       <button
@@ -366,10 +357,11 @@ function DeviceMap({ devices = [], onOpenDevice }) {
                       >
                         <span
                           className="device-map-label-status-dot"
-                          style={{ backgroundColor: getStatusColor(deviceStatus) }}
+                          style={{ backgroundColor: statusColor, color: statusColor }}
+                          aria-label={deviceStatus}
+                          title={deviceStatus}
                         />
                         <strong>{deviceName}</strong>
-                        <em>{deviceStatus}</em>
                       </button>
                     ) : (
                       <div
@@ -378,10 +370,11 @@ function DeviceMap({ devices = [], onOpenDevice }) {
                       >
                         <span
                           className="device-map-label-status-dot"
-                          style={{ backgroundColor: getStatusColor(deviceStatus) }}
+                          style={{ backgroundColor: statusColor, color: statusColor }}
+                          aria-label={deviceStatus}
+                          title={deviceStatus}
                         />
                         <strong>{deviceName}</strong>
-                        <em>{deviceStatus}</em>
                       </div>
                     )
                   })}
