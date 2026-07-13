@@ -226,46 +226,19 @@ function addTooltipLayouts(groups) {
 }
 
 function createDeviceIcon(devices) {
-  const primaryDevice = devices[0]
-  const status = getStatus(primaryDevice)
-  const color = getStatusColor(status)
-
-  if (devices.length > 1) {
-    const statuses = [...new Set(devices.map(getStatus))]
-    const statusDots = statuses
-      .map(
-        (groupStatus) =>
-          `<i style="background:${getStatusColor(groupStatus)}"></i>`
-      )
-      .join('')
-
-    return L.divIcon({
-      className: 'device-map-marker-shell device-map-marker-shell-group',
-      html: `
-        <span class="device-map-marker-group">
-          <span class="device-map-marker-group-statuses">${statusDots}</span>
-          <b>${devices.length}</b>
-        </span>
-      `,
-      iconSize: [34, 34],
-      iconAnchor: [17, 17],
-    })
-  }
-
   return L.divIcon({
     className: 'device-map-marker-shell',
     html: `
-      <span
-        class="device-map-marker-dot"
-        style="
-          --device-status-color: ${color};
-          background: ${color};
-          box-shadow: 0 0 0 6px ${color}24, 0 12px 24px ${color}35;
-        "
-      ></span>
+      <span class="device-map-location-pin">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+        ${devices.length > 1 ? `<b>${devices.length}</b>` : ''}
+      </span>
     `,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
+    iconSize: [34, 42],
+    iconAnchor: [17, 40],
   })
 }
 
@@ -364,7 +337,7 @@ function DeviceMap({ devices = [], onOpenDevice }) {
                 offset={tooltipLayout.offset}
                 opacity={1}
                 className="device-map-label"
-                interactive={isGroup && typeof onOpenDevice === 'function'}
+                interactive={typeof onOpenDevice === 'function'}
               >
                 <div
                   className={`device-map-label-content ${
@@ -381,7 +354,7 @@ function DeviceMap({ devices = [], onOpenDevice }) {
                     const deviceName = getDeviceName(device)
                     const deviceStatus = getStatus(device)
 
-                    return isGroup ? (
+                    return typeof onOpenDevice === 'function' ? (
                       <button
                         key={device.id || device.device_code || deviceName}
                         type="button"
@@ -399,9 +372,17 @@ function DeviceMap({ devices = [], onOpenDevice }) {
                         <em>{deviceStatus}</em>
                       </button>
                     ) : (
-                      <strong key={device.id || device.device_code || deviceName}>
-                        {deviceName}
-                      </strong>
+                      <div
+                        key={device.id || device.device_code || deviceName}
+                        className="device-map-label-row device-map-label-row-static"
+                      >
+                        <span
+                          className="device-map-label-status-dot"
+                          style={{ backgroundColor: getStatusColor(deviceStatus) }}
+                        />
+                        <strong>{deviceName}</strong>
+                        <em>{deviceStatus}</em>
+                      </div>
                     )
                   })}
                 </div>
