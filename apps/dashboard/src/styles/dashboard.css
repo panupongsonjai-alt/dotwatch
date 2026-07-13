@@ -988,6 +988,49 @@
   animation: device-map-pulse 1.8s ease-out infinite;
 }
 
+.device-map-marker-shell-group {
+  overflow: visible;
+}
+
+.device-map-marker-group {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  background: color-mix(in srgb, var(--panel, #0f172a) 78%, #2563eb);
+  border: 3px solid rgba(255, 255, 255, 0.94);
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.15), 0 12px 28px rgba(15, 23, 42, 0.3);
+}
+
+.device-map-marker-group > b {
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.device-map-marker-group-statuses {
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px 3px;
+  border-radius: 999px;
+  background: var(--panel, #0f172a);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  transform: translateX(-50%);
+}
+
+.device-map-marker-group-statuses i {
+  width: 6px;
+  height: 6px;
+  display: block;
+  border-radius: 999px;
+}
+
 @keyframes device-map-pulse {
   0% {
     transform: scale(0.65);
@@ -1043,6 +1086,72 @@
   font-weight: 900;
   letter-spacing: -0.02em;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-map-label-content.device-map-label-group {
+  width: max-content;
+  min-width: 220px;
+  max-width: min(320px, calc(100vw - 72px));
+  display: grid;
+  gap: 4px;
+}
+
+.device-map-label-group-count {
+  display: block;
+  padding: 2px 4px 6px;
+  color: var(--device-map-ui-muted);
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.device-map-label-row {
+  width: 100%;
+  min-width: 0;
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 7px;
+  color: var(--device-map-ui-text);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.device-map-label-row:hover,
+.device-map-label-row:focus-visible {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  outline: none;
+}
+
+.device-map-label-row .device-map-label-status-dot {
+  width: 9px;
+  height: 9px;
+  display: block;
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.device-map-label-row strong {
+  min-width: 0;
+  max-width: none;
+}
+
+.device-map-label-row em {
+  color: var(--device-map-ui-muted);
+  font-size: 9px;
+  line-height: 1;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 

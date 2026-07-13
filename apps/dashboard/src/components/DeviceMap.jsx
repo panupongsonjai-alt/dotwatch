@@ -3,6 +3,14 @@ import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 
 const DEFAULT_CENTER = [13.7563, 100.5018]
+const GROUP_DISTANCE_METERS = 5
+const EARTH_RADIUS_METERS = 6371000
+const STATUS_PRIORITY = {
+  critical: 0,
+  warning: 1,
+  offline: 2,
+  online: 3,
+}
 
 function getStatus(device = {}) {
   return String(device.status || 'offline')
@@ -51,9 +59,125 @@ function getDevicePosition(device, index) {
   return getFallbackPosition(index)
 }
 
-function createDeviceIcon(device) {
-  const status = getStatus(device)
+function getDistanceMeters(leftPosition, rightPosition) {
+  const toRadians = (value) => (value * Math.PI) / 180
+  const [leftLatitude, leftLongitude] = leftPosition
+  const [rightLatitude, rightLongitude] = rightPosition
+  const latitudeDelta = toRadians(rightLatitude - leftLatitude)
+  const longitudeDelta = toRadians(rightLongitude - leftLongitude)
+  const leftLatitudeRadians = toRadians(leftLatitude)
+  const rightLatitudeRadians = toRadians(rightLatitude)
+
+  const haversine =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(leftLatitudeRadians) *
+      Math.cos(rightLatitudeRadians) *
+      Math.sin(longitudeDelta / 2) ** 2
+
+  return (
+    EARTH_RADIUS_METERS *
+    2 *
+    Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
+  )
+}
+
+function groupDevicesByDistance(items) {
+  const parents = items.map((_, index) => index)
+
+  const find = (index) => {
+    if (parents[index] !== index) parents[index] = find(parents[index])
+    return parents[index]
+  }
+
+  const union = (leftIndex, rightIndex) => {
+    const leftRoot = find(leftIndex)
+    const rightRoot = find(rightIndex)
+    if (leftRoot !== rightRoot) parents[rightRoot] = leftRoot
+  }
+
+  for (let leftIndex = 0; leftIndex < items.length; leftIndex += 1) {
+    if (!items[leftIndex].hasCoordinates) continue
+
+    for (
+      let rightIndex = leftIndex + 1;
+      rightIndex < items.length;
+      rightIndex += 1
+    ) {
+      if (!items[rightIndex].hasCoordinates) continue
+
+      if (
+        getDistanceMeters(
+          items[leftIndex].position,
+          items[rightIndex].position
+        ) <= GROUP_DISTANCE_METERS
+      ) {
+        union(leftIndex, rightIndex)
+      }
+    }
+  }
+
+  const groupedItems = new Map()
+  items.forEach((item, index) => {
+    const root = find(index)
+    if (!groupedItems.has(root)) groupedItems.set(root, [])
+    groupedItems.get(root).push(item)
+  })
+
+  return [...groupedItems.values()].map((group) => {
+    const devices = group
+      .map((item) => item.device)
+      .sort((left, right) => {
+        const statusDifference =
+          (STATUS_PRIORITY[getStatus(left)] ?? 99) -
+          (STATUS_PRIORITY[getStatus(right)] ?? 99)
+
+        return (
+          statusDifference ||
+          getDeviceName(left).localeCompare(getDeviceName(right), 'th')
+        )
+      })
+
+    const position = [
+      group.reduce((sum, item) => sum + item.position[0], 0) / group.length,
+      group.reduce((sum, item) => sum + item.position[1], 0) / group.length,
+    ]
+
+    return {
+      devices,
+      position,
+      key: devices
+        .map((device) => device.id || device.device_code || getDeviceName(device))
+        .join('-'),
+    }
+  })
+}
+
+function createDeviceIcon(devices) {
+  const primaryDevice = devices[0]
+  const status = getStatus(primaryDevice)
   const color = getStatusColor(status)
+
+  if (devices.length > 1) {
+    const statuses = [...new Set(devices.map(getStatus))]
+    const statusDots = statuses
+      .map(
+        (groupStatus) =>
+          `<i style="background:${getStatusColor(groupStatus)}"></i>`
+      )
+      .join('')
+
+    return L.divIcon({
+      className: 'device-map-marker-shell device-map-marker-shell-group',
+      html: `
+        <span class="device-map-marker-group">
+          <span class="device-map-marker-group-statuses">${statusDots}</span>
+          <b>${devices.length}</b>
+        </span>
+      `,
+      iconSize: [34, 34],
+      iconAnchor: [17, 17],
+    })
+  }
 
   return L.divIcon({
     className: 'device-map-marker-shell',
@@ -105,12 +229,18 @@ function DeviceMap({ devices = [], onOpenDevice }) {
     return visibleDevices.map((device, index) => ({
       device,
       position: getDevicePosition(device, index),
+      hasCoordinates: isValidCoordinate(device.latitude, device.longitude),
     }))
   }, [visibleDevices])
 
-  const positions = useMemo(
-    () => devicesWithPositions.map((item) => item.position),
+  const deviceGroups = useMemo(
+    () => groupDevicesByDistance(devicesWithPositions),
     [devicesWithPositions]
+  )
+
+  const positions = useMemo(
+    () => deviceGroups.map((group) => group.position),
+    [deviceGroups]
   )
 
   if (!visibleDevices.length) {
@@ -137,18 +267,19 @@ function DeviceMap({ devices = [], onOpenDevice }) {
 
         <MapAutoFit positions={positions} />
 
-        {devicesWithPositions.map(({ device, position }) => {
-          const deviceName = getDeviceName(device)
+        {deviceGroups.map(({ devices: groupedDevices, key, position }) => {
+          const isGroup = groupedDevices.length > 1
+          const firstDevice = groupedDevices[0]
 
           return (
             <Marker
-              key={device.id || device.device_code}
+              key={key}
               position={position}
-              icon={createDeviceIcon(device)}
+              icon={createDeviceIcon(groupedDevices)}
               eventHandlers={
-                typeof onOpenDevice === 'function'
+                !isGroup && typeof onOpenDevice === 'function'
                   ? {
-                      click: () => onOpenDevice(device.id),
+                      click: () => onOpenDevice(firstDevice.id),
                     }
                   : undefined
               }
@@ -159,9 +290,46 @@ function DeviceMap({ devices = [], onOpenDevice }) {
                 offset={[0, -16]}
                 opacity={1}
                 className="device-map-label"
+                interactive={isGroup && typeof onOpenDevice === 'function'}
               >
-                <div className="device-map-label-content">
-                  <strong>{deviceName}</strong>
+                <div
+                  className={`device-map-label-content ${
+                    isGroup ? 'device-map-label-group' : ''
+                  }`}
+                >
+                  {isGroup && (
+                    <span className="device-map-label-group-count">
+                      {groupedDevices.length} devices · within {GROUP_DISTANCE_METERS} m
+                    </span>
+                  )}
+
+                  {groupedDevices.map((device) => {
+                    const deviceName = getDeviceName(device)
+                    const deviceStatus = getStatus(device)
+
+                    return isGroup ? (
+                      <button
+                        key={device.id || device.device_code || deviceName}
+                        type="button"
+                        className="device-map-label-row"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onOpenDevice?.(device.id)
+                        }}
+                      >
+                        <span
+                          className="device-map-label-status-dot"
+                          style={{ backgroundColor: getStatusColor(deviceStatus) }}
+                        />
+                        <strong>{deviceName}</strong>
+                        <em>{deviceStatus}</em>
+                      </button>
+                    ) : (
+                      <strong key={device.id || device.device_code || deviceName}>
+                        {deviceName}
+                      </strong>
+                    )
+                  })}
                 </div>
               </Tooltip>
             </Marker>
