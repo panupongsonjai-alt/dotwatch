@@ -27,6 +27,7 @@ import {
   updateAdminUserPlan,
   updateAdminUserStatus,
 } from './services/adminApi'
+import { showAdminToast } from './utils/uiFeedback'
 
 const AdminOverview = lazy(() => import('./pages/AdminOverview'))
 const AdminUsers = lazy(() => import('./pages/AdminUsers'))
@@ -114,6 +115,16 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
   const [notice, setNotice] = useState(null)
+
+  useEffect(() => {
+    if (!notice) return
+
+    showAdminToast({
+      type: notice.type || 'info',
+      title: notice.title || '',
+      message: notice.message || '',
+    })
+  }, [notice])
 
   const currentPageMeta = useMemo(
     () => ADMIN_PAGE_META[activePage] || ADMIN_PAGE_META.overview,

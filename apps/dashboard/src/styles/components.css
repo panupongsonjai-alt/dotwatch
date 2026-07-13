@@ -323,3 +323,316 @@ textarea:focus {
   margin: 0;
   color: var(--muted);
 }
+
+/* --------------------------------------------------------------------------
+   Shared popup notifications and typed destructive confirmations
+   -------------------------------------------------------------------------- */
+.dw-popup-toast-viewport {
+  position: fixed;
+  top: 82px;
+  right: 20px;
+  z-index: 12000;
+  width: min(380px, calc(100vw - 32px));
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.dw-popup-toast {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 11px;
+  padding: 14px 14px 14px 13px;
+  border-radius: 16px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(16px);
+  pointer-events: auto;
+  animation: dw-popup-toast-in 180ms ease-out;
+}
+
+.dw-popup-toast.success {
+  border-color: rgba(34, 197, 94, 0.32);
+}
+
+.dw-popup-toast.error,
+.dw-popup-toast.critical {
+  border-color: rgba(239, 68, 68, 0.34);
+}
+
+.dw-popup-toast.warning {
+  border-color: rgba(245, 158, 11, 0.34);
+}
+
+.dw-popup-toast.info {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.dw-popup-toast-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #2563eb;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.dw-popup-toast.success .dw-popup-toast-icon {
+  color: #16a34a;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.dw-popup-toast.error .dw-popup-toast-icon,
+.dw-popup-toast.critical .dw-popup-toast-icon {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.dw-popup-toast.warning .dw-popup-toast-icon {
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.dw-popup-toast-copy {
+  min-width: 0;
+}
+
+.dw-popup-toast-copy strong {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 900;
+}
+
+.dw-popup-toast-copy p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.dw-popup-toast-close {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 9px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.dw-popup-toast-close:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+.dw-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.dw-confirm-dialog {
+  width: min(520px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  padding: 22px;
+  border-radius: 24px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.46);
+}
+
+.dw-confirm-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.dw-confirm-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.11);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+}
+
+.dw-confirm-icon.danger {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.11);
+  border-color: rgba(239, 68, 68, 0.22);
+}
+
+.dw-confirm-header > div > span {
+  display: block;
+  margin-bottom: 4px;
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dw-confirm-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.dw-confirm-close {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 12px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.dw-confirm-target {
+  display: grid;
+  gap: 4px;
+  margin-top: 18px;
+  padding: 13px 14px;
+  border-radius: 15px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.dw-confirm-target span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dw-confirm-target strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.dw-confirm-description {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+  font-weight: 650;
+}
+
+.dw-confirm-typed-field {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dw-confirm-typed-field > span {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.dw-confirm-typed-field strong {
+  color: #dc2626;
+}
+
+.dw-confirm-typed-field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 13px;
+  border-radius: 13px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  outline: none;
+}
+
+.dw-confirm-typed-field input:focus {
+  border-color: rgba(239, 68, 68, 0.62);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.dw-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.dw-confirm-actions button {
+  min-width: 112px;
+  min-height: 42px;
+}
+
+.dw-confirm-actions .danger-button {
+  color: #fff;
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  border: 0;
+  box-shadow: 0 10px 24px rgba(239, 68, 68, 0.18);
+}
+
+.dw-confirm-actions button:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+@keyframes dw-popup-toast-in {
+  from {
+    opacity: 0;
+    transform: translate3d(16px, -6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (max-width: 560px) {
+  .dw-popup-toast-viewport {
+    top: 74px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+
+  .dw-confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .dw-confirm-actions button {
+    width: 100%;
+  }
+}

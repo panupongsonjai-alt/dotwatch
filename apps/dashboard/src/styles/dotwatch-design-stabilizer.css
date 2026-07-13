@@ -127,7 +127,7 @@
 .alarm-stat-card::before,
 .notification-stat-card::before,
 .activity-stat-card::before {
-  content: '' !important;
+  content: "" !important;
   position: absolute !important;
   left: 14px !important;
   right: 14px !important;
@@ -187,7 +187,7 @@
 
 /* Controls */
 .search-input,
-input:not([type='checkbox']):not([type='radio']),
+input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
   border-radius: 14px !important;

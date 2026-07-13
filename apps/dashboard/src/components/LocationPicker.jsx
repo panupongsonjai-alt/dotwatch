@@ -8,7 +8,7 @@ import {
 } from 'react-leaflet'
 import { Crosshair, LoaderCircle } from 'lucide-react'
 import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { showUiToast } from '../utils/uiFeedback'
 
 const DEFAULT_CENTER = {
   latitude: 13.5991,
@@ -95,6 +95,23 @@ function LocationPicker({ latitude, longitude, onChange }) {
   const autoLocateRequestedRef = useRef(false)
   const geolocationRequestRef = useRef(0)
 
+  const updateMessage = useCallback((nextMessage, { popup = true } = {}) => {
+    setMessage(nextMessage)
+
+    if (popup && nextMessage?.text) {
+      showUiToast({
+        type: nextMessage.type || 'info',
+        title:
+          nextMessage.type === 'success'
+            ? 'Location updated'
+            : nextMessage.type === 'error'
+              ? 'Location unavailable'
+              : 'Location information',
+        message: nextMessage.text,
+      })
+    }
+  }, [])
+
   const handleSelect = useCallback(
     (nextPosition, source = 'manual') => {
       if (source !== 'geolocation') {
@@ -103,16 +120,16 @@ function LocationPicker({ latitude, longitude, onChange }) {
       }
 
       setPosition(nextPosition)
-      setMessage({ type: '', text: '' })
+      updateMessage({ type: '', text: '' }, { popup: false })
       onChange?.(nextPosition)
     },
-    [onChange]
+    [onChange, updateMessage]
   )
 
   const requestCurrentLocation = useCallback(
     ({ automatic = false } = {}) => {
       if (!navigator.geolocation) {
-        setMessage({
+        updateMessage({
           type: 'error',
           text: 'Browser นี้ไม่รองรับการอ่านตำแหน่งปัจจุบัน กรุณาเลือกตำแหน่งบนแผนที่',
         })
@@ -136,7 +153,7 @@ function LocationPicker({ latitude, longitude, onChange }) {
           setKeyword('ตำแหน่งปัจจุบันของเครื่องนี้')
 
           const accuracy = Number(result.coords.accuracy)
-          setMessage({
+          updateMessage({
             type: 'success',
             text: Number.isFinite(accuracy)
               ? `ใช้ตำแหน่งปัจจุบันแล้ว ความแม่นยำประมาณ ${Math.round(accuracy)} เมตร`
@@ -148,7 +165,7 @@ function LocationPicker({ latitude, longitude, onChange }) {
           if (requestId !== geolocationRequestRef.current) return
 
           setLocating(false)
-          setMessage({
+          updateMessage({
             type: automatic ? 'info' : 'error',
             text: getGeolocationErrorMessage(error),
           })
@@ -156,7 +173,7 @@ function LocationPicker({ latitude, longitude, onChange }) {
         GEOLOCATION_OPTIONS
       )
     },
-    [handleSelect]
+    [handleSelect, updateMessage]
   )
 
   useEffect(() => {
@@ -204,9 +221,7 @@ function LocationPicker({ latitude, longitude, onChange }) {
       return
     }
 
-    const coordinateMatch = text.match(
-      /(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/
-    )
+    const coordinateMatch = text.match(/(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/)
 
     if (coordinateMatch) {
       setSuggestions([
@@ -222,7 +237,7 @@ function LocationPicker({ latitude, longitude, onChange }) {
 
     try {
       setSearching(true)
-      setMessage({ type: '', text: '' })
+      updateMessage({ type: '', text: '' }, { popup: false })
 
       const params = new URLSearchParams({
         q: text,
@@ -243,7 +258,7 @@ function LocationPicker({ latitude, longitude, onChange }) {
       setSuggestions(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error(error)
-      setMessage({ type: 'error', text: 'ค้นหาตำแหน่งไม่สำเร็จ' })
+      updateMessage({ type: 'error', text: 'ค้นหาตำแหน่งไม่สำเร็จ' })
     } finally {
       setSearching(false)
     }
@@ -292,7 +307,9 @@ function LocationPicker({ latitude, longitude, onChange }) {
             ) : (
               <Crosshair size={16} />
             )}
-            {locating ? 'กำลังค้นหาตำแหน่ง...' : 'ใช้ตำแหน่งปัจจุบันของเครื่องนี้'}
+            {locating
+              ? 'กำลังค้นหาตำแหน่ง...'
+              : 'ใช้ตำแหน่งปัจจุบันของเครื่องนี้'}
           </button>
           <small>Browser อาจขออนุญาตเข้าถึง Location</small>
         </div>

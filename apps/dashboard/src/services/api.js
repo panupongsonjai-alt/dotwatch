@@ -1,4 +1,5 @@
 import { auth } from './firebase'
+import { showErrorToast, showWarningToast } from '../utils/uiFeedback'
 
 const API_URL = normalizeApiUrl(
   import.meta.env.VITE_API_URL || 'http://localhost:4000'
@@ -21,9 +22,7 @@ const GET_CACHE_TTL_MS = Math.max(
 )
 
 const GET_SLOW_CACHE_TTL_MS = Math.max(
-  Number(
-    import.meta.env.VITE_API_SLOW_CACHE_TTL_MS || SLOW_GET_CACHE_TTL_MS
-  ),
+  Number(import.meta.env.VITE_API_SLOW_CACHE_TTL_MS || SLOW_GET_CACHE_TTL_MS),
   GET_CACHE_TTL_MS
 )
 
@@ -31,7 +30,9 @@ const responseCache = new Map()
 const inFlightRequests = new Map()
 
 function normalizeApiUrl(value) {
-  const rawValue = String(value || '').trim().replace(/\/$/, '')
+  const rawValue = String(value || '')
+    .trim()
+    .replace(/\/$/, '')
 
   if (!rawValue) {
     throw new Error('Missing VITE_API_URL')
@@ -249,7 +250,13 @@ async function performApiRequest(path, options = {}) {
         ? ` (Request ID: ${data.requestId})`
         : ''
 
-      const requestError = new Error(`${baseMessage}${requestIdSuffix}`)
+      const requestMessage = `${baseMessage}${requestIdSuffix}`
+      showErrorToast(requestMessage, {
+        title: `Request failed (${response.status})`,
+        dedupeKey: `${response.status}|${path}|${baseMessage}`,
+      })
+
+      const requestError = new Error(requestMessage)
       requestError.status = response.status
       requestError.path = path
       requestError.data = data
@@ -271,9 +278,12 @@ async function performApiRequest(path, options = {}) {
         })
       )
 
-      throw new Error(
-        `Backend response timeout after ${Math.round(timeout / 1000)} seconds`
-      )
+      const timeoutMessage = `Backend response timeout after ${Math.round(timeout / 1000)} seconds`
+      showWarningToast(timeoutMessage, {
+        title: 'Backend timeout',
+        dedupeKey: `timeout|${path}`,
+      })
+      throw new Error(timeoutMessage)
     }
 
     throw error
@@ -430,16 +440,16 @@ export function getHistoryByDate(deviceId, date, metricKey, options = {}) {
   )
 }
 
-export function getDeviceHistoryByDate(deviceId, date, metricKey, options = {}) {
+export function getDeviceHistoryByDate(
+  deviceId,
+  date,
+  metricKey,
+  options = {}
+) {
   return getHistoryByDate(deviceId, date, metricKey, options)
 }
 
-export function clearHistoryRange(
-  deviceId,
-  from,
-  to,
-  metricKey = ''
-) {
+export function clearHistoryRange(deviceId, from, to, metricKey = '') {
   const params = new URLSearchParams()
 
   if (from) params.set('from', from)
@@ -472,9 +482,12 @@ export function saveDeviceMetrics(deviceId, metrics, settings = {}) {
 }
 
 export function resetDeviceMetrics(deviceId) {
-  return apiFetch(`/api/devices/${encodeURIComponent(deviceId)}/metrics/reset`, {
-    method: 'POST',
-  })
+  return apiFetch(
+    `/api/devices/${encodeURIComponent(deviceId)}/metrics/reset`,
+    {
+      method: 'POST',
+    }
+  )
 }
 
 export function getAlarms() {
@@ -598,12 +611,9 @@ export function getDemoTemplates() {
 }
 
 export function createDemoTemplate(templateKey) {
-  return apiFetch(
-    `/api/demo/templates/${encodeURIComponent(templateKey)}`,
-    {
-      method: 'POST',
-    }
-  )
+  return apiFetch(`/api/demo/templates/${encodeURIComponent(templateKey)}`, {
+    method: 'POST',
+  })
 }
 
 export function deleteDemoData() {

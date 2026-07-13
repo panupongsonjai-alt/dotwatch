@@ -4,10 +4,12 @@ import {
   registerWithEmail,
   resetPassword,
 } from '../services/auth'
+import { firebaseConfigHelp, isFirebaseConfigured } from '../services/firebase'
 import {
-  firebaseConfigHelp,
-  isFirebaseConfigured,
-} from '../services/firebase'
+  showErrorToast,
+  showSuccessToast,
+  showWarningToast,
+} from '../utils/uiFeedback'
 
 function Login() {
   const [mode, setMode] = useState('login')
@@ -25,17 +27,23 @@ function Login() {
     e.preventDefault()
 
     if (!email) {
-      setError('กรุณากรอกอีเมล')
+      const validationMessage = 'กรุณากรอกอีเมล'
+      setError(validationMessage)
+      showWarningToast(validationMessage)
       return
     }
 
     if (!isForgot && !password) {
-      setError('กรุณากรอกรหัสผ่าน')
+      const validationMessage = 'กรุณากรอกรหัสผ่าน'
+      setError(validationMessage)
+      showWarningToast(validationMessage)
       return
     }
 
     if (isRegister && password.length < 6) {
-      setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร')
+      const validationMessage = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
+      setError(validationMessage)
+      showWarningToast(validationMessage)
       return
     }
 
@@ -54,24 +62,28 @@ function Login() {
 
       if (isForgot) {
         await resetPassword(email.trim())
-        setMessage('ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว')
+        const successMessage = 'ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว'
+        setMessage(successMessage)
+        showSuccessToast(successMessage)
       }
     } catch (err) {
       console.error(err)
 
+      let errorMessage = 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'
+
       if (!isFirebaseConfigured) {
-        setError(
+        errorMessage =
           'ยังไม่ได้ตั้งค่า Firebase สำหรับ Dashboard ให้ตรวจไฟล์ apps/dashboard/.env.local'
-        )
       } else if (err.code === 'auth/invalid-credential') {
-        setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
+        errorMessage = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
       } else if (err.code === 'auth/email-already-in-use') {
-        setError('อีเมลนี้ถูกใช้งานแล้ว')
+        errorMessage = 'อีเมลนี้ถูกใช้งานแล้ว'
       } else if (err.code === 'auth/user-not-found') {
-        setError('ไม่พบบัญชีผู้ใช้นี้')
-      } else {
-        setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+        errorMessage = 'ไม่พบบัญชีผู้ใช้นี้'
       }
+
+      setError(errorMessage)
+      showErrorToast(errorMessage)
     } finally {
       setSubmitting(false)
     }

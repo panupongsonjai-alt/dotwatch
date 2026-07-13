@@ -1,17 +1,8 @@
-const CONFIRM_KEYWORDS = {
-  delete: 'delete',
-  resetSecret: 'reset secret',
-}
+import { requestTypedConfirmation } from './uiFeedback'
 
-function buildConfirmMessage({ title, targetName, description, keyword }) {
-  return [
-    title,
-    targetName ? `Target: ${targetName}` : null,
-    description,
-    `พิมพ์คำว่า "${keyword}" เพื่อยืนยัน`,
-  ]
-    .filter(Boolean)
-    .join('\n\n')
+const CONFIRM_KEYWORDS = {
+  delete: 'Delete',
+  resetSecret: 'Reset Secret',
 }
 
 export function confirmTypedAction({
@@ -19,19 +10,17 @@ export function confirmTypedAction({
   title = 'Confirm Action',
   targetName = '',
   description = '',
+  confirmLabel = 'Confirm',
+  danger = true,
 }) {
-  const expectedKeyword = String(keyword || '').trim()
-  const typedValue = window.prompt(
-    buildConfirmMessage({
-      title,
-      targetName,
-      description,
-      keyword: expectedKeyword,
-    }),
-    ''
-  )
-
-  return typedValue === expectedKeyword
+  return requestTypedConfirmation({
+    keyword: String(keyword || '').trim(),
+    title,
+    targetName,
+    description,
+    confirmLabel,
+    danger,
+  })
 }
 
 export function confirmDeleteAction({
@@ -44,6 +33,8 @@ export function confirmDeleteAction({
     title,
     targetName,
     description,
+    confirmLabel: 'Delete',
+    danger: true,
   })
 }
 
@@ -57,5 +48,7 @@ export function confirmResetSecretAction({
     title,
     targetName,
     description,
+    confirmLabel: 'Reset Secret',
+    danger: true,
   })
 }

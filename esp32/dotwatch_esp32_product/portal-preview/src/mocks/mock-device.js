@@ -1,7 +1,7 @@
 export const mockStatus = {
   productName: "dotTH ESP32",
-  firmwareVersion: "esp32-product-1.1.2-fixed-ip-hotfix",
-  firmwareBuild: 1120,
+  firmwareVersion: "esp32-product-1.1.3-fixed-ip-recovery",
+  firmwareBuild: 1130,
   configSchemaVersion: 3,
   modelKey: "esp32_dht3",
   state: "ONLINE",

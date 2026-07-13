@@ -4,6 +4,7 @@ import {
   saveDeviceMetrics,
   resetDeviceMetrics,
 } from '../services/metricDisplayApi'
+import { showErrorToast, showSuccessToast } from '../utils/uiFeedback'
 
 import {
   DEFAULT_METRICS,
@@ -19,7 +20,9 @@ export function useDeviceMetrics(deviceId) {
   const [metrics, setMetrics] = useState([])
   const [draftMetrics, setDraftMetrics] = useState([])
   const [settings, setSettings] = useState({ record_interval_seconds: 10 })
-  const [draftSettings, setDraftSettings] = useState({ record_interval_seconds: 10 })
+  const [draftSettings, setDraftSettings] = useState({
+    record_interval_seconds: 10,
+  })
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -63,7 +66,9 @@ export function useDeviceMetrics(deviceId) {
       if (requestVersion !== requestVersionRef.current) return
 
       console.error(error)
-      setMessage(error.message || 'Load metrics failed')
+      const errorMessage = error.message || 'Load metrics failed'
+      setMessage(errorMessage)
+      showErrorToast(errorMessage)
       setMetrics([])
       setDraftMetrics([])
     } finally {
@@ -149,7 +154,9 @@ export function useDeviceMetrics(deviceId) {
     } catch (error) {
       console.error(error)
 
-      setMessage(error.message || 'Save metrics failed')
+      const errorMessage = error.message || 'Save metrics failed'
+      setMessage(errorMessage)
+      showErrorToast(errorMessage)
 
       return false
     } finally {
@@ -180,6 +187,7 @@ export function useDeviceMetrics(deviceId) {
       setDraftSettings(nextSettings)
 
       setMessage('Reset complete')
+      showSuccessToast('Metric settings reset complete')
 
       window.dispatchEvent(
         new CustomEvent('dotwatchMetricConfigChanged', {
@@ -192,7 +200,9 @@ export function useDeviceMetrics(deviceId) {
     } catch (error) {
       console.error(error)
 
-      setMessage(error.message || 'Reset metrics failed')
+      const errorMessage = error.message || 'Reset metrics failed'
+      setMessage(errorMessage)
+      showErrorToast(errorMessage)
     } finally {
       setSaving(false)
     }

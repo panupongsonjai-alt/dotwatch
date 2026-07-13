@@ -9,6 +9,7 @@ import {
   confirmDeleteAction,
   confirmResetSecretAction,
 } from '../utils/typedConfirm'
+import { showUiToast } from '../utils/uiFeedback'
 import {
   addDevice,
   createAlarmRule,
@@ -24,7 +25,6 @@ import {
   updateDeviceName,
 } from '../services/api'
 import '../styles/devices.css'
-import '../styles/page-system.css'
 const FALLBACK_DEVICE_MODEL_OPTIONS = [
   {
     id: 1,
@@ -135,6 +135,18 @@ function Devices() {
 
     setNotice({
       type,
+      message,
+    })
+    showUiToast({
+      type,
+      title:
+        type === 'success'
+          ? 'Success'
+          : type === 'error'
+            ? 'Unable to complete action'
+            : type === 'warning'
+              ? 'Please check'
+              : 'Information',
       message,
     })
 
@@ -366,11 +378,11 @@ function Devices() {
 
   async function handleDeleteDevice(deviceId) {
     const device = devices.find((item) => String(item.id) === String(deviceId))
-    const ok = confirmDeleteAction({
+    const ok = await confirmDeleteAction({
       title: 'Confirm Delete Device',
       targetName:
         device?.name || device?.device_code || `Device ID ${deviceId}`,
-      description: 'Device นี้จะถูกลบออกจากระบบ กรุณาพิมพ์ delete เพื่อยืนยัน',
+      description: 'Device นี้จะถูกลบออกจากระบบ กรุณาพิมพ์ Delete เพื่อยืนยัน',
     })
 
     if (!ok) return
@@ -388,12 +400,12 @@ function Devices() {
   }
 
   async function handleResetSecret(device) {
-    const ok = confirmResetSecretAction({
+    const ok = await confirmResetSecretAction({
       title: 'Confirm Reset Device Secret',
       targetName:
         device?.name || device?.device_code || `Device ID ${device?.id}`,
       description:
-        'Secret เดิมจะใช้งานไม่ได้ทันที และ Firmware / Gateway ต้องใช้ Secret ใหม่ กรุณาพิมพ์ reset secret เพื่อยืนยัน',
+        'Secret เดิมจะใช้งานไม่ได้ทันที และ Firmware / Gateway ต้องใช้ Secret ใหม่ กรุณาพิมพ์ Reset Secret เพื่อยืนยัน',
     })
 
     if (!ok) return
@@ -588,14 +600,14 @@ function Devices() {
 
   async function handleDeleteAlarmRule(ruleId) {
     const rule = alarmRules.find((item) => String(item.id) === String(ruleId))
-    const ok = confirmDeleteAction({
+    const ok = await confirmDeleteAction({
       title: 'Confirm Delete Alarm Rule',
       targetName:
         rule?.metric || rule?.metric_key
           ? `${rule.metric || rule.metric_key} / ${rule.severity || 'rule'}`
           : `Rule ID ${ruleId}`,
       description:
-        'Alarm Rule นี้จะถูกลบออกจาก Device กรุณาพิมพ์ delete เพื่อยืนยัน',
+        'Alarm Rule นี้จะถูกลบออกจาก Device กรุณาพิมพ์ Delete เพื่อยืนยัน',
     })
 
     if (!ok) return

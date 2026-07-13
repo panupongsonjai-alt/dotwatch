@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
 :root {
   color-scheme: dark;
@@ -8,7 +8,7 @@
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
 
   --admin-bg: #0b1020;
@@ -521,7 +521,7 @@ a {
   height: 74px;
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.08);
-  content: '';
+  content: "";
 }
 
 .admin-stat-card span,
@@ -862,9 +862,7 @@ a {
 }
 
 @keyframes admin-spin {
-  to {
-    transform: rotate(360deg);
-  }
+
 }
 
 /* ==========================================================================
@@ -1195,7 +1193,7 @@ a {
   --admin-topbar-height: 76px;
 }
 
-:root[data-theme='light'] {
+:root[data-theme="light"] {
   --bg: #eef3f8;
   --panel: #ffffff;
   --panel-2: #f8fafc;
@@ -1212,7 +1210,7 @@ a {
   --shadow-lift: 0 24px 60px rgba(15, 23, 42, 0.11);
 }
 
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   --bg: #0f172a;
   --panel: #1e293b;
   --panel-2: #111827;
@@ -1445,7 +1443,7 @@ svg {
   width: 3px;
   border-radius: 999px;
   background: linear-gradient(180deg, #ef4444, #f97316);
-  content: '';
+  content: "";
 }
 
 .admin-menu-icon.menu-icon {
@@ -1577,10 +1575,7 @@ svg {
   background: var(--panel);
 }
 
-.admin-search {
-  min-width: 320px;
-  padding: 0 14px;
-}
+
 
 .admin-search input {
   width: 100%;
@@ -1746,7 +1741,7 @@ svg {
   border-radius: 999px;
   background: rgba(239, 68, 68, 0.08);
   pointer-events: none;
-  content: '';
+  content: "";
 }
 
 .dw-page-header-main,
@@ -1843,7 +1838,7 @@ svg {
   inset: 0 0 auto;
   height: 3px;
   background: linear-gradient(90deg, #ef4444, #f97316);
-  content: '';
+  content: "";
 }
 
 .dw-stat-card span,
@@ -1874,11 +1869,7 @@ svg {
   line-height: 1.5;
 }
 
-.admin-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 14px;
-}
+
 
 .panel-card,
 .table-card,
@@ -2462,12 +2453,7 @@ svg {
   background: rgba(148, 163, 184, 0.18);
 }
 
-.usage-bar span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #ef4444, #f97316);
-}
+
 
 .admin-two-column,
 .admin-models-layout {
@@ -2510,16 +2496,10 @@ svg {
   align-items: center;
 }
 
-.table-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+
 
 @media (max-width: 1180px) {
-  .admin-stat-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+
 
   .admin-two-column,
   .admin-models-layout,
@@ -2595,9 +2575,9 @@ svg {
   }
 }
 
-:root[data-reduce-motion='true'] *,
-:root[data-reduce-motion='true'] *::before,
-:root[data-reduce-motion='true'] *::after {
+:root[data-reduce-motion="true"] *,
+:root[data-reduce-motion="true"] *::before,
+:root[data-reduce-motion="true"] *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
   scroll-behavior: auto !important;
@@ -2652,7 +2632,7 @@ svg {
 }
 
 .admin-sidebar .admin-nav-item.menu-item.active::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 11px;
@@ -2727,3 +2707,94 @@ svg {
   }
 }
 
+
+/* Shared admin popup feedback and typed delete confirmation */
+.admin-popup-toast-viewport {
+  position: fixed;
+  top: 78px;
+  right: 20px;
+  z-index: 12000;
+  width: min(360px, calc(100vw - 32px));
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.admin-popup-toast {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--panel, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2);
+  pointer-events: auto;
+}
+
+.admin-popup-toast.success { border-color: rgba(34, 197, 94, 0.35); }
+.admin-popup-toast.error { border-color: rgba(239, 68, 68, 0.35); }
+.admin-popup-toast strong { display: block; font-size: 13px; }
+.admin-popup-toast p { margin: 4px 0 0; color: var(--muted, #64748b); font-size: 12px; line-height: 1.5; }
+.admin-popup-toast > button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted, #64748b);
+}
+
+.admin-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.admin-confirm-dialog {
+  width: min(500px, 100%);
+  padding: 22px;
+  border-radius: 22px;
+  background: var(--panel, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.46);
+}
+
+.admin-confirm-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 13px;
+  align-items: center;
+}
+
+.admin-confirm-header > span {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.admin-confirm-header small { color: #dc2626; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.admin-confirm-header h2 { margin: 3px 0 0; font-size: 20px; }
+.admin-confirm-header > button { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; }
+.admin-confirm-dialog > p { color: var(--muted, #64748b); line-height: 1.6; }
+.admin-confirm-target { padding: 12px 13px; border-radius: 13px; background: var(--panel-2, #f8fafc); font-weight: 800; color: var(--text, #0f172a) !important; }
+.admin-confirm-dialog > label { display: grid; gap: 8px; font-size: 13px; font-weight: 700; }
+.admin-confirm-dialog > label strong { color: #dc2626; }
+.admin-confirm-dialog > label input { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--border, #e2e8f0); background: var(--panel-2, #f8fafc); color: var(--text, #0f172a); font: inherit; }
+.admin-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.admin-confirm-actions button { min-width: 110px; min-height: 40px; }
+.admin-confirm-actions .danger { color: #fff; background: #dc2626; border-color: #dc2626; }
+.admin-confirm-actions button:disabled { opacity: .45; cursor: not-allowed; }

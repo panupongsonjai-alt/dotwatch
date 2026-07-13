@@ -25,6 +25,7 @@ import LocationPicker from '../LocationPicker.jsx'
 import MetricConfigPanel from '../MetricConfigPanel.jsx'
 import { auth } from '../../services/firebase'
 import { getDeviceSecret } from '../../services/api'
+import { showWarningToast } from '../../utils/uiFeedback'
 import {
   getDeviceMetricPills,
   getEsp32DefaultPinHint,
@@ -189,7 +190,7 @@ function DeviceAlarmRulesPanel({
     if (!draft) return
 
     if (draft.threshold === '' || Number.isNaN(Number(draft.threshold))) {
-      alert('กรุณากรอก Threshold ให้ถูกต้อง')
+      showWarningToast('กรุณากรอก Threshold ให้ถูกต้อง')
       return
     }
 

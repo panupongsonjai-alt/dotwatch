@@ -1,6 +1,5 @@
 import {
   Activity,
-  Bell,
   Cpu,
   CreditCard,
   Database,
@@ -15,25 +14,29 @@ export const ADMIN_PAGE_META = {
   overview: {
     section: 'Admin Workspace',
     title: 'Overview',
-    description: 'System-wide users, devices, subscriptions, and operations summary.',
+    description:
+      'System-wide users, devices, subscriptions, and operations summary.',
     icon: LayoutDashboard,
   },
   users: {
     section: 'Admin Workspace',
     title: 'Users',
-    description: 'Manage user access, account status, device limits, and plan assignment.',
+    description:
+      'Manage user access, account status, device limits, and plan assignment.',
     icon: Users,
   },
   devices: {
     section: 'Admin Workspace',
     title: 'Devices',
-    description: 'Monitor all devices across organizations and users from one admin view.',
+    description:
+      'Monitor all devices across organizations and users from one admin view.',
     icon: MonitorSmartphone,
   },
   models: {
     section: 'Operations',
     title: 'Device Models',
-    description: 'Maintain device model definitions and default metric mapping.',
+    description:
+      'Maintain device model definitions and default metric mapping.',
     icon: Cpu,
   },
   subscriptions: {
@@ -51,7 +54,8 @@ export const ADMIN_PAGE_META = {
   system: {
     section: 'System',
     title: 'System',
-    description: 'Review backend readiness, API mode, and admin runtime configuration.',
+    description:
+      'Review backend readiness, API mode, and admin runtime configuration.',
     icon: Database,
   },
   settings: {

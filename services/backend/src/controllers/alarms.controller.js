@@ -51,10 +51,11 @@ async function ensureNotificationDeletionSchema() {
 }
 
 function getAlarmEventDeleteFilter(req) {
-  const deviceId = parseOptionalDeviceId(req.query.deviceId)
-  const metric = normalizeOptionalMetric(req.query.metric)
-  const fromDate = parseDateBoundary(req.query.from)
-  const toDate = parseDateBoundary(req.query.to, true)
+  const source = req.method === 'POST' ? req.body || {} : req.query || {}
+  const deviceId = parseOptionalDeviceId(source.deviceId)
+  const metric = normalizeOptionalMetric(source.metric)
+  const fromDate = parseDateBoundary(source.from)
+  const toDate = parseDateBoundary(source.to, true)
 
   if (Number.isNaN(deviceId)) {
     return { error: 'Invalid deviceId' }

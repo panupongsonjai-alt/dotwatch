@@ -278,7 +278,7 @@
 .save-btn,
 .delete-btn,
 .security-action,
-button[type='submit'] {
+button[type="submit"] {
   min-height: 40px;
   display: inline-flex;
   align-items: center;
@@ -355,10 +355,7 @@ table td {
    7) Device Detail tabs
 --------------------------------------------------------- */
 
-.device-detail-tab-panel {
-  display: grid;
-  gap: 16px;
-}
+
 
 .device-metrics-ds-grid,
 .device-detail-content-grid {
@@ -368,16 +365,7 @@ table td {
   align-items: stretch;
 }
 
-.device-metrics-ds-grid .dw-metric-card,
-.device-metrics-ds-grid .metric-card,
-.device-metrics-ds-grid article {
-  min-height: 116px;
-  padding: 16px !important;
-  border-radius: 18px !important;
-  background: var(--panel-2) !important;
-  border: 1px solid var(--border) !important;
-  box-shadow: none !important;
-}
+
 
 /* Timeline header must match Overview */
 .device-timeline-panel-ds .dw-section-header h2 {
@@ -389,10 +377,7 @@ table td {
 }
 
 /* Timeline item details stay smaller */
-.device-timeline-list-ds {
-  display: grid;
-  gap: 12px;
-}
+
 
 .device-timeline-item-ds {
   min-height: 84px;
@@ -429,19 +414,7 @@ table td {
    8) Dashboard sections
 --------------------------------------------------------- */
 
-.dashboard-unified-section,
-.dashboard-data-overview-card,
-.devices-overview-panel,
-.dashboard-devices-card,
-.dashboard-map-card-v2,
-.dashboard-alerts-under-map > * {
-  border-radius: var(--radius-xl, 24px) !important;
-  background:
-    linear-gradient(135deg, rgba(37, 99, 235, 0.045), transparent 42%),
-    var(--panel) !important;
-  border: 1px solid var(--border) !important;
-  box-shadow: var(--shadow-soft, var(--shadow)) !important;
-}
+
 
 .dashboard-map-card-v2 .device-map-wrapper,
 .dashboard-map-card-v2 .device-map-empty,
@@ -450,19 +423,9 @@ table td {
 }
 
 /* Keep dashboard map display-only */
-.device-map-wrapper .leaflet-marker-icon,
-.device-map-marker-shell,
-.device-map-marker-shell *,
-.device-map-marker-dot,
-.leaflet-tooltip.device-map-label {
-  cursor: default !important;
-}
 
-.device-map-marker-shell,
-.device-map-marker-shell *,
-.device-map-marker-dot {
-  pointer-events: none !important;
-}
+
+
 
 /* ---------------------------------------------------------
    9) Empty states

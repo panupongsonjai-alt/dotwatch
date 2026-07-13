@@ -31,7 +31,10 @@ import {
   isDateInRange,
 } from '../utils/tableExport'
 
+import { showSuccessToast } from '../utils/uiFeedback'
+
 const READ_STORAGE_KEY = 'dotwatchReadNotifications'
+
 const TABLE_PAGE_SIZES = [10, 20, 50, 100]
 
 function formatDate(value) {
@@ -95,7 +98,8 @@ function getAlarmTitle(alarm) {
 
 function buildAlarmNotification(alarm, metricInfo = {}) {
   const id = `alarm-${alarm.id}-${alarm.status || 'active'}`
-  const metric = alarm.metric_name || metricInfo.name || alarm.metric || 'Metric'
+  const metric =
+    alarm.metric_name || metricInfo.name || alarm.metric || 'Metric'
   const metricKey = alarm.metric || alarm.metric_key || metric
   const unit = alarm.unit || metricInfo.unit || ''
   const valueText =
@@ -209,9 +213,7 @@ function formatDateOnly(value) {
   if (!value) return '--'
 
   const date = new Date(`${value}T00:00:00`)
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString('th-TH')
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('th-TH')
 }
 
 function NotificationCenter() {
@@ -270,7 +272,10 @@ function NotificationCenter() {
                 : []
             return [device.id, metrics]
           } catch (error) {
-            console.error(`Load notification metrics error device ${device.id}:`, error)
+            console.error(
+              `Load notification metrics error device ${device.id}:`,
+              error
+            )
             return [device.id, []]
           }
         })
@@ -331,6 +336,7 @@ function NotificationCenter() {
     const fileName = `dotWatch-notifications-${startDate || 'all'}-to-${endDate || 'all'}`
 
     downloadCsv({ fileName, columns, rows, metadata })
+    showSuccessToast('ส่งออก Notification Feed เป็น CSV สำเร็จ')
   }
 
   function openClearNotificationDialog() {
@@ -366,11 +372,12 @@ function NotificationCenter() {
       })
       setClearDialogOpen(false)
       setPage(1)
-      setNotice(
+      const clearMessage =
         deletedCount > 0
           ? `ลบ Notification Feed สำเร็จ ${deletedCount.toLocaleString('th-TH')} รายการ`
           : 'ไม่พบ Notification ที่ตรงกับตัวกรองสำหรับลบ'
-      )
+      setNotice(clearMessage)
+      showSuccessToast(clearMessage)
     } catch (error) {
       console.error('Clear notification feed error:', error)
       setPageError(error.message || 'ลบ Notification Feed ไม่สำเร็จ')
@@ -519,7 +526,10 @@ function NotificationCenter() {
       })
   }, [notifications, deviceFilter, metricFilter, startDate, endDate, sortOrder])
 
-  const totalPages = Math.max(1, Math.ceil(filteredNotifications.length / pageSize))
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredNotifications.length / pageSize)
+  )
   const safePage = Math.min(page, totalPages)
   const paginatedNotifications = filteredNotifications.slice(
     (safePage - 1) * pageSize,
@@ -708,7 +718,8 @@ function NotificationCenter() {
               <option value="all">All Metrics</option>
               {notificationMetricOptions.map((metric) => (
                 <option key={metric.key} value={metric.key}>
-                  {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
+                  {metric.name}
+                  {metric.unit ? ` (${metric.unit})` : ''}
                 </option>
               ))}
             </select>
@@ -799,7 +810,6 @@ function NotificationCenter() {
             </label>
           </div>
         </div>
-
 
         {loading ? (
           <EmptyState
@@ -957,8 +967,9 @@ function NotificationCenter() {
             value: `${filteredNotifications.length.toLocaleString('th-TH')} rows`,
           },
         ]}
-        confirmText="ฉันตรวจสอบ Device, ช่วงวันที่ และ Metric แล้ว และยืนยันว่าต้องการลบ Notification Feed ชุดนี้จริง"
-        confirmLabel="ยืนยัน Clear Noti"
+        confirmationKeyword="Delete"
+        confirmationHelp="ตรวจสอบ Device, ช่วงวันที่ และ Metric ให้ถูกต้องก่อนยืนยัน"
+        confirmLabel="Delete Notifications"
         busyLabel="กำลังลบ Notification..."
         busy={clearingNotifications}
         onClose={closeClearNotificationDialog}

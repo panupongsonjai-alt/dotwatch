@@ -9,9 +9,18 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AlertTriangle, CalendarDays, Download, Trash2, X } from 'lucide-react'
-import { PageHeader, StatCard } from '../components/common'
+import { CalendarDays, Download, Trash2 } from 'lucide-react'
+import {
+  ClearFilteredDataDialog,
+  PageHeader,
+  StatCard,
+} from '../components/common'
 import { isWifiRssiMetricConfig } from '../utils/metricDisplayConfig'
+import {
+  showErrorToast,
+  showSuccessToast,
+  showWarningToast,
+} from '../utils/uiFeedback'
 
 import {
   clearHistoryRange,
@@ -21,7 +30,6 @@ import {
   getAlarmRules,
 } from '../services/api'
 import '../styles/history.css'
-import '../styles/page-system.css'
 
 const TABLE_PAGE_SIZES = [20, 50, 100]
 const DEFAULT_TABLE_PAGE_SIZE = TABLE_PAGE_SIZES[0]
@@ -811,7 +819,6 @@ function History() {
   const [loadingChart, setLoadingChart] = useState(false)
   const [clearingHistory, setClearingHistory] = useState(false)
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
-  const [clearConfirmed, setClearConfirmed] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
 
@@ -1069,6 +1076,7 @@ function History() {
       setLoadingHistory(false)
       setLoadingChart(false)
       setError('Start Date ต้องไม่มากกว่า End Date')
+      showWarningToast('Start Date ต้องไม่มากกว่า End Date')
       return
     }
 
@@ -1282,6 +1290,7 @@ function History() {
     downloadCsvFile(`${fileBaseName}.csv`, csvRows)
     setError('')
     setNotice('ส่งออกไฟล์ CSV สำเร็จ')
+    showSuccessToast('ส่งออกไฟล์ CSV สำเร็จ')
   }
 
   function handleExport() {
@@ -1302,9 +1311,10 @@ function History() {
     const reportWindow = window.open('', '_blank')
 
     if (!reportWindow) {
-      setError(
+      const message =
         'เบราว์เซอร์บล็อกหน้าต่าง PDF กรุณาอนุญาต Pop-up สำหรับเว็บไซต์นี้'
-      )
+      setError(message)
+      showErrorToast(message)
       return
     }
 
@@ -1549,7 +1559,6 @@ function History() {
   function openClearDialog() {
     if (!historyTableRows.length || loadingHistory || clearingHistory) return
 
-    setClearConfirmed(false)
     setClearDialogOpen(true)
   }
 
@@ -1557,17 +1566,10 @@ function History() {
     if (clearingHistory) return
 
     setClearDialogOpen(false)
-    setClearConfirmed(false)
   }
 
   async function handleClearHistory() {
-    if (
-      !clearConfirmed ||
-      !selectedDeviceId ||
-      !startDate ||
-      !endDate ||
-      !selectedMetricKey
-    ) {
+    if (!selectedDeviceId || !startDate || !endDate || !selectedMetricKey) {
       return
     }
 
@@ -1591,12 +1593,12 @@ function History() {
       setChartRows([])
       setTablePage(1)
       setClearDialogOpen(false)
-      setClearConfirmed(false)
-      setNotice(
+      const clearMessage =
         deletedCount > 0
           ? `ลบข้อมูลย้อนหลังสำเร็จ ${deletedCount.toLocaleString('th-TH')} รายการ`
           : 'ไม่พบข้อมูลย้อนหลังที่ตรงกับตัวกรองสำหรับลบ'
-      )
+      setNotice(clearMessage)
+      showSuccessToast(clearMessage)
 
       await loadHistory()
     } catch (err) {
@@ -1688,26 +1690,6 @@ function History() {
   useEffect(() => {
     setTablePage(1)
   }, [tablePageSize])
-
-  useEffect(() => {
-    if (!clearDialogOpen || typeof document === 'undefined') return undefined
-
-    const previousOverflow = document.body.style.overflow
-
-    function handleKeyDown(event) {
-      if (event.key === 'Escape' && !clearingHistory) {
-        closeClearDialog()
-      }
-    }
-
-    document.body.style.overflow = 'hidden'
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [clearDialogOpen, clearingHistory])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -2373,116 +2355,41 @@ function History() {
         )}
       </section>
 
-      {clearDialogOpen && (
-        <div
-          className="history-clear-dialog-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeClearDialog()
-          }}
-        >
-          <section
-            className="history-clear-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="history-clear-dialog-title"
-            aria-describedby="history-clear-dialog-description"
-          >
-            <div className="history-clear-dialog-header">
-              <div className="history-clear-dialog-icon">
-                <AlertTriangle size={22} aria-hidden="true" />
-              </div>
-
-              <div>
-                <span>Confirm destructive action</span>
-                <h2 id="history-clear-dialog-title">ยืนยันการ Clear Data</h2>
-              </div>
-
-              <button
-                type="button"
-                className="history-clear-dialog-close"
-                onClick={closeClearDialog}
-                disabled={clearingHistory}
-                aria-label="ปิดหน้าต่างยืนยัน"
-              >
-                <X size={19} aria-hidden="true" />
-              </button>
-            </div>
-
-            <p
-              id="history-clear-dialog-description"
-              className="history-clear-dialog-description"
-            >
-              ข้อมูลที่ตรงกับตัวกรองด้านล่างจะถูกลบออกจากฐานข้อมูลจริง
-              และไม่สามารถกู้คืนจากหน้า Dashboard ได้
-            </p>
-
-            <dl className="history-clear-summary">
-              <div>
-                <dt>Device</dt>
-                <dd>
-                  {selectedDevice?.name ||
-                    selectedDevice?.device_code ||
-                    `Device ${selectedDeviceId}`}
-                </dd>
-              </div>
-              <div>
-                <dt>Start Date</dt>
-                <dd>{formatDateOnly(startDate)}</dd>
-              </div>
-              <div>
-                <dt>End Date</dt>
-                <dd>{formatDateOnly(endDate)}</dd>
-              </div>
-              <div>
-                <dt>Metric</dt>
-                <dd>
-                  {selectedMetricKey === 'all'
-                    ? 'All Metrics'
-                    : selectedMetric?.metricName || selectedMetricKey}
-                </dd>
-              </div>
-              <div>
-                <dt>Records</dt>
-                <dd>{filteredRows.length.toLocaleString('th-TH')} rows</dd>
-              </div>
-            </dl>
-
-            <label className="history-clear-confirm-check">
-              <input
-                type="checkbox"
-                checked={clearConfirmed}
-                onChange={(event) => setClearConfirmed(event.target.checked)}
-                disabled={clearingHistory}
-              />
-              <span>
-                ฉันตรวจสอบ Device, ช่วงวันที่ และ Metric แล้ว
-                และยืนยันว่าต้องการลบข้อมูลชุดนี้จริง
-              </span>
-            </label>
-
-            <div className="history-clear-dialog-actions">
-              <button
-                type="button"
-                className="history-clear-cancel-button"
-                onClick={closeClearDialog}
-                disabled={clearingHistory}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="history-clear-confirm-button"
-                onClick={handleClearHistory}
-                disabled={!clearConfirmed || clearingHistory}
-              >
-                <Trash2 size={16} aria-hidden="true" />
-                {clearingHistory ? 'กำลังลบข้อมูล...' : 'ยืนยัน Clear Data'}
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
+      <ClearFilteredDataDialog
+        open={clearDialogOpen}
+        idPrefix="history-clear"
+        title="ยืนยันการ Clear Data"
+        description="ข้อมูลที่ตรงกับตัวกรองด้านล่างจะถูกลบออกจากฐานข้อมูลจริง และไม่สามารถกู้คืนจากหน้า Dashboard ได้"
+        summaryItems={[
+          {
+            label: 'Device',
+            value:
+              selectedDevice?.name ||
+              selectedDevice?.device_code ||
+              `Device ${selectedDeviceId}`,
+          },
+          { label: 'Start Date', value: formatDateOnly(startDate) },
+          { label: 'End Date', value: formatDateOnly(endDate) },
+          {
+            label: 'Metric',
+            value:
+              selectedMetricKey === 'all'
+                ? 'All Metrics'
+                : selectedMetric?.metricName || selectedMetricKey,
+          },
+          {
+            label: 'Records',
+            value: `${filteredRows.length.toLocaleString('th-TH')} rows`,
+          },
+        ]}
+        confirmationKeyword="Delete"
+        confirmationHelp="ตรวจสอบ Device, ช่วงวันที่ และ Metric ให้ถูกต้องก่อนยืนยัน"
+        confirmLabel="Delete Data"
+        busyLabel="กำลังลบข้อมูล..."
+        busy={clearingHistory}
+        onClose={closeClearDialog}
+        onConfirm={handleClearHistory}
+      />
     </div>
   )
 }

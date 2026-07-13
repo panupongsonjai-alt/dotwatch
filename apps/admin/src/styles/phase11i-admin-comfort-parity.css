@@ -7,7 +7,7 @@
 ========================================================= */
 
 :root {
-  --dw-font-sans: 'Inter', 'Prompt', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --dw-font-sans: "Inter", "Prompt", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --dw-shell-sidebar-width: 280px;
   --dw-shell-sidebar-collapsed-width: 88px;
   --dw-shell-sidebar-padding-x: 16px;
@@ -46,11 +46,7 @@ body {
   background: var(--bg);
 }
 
-.admin-layout {
-  display: flex;
-  min-height: 100vh;
-  background: var(--bg);
-}
+
 
 .admin-main {
   padding: 0 var(--dw-shell-page-x) var(--dw-shell-page-bottom);
@@ -125,14 +121,7 @@ body {
   flex: 0 0 auto;
 }
 
-.admin-sidebar.collapsed .admin-menu-section-label,
-.admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-section-label,
-.admin-sidebar.collapsed .admin-menu-label,
-.admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-label,
-.admin-sidebar.collapsed .admin-sidebar-card,
-.admin-layout.sidebar-collapsed .admin-sidebar .admin-sidebar-card {
-  display: none;
-}
+
 
 .admin-sidebar.collapsed .admin-nav.menu,
 .admin-layout.sidebar-collapsed .admin-sidebar .admin-nav.menu {
@@ -140,16 +129,9 @@ body {
   margin-top: 12px;
 }
 
-.admin-sidebar.collapsed .admin-menu-section,
-.admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-section {
-  justify-items: center;
-}
 
-.admin-sidebar.collapsed .admin-menu-section + .admin-menu-section,
-.admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-section + .admin-menu-section {
-  margin-top: 10px;
-  padding-top: 10px;
-}
+
+
 
 .admin-sidebar.collapsed .admin-nav-item.menu-item,
 .admin-layout.sidebar-collapsed .admin-sidebar .admin-nav-item.menu-item {
@@ -183,10 +165,7 @@ body {
   margin: 0 auto;
 }
 
-.admin-sidebar.collapsed .admin-nav-item.menu-item.active::before,
-.admin-layout.sidebar-collapsed .admin-sidebar .admin-nav-item.menu-item.active::before {
-  left: -1px;
-}
+
 
 .admin-topbar.top-header {
   min-height: var(--dw-shell-topbar-height);
@@ -213,14 +192,7 @@ body {
   box-shadow: var(--shadow);
 }
 
-.panel-card,
-.table-card,
-.admin-panel,
-.settings-panel,
-.admin-card,
-.workspace-help-card {
-  padding: 24px;
-}
+
 
 .primary-button,
 .ghost-button,
@@ -264,12 +236,7 @@ textarea:focus-visible {
 }
 
 @media (max-width: 900px) {
-  .admin-main {
-    padding: 0 16px 22px;
-  }
 
-  .admin-topbar.top-header {
-    margin: 0 -16px 18px;
-    padding: 0 16px;
-  }
+
+
 }

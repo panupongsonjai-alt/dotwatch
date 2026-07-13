@@ -245,9 +245,10 @@ bool WiFiManager::connectSingle(const String &ssid,
   if (ssid.length() == 0 || store_ == nullptr) return false;
 
   resetIpRuntimeState();
-  WiFi.mode(keepAccessPoint || accessPointActive_ ? WIFI_AP_STA : WIFI_STA);
-  WiFi.disconnect(false, false);
-  delay(150);
+  if (!resetStationForConnection(keepAccessPoint)) {
+    Serial.println("WiFiManager: unable to prepare station interface");
+    return false;
+  }
 
   WiFiIpLease savedLease;
   const bool hasSavedLease =
@@ -284,18 +285,24 @@ bool WiFiManager::connectSingle(const String &ssid,
     } else if (ProductConfig::WIFI_REMEMBER_FIRST_IP) {
       learnFirstIp(ssid);
     }
+    WiFi.setAutoReconnect(true);
     return true;
   }
 
   if (!fixedConfigurationReady) return false;
 
-  // Safety recovery: if a remembered address no longer works (router or
-  // network changed), reconnect with DHCP so the device is still reachable.
-  // The original first IP remains stored until the user chooses Relearn IP.
+  // Safety recovery: if a remembered address no longer works (router, lease
+  // or network changed), reconnect with DHCP so the device stays reachable.
   Serial.println(
-      "WiFiManager: fixed first IP connection failed; retrying with DHCP");
-  WiFi.disconnect(false, false);
-  delay(150);
+      "WiFiManager: fixed first IP connection failed; resetting STA and retrying with DHCP");
+
+  // Arduino-ESP32 2.0.17 keeps the previous static configuration in the
+  // station interface. Fully disable and recreate STA before enabling DHCP,
+  // otherwise reconnecting can remain stuck on the old address.
+  if (!resetStationForConnection(keepAccessPoint)) {
+    Serial.println("WiFiManager: unable to reset station for DHCP recovery");
+    return false;
+  }
   if (!enableDhcp()) {
     Serial.println("WiFiManager: unable to restore DHCP mode");
     return false;
@@ -303,6 +310,7 @@ bool WiFiManager::connectSingle(const String &ssid,
 
   WiFi.begin(ssid.c_str(), password.c_str());
   if (!waitForConnection(ProductConfig::WIFI_DHCP_RECOVERY_TIMEOUT_MS)) {
+    Serial.println("WiFiManager: DHCP recovery failed");
     return false;
   }
 
@@ -311,8 +319,21 @@ bool WiFiManager::connectSingle(const String &ssid,
   activeLeaseSsid_ = ssid;
   Serial.print("WiFiManager: DHCP recovery connected. Current IP=");
   Serial.print(WiFi.localIP());
-  Serial.print(" Locked IP remains=");
+  Serial.print(" Previous locked IP=");
   Serial.println(activeLockedIp_);
+
+  // The remembered address did not produce a usable connection. Replace it
+  // with the address that DHCP has just confirmed as usable. This prevents an
+  // endless static-fail/setup-portal loop on every restart.
+  if (!store_->forgetWiFiIpLease(ssid)) {
+    Serial.println("WiFiManager: warning - previous locked IP could not be removed");
+  }
+  if (learnFirstIp(ssid)) {
+    Serial.println("WiFiManager: DHCP recovery IP replaced the failed locked IP");
+  } else {
+    Serial.println("WiFiManager: warning - DHCP recovery IP was not persisted");
+  }
+  WiFi.setAutoReconnect(true);
   return true;
 }
 
@@ -350,16 +371,41 @@ bool WiFiManager::waitForConnection(unsigned long timeoutMs) {
   return false;
 }
 
+bool WiFiManager::resetStationForConnection(bool keepAccessPoint) {
+  const bool preserveAccessPoint = keepAccessPoint || accessPointActive_;
+
+  WiFi.setAutoReconnect(false);
+
+  // wifioff=true disables only STA when the device is in AP+STA mode. This
+  // clears the previous station/IP runtime state without erasing credentials.
+  WiFi.disconnect(true, false);
+  delay(250);
+
+  const wifi_mode_t targetMode =
+      preserveAccessPoint ? WIFI_AP_STA : WIFI_STA;
+  if (!WiFi.mode(targetMode)) {
+    Serial.println("WiFiManager: failed to restore Wi-Fi mode");
+    return false;
+  }
+
+  WiFi.setSleep(false);
+  delay(150);
+  return true;
+}
+
 bool WiFiManager::enableDhcp() {
-  // INADDR_NONE is the Arduino-ESP32 marker that clears a previous static
-  // station configuration. Only the three network fields are reset here;
-  // passing the marker as DNS values can leave localIP() at 255.255.255.255
-  // on some Arduino-ESP32 versions until a later reconnect.
-  const IPAddress automaticIp(static_cast<uint32_t>(INADDR_NONE));
+  // Arduino-ESP32 2.0.17 starts the DHCP client when the requested local IP
+  // is 0.0.0.0. INADDR_NONE is 255.255.255.255 in this core and must not be
+  // used here; doing so reproduces the invalid address seen in the serial log.
+  // Pass all five fields explicitly so default INADDR_NONE DNS arguments are
+  // not applied by WiFi.config().
+  const IPAddress automaticIp(0, 0, 0, 0);
   const bool configured = WiFi.config(
-      automaticIp, automaticIp, automaticIp);
+      automaticIp, automaticIp, automaticIp, automaticIp, automaticIp);
   if (!configured) {
     Serial.println("WiFiManager: DHCP configuration request failed");
+  } else {
+    Serial.println("WiFiManager: DHCP client enabled with 0.0.0.0 configuration");
   }
   return configured;
 }

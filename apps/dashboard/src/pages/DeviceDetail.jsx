@@ -3,6 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { getDevice, getDeviceMetrics } from '../services/api'
 import { auth } from '../services/firebase'
 import { connectRealtime } from '../services/realtime'
+import { showErrorToast } from '../utils/uiFeedback'
 import {
   EmptyState,
   PageHeader,
@@ -237,7 +238,7 @@ function DeviceDetail({ deviceId, onBack }) {
       )
     } catch (error) {
       console.error('Load device detail error:', error)
-      alert('โหลดข้อมูล Device ไม่สำเร็จ')
+      showErrorToast('โหลดข้อมูล Device ไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -436,9 +437,7 @@ function DeviceDetail({ deviceId, onBack }) {
       </nav>
 
       <Suspense fallback={<TabLoading />}>
-        {activeTab === 'overview' && (
-          <DeviceOverviewTab device={device} />
-        )}
+        {activeTab === 'overview' && <DeviceOverviewTab device={device} />}
 
         {activeTab === 'metrics' && (
           <DeviceMetricsTab

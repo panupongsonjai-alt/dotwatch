@@ -1,26 +1,32 @@
-import { useState } from "react";
-import { resendVerificationEmail } from "../services/auth";
-import { useAuth } from "../context/AuthContext";
+import { useState } from 'react'
+import { resendVerificationEmail } from '../services/auth'
+import { useAuth } from '../context/AuthContext'
+import { showErrorToast, showSuccessToast } from '../utils/uiFeedback'
 
 function VerifyEmail() {
-  const { user, logout } = useAuth();
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [sending, setSending] = useState(false);
+  const { user, logout } = useAuth()
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [sending, setSending] = useState(false)
 
   async function handleResend() {
     try {
-      setSending(true);
-      setError("");
-      setMessage("");
+      setSending(true)
+      setError('')
+      setMessage('')
 
-      await resendVerificationEmail();
-      setMessage("ส่งอีเมลยืนยันอีกครั้งแล้ว กรุณาตรวจสอบกล่องจดหมาย");
+      await resendVerificationEmail()
+      const successMessage =
+        'ส่งอีเมลยืนยันอีกครั้งแล้ว กรุณาตรวจสอบกล่องจดหมาย'
+      setMessage(successMessage)
+      showSuccessToast(successMessage)
     } catch (err) {
-      console.error(err);
-      setError("ไม่สามารถส่งอีเมลยืนยันได้ กรุณาลองใหม่ภายหลัง");
+      console.error(err)
+      const errorMessage = 'ไม่สามารถส่งอีเมลยืนยันได้ กรุณาลองใหม่ภายหลัง'
+      setError(errorMessage)
+      showErrorToast(errorMessage)
     } finally {
-      setSending(false);
+      setSending(false)
     }
   }
 
@@ -56,7 +62,7 @@ function VerifyEmail() {
           onClick={handleResend}
           disabled={sending}
         >
-          {sending ? "กำลังส่ง..." : "ส่งอีเมลยืนยันอีกครั้ง"}
+          {sending ? 'กำลังส่ง...' : 'ส่งอีเมลยืนยันอีกครั้ง'}
         </button>
 
         <button type="button" className="ghost-button full" onClick={logout}>
@@ -64,7 +70,7 @@ function VerifyEmail() {
         </button>
       </div>
     </div>
-  );
+  )
 }
 
-export default VerifyEmail;
+export default VerifyEmail

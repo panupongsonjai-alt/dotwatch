@@ -7,8 +7,8 @@
 .device-detail-page .device-history-card,
 .device-detail-page .device-history-panel,
 .device-detail-page .dw-chart-card,
-.device-detail-page [class*='history-analytics'],
-.device-detail-page [class*='device-history'] {
+.device-detail-page [class*="history-analytics"],
+.device-detail-page [class*="device-history"] {
   display: none !important;
 }
 
@@ -18,8 +18,8 @@
 .device-detail-page .device-telemetry-status,
 .device-detail-page .device-health-strip,
 .device-detail-page .device-status-strip,
-.device-detail-page [class*='health-banner'],
-.device-detail-page [class*='telemetry-status'] {
+.device-detail-page [class*="health-banner"],
+.device-detail-page [class*="telemetry-status"] {
   display: none !important;
 }
 

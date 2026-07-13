@@ -844,12 +844,12 @@
   margin: 0 0 6px;
   color: var(--text);
   font-family:
-    'Inter',
-    'Prompt',
+    "Inter",
+    "Prompt",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
   font-size: 22px;
   line-height: 1.2;
@@ -861,12 +861,12 @@
   margin: 0;
   color: var(--muted);
   font-family:
-    'Inter',
-    'Prompt',
+    "Inter",
+    "Prompt",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
   font-size: 14px;
   line-height: 1.5;
@@ -905,12 +905,12 @@
 .alarms-page .alarm-filter-field > span {
   color: var(--text);
   font-family:
-    'Inter',
-    'Prompt',
+    "Inter",
+    "Prompt",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
   font-size: 14px;
   line-height: 1.2;
@@ -918,7 +918,7 @@
 }
 
 .alarms-page .alarm-filter-field select,
-.alarms-page .alarm-filter-field input[type='date'] {
+.alarms-page .alarm-filter-field input[type="date"] {
   width: 100%;
   min-width: 0;
   height: 44px;
@@ -932,12 +932,12 @@
   outline: none;
   box-shadow: none;
   font-family:
-    'Inter',
-    'Prompt',
+    "Inter",
+    "Prompt",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
   font-size: 14px;
   font-weight: 850;
@@ -949,7 +949,7 @@
 }
 
 .alarms-page .alarm-filter-field select:focus,
-.alarms-page .alarm-filter-field input[type='date']:focus {
+.alarms-page .alarm-filter-field input[type="date"]:focus {
   border-color: color-mix(in srgb, var(--accent) 58%, var(--border));
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
 }
@@ -974,12 +974,12 @@
   gap: 6px;
   border-radius: 14px;
   font-family:
-    'Inter',
-    'Prompt',
+    "Inter",
+    "Prompt",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     sans-serif;
   font-size: 12px;
   font-weight: 950;
@@ -1127,10 +1127,7 @@
 }
 
 @media (max-width: 560px) {
-  .alarms-page .alarm-standalone-filter-card {
-    padding: 16px;
-    border-radius: 20px;
-  }
+
 
   .alarms-page .alarm-history-filter-grid,
   .alarms-page .alarm-history-filter-actions {

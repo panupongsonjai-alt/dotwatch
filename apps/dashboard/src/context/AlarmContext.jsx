@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react'
+import { showUiToast } from '../utils/uiFeedback'
 
 const AlarmContext = createContext()
 
@@ -10,11 +11,15 @@ export function AlarmProvider({ children }) {
       const notificationMessage = String(
         alarm.notification_message || ''
       ).trim()
-
-      alert(
-        notificationMessage ||
-          `🚨 Critical Alarm\n\n${alarm.metric}\nValue: ${alarm.value}`
-      )
+      showUiToast({
+        type: 'critical',
+        title: 'Critical Alarm',
+        message:
+          notificationMessage ||
+          `${alarm.metric || 'Metric'} • Value: ${alarm.value ?? '-'} `,
+        duration: 8000,
+        dedupeKey: `critical|${alarm.id || alarm.metric}|${alarm.value}`,
+      })
     }
 
     setAlarms((prev) =>

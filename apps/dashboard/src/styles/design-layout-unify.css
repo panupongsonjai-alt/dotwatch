@@ -3,10 +3,7 @@
    Common visual alignment across pages
 ========================================================= */
 
-.page.app-page {
-  display: grid;
-  gap: 20px;
-}
+
 
 .dw-page-header,
 .app-page-header {

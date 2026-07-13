@@ -27,6 +27,7 @@ import {
   StatCard,
 } from '../components/common'
 import { confirmDeleteAction } from '../utils/typedConfirm'
+import { showErrorToast, showSuccessToast } from '../utils/uiFeedback'
 import {
   downloadCsv,
   getLocalDateInputValue,
@@ -245,9 +246,7 @@ function formatDateOnly(value) {
   if (!value) return '--'
 
   const date = new Date(`${value}T00:00:00`)
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString('th-TH')
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('th-TH')
 }
 
 function Alarms() {
@@ -311,7 +310,7 @@ function Alarms() {
       setDeviceMetrics(Object.fromEntries(metricEntries))
     } catch (error) {
       console.error('Load alarms error:', error)
-      alert(error.message || 'โหลดข้อมูล Alarm ไม่สำเร็จ')
+      showErrorToast(error.message || 'โหลดข้อมูล Alarm ไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -377,9 +376,10 @@ function Alarms() {
       setSaving(true)
       await acknowledgeAlarm(alarmId)
       await loadData()
+      showSuccessToast('Acknowledge Alarm สำเร็จ')
     } catch (error) {
       console.error('Acknowledge alarm error:', error)
-      alert(error.message || 'Acknowledge ไม่สำเร็จ')
+      showErrorToast(error.message || 'Acknowledge ไม่สำเร็จ')
     } finally {
       setSaving(false)
     }
@@ -415,12 +415,28 @@ function Alarms() {
 
       setClearDialogOpen(false)
       setAlarmPage(1)
-      setNotice(
+
+      if (deletedCount > 0) {
+        const clearedKeys = new Set(
+          filteredAlarms.map((alarm) => getAlarmKey(alarm))
+        )
+        setAlarms((current) =>
+          current.filter((alarm) => !clearedKeys.has(getAlarmKey(alarm)))
+        )
+      }
+
+      const clearMessage =
         deletedCount > 0
           ? `ลบ Alarm Events สำเร็จ ${deletedCount.toLocaleString('th-TH')} รายการ`
           : 'ไม่พบ Alarm Events ที่ตรงกับตัวกรองสำหรับลบ'
-      )
-      await loadData()
+      setNotice(clearMessage)
+      showSuccessToast(clearMessage)
+
+      try {
+        await loadData()
+      } catch (refreshError) {
+        console.error('Reload alarms after clear error:', refreshError)
+      }
     } catch (error) {
       console.error('Clear alarm events error:', error)
       setPageError(error.message || 'ลบ Alarm Events ไม่สำเร็จ')
@@ -452,7 +468,8 @@ function Alarms() {
       return {
         device: alarm.device_name || alarm.device_code || 'Unnamed Device',
         metric: alarm.metric_name || metricInfo.name,
-        condition: `${alarm.operator || ''} ${formatValue(alarm.threshold, metricInfo.unit)}`.trim(),
+        condition:
+          `${alarm.operator || ''} ${formatValue(alarm.threshold, metricInfo.unit)}`.trim(),
         value: formatValue(alarm.value, metricInfo.unit),
         severity: getSeverityLabel(alarm.severity),
         status: getStatusLabel(alarm.status),
@@ -469,8 +486,8 @@ function Alarms() {
     const fileName = `dotWatch-alarm-events-${eventStartDate || 'all'}-to-${eventEndDate || 'all'}`
 
     downloadCsv({ fileName, columns, rows, metadata })
+    showSuccessToast('ส่งออก Alarm Events เป็น CSV สำเร็จ')
   }
-
 
   async function handleToggleRule(rule) {
     try {
@@ -487,9 +504,14 @@ function Alarms() {
       })
 
       await loadData()
+      showSuccessToast(
+        rule.is_active
+          ? 'Paused Alarm Rule สำเร็จ'
+          : 'เปิดใช้งาน Alarm Rule สำเร็จ'
+      )
     } catch (error) {
       console.error('Toggle rule error:', error)
-      alert(error.message || 'แก้ไขสถานะ Rule ไม่สำเร็จ')
+      showErrorToast(error.message || 'แก้ไขสถานะ Rule ไม่สำเร็จ')
     } finally {
       setSaving(false)
     }
@@ -497,14 +519,14 @@ function Alarms() {
 
   async function handleDeleteRule(ruleId) {
     const rule = rules.find((item) => String(item.id) === String(ruleId))
-    const ok = confirmDeleteAction({
+    const ok = await confirmDeleteAction({
       title: 'Confirm Delete Alarm Rule',
       targetName:
         rule?.metric || rule?.metric_key
           ? `${rule.metric || rule.metric_key} / ${rule.severity || 'rule'}`
           : `Rule ID ${ruleId}`,
       description:
-        'Alarm Rule นี้จะถูกลบออกจากระบบ กรุณาพิมพ์ delete เพื่อยืนยัน',
+        'Alarm Rule นี้จะถูกลบออกจากระบบ กรุณาพิมพ์ Delete เพื่อยืนยัน',
     })
 
     if (!ok) return
@@ -513,9 +535,10 @@ function Alarms() {
       setSaving(true)
       await deleteAlarmRule(ruleId)
       await loadData()
+      showSuccessToast('ลบ Alarm Rule สำเร็จ')
     } catch (error) {
       console.error('Delete rule error:', error)
-      alert(error.message || 'ลบ Alarm Rule ไม่สำเร็จ')
+      showErrorToast(error.message || 'ลบ Alarm Rule ไม่สำเร็จ')
     } finally {
       setSaving(false)
     }
@@ -610,7 +633,6 @@ function Alarms() {
     alarmSortOrder,
   ])
 
-
   const totalAlarmPages = Math.max(
     1,
     Math.ceil(filteredAlarms.length / alarmPageSize)
@@ -700,7 +722,6 @@ function Alarms() {
           </div>
         </div>
 
-
         {displayedRules.length === 0 ? (
           <div className="app-empty-state">
             <AlertTriangle size={30} />
@@ -732,7 +753,9 @@ function Alarms() {
                     return (
                       <tr key={rule.id}>
                         <td>
-                          <strong>{rule.device_name || 'Unnamed Device'}</strong>
+                          <strong>
+                            {rule.device_name || 'Unnamed Device'}
+                          </strong>
                         </td>
 
                         <td>
@@ -872,7 +895,8 @@ function Alarms() {
               <option value="all">All Metrics</option>
               {eventMetricOptions.map((metric) => (
                 <option key={metric.key} value={metric.key}>
-                  {metric.name}{metric.unit ? ` (${metric.unit})` : ''}
+                  {metric.name}
+                  {metric.unit ? ` (${metric.unit})` : ''}
                 </option>
               ))}
             </select>
@@ -942,7 +966,6 @@ function Alarms() {
           />
         </div>
 
-
         {loading ? (
           <div className="app-empty-state">
             <h3>กำลังโหลดข้อมูล</h3>
@@ -981,11 +1004,15 @@ function Alarms() {
                     return (
                       <tr key={alarm.id}>
                         <td>
-                          <strong>{alarm.device_name || 'Unnamed Device'}</strong>
+                          <strong>
+                            {alarm.device_name || 'Unnamed Device'}
+                          </strong>
                         </td>
 
                         <td>
-                          <strong>{alarm.metric_name || metricInfo.name}</strong>
+                          <strong>
+                            {alarm.metric_name || metricInfo.name}
+                          </strong>
                         </td>
 
                         <td>
@@ -1055,8 +1082,7 @@ function Alarms() {
               eventDeviceFilter === 'all'
                 ? 'All Devices'
                 : devices.find(
-                    (device) =>
-                      String(device.id) === String(eventDeviceFilter)
+                    (device) => String(device.id) === String(eventDeviceFilter)
                   )?.name || `Device ${eventDeviceFilter}`,
           },
           { label: 'Start Date', value: formatDateOnly(eventStartDate) },
@@ -1075,8 +1101,9 @@ function Alarms() {
             value: `${filteredAlarms.length.toLocaleString('th-TH')} rows`,
           },
         ]}
-        confirmText="ฉันตรวจสอบ Device, ช่วงวันที่ และ Metric แล้ว และยืนยันว่าต้องการลบ Alarm Events ชุดนี้จริง"
-        confirmLabel="ยืนยัน Clear Alarm"
+        confirmationKeyword="Delete"
+        confirmationHelp="ตรวจสอบ Device, ช่วงวันที่ และ Metric ให้ถูกต้องก่อนยืนยัน"
+        confirmLabel="Delete Alarm Events"
         busyLabel="กำลังลบ Alarm..."
         busy={clearingAlarms}
         onClose={closeClearAlarmDialog}

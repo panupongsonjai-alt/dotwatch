@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
 import { ADMIN_PAGE_META } from '../../config/adminPages'
 
@@ -30,19 +30,20 @@ function AdminCommandPalette({ open, page, onClose, onNavigate }) {
     )
   }, [commands, query])
 
-  useEffect(() => {
-    if (!open) setQuery('')
-  }, [open])
-
   if (!open) return null
 
-  function handleNavigate(nextPage) {
-    onNavigate(nextPage)
+  function handleClose() {
+    setQuery('')
     onClose()
   }
 
+  function handleNavigate(nextPage) {
+    onNavigate(nextPage)
+    handleClose()
+  }
+
   return (
-    <div className="command-palette-backdrop" onMouseDown={onClose}>
+    <div className="command-palette-backdrop" onMouseDown={handleClose}>
       <section
         className="command-palette admin-command-palette"
         onMouseDown={(event) => event.stopPropagation()}
@@ -55,7 +56,7 @@ function AdminCommandPalette({ open, page, onClose, onNavigate }) {
             placeholder="Search admin pages or actions..."
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Escape') onClose()
+              if (event.key === 'Escape') handleClose()
               if (event.key === 'Enter' && filteredCommands[0]) {
                 handleNavigate(filteredCommands[0].id)
               }
@@ -93,7 +94,9 @@ function AdminCommandPalette({ open, page, onClose, onNavigate }) {
                     </small>
                   </span>
 
-                  {active && <span className="command-palette-current">Current</span>}
+                  {active && (
+                    <span className="command-palette-current">Current</span>
+                  )}
                 </button>
               )
             })

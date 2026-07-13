@@ -26,15 +26,15 @@ static constexpr unsigned long MIN_SEND_INTERVAL_MS = 10000UL;
 
 static constexpr int WIFI_PROFILE_MAX = 5;
 static constexpr int WIFI_SCAN_MAX = 20;
-static constexpr unsigned long WIFI_PROFILE_ATTEMPT_TIMEOUT_MS = 12000UL;
-static constexpr unsigned long WIFI_CONNECT_TOTAL_TIMEOUT_MS = 30000UL;
+static constexpr unsigned long WIFI_PROFILE_ATTEMPT_TIMEOUT_MS = 20000UL;
+static constexpr unsigned long WIFI_CONNECT_TOTAL_TIMEOUT_MS = 50000UL;
 static constexpr unsigned long WIFI_RETRY_INTERVAL_MS = 15000UL;
 static constexpr unsigned long PORTAL_RETRY_WIFI_MS = 30000UL;
 
 // Remember the IP assigned by DHCP on the first successful connection to
 // each SSID, then reuse that address as a static IP on later connections.
 static constexpr bool WIFI_REMEMBER_FIRST_IP = true;
-static constexpr unsigned long WIFI_DHCP_RECOVERY_TIMEOUT_MS = 12000UL;
+static constexpr unsigned long WIFI_DHCP_RECOVERY_TIMEOUT_MS = 20000UL;
 
 static constexpr unsigned long WIFI_RESTART_AFTER_MS = 10UL * 60UL * 1000UL;
 static constexpr unsigned long SEND_RESTART_AFTER_MS = 30UL * 60UL * 1000UL;

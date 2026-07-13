@@ -326,6 +326,10 @@ function showJson() {
   if (dialog?.showModal) dialog.showModal();
 }
 
+function confirmTypedDelete(targetLabel) {
+  return window.prompt(`Type Delete to confirm ${targetLabel}`) === "Delete";
+}
+
 function handlePreviewAction(action) {
   switch (action) {
     case "refresh":
@@ -341,7 +345,9 @@ function handlePreviewAction(action) {
       showToast("Preview mode: ไม่ส่งคำสั่ง Restart ไปยัง ESP8266");
       break;
     case "reset":
-      showToast("Preview mode: ปิดการทำงาน Factory Reset เพื่อความปลอดภัย");
+      if (confirmTypedDelete("Factory Reset")) {
+        showToast("Preview mode: ปิดการทำงาน Factory Reset เพื่อความปลอดภัย");
+      }
       break;
     default:
       break;
@@ -387,6 +393,7 @@ function bindEvents() {
   document.querySelectorAll("[data-preview-form]").forEach((form) => {
     form.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (form.dataset.previewForm === "wifi-clear" && !confirmTypedDelete("Clear Wi-Fi")) return;
       showToast("Preview mode: แสดงผลเท่านั้น ยังไม่บันทึกค่าลง ESP8266");
     });
   });
