@@ -11,6 +11,7 @@ import {
   Settings,
   ShieldAlert,
   User,
+  X,
 } from 'lucide-react'
 
 const MENU_GROUPS = [
@@ -43,11 +44,21 @@ const MENU_GROUPS = [
   },
 ]
 
-function Sidebar({ page, setPage, sidebarOpen, setSidebarOpen }) {
+function Sidebar({
+  page,
+  setPage,
+  sidebarOpen,
+  setSidebarOpen,
+  isMobile = false,
+}) {
   const { activeAlarmCount } = useAlarm()
 
   return (
-    <aside className={`sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
+    <aside
+      id="dashboard-sidebar"
+      className={`sidebar ${sidebarOpen ? '' : 'collapsed'}`}
+      aria-label="Main navigation"
+    >
       <div className="brand">
         <div className="brand-left">
           <span className="brand-dot" />
@@ -58,14 +69,30 @@ function Sidebar({ page, setPage, sidebarOpen, setSidebarOpen }) {
           </div>
         </div>
 
-        <button
-          type="button"
-          className="collapse-btn"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-        >
-          {sidebarOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-        </button>
+        {isMobile ? (
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            onClick={() => setSidebarOpen(false)}
+            title="Close navigation"
+            aria-label="Close navigation"
+          >
+            <X size={20} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="collapse-btn"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+          >
+            {sidebarOpen ? (
+              <ChevronLeft size={18} />
+            ) : (
+              <ChevronRight size={18} />
+            )}
+          </button>
+        )}
       </div>
 
       <nav className="menu">

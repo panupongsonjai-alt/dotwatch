@@ -163,7 +163,11 @@ function WorkspaceRouteBar({
   const Icon = meta.icon
 
   return (
-    <div className="workspace-route-bar">
+    <div
+      className={`workspace-route-bar ${
+        page === 'device-detail' ? 'has-back-action' : ''
+      }`}
+    >
       <div className="workspace-route-main">
         <span className="workspace-route-icon">
           <Icon size={18} />
@@ -450,10 +454,16 @@ function App() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [workspaceHelpOpen, setWorkspaceHelpOpen] = useState(false)
 
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('sidebarOpen')
     return saved ? JSON.parse(saved) : true
   })
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => window.matchMedia('(max-width: 900px)').matches
+  )
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+
+  const sidebarOpen = isMobileViewport ? mobileSidebarOpen : desktopSidebarOpen
 
   const currentPageMeta = useMemo(
     () => PAGE_META[page] || PAGE_META.dashboard,
@@ -532,8 +542,38 @@ function App() {
   }, [])
 
   useEffect(() => {
-    localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen))
-  }, [sidebarOpen])
+    localStorage.setItem('sidebarOpen', JSON.stringify(desktopSidebarOpen))
+  }, [desktopSidebarOpen])
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 900px)')
+
+    function syncViewport(event) {
+      setIsMobileViewport(event.matches)
+      setMobileSidebarOpen(false)
+    }
+
+    setIsMobileViewport(mediaQuery.matches)
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncViewport)
+      return () => mediaQuery.removeEventListener('change', syncViewport)
+    }
+
+    mediaQuery.addListener(syncViewport)
+    return () => mediaQuery.removeListener(syncViewport)
+  }, [])
+
+  useEffect(() => {
+    if (!isMobileViewport || !mobileSidebarOpen) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isMobileViewport, mobileSidebarOpen])
 
   useEffect(() => {
     document.title = `${currentPageMeta.title} · dotWatch`
@@ -555,6 +595,7 @@ function App() {
 
       if (event.key === 'Escape') {
         setCommandPaletteOpen(false)
+        setMobileSidebarOpen(false)
       }
     }
 
@@ -572,6 +613,22 @@ function App() {
       )
     }
   }, [])
+
+  function handleSidebarOpenChange(nextValue) {
+    const resolvedValue =
+      typeof nextValue === 'function' ? nextValue(sidebarOpen) : nextValue
+
+    if (isMobileViewport) {
+      setMobileSidebarOpen(Boolean(resolvedValue))
+      return
+    }
+
+    setDesktopSidebarOpen(Boolean(resolvedValue))
+  }
+
+  function toggleSidebar() {
+    handleSidebarOpenChange((open) => !open)
+  }
 
   const handleLogout = async () => {
     await recordUserActivity({
@@ -650,12 +707,27 @@ function App() {
   }
 
   return (
-    <div className={`layout ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
+    <div
+      className={`layout ${sidebarOpen ? '' : 'sidebar-collapsed'} ${
+        isMobileViewport && mobileSidebarOpen ? 'mobile-nav-open' : ''
+      }`}
+    >
       <Sidebar
         page={page}
         setPage={handleSetPage}
         sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
+        setSidebarOpen={handleSidebarOpenChange}
+        isMobile={isMobileViewport}
+      />
+
+      <button
+        type="button"
+        className={`sidebar-backdrop ${
+          isMobileViewport && mobileSidebarOpen ? 'visible' : ''
+        }`}
+        onClick={() => setMobileSidebarOpen(false)}
+        aria-label="Close navigation menu"
+        tabIndex={isMobileViewport && mobileSidebarOpen ? 0 : -1}
       />
 
       <main className="main">
@@ -664,6 +736,9 @@ function App() {
           onLogout={handleLogout}
           theme={theme}
           setTheme={setTheme}
+          pageTitle={currentPageMeta.title}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={toggleSidebar}
         />
 
         <ApiStatusBanner />

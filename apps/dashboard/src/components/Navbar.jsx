@@ -1,8 +1,16 @@
-import { Moon, Sun, LogOut } from 'lucide-react'
+import { LogOut, Menu, Moon, Sun } from 'lucide-react'
 
 import { recordUserActivity } from '../services/activityTracker'
 
-function Navbar({ user, onLogout, theme, setTheme }) {
+function Navbar({
+  user,
+  onLogout,
+  theme,
+  setTheme,
+  pageTitle = 'Dashboard',
+  sidebarOpen = false,
+  onToggleSidebar,
+}) {
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark'
     setTheme(nextTheme)
@@ -18,6 +26,25 @@ function Navbar({ user, onLogout, theme, setTheme }) {
 
   return (
     <header className="top-header">
+      <div className="mobile-header-main">
+        <button
+          type="button"
+          className="icon-button mobile-menu-button"
+          onClick={onToggleSidebar}
+          title="Open navigation"
+          aria-label="Open navigation"
+          aria-controls="dashboard-sidebar"
+          aria-expanded={sidebarOpen}
+        >
+          <Menu size={20} />
+        </button>
+
+        <div className="mobile-header-context">
+          <strong>{pageTitle}</strong>
+          <span>dotWatch</span>
+        </div>
+      </div>
+
       <div className="header-actions">
         <button
           type="button"
