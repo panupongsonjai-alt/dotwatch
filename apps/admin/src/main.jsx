@@ -6,6 +6,7 @@ import './styles/admin.css'
 import './styles/phase11g-admin-dashboard-parity.css'
 import './styles/phase11i-admin-comfort-parity.css'
 import './styles/statcard-single-row.css'
+import './styles/dropdown-unify.css'
 
 const rootElement = document.getElementById('root')
 

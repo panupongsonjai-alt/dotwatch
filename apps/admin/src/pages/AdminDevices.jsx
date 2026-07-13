@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import UnifiedSelect from '../components/common/UnifiedSelect'
 
 function getValue(item, keys, fallback = '-') {
   for (const key of keys) {
@@ -58,7 +59,7 @@ function AdminDevices({ devices, loading }) {
           />
         </label>
 
-        <select
+        <UnifiedSelect
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value)}
         >
@@ -67,7 +68,7 @@ function AdminDevices({ devices, loading }) {
           <option value="offline">Offline</option>
           <option value="warning">Warning</option>
           <option value="critical">Critical</option>
-        </select>
+        </UnifiedSelect>
       </div>
 
       <article className="table-card">

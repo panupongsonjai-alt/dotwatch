@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { PageHeader, SectionHeader, StatCard } from '../components/common'
+import { PageHeader, SectionHeader, StatCard, UnifiedSelect } from '../components/common'
 import { getDevices } from '../services/api'
 import {
   getDeviceRecordSettings,
@@ -333,7 +333,7 @@ function Settings() {
             <div className="settings-recording-fields">
               <label className="settings-recording-field">
                 <span>Device</span>
-                <select
+                <UnifiedSelect
                   value={recordDeviceId}
                   onChange={(event) => setRecordDeviceId(event.target.value)}
                   disabled={
@@ -350,12 +350,12 @@ function Settings() {
                         `Device ${device.id}`}
                     </option>
                   ))}
-                </select>
+                </UnifiedSelect>
               </label>
 
               <label className="settings-recording-field settings-recording-interval-row">
                 <span>Interval Record</span>
-                <select
+                <UnifiedSelect
                   value={Number(recordIntervalSeconds)}
                   onChange={(event) =>
                     setRecordIntervalSeconds(Number(event.target.value))
@@ -367,7 +367,7 @@ function Settings() {
                       {option.label}
                     </option>
                   ))}
-                </select>
+                </UnifiedSelect>
               </label>
             </div>
 

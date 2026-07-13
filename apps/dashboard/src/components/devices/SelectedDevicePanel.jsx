@@ -26,6 +26,7 @@ import MetricConfigPanel from '../MetricConfigPanel.jsx'
 import { auth } from '../../services/firebase'
 import { getDeviceSecret } from '../../services/api'
 import { showWarningToast } from '../../utils/uiFeedback'
+import UnifiedSelect from '../common/UnifiedSelect.jsx'
 import { formatMetricValue } from '../../utils/metricDisplayConfig'
 import {
   getDeviceMetricPills,
@@ -290,7 +291,7 @@ function DeviceAlarmRulesPanel({
 
                       <label className="metric-alarm-field metric-alarm-operator">
                         <span>Condition</span>
-                        <select
+                        <UnifiedSelect
                           value={draft.operator || '>'}
                           onChange={(event) =>
                             updateAlarmDraft(
@@ -307,7 +308,7 @@ function DeviceAlarmRulesPanel({
                               {operator}
                             </option>
                           ))}
-                        </select>
+                        </UnifiedSelect>
                       </label>
 
                       <label className="metric-alarm-field metric-alarm-threshold">

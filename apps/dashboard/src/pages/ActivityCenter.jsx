@@ -8,6 +8,7 @@ import {
   PageHeader,
   SectionHeader,
   StatCard,
+  UnifiedSelect,
 } from '../components/common'
 
 function normalizeActivity(item = {}) {
@@ -171,7 +172,7 @@ function ActivityCenter() {
         <div className="activity-filter-row">
           <label>
             Device
-            <select
+            <UnifiedSelect
               value={selectedDeviceId}
               onChange={(event) => setSelectedDeviceId(event.target.value)}
             >
@@ -181,7 +182,7 @@ function ActivityCenter() {
                   {device.name || device.device_code}
                 </option>
               ))}
-            </select>
+            </UnifiedSelect>
           </label>
         </div>
       </section>

@@ -16,6 +16,7 @@ import {
   NoticeBanner,
   PageHeader,
   StatCard,
+  UnifiedSelect,
 } from '../components/common'
 import {
   clearNotificationFeed,
@@ -651,7 +652,7 @@ function NotificationCenter() {
         <div className="history-filter-grid notification-history-filter-grid">
           <label>
             <span>Device</span>
-            <select
+            <UnifiedSelect
               value={deviceFilter}
               onChange={(event) => {
                 setDeviceFilter(event.target.value)
@@ -665,7 +666,7 @@ function NotificationCenter() {
                   {device.name || device.device_code || `Device ${device.id}`}
                 </option>
               ))}
-            </select>
+            </UnifiedSelect>
           </label>
 
           <div className="history-filter-field">
@@ -728,7 +729,7 @@ function NotificationCenter() {
 
           <label>
             <span>Metric</span>
-            <select
+            <UnifiedSelect
               value={metricFilter}
               onChange={(event) => setMetricFilter(event.target.value)}
               aria-label="กรอง Notification ตาม Metric"
@@ -740,7 +741,7 @@ function NotificationCenter() {
                   {metric.unit ? ` (${metric.unit})` : ''}
                 </option>
               ))}
-            </select>
+            </UnifiedSelect>
           </label>
 
           <div className="history-filter-actions notification-history-filter-actions">
@@ -802,7 +803,7 @@ function NotificationCenter() {
 
             <label>
               <span>Show</span>
-              <select
+              <UnifiedSelect
                 value={pageSize}
                 onChange={(event) => setPageSize(Number(event.target.value))}
                 aria-label="จำนวนแถว Notification ต่อหน้า"
@@ -812,19 +813,19 @@ function NotificationCenter() {
                     {size} rows
                   </option>
                 ))}
-              </select>
+              </UnifiedSelect>
             </label>
 
             <label>
               <span>Sort</span>
-              <select
+              <UnifiedSelect
                 value={sortOrder}
                 onChange={(event) => setSortOrder(event.target.value)}
                 aria-label="ลำดับ Notification"
               >
                 <option value="desc">ล่าสุดก่อน</option>
                 <option value="asc">เก่าสุดก่อน</option>
-              </select>
+              </UnifiedSelect>
             </label>
           </div>
         </div>

@@ -26,6 +26,7 @@ import {
   NoticeBanner,
   PageHeader,
   StatCard,
+  UnifiedSelect,
 } from '../components/common'
 import { confirmDeleteAction } from '../utils/typedConfirm'
 import { showErrorToast, showSuccessToast } from '../utils/uiFeedback'
@@ -80,7 +81,7 @@ function TableViewControls({
 
       <label>
         <span>Show</span>
-        <select
+        <UnifiedSelect
           value={pageSize}
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
           aria-label="จำนวนแถวต่อหน้า"
@@ -90,19 +91,19 @@ function TableViewControls({
               {size} rows
             </option>
           ))}
-        </select>
+        </UnifiedSelect>
       </label>
 
       <label>
         <span>Sort</span>
-        <select
+        <UnifiedSelect
           value={sortOrder}
           onChange={(event) => onSortOrderChange(event.target.value)}
           aria-label="ลำดับข้อมูล"
         >
           <option value="desc">ล่าสุดก่อน</option>
           <option value="asc">เก่าสุดก่อน</option>
-        </select>
+        </UnifiedSelect>
       </label>
     </div>
   )
@@ -815,7 +816,7 @@ function Alarms() {
         <div className="history-filter-grid alarm-history-filter-grid">
           <label>
             <span>Device</span>
-            <select
+            <UnifiedSelect
               value={eventDeviceFilter}
               onChange={(event) => {
                 setEventDeviceFilter(event.target.value)
@@ -829,7 +830,7 @@ function Alarms() {
                   {device.name || device.device_code || `Device ${device.id}`}
                 </option>
               ))}
-            </select>
+            </UnifiedSelect>
           </label>
 
           <div className="history-filter-field">
@@ -892,7 +893,7 @@ function Alarms() {
 
           <label>
             <span>Metric</span>
-            <select
+            <UnifiedSelect
               value={eventMetricFilter}
               onChange={(event) => setEventMetricFilter(event.target.value)}
               aria-label="กรอง Alarm Events ตาม Metric"
@@ -904,7 +905,7 @@ function Alarms() {
                   {metric.unit ? ` (${metric.unit})` : ''}
                 </option>
               ))}
-            </select>
+            </UnifiedSelect>
           </label>
 
           <div className="history-filter-actions alarm-history-filter-actions">

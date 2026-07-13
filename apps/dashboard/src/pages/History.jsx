@@ -15,6 +15,7 @@ import {
   FilterActionsMenu,
   PageHeader,
   StatCard,
+  UnifiedSelect,
 } from '../components/common'
 import { isWifiRssiMetricConfig } from '../utils/metricDisplayConfig'
 import {
@@ -1814,7 +1815,7 @@ function History() {
         <div className="history-filter-grid">
           <label>
             <span>Device</span>
-            <select
+            <UnifiedSelect
               value={selectedDeviceId}
               onChange={(event) => setSelectedDeviceId(event.target.value)}
               disabled={loadingDevices}
@@ -1828,7 +1829,7 @@ function History() {
                   </option>
                 ))
               )}
-            </select>
+            </UnifiedSelect>
           </label>
 
           <div className="history-filter-field">
@@ -1894,7 +1895,7 @@ function History() {
 
           <label>
             <span>Metric</span>
-            <select
+            <UnifiedSelect
               value={selectedMetricKey}
               onChange={(event) => setSelectedMetricKey(event.target.value)}
               disabled={!metrics.length}
@@ -1912,12 +1913,12 @@ function History() {
                   ))}
                 </>
               )}
-            </select>
+            </UnifiedSelect>
           </label>
 
           <label className="history-interval-filter">
             <span>Display Interval</span>
-            <select
+            <UnifiedSelect
               value={chartResolution}
               onChange={(event) =>
                 setChartResolution(getSafeChartResolution(event.target.value))
@@ -1929,11 +1930,11 @@ function History() {
                   {option.label}
                 </option>
               ))}
-            </select>
+            </UnifiedSelect>
           </label>
 
           <div className="history-filter-actions">
-            <select
+            <UnifiedSelect
               className="history-export-format-select"
               value={exportFormat}
               onChange={(event) => setExportFormat(event.target.value)}
@@ -1943,7 +1944,7 @@ function History() {
             >
               <option value="csv">CSV</option>
               <option value="pdf">PDF</option>
-            </select>
+            </UnifiedSelect>
 
             <button
               type="button"
@@ -2162,7 +2163,7 @@ function History() {
 
             <label>
               <span>Show</span>
-              <select
+              <UnifiedSelect
                 value={tablePageSize}
                 onChange={(event) =>
                   setTablePageSize(getSafeTablePageSize(event.target.value))
@@ -2174,18 +2175,18 @@ function History() {
                     {pageSize} rows
                   </option>
                 ))}
-              </select>
+              </UnifiedSelect>
             </label>
 
             <label>
               <span>Sort</span>
-              <select
+              <UnifiedSelect
                 value={sortOrder}
                 onChange={(event) => setSortOrder(event.target.value)}
               >
                 <option value="desc">ล่าสุดก่อน</option>
                 <option value="asc">เก่าสุดก่อน</option>
-              </select>
+              </UnifiedSelect>
             </label>
           </div>
         </div>

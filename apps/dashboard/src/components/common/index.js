@@ -7,6 +7,7 @@ export { default as PageHeader } from './PageHeader.jsx'
 export { default as SectionHeader } from './SectionHeader.jsx'
 export { default as StatCard } from './StatCard.jsx'
 export { default as StatusBadge } from './StatusBadge.jsx'
+export { default as UnifiedSelect } from './UnifiedSelect.jsx'
 
 export { default as LoadingState } from './LoadingState.jsx'
 export { default as NoticeBanner } from './NoticeBanner.jsx'

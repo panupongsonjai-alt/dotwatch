@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import LoadingState from '../components/common/LoadingState'
 import StatusBadge from '../components/common/StatusBadge'
 import UsageBar from '../components/common/UsageBar'
+import UnifiedSelect from '../components/common/UnifiedSelect'
 
 function AdminUsers({ users, loading, onUpdateUserStatus }) {
   const [query, setQuery] = useState('')
@@ -38,7 +39,7 @@ function AdminUsers({ users, loading, onUpdateUserStatus }) {
           onChange={(event) => setQuery(event.target.value)}
         />
 
-        <select
+        <UnifiedSelect
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value)}
         >
@@ -46,7 +47,7 @@ function AdminUsers({ users, loading, onUpdateUserStatus }) {
           <option value="active">Active</option>
           <option value="overdue">Overdue</option>
           <option value="suspended">Suspended</option>
-        </select>
+        </UnifiedSelect>
       </div>
 
       <article className="admin-panel">

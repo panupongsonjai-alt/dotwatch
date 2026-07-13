@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import LoadingState from '../components/common/LoadingState'
 import StatusBadge from '../components/common/StatusBadge'
 import UsageBar from '../components/common/UsageBar'
+import UnifiedSelect from '../components/common/UnifiedSelect'
 
 function getPlanLimit(plans, planKey) {
   return plans.find((plan) => plan.planKey === planKey)?.deviceLimit
@@ -105,7 +106,7 @@ function AdminSubscriptions({
                         <span>{user.email}</span>
                       </td>
                       <td>
-                        <select
+                        <UnifiedSelect
                           value={selectedPlan}
                           onChange={(event) =>
                             updatePendingPlan(user.id, event.target.value)
@@ -116,7 +117,7 @@ function AdminSubscriptions({
                               {plan.planName || plan.planKey}
                             </option>
                           ))}
-                        </select>
+                        </UnifiedSelect>
                       </td>
                       <td>
                         <StatusBadge status={user.status} />

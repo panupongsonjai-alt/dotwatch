@@ -5,6 +5,7 @@ import { createBlankMetric } from '../utils/metricDisplayConfig'
 import { METRIC_ICON_OPTIONS, MetricIcon } from '../utils/metricIcons'
 import { confirmDeleteAction } from '../utils/typedConfirm'
 import { showErrorToast, showSuccessToast } from '../utils/uiFeedback'
+import UnifiedSelect from './common/UnifiedSelect.jsx'
 
 const ALARM_OPERATORS = ['>', '>=', '<', '<=', '=']
 const ALARM_SEVERITIES = ['warning', 'critical']
@@ -659,7 +660,7 @@ export default function MetricConfigPanel({
 
                     <label className="metric-alarm-config-field metric-alarm-config-decimals">
                       <span>Decimals</span>
-                      <select
+                      <UnifiedSelect
                         value={Number(metric.decimal_places ?? 2)}
                         onChange={(event) =>
                           updateMetric(
@@ -676,7 +677,7 @@ export default function MetricConfigPanel({
                             {decimalPlaces}
                           </option>
                         ))}
-                      </select>
+                      </UnifiedSelect>
                     </label>
 
                     <div className="metric-alarm-config-field metric-alarm-config-icon">
@@ -747,7 +748,7 @@ export default function MetricConfigPanel({
 
                           <label className="metric-alarm-config-control metric-alarm-config-condition">
                             <span>Condition</span>
-                            <select
+                            <UnifiedSelect
                               value={draft.operator || '>'}
                               aria-label={`${metricLabel} ${severityLabel} condition`}
                               onChange={(event) =>
@@ -765,7 +766,7 @@ export default function MetricConfigPanel({
                                   {operator}
                                 </option>
                               ))}
-                            </select>
+                            </UnifiedSelect>
                           </label>
 
                           <label className="metric-alarm-config-control metric-alarm-config-threshold">
