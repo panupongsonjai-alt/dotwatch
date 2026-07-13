@@ -42,6 +42,7 @@ bool BackendClient::postIngest(const MetricSnapshot &snapshot) {
 
   JsonDocument document;
   document["firmwareVersion"] = DOTWATCH_FIRMWARE_VERSION;
+  if (WiFi.SSID().length() > 0) document["wifiSsid"] = WiFi.SSID();
 
   const String timestamp = timeService_->isoTimestampOrEmpty();
   if (timestamp.length() > 0) document["timestamp"] = timestamp;

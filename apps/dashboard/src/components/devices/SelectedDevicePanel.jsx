@@ -1013,6 +1013,14 @@ function SelectedDevicePanel({
               />
             </div>
 
+            <div className="devices-v3-overview-stat devices-v3-overview-stat-wifi">
+              <StatCard
+                label="Wi-Fi"
+                value={selectedDevice.last_wifi_ssid || '--'}
+                hint="Connected network"
+              />
+            </div>
+
             <div className="devices-v3-overview-stat devices-v3-overview-stat-last-seen">
               <StatCard
                 label="Last Seen"

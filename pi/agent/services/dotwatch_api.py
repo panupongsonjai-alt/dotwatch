@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+import subprocess
 import urllib.error
 import urllib.request
 
@@ -46,15 +47,56 @@ def request_json(url, *, method="GET", payload=None, headers=None, timeout=15):
         raise RuntimeError(f"Network error: {error.reason}") from error
 
 
+def get_connected_wifi_ssid():
+    commands = [
+        ["iwgetid", "-r"],
+        ["nmcli", "-t", "-f", "active,ssid", "dev", "wifi"],
+    ]
+
+    for command in commands:
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                check=False,
+                text=True,
+                timeout=2,
+            )
+        except (FileNotFoundError, subprocess.SubprocessError):
+            continue
+
+        output = result.stdout.strip()
+        if command[0] == "nmcli":
+            output = next(
+                (
+                    line.split(":", 1)[1]
+                    for line in output.splitlines()
+                    if line.startswith("yes:")
+                ),
+                "",
+            )
+
+        if output:
+            return output[:64]
+
+    return ""
+
+
 def build_ingest_payload(settings, metrics, timestamp=None, firmware_version=None):
     if not isinstance(metrics, dict) or not metrics:
         raise RuntimeError("metrics must be a non-empty dictionary")
 
-    return {
+    payload = {
         "firmwareVersion": firmware_version or settings.firmware_version,
         "timestamp": timestamp or utc_now_iso(),
         "metrics": metrics,
     }
+
+    wifi_ssid = get_connected_wifi_ssid()
+    if wifi_ssid:
+        payload["wifiSsid"] = wifi_ssid
+
+    return payload
 
 
 def build_device_headers(settings):
