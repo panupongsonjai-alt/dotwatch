@@ -13,16 +13,18 @@
   gap: 12px;
 }
 
-.activity-filter-card,
 .activity-feed-card {
   display: grid;
   gap: 16px;
 }
 
-.activity-filter-row {
+.activity-standalone-filter-card {
   display: grid;
-  grid-template-columns: minmax(220px, 360px);
-  gap: 12px;
+  gap: 20px;
+  width: 100%;
+  min-width: 0;
+  padding: 20px;
+  overflow: hidden;
 }
 
 .dw-activity-list {
@@ -144,8 +146,7 @@
 }
 
 @media (max-width: 560px) {
-  .activity-stat-grid,
-  .activity-filter-row {
+  .activity-stat-grid {
     grid-template-columns: 1fr;
   }
 

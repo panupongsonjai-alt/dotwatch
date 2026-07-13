@@ -15,6 +15,7 @@ import {
   FilterActionsMenu,
   PageHeader,
   StatCard,
+  TablePagination,
   UnifiedSelect,
 } from '../components/common'
 import { isWifiRssiMetricConfig } from '../utils/metricDisplayConfig'
@@ -2312,57 +2313,12 @@ function History() {
           </table>
         </div>
 
-        {historyTableRows.length > tablePageSize && (
-          <div className="history-table-pagination">
-            <div>
-              Showing {historyTableStartRow}-{historyTableEndRow} of{' '}
-              {historyTableRows.length}
-            </div>
-
-            <div className="history-pagination-actions">
-              <button
-                type="button"
-                onClick={() => setTablePage(1)}
-                disabled={tablePage <= 1}
-              >
-                First
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setTablePage((page) => Math.max(1, page - 1))}
-                disabled={tablePage <= 1}
-              >
-                Previous
-              </button>
-
-              <span>
-                Page {Math.min(tablePage, totalHistoryTablePages)} /{' '}
-                {totalHistoryTablePages}
-              </span>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setTablePage((page) =>
-                    Math.min(totalHistoryTablePages, page + 1)
-                  )
-                }
-                disabled={tablePage >= totalHistoryTablePages}
-              >
-                Next
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setTablePage(totalHistoryTablePages)}
-                disabled={tablePage >= totalHistoryTablePages}
-              >
-                Last
-              </button>
-            </div>
-          </div>
-        )}
+        <TablePagination
+          page={Math.min(tablePage, totalHistoryTablePages)}
+          pageSize={tablePageSize}
+          total={historyTableRows.length}
+          onPageChange={setTablePage}
+        />
       </section>
 
       <ClearFilteredDataDialog

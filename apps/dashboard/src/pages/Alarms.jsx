@@ -26,6 +26,7 @@ import {
   NoticeBanner,
   PageHeader,
   StatCard,
+  TablePagination,
   UnifiedSelect,
 } from '../components/common'
 import { confirmDeleteAction } from '../utils/typedConfirm'
@@ -105,55 +106,6 @@ function TableViewControls({
           <option value="asc">เก่าสุดก่อน</option>
         </UnifiedSelect>
       </label>
-    </div>
-  )
-}
-
-function TablePagination({ page, pageSize, total, onPageChange }) {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  if (total <= pageSize) return null
-
-  const range = getPageRange(page, pageSize, total)
-
-  return (
-    <div className="alarm-table-pagination">
-      <div>
-        Showing {range.start}-{range.end} of {total}
-      </div>
-
-      <div className="alarm-pagination-actions">
-        <button
-          type="button"
-          onClick={() => onPageChange(1)}
-          disabled={page <= 1}
-        >
-          First
-        </button>
-        <button
-          type="button"
-          onClick={() => onPageChange(Math.max(1, page - 1))}
-          disabled={page <= 1}
-        >
-          Previous
-        </button>
-        <span>
-          Page {page} / {totalPages}
-        </span>
-        <button
-          type="button"
-          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-          disabled={page >= totalPages}
-        >
-          Next
-        </button>
-        <button
-          type="button"
-          onClick={() => onPageChange(totalPages)}
-          disabled={page >= totalPages}
-        >
-          Last
-        </button>
-      </div>
     </div>
   )
 }

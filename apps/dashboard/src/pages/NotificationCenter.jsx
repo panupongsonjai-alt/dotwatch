@@ -16,6 +16,7 @@ import {
   NoticeBanner,
   PageHeader,
   StatCard,
+  TablePagination,
   UnifiedSelect,
 } from '../components/common'
 import {
@@ -909,48 +910,12 @@ function NotificationCenter() {
               </table>
             </div>
 
-            {filteredNotifications.length > pageSize && (
-              <div className="notification-table-pagination">
-                <div>
-                  Showing {range.start}-{range.end} of{' '}
-                  {filteredNotifications.length}
-                </div>
-
-                <div className="notification-pagination-actions">
-                  <button
-                    type="button"
-                    onClick={() => setPage(1)}
-                    disabled={safePage <= 1}
-                  >
-                    First
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPage(Math.max(1, safePage - 1))}
-                    disabled={safePage <= 1}
-                  >
-                    Previous
-                  </button>
-                  <span>
-                    Page {safePage} / {totalPages}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setPage(Math.min(totalPages, safePage + 1))}
-                    disabled={safePage >= totalPages}
-                  >
-                    Next
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPage(totalPages)}
-                    disabled={safePage >= totalPages}
-                  >
-                    Last
-                  </button>
-                </div>
-              </div>
-            )}
+            <TablePagination
+              page={safePage}
+              pageSize={pageSize}
+              total={filteredNotifications.length}
+              onPageChange={setPage}
+            />
           </>
         )}
       </section>

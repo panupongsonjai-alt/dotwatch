@@ -1,5 +1,26 @@
 import { pool } from '../db/pool.js'
-import { createActivityLog, listActivityLogs } from '../services/activity.service.js'
+import {
+  clearActivityLogs,
+  createActivityLog,
+  listActivityLogs,
+} from '../services/activity.service.js'
+
+const ACTIVITY_CATEGORIES = new Set([
+  'all',
+  'session',
+  'navigation',
+  'changes',
+  'device',
+  'other',
+])
+
+function isValidDateInput(value) {
+  if (!value) return true
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+
+  const date = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
 
 function parseLimit(value, fallback = 50) {
   const numberValue = Number(value)
@@ -115,4 +136,66 @@ export async function createActivity(req, res) {
   }
 
   return res.status(201).json(activity)
+}
+
+export async function clearActivity(req, res) {
+  const user = req.dbUser
+  const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : []
+  const rawDeviceId = req.body?.deviceId
+  const startDate = String(req.body?.startDate || '').trim()
+  const endDate = String(req.body?.endDate || '').trim()
+  const category = String(req.body?.activityType || 'all').trim().toLowerCase()
+  let deviceId = null
+
+  const ids = rawIds.map(Number)
+  if (
+    ids.length === 0 ||
+    ids.length > 200 ||
+    ids.some((id) => !Number.isInteger(id) || id < 1)
+  ) {
+    return res.status(400).json({ message: 'Invalid activity ids' })
+  }
+
+  if (!isValidDateInput(startDate) || !isValidDateInput(endDate)) {
+    return res.status(400).json({ message: 'Invalid date range' })
+  }
+
+  if (startDate && endDate && startDate > endDate) {
+    return res.status(400).json({ message: 'Start date must not be after end date' })
+  }
+
+  if (!ACTIVITY_CATEGORIES.has(category)) {
+    return res.status(400).json({ message: 'Invalid activity type' })
+  }
+
+  if (rawDeviceId != null && rawDeviceId !== '' && rawDeviceId !== 'all') {
+    deviceId = Number(rawDeviceId)
+
+    if (!Number.isInteger(deviceId)) {
+      return res.status(400).json({ message: 'Invalid device id' })
+    }
+
+    const deviceCheck = await pool.query(
+      'SELECT id FROM devices WHERE id = $1 AND user_id = $2 LIMIT 1',
+      [deviceId, user.id]
+    )
+
+    if (!deviceCheck.rows.length) {
+      return res.status(404).json({ message: 'Device not found' })
+    }
+  }
+
+  const deletedIds = await clearActivityLogs({
+    userId: user.id,
+    ids,
+    deviceId,
+    startDate,
+    endDate,
+    category,
+  })
+
+  return res.json({
+    deletedCount: deletedIds.length,
+    ids: deletedIds,
+  })
 }

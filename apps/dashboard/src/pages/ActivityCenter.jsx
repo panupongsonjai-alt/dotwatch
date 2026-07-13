@@ -1,15 +1,45 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Activity, RefreshCw } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Activity, CalendarDays, RefreshCw, Trash2 } from 'lucide-react'
 import { auth } from '../services/firebase'
-import { getActivityLogs, getDevices } from '../services/api'
+import { clearActivityLogs, getActivityLogs, getDevices } from '../services/api'
 import { connectRealtime } from '../services/realtime'
 import {
   ActivityList,
+  ClearFilteredDataDialog,
+  FilterActionsMenu,
   PageHeader,
   SectionHeader,
   StatCard,
   UnifiedSelect,
 } from '../components/common'
+import { getLocalDateInputValue, isDateInRange } from '../utils/tableExport'
+import { showSuccessToast } from '../utils/uiFeedback'
+
+const ACTIVITY_TYPE_LABELS = {
+  all: 'All Activity Types',
+  session: 'Sign-in / Sign-out',
+  navigation: 'Page Views',
+  changes: 'Changes',
+  device: 'Device Events',
+  other: 'Other',
+}
+
+function showDatePicker(inputRef) {
+  const input = inputRef.current
+  if (!input) return
+
+  if (typeof input.showPicker === 'function') input.showPicker()
+  else input.focus()
+}
+
+function getActivityCategory(activityType) {
+  const type = String(activityType || '').toLowerCase()
+  if (type.startsWith('session.')) return 'session'
+  if (type.startsWith('navigation.')) return 'navigation'
+  if (/^(operation|preference|profile)\./.test(type)) return 'changes'
+  if (type.startsWith('device.') || type.startsWith('reading.')) return 'device'
+  return 'other'
+}
 
 function normalizeActivity(item = {}) {
   return {
@@ -31,11 +61,19 @@ function dedupeActivity(items = []) {
 }
 
 function ActivityCenter() {
+  const today = getLocalDateInputValue()
   const [activities, setActivities] = useState([])
   const [devices, setDevices] = useState([])
   const [selectedDeviceId, setSelectedDeviceId] = useState('')
+  const [startDate, setStartDate] = useState(today)
+  const [endDate, setEndDate] = useState(today)
+  const [activityTypeFilter, setActivityTypeFilter] = useState('all')
+  const startDateInputRef = useRef(null)
+  const endDateInputRef = useRef(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [clearDialogOpen, setClearDialogOpen] = useState(false)
+  const [clearingActivities, setClearingActivities] = useState(false)
 
   async function loadActivity({ quiet = false } = {}) {
     try {
@@ -148,6 +186,54 @@ function ActivityCenter() {
     return { total, signIns, changes, pageViews }
   }, [activities])
 
+  const filteredActivities = useMemo(() => {
+    return activities.filter((item) => {
+      const matchesDate = isDateInRange(
+        item.created_at || item.createdAt,
+        startDate,
+        endDate
+      )
+      const matchesType =
+        activityTypeFilter === 'all' ||
+        getActivityCategory(item.activity_type) === activityTypeFilter
+
+      return matchesDate && matchesType
+    })
+  }, [activities, activityTypeFilter, endDate, startDate])
+
+  function openClearActivityDialog() {
+    if (filteredActivities.length === 0 || clearingActivities) return
+    setClearDialogOpen(true)
+  }
+
+  function closeClearActivityDialog() {
+    if (clearingActivities) return
+    setClearDialogOpen(false)
+  }
+
+  async function handleClearActivities() {
+    if (filteredActivities.length === 0 || clearingActivities) return
+
+    try {
+      setClearingActivities(true)
+      const result = await clearActivityLogs({
+        ids: filteredActivities.map((item) => item.id).filter(Boolean),
+        deviceId: selectedDeviceId,
+        startDate,
+        endDate,
+        activityType: activityTypeFilter,
+      })
+
+      setClearDialogOpen(false)
+      await loadActivity({ quiet: true })
+      showSuccessToast(
+        `ลบ Operations Activity สำเร็จ ${Number(result?.deletedCount || 0).toLocaleString('th-TH')} รายการ`
+      )
+    } finally {
+      setClearingActivities(false)
+    }
+  }
+
   return (
     <div className="page app-page activity-center-page">
       <PageHeader
@@ -193,15 +279,33 @@ function ActivityCenter() {
         />
       </section>
 
-      <section className="app-card activity-filter-card">
-        <SectionHeader
-          title="Filter Activity"
-          description="เลือกดูทุกอุปกรณ์ หรือเจาะจงเฉพาะ Device ที่ต้องการ"
-        />
+      <section className="app-card history-filter-card activity-filter-card activity-standalone-filter-card">
+        <div className="history-section-title">
+          <div>
+            <h2>Filter</h2>
+            <p>เลือก Device, ช่วงวันที่ และประเภท Activity ที่ต้องการตรวจสอบ</p>
+          </div>
+          <FilterActionsMenu
+            label="Activity filter actions"
+            items={[
+              {
+                key: 'clear',
+                label: 'Clear Data',
+                icon: Trash2,
+                tone: 'danger',
+                disabled:
+                  loading ||
+                  clearingActivities ||
+                  filteredActivities.length === 0,
+                onSelect: openClearActivityDialog,
+              },
+            ]}
+          />
+        </div>
 
-        <div className="activity-filter-row">
+        <div className="history-filter-grid activity-history-filter-grid">
           <label>
-            Device
+            <span>Device</span>
             <UnifiedSelect
               value={selectedDeviceId}
               onChange={(event) => setSelectedDeviceId(event.target.value)}
@@ -214,6 +318,80 @@ function ActivityCenter() {
               ))}
             </UnifiedSelect>
           </label>
+
+          <div className="history-filter-field">
+            <label htmlFor="activity-start-date-input">Start Date</label>
+            <div className="history-date-picker">
+              <input
+                id="activity-start-date-input"
+                ref={startDateInputRef}
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(event) => {
+                  const nextStartDate = event.target.value
+                  setStartDate(nextStartDate)
+                  if (endDate && nextStartDate > endDate) {
+                    setEndDate(nextStartDate)
+                  }
+                }}
+                aria-label="วันที่เริ่มต้น Activity"
+              />
+              <button
+                type="button"
+                className="history-date-picker-button"
+                onClick={() => showDatePicker(startDateInputRef)}
+                aria-label="เปิดปฏิทินเลือกวันเริ่มต้น Activity"
+              >
+                <CalendarDays size={17} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+
+          <div className="history-filter-field">
+            <label htmlFor="activity-end-date-input">End Date</label>
+            <div className="history-date-picker">
+              <input
+                id="activity-end-date-input"
+                ref={endDateInputRef}
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(event) => {
+                  const nextEndDate = event.target.value
+                  setEndDate(nextEndDate)
+                  if (startDate && nextEndDate < startDate) {
+                    setStartDate(nextEndDate)
+                  }
+                }}
+                aria-label="วันที่สิ้นสุด Activity"
+              />
+              <button
+                type="button"
+                className="history-date-picker-button"
+                onClick={() => showDatePicker(endDateInputRef)}
+                aria-label="เปิดปฏิทินเลือกวันสิ้นสุด Activity"
+              >
+                <CalendarDays size={17} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+
+          <label>
+            <span>Activity Type</span>
+            <UnifiedSelect
+              value={activityTypeFilter}
+              onChange={(event) => setActivityTypeFilter(event.target.value)}
+              aria-label="กรองตามประเภท Activity"
+            >
+              <option value="all">All Activity Types</option>
+              <option value="session">Sign-in / Sign-out</option>
+              <option value="navigation">Page Views</option>
+              <option value="changes">Changes</option>
+              <option value="device">Device Events</option>
+              <option value="other">Other</option>
+            </UnifiedSelect>
+          </label>
         </div>
       </section>
 
@@ -224,12 +402,47 @@ function ActivityCenter() {
         />
 
         <ActivityList
-          activities={activities}
+          activities={filteredActivities}
           loading={loading}
           emptyTitle="ยังไม่มี Activity"
           emptyDescription="เมื่อมีการ Login เข้าหน้า หรือเปลี่ยนค่าระบบ รายการจะแสดงที่นี่"
         />
       </section>
+
+      <ClearFilteredDataDialog
+        open={clearDialogOpen}
+        idPrefix="operations-activity-clear"
+        title="ยืนยันการ Clear Operations Activity"
+        description="Operations Activity ที่ตรงกับตัวกรองจะถูกลบอย่างถาวรสำหรับบัญชีนี้ และไม่กลับมาเมื่อ Refresh หน้า"
+        summaryItems={[
+          {
+            label: 'Device',
+            value:
+              selectedDeviceId === ''
+                ? 'All Devices'
+                : devices.find(
+                    (device) => String(device.id) === String(selectedDeviceId)
+                  )?.name || selectedDeviceId,
+          },
+          { label: 'Start Date', value: startDate || 'All Dates' },
+          { label: 'End Date', value: endDate || 'All Dates' },
+          {
+            label: 'Activity Type',
+            value: ACTIVITY_TYPE_LABELS[activityTypeFilter],
+          },
+          {
+            label: 'Records',
+            value: `${filteredActivities.length.toLocaleString('th-TH')} rows`,
+          },
+        ]}
+        confirmationKeyword="Delete"
+        confirmationHelp="ตรวจสอบ Device, ช่วงวันที่ และ Activity Type ให้ถูกต้องก่อนยืนยัน"
+        confirmLabel="Delete Activity"
+        busyLabel="กำลังลบ Operations Activity..."
+        busy={clearingActivities}
+        onClose={closeClearActivityDialog}
+        onConfirm={handleClearActivities}
+      />
     </div>
   )
 }
