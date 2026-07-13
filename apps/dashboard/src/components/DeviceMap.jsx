@@ -212,7 +212,7 @@ function addTooltipLayouts(groups) {
           top: [18, -distance],
           bottom: [18, distance],
           left: [-distance, -28],
-          right: [distance, -28],
+          right: [Math.max(8, distance - 8), -34],
         }
 
         layouts.set(index, { direction, offset: offsets[direction] })
@@ -223,7 +223,7 @@ function addTooltipLayouts(groups) {
     ...group,
     tooltipLayout: layouts.get(index) || {
       direction: 'right',
-      offset: [16, -28],
+      offset: [8, -34],
     },
   }))
 }
@@ -341,7 +341,7 @@ function mergeViewportGroups(groups, map) {
   })
 }
 
-function createDeviceIcon(devices) {
+function createDeviceIcon() {
   return L.divIcon({
     className: 'device-map-marker-shell',
     html: `
@@ -350,7 +350,6 @@ function createDeviceIcon(devices) {
           <path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path>
           <circle cx="12" cy="10" r="3"></circle>
         </svg>
-        ${devices.length > 1 ? `<b>${devices.length}</b>` : ''}
       </span>
     `,
     iconSize: [34, 42],
@@ -391,7 +390,7 @@ function DeviceMarker({ group, onOpenDevice }) {
     <Marker
       key={key}
       position={position}
-      icon={createDeviceIcon(groupedDevices)}
+      icon={createDeviceIcon()}
       eventHandlers={
         !isGroup && typeof onOpenDevice === 'function'
           ? {
