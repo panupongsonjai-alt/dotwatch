@@ -1,10 +1,13 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 
 const DEFAULT_CENTER = [13.7563, 100.5018]
 const GROUP_DISTANCE_METERS = 5
 const LABEL_COLLISION_DISTANCE_METERS = 250
+const NEARBY_MARKER_DISTANCE_PX = 90
+const LABEL_COLLISION_MARGIN_PX = 8
+const LABEL_HEIGHT_PX = 30
 const EARTH_RADIUS_METERS = 6371000
 const STATUS_PRIORITY = {
   critical: 0,
@@ -225,6 +228,119 @@ function addTooltipLayouts(groups) {
   }))
 }
 
+function estimateDevicePillWidth(device) {
+  const characterCount = Array.from(getDeviceName(device)).length
+  return Math.min(190, Math.max(72, 38 + characterCount * 7))
+}
+
+function getProjectedLabelBounds(group, map) {
+  const point = map.latLngToContainerPoint(group.position)
+  const width =
+    group.devices.reduce(
+      (total, device) => total + estimateDevicePillWidth(device),
+      0
+    ) +
+    Math.max(0, group.devices.length - 1) * 6
+
+  return {
+    point,
+    left: point.x - width / 2,
+    right: point.x + width / 2,
+    top: point.y - 72,
+    bottom: point.y - 72 + LABEL_HEIGHT_PX,
+  }
+}
+
+function projectedLabelsOverlap(leftBounds, rightBounds) {
+  return !(
+    leftBounds.right + LABEL_COLLISION_MARGIN_PX < rightBounds.left ||
+    rightBounds.right + LABEL_COLLISION_MARGIN_PX < leftBounds.left ||
+    leftBounds.bottom + LABEL_COLLISION_MARGIN_PX < rightBounds.top ||
+    rightBounds.bottom + LABEL_COLLISION_MARGIN_PX < leftBounds.top
+  )
+}
+
+function mergeViewportGroups(groups, map) {
+  if (groups.length < 2) return groups
+
+  const parents = groups.map((_, index) => index)
+  const bounds = groups.map((group) => getProjectedLabelBounds(group, map))
+
+  const find = (index) => {
+    if (parents[index] !== index) parents[index] = find(parents[index])
+    return parents[index]
+  }
+
+  const union = (leftIndex, rightIndex) => {
+    const leftRoot = find(leftIndex)
+    const rightRoot = find(rightIndex)
+    if (leftRoot !== rightRoot) parents[rightRoot] = leftRoot
+  }
+
+  for (let leftIndex = 0; leftIndex < groups.length; leftIndex += 1) {
+    for (
+      let rightIndex = leftIndex + 1;
+      rightIndex < groups.length;
+      rightIndex += 1
+    ) {
+      const leftBounds = bounds[leftIndex]
+      const rightBounds = bounds[rightIndex]
+      const pixelDistance = leftBounds.point.distanceTo(rightBounds.point)
+
+      if (
+        pixelDistance <= NEARBY_MARKER_DISTANCE_PX ||
+        projectedLabelsOverlap(leftBounds, rightBounds)
+      ) {
+        union(leftIndex, rightIndex)
+      }
+    }
+  }
+
+  const mergedGroups = new Map()
+  groups.forEach((group, index) => {
+    const root = find(index)
+    if (!mergedGroups.has(root)) mergedGroups.set(root, [])
+    mergedGroups.get(root).push(group)
+  })
+
+  return [...mergedGroups.values()].map((members) => {
+    if (members.length === 1) return members[0]
+
+    const devices = members
+      .flatMap((member) => member.devices)
+      .sort((left, right) => {
+        const statusDifference =
+          (STATUS_PRIORITY[getStatus(left)] ?? 99) -
+          (STATUS_PRIORITY[getStatus(right)] ?? 99)
+
+        return (
+          statusDifference ||
+          getDeviceName(left).localeCompare(getDeviceName(right), 'th')
+        )
+      })
+    const totalDevices = members.reduce(
+      (total, member) => total + member.devices.length,
+      0
+    )
+    const position = [
+      members.reduce(
+        (sum, member) => sum + member.position[0] * member.devices.length,
+        0
+      ) / totalDevices,
+      members.reduce(
+        (sum, member) => sum + member.position[1] * member.devices.length,
+        0
+      ) / totalDevices,
+    ]
+
+    return {
+      devices,
+      position,
+      key: members.map((member) => member.key).join('-'),
+    }
+  })
+}
+
 function createDeviceIcon(devices) {
   return L.divIcon({
     className: 'device-map-marker-shell',
@@ -266,6 +382,104 @@ function MapAutoFit({ positions }) {
   return null
 }
 
+function DeviceMarker({ group, onOpenDevice }) {
+  const { devices: groupedDevices, key, position, tooltipLayout } = group
+  const isGroup = groupedDevices.length > 1
+  const firstDevice = groupedDevices[0]
+
+  return (
+    <Marker
+      key={key}
+      position={position}
+      icon={createDeviceIcon(groupedDevices)}
+      eventHandlers={
+        !isGroup && typeof onOpenDevice === 'function'
+          ? {
+              click: () => onOpenDevice(firstDevice.id),
+            }
+          : undefined
+      }
+    >
+      <Tooltip
+        permanent
+        direction={tooltipLayout.direction}
+        offset={tooltipLayout.offset}
+        opacity={1}
+        className="device-map-label"
+        interactive={typeof onOpenDevice === 'function'}
+      >
+        <div className="device-map-label-content device-map-label-list">
+          {groupedDevices.map((device) => {
+            const deviceName = getDeviceName(device)
+            const deviceStatus = getStatus(device)
+            const statusColor = getStatusColor(deviceStatus)
+            const rowKey = device.id || device.device_code || deviceName
+            const content = (
+              <>
+                <span
+                  className="device-map-label-status-dot"
+                  style={{ backgroundColor: statusColor, color: statusColor }}
+                  aria-label={deviceStatus}
+                  title={deviceStatus}
+                />
+                <strong>{deviceName}</strong>
+              </>
+            )
+
+            return typeof onOpenDevice === 'function' ? (
+              <button
+                key={rowKey}
+                type="button"
+                className="device-map-label-row"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onOpenDevice(device.id)
+                }}
+              >
+                {content}
+              </button>
+            ) : (
+              <div
+                key={rowKey}
+                className="device-map-label-row device-map-label-row-static"
+              >
+                {content}
+              </div>
+            )
+          })}
+        </div>
+      </Tooltip>
+    </Marker>
+  )
+}
+
+function ViewportDeviceMarkers({ groups, onOpenDevice }) {
+  const map = useMap()
+  const [viewportVersion, setViewportVersion] = useState(0)
+
+  useEffect(() => {
+    const refreshGroups = () => setViewportVersion((current) => current + 1)
+    map.on('zoomend moveend resize', refreshGroups)
+
+    return () => {
+      map.off('zoomend moveend resize', refreshGroups)
+    }
+  }, [map])
+
+  const displayGroups = useMemo(
+    () => addTooltipLayouts(mergeViewportGroups(groups, map)),
+    [groups, map, viewportVersion]
+  )
+
+  return displayGroups.map((group) => (
+    <DeviceMarker
+      key={group.key}
+      group={group}
+      onOpenDevice={onOpenDevice}
+    />
+  ))
+}
+
 function DeviceMap({ devices = [], onOpenDevice }) {
   const visibleDevices = useMemo(() => {
     return Array.isArray(devices) ? devices : []
@@ -280,7 +494,7 @@ function DeviceMap({ devices = [], onOpenDevice }) {
   }, [visibleDevices])
 
   const deviceGroups = useMemo(
-    () => addTooltipLayouts(groupDevicesByDistance(devicesWithPositions)),
+    () => groupDevicesByDistance(devicesWithPositions),
     [devicesWithPositions]
   )
 
@@ -313,77 +527,10 @@ function DeviceMap({ devices = [], onOpenDevice }) {
 
         <MapAutoFit positions={positions} />
 
-        {deviceGroups.map(
-          ({ devices: groupedDevices, key, position, tooltipLayout }) => {
-          const isGroup = groupedDevices.length > 1
-          const firstDevice = groupedDevices[0]
-
-          return (
-            <Marker
-              key={key}
-              position={position}
-              icon={createDeviceIcon(groupedDevices)}
-              eventHandlers={
-                !isGroup && typeof onOpenDevice === 'function'
-                  ? {
-                      click: () => onOpenDevice(firstDevice.id),
-                    }
-                  : undefined
-              }
-            >
-              <Tooltip
-                permanent
-                direction={tooltipLayout.direction}
-                offset={tooltipLayout.offset}
-                opacity={1}
-                className="device-map-label"
-                interactive={typeof onOpenDevice === 'function'}
-              >
-                <div className="device-map-label-content device-map-label-list">
-                  {groupedDevices.map((device) => {
-                    const deviceName = getDeviceName(device)
-                    const deviceStatus = getStatus(device)
-                    const statusColor = getStatusColor(deviceStatus)
-
-                    return typeof onOpenDevice === 'function' ? (
-                      <button
-                        key={device.id || device.device_code || deviceName}
-                        type="button"
-                        className="device-map-label-row"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          onOpenDevice?.(device.id)
-                        }}
-                      >
-                        <span
-                          className="device-map-label-status-dot"
-                          style={{ backgroundColor: statusColor, color: statusColor }}
-                          aria-label={deviceStatus}
-                          title={deviceStatus}
-                        />
-                        <strong>{deviceName}</strong>
-                      </button>
-                    ) : (
-                      <div
-                        key={device.id || device.device_code || deviceName}
-                        className="device-map-label-row device-map-label-row-static"
-                      >
-                        <span
-                          className="device-map-label-status-dot"
-                          style={{ backgroundColor: statusColor, color: statusColor }}
-                          aria-label={deviceStatus}
-                          title={deviceStatus}
-                        />
-                        <strong>{deviceName}</strong>
-                      </div>
-                    )
-                  })}
-                </div>
-              </Tooltip>
-            </Marker>
-          )
-          }
-        )}
+        <ViewportDeviceMarkers
+          groups={deviceGroups}
+          onOpenDevice={onOpenDevice}
+        />
       </MapContainer>
     </div>
   )
