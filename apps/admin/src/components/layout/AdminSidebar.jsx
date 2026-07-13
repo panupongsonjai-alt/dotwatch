@@ -1,18 +1,24 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import {
   ADMIN_ACCESS_ICON,
   ADMIN_BRAND_ICON,
   ADMIN_MENU_GROUPS,
 } from '../../config/adminPages'
 
-function AdminSidebar({ activePage, onNavigate, sidebarOpen, setSidebarOpen }) {
+function AdminSidebar({
+  activePage,
+  onNavigate,
+  sidebarOpen,
+  setSidebarOpen,
+  isMobile,
+}) {
   const BrandIcon = ADMIN_BRAND_ICON
   const AccessIcon = ADMIN_ACCESS_ICON
 
   function handleNavigate(pageId) {
     onNavigate(pageId)
 
-    if (window.innerWidth <= 900) {
+    if (isMobile || window.innerWidth <= 900) {
       setSidebarOpen(false)
     }
   }
@@ -30,6 +36,15 @@ function AdminSidebar({ activePage, onNavigate, sidebarOpen, setSidebarOpen }) {
             <small>Admin Console</small>
           </div>
         </div>
+
+        <button
+          type="button"
+          className="admin-sidebar-close-btn"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close admin navigation menu"
+        >
+          <X size={19} />
+        </button>
 
         <button
           type="button"
@@ -63,7 +78,9 @@ function AdminSidebar({ activePage, onNavigate, sidebarOpen, setSidebarOpen }) {
                   <span className="admin-menu-icon menu-icon">
                     <Icon size={20} />
                   </span>
-                  <span className="admin-menu-label menu-label">{item.label}</span>
+                  <span className="admin-menu-label menu-label">
+                    {item.label}
+                  </span>
                 </button>
               )
             })}

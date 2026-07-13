@@ -7,6 +7,7 @@ function AdminLayout({
   onNavigate,
   sidebarOpen,
   setSidebarOpen,
+  isMobileViewport,
   theme,
   setTheme,
   children,
@@ -18,6 +19,17 @@ function AdminLayout({
         onNavigate={onNavigate}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
+        isMobile={isMobileViewport}
+      />
+
+      <button
+        type="button"
+        className={`admin-sidebar-backdrop ${
+          isMobileViewport && sidebarOpen ? 'visible' : ''
+        }`}
+        onClick={() => setSidebarOpen(false)}
+        aria-label="Close admin navigation menu"
+        tabIndex={isMobileViewport && sidebarOpen ? 0 : -1}
       />
 
       <main className="admin-main">
@@ -27,6 +39,8 @@ function AdminLayout({
           onNavigate={onNavigate}
           theme={theme}
           setTheme={setTheme}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen((open) => !open)}
         />
 
         <div className="admin-content">{children}</div>

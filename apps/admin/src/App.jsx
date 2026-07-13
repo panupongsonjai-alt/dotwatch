@@ -101,7 +101,13 @@ function PageLoading({ title = 'Loading admin page...' }) {
 function App() {
   const [activePage, setActivePage] = useState(getStoredAdminPage)
   const [theme, setTheme] = useState(readStorageValue('theme', 'dark'))
-  const [sidebarOpen, setSidebarOpen] = useState(getStoredSidebarOpen)
+  const [desktopSidebarOpen, setDesktopSidebarOpen] =
+    useState(getStoredSidebarOpen)
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => window.matchMedia('(max-width: 900px)').matches
+  )
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const sidebarOpen = isMobileViewport ? mobileSidebarOpen : desktopSidebarOpen
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [workspaceHelpOpen, setWorkspaceHelpOpen] = useState(false)
 
@@ -136,8 +142,36 @@ function App() {
   }, [activePage])
 
   useEffect(() => {
-    writeStorageValue(ADMIN_SIDEBAR_STORAGE_KEY, String(sidebarOpen))
-  }, [sidebarOpen])
+    writeStorageValue(ADMIN_SIDEBAR_STORAGE_KEY, String(desktopSidebarOpen))
+  }, [desktopSidebarOpen])
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 900px)')
+
+    function syncViewport(event) {
+      setIsMobileViewport(event.matches)
+      setMobileSidebarOpen(false)
+    }
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncViewport)
+      return () => mediaQuery.removeEventListener('change', syncViewport)
+    }
+
+    mediaQuery.addListener(syncViewport)
+    return () => mediaQuery.removeListener(syncViewport)
+  }, [])
+
+  useEffect(() => {
+    if (!isMobileViewport || !mobileSidebarOpen) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isMobileViewport, mobileSidebarOpen])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -164,6 +198,7 @@ function App() {
 
       if (event.key === 'Escape') {
         setCommandPaletteOpen(false)
+        setMobileSidebarOpen(false)
       }
     }
 
@@ -262,8 +297,21 @@ function App() {
     setReloadKey((current) => current + 1)
   }
 
+  function handleSidebarOpenChange(nextValue) {
+    const resolvedValue =
+      typeof nextValue === 'function' ? nextValue(sidebarOpen) : nextValue
+
+    if (isMobileViewport) {
+      setMobileSidebarOpen(Boolean(resolvedValue))
+      return
+    }
+
+    setDesktopSidebarOpen(Boolean(resolvedValue))
+  }
+
   function navigateAdminPage(page) {
     setActivePage(ADMIN_PAGE_KEYS.includes(page) ? page : 'overview')
+    setMobileSidebarOpen(false)
   }
 
   const stats = useMemo(() => {
@@ -367,7 +415,8 @@ function App() {
         adminUser={adminUser}
         onNavigate={navigateAdminPage}
         sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
+        setSidebarOpen={handleSidebarOpenChange}
+        isMobileViewport={isMobileViewport}
         theme={theme}
         setTheme={setTheme}
       >

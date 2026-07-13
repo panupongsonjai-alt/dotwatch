@@ -1,0 +1,887 @@
+/* =========================================================
+   dotWatch responsive system
+   Coverage: desktop, tablet, mobile, and large TV displays.
+   This file is intentionally imported last.
+========================================================= */
+
+:root {
+  --dw-content-max: 2400px;
+  --dw-touch-target: 44px;
+}
+
+html {
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body,
+#root,
+.layout,
+.main,
+.page,
+.app-page {
+  min-width: 0;
+}
+
+.page,
+.app-page,
+.unified-page {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+.main
+  > :is(
+    .api-status-banner,
+    .workspace-route-bar,
+    .page,
+    .app-page,
+    .command-palette-backdrop,
+    .workspace-help-backdrop
+  ) {
+  width: min(100%, var(--dw-content-max));
+  margin-inline: auto;
+}
+
+.page,
+.app-page,
+.unified-page,
+.app-card,
+.panel,
+.history-table-card,
+.history-chart-card,
+.history-filter-card,
+.device-detail-tab-panel {
+  min-width: 0;
+}
+
+:is(
+  .history-table-wrap,
+  .alarm-table-wrap,
+  .notification-table-wrap,
+  .activity-table-wrap,
+  .alarm-events-table-wrap,
+  .table-wrap,
+  .responsive-table
+) {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+:is(
+  .history-table,
+  .alarm-table,
+  .notification-history-table,
+  .activity-history-table
+) {
+  width: 100%;
+}
+
+:is(
+    .history-filter-grid,
+    .alarm-history-filter-grid,
+    .notification-history-filter-grid,
+    .activity-history-filter-grid,
+    .history-filter-actions,
+    .alarm-history-filter-actions,
+    .notification-history-filter-actions,
+    .filter-header-actions,
+    .history-table-actions,
+    .alarm-table-actions,
+    .notification-table-actions,
+    .activity-table-actions,
+    .device-detail-header-actions,
+    .devices-v3-reset-secret-actions,
+    .metric-config-footer-actions
+  )
+  > * {
+  min-width: 0;
+}
+
+:is(input, select, textarea, button) {
+  max-width: 100%;
+}
+
+textarea {
+  resize: vertical;
+}
+
+/* -------------------------
+   Large desktop / TV
+-------------------------- */
+@media (min-width: 1600px) {
+  .main {
+    padding-inline: clamp(32px, 2.4vw, 56px);
+    padding-bottom: clamp(32px, 2.4vw, 56px);
+  }
+
+  .top-header {
+    min-height: 84px;
+    height: 84px;
+    margin-inline: calc(0px - clamp(32px, 2.4vw, 56px));
+    padding-inline: clamp(32px, 2.4vw, 56px);
+  }
+
+  .page,
+  .app-page,
+  .unified-page {
+    gap: clamp(20px, 1.3vw, 30px);
+  }
+
+  .dw-page-header,
+  .app-card,
+  .panel,
+  .history-filter-card,
+  .history-chart-card,
+  .history-table-card {
+    border-radius: 24px;
+  }
+
+  .dw-page-header {
+    padding: clamp(24px, 1.8vw, 36px);
+  }
+
+  .dw-page-header h1,
+  .page-header h1 {
+    font-size: clamp(34px, 1.9vw, 48px);
+  }
+
+  .dw-page-header p,
+  .page-header p {
+    max-width: 1050px;
+    font-size: clamp(15px, 0.82vw, 19px);
+  }
+
+  .dw-page-stat-grid,
+  .dashboard-style-stat-grid,
+  .history-stat-grid,
+  .notifications-stat-grid,
+  .activity-stat-grid,
+  .system-health-stat-grid,
+  .profile-v3-stat-grid,
+  .settings-v3-stat-grid,
+  .device-detail-stat-grid {
+    gap: 16px !important;
+  }
+
+  :is(.dw-stat-card, .stat-card, .summary-card, .compact-summary-card) {
+    min-height: 116px !important;
+    padding: 20px !important;
+  }
+
+  .live-metrics-overview-grid,
+  .device-metrics-ds-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+  }
+
+  .dashboard-device-grid,
+  .overview-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+  }
+
+  .dashboard-map-card-v2
+    :is(.dashboard-map, .device-map-wrapper, .device-map-empty),
+  .device-map-wrapper,
+  .location-picker-map,
+  .history-chart-box,
+  .dw-chart-card {
+    min-height: clamp(440px, 31vh, 660px);
+  }
+
+  :is(
+    .history-table,
+    .alarm-table,
+    .notification-history-table,
+    .activity-history-table
+  ) {
+    font-size: 15px;
+  }
+
+  :is(
+      .history-table,
+      .alarm-table,
+      .notification-history-table,
+      .activity-history-table
+    )
+    :is(th, td) {
+    padding-block: 15px;
+  }
+}
+
+@media (min-width: 2200px) {
+  :root {
+    --dw-content-max: 2800px;
+  }
+
+  .sidebar:not(.collapsed) {
+    width: 300px;
+  }
+
+  .dashboard-health-kpi-grid,
+  .dw-page-stat-grid {
+    grid-template-columns: repeat(
+      var(--dw-stat-card-count, 5),
+      minmax(180px, 1fr)
+    ) !important;
+  }
+
+  .dashboard-alerts-under-map {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* -------------------------
+   Laptop / tablet landscape
+-------------------------- */
+@media (min-width: 901px) and (max-width: 1366px) {
+  .main {
+    padding: 0 20px 24px;
+  }
+
+  .top-header {
+    margin-inline: -20px;
+    padding-inline: 20px;
+  }
+
+  .workspace-route-bar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .workspace-route-main {
+    flex: 1 1 480px;
+  }
+
+  .workspace-route-actions {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .dw-page-stat-grid,
+  .dashboard-style-stat-grid,
+  .history-stat-grid,
+  .notifications-stat-grid,
+  .activity-stat-grid,
+  .system-health-stat-grid,
+  .profile-v3-stat-grid,
+  .settings-v3-stat-grid,
+  .device-detail-stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    overflow: visible !important;
+  }
+
+  .dw-page-stat-grid > *,
+  .dashboard-style-stat-grid > * {
+    min-width: 0 !important;
+  }
+
+  :is(
+    .history-filter-grid,
+    .alarm-history-filter-grid,
+    .notification-history-filter-grid,
+    .activity-history-filter-grid
+  ) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  :is(
+    .history-filter-actions,
+    .alarm-history-filter-actions,
+    .notification-history-filter-actions
+  ) {
+    grid-column: 1 / -1;
+  }
+
+  .profile-v3-layout,
+  .settings-v3-layout,
+  .system-health-grid,
+  .device-overview-grid-card-ds {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-map-card-v2
+    :is(.dashboard-map, .device-map-wrapper, .device-map-empty),
+  .device-map-wrapper,
+  .history-chart-box,
+  .dw-chart-card {
+    min-height: 360px;
+  }
+}
+
+/* -------------------------
+   Tablet portrait / mobile shell
+-------------------------- */
+@media (max-width: 900px) {
+  .main > :is(.api-status-banner, .workspace-route-bar, .page, .app-page) {
+    width: 100%;
+  }
+
+  .page,
+  .app-page,
+  .unified-page {
+    gap: 16px !important;
+  }
+
+  .dw-page-header,
+  .page-header {
+    width: 100%;
+  }
+
+  .dw-page-header > div,
+  .page-header > div,
+  .app-section-title > div,
+  .panel-header > div {
+    min-width: 0;
+  }
+
+  .dw-page-header h1,
+  .page-header h1,
+  .app-section-title h2,
+  .panel-header h2 {
+    overflow-wrap: anywhere;
+  }
+
+  :is(
+    .dw-page-stat-grid,
+    .dashboard-style-stat-grid,
+    .history-stat-grid,
+    .notifications-stat-grid,
+    .activity-stat-grid,
+    .system-health-stat-grid,
+    .profile-v3-stat-grid,
+    .settings-v3-stat-grid,
+    .device-detail-stat-grid,
+    .alarms-stat-grid,
+    .devices-ops-stat-grid
+  ),
+  :is([class*='stat-grid'], [class*='summary-grid']):has(
+    > :is(.dw-stat-card, .stat-card, .summary-card, .compact-summary-card)
+  ) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: auto !important;
+    gap: 12px !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    scroll-snap-type: none !important;
+  }
+
+  :is(
+      .dw-page-stat-grid,
+      .dashboard-style-stat-grid,
+      .history-stat-grid,
+      .notifications-stat-grid,
+      .activity-stat-grid,
+      .system-health-stat-grid,
+      .profile-v3-stat-grid,
+      .settings-v3-stat-grid,
+      .device-detail-stat-grid,
+      .alarms-stat-grid,
+      .devices-ops-stat-grid
+    )
+    > * {
+    width: auto !important;
+    min-width: 0 !important;
+    scroll-snap-align: none !important;
+  }
+
+  :is(
+    .history-filter-grid,
+    .alarm-history-filter-grid,
+    .notification-history-filter-grid,
+    .activity-history-filter-grid,
+    .history-export-filter-grid,
+    .alarm-event-export-filter-grid,
+    .notification-export-filter-grid
+  ) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  :is(
+    .history-filter-actions,
+    .alarm-history-filter-actions,
+    .notification-history-filter-actions,
+    .activity-history-filter-actions,
+    .alarm-filter-actions,
+    .notification-filter-actions
+  ) {
+    grid-column: 1 / -1;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  :is(
+    .filter-header-actions,
+    .history-table-actions,
+    .alarm-table-actions,
+    .notification-table-actions,
+    .activity-table-actions,
+    .history-trend-actions,
+    .device-detail-header-actions,
+    .metric-config-actions,
+    .metric-config-footer-actions,
+    .devices-v3-reset-secret-actions
+  ) {
+    flex-wrap: wrap;
+  }
+
+  .profile-v3-layout,
+  .settings-v3-layout,
+  .system-health-grid,
+  .device-overview-grid-card-ds,
+  .devices-v3-reset-secret-grid,
+  .admin-two-column {
+    grid-template-columns: 1fr !important;
+  }
+
+  .profile-v3-form-grid,
+  .profile-info-grid,
+  .settings-v3-option-grid,
+  .settings-recording-fields,
+  .system-health-info-grid,
+  .device-info-grid-ds,
+  .device-metrics-ds-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .device-detail-tabs,
+  .device-detail-tabs-v2,
+  [role='tablist'] {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .device-detail-tabs button,
+  .device-detail-tabs-v2 button,
+  [role='tablist'] button {
+    flex: 0 0 auto;
+    min-height: var(--dw-touch-target);
+  }
+
+  .metric-config-toolbar,
+  .metric-config-toolbar-redesign,
+  .metric-config-toolbar-main {
+    align-items: stretch !important;
+    flex-wrap: wrap !important;
+  }
+
+  .metric-config-toolbar-main,
+  .metric-config-toolbar-title {
+    min-width: 0;
+  }
+
+  .metric-alarm-config-table,
+  .metric-alarm-config-body,
+  .metric-alarm-config-group {
+    min-width: 0;
+  }
+
+  .metric-alarm-config-head {
+    display: none !important;
+  }
+
+  .metric-alarm-config-metric-row,
+  .metric-alarm-config-rule {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .metric-alarm-config-rules,
+  .metric-alarm-config-action {
+    grid-column: 1 / -1;
+  }
+
+  .metric-alarm-config-message-field {
+    grid-column: 1 / -1;
+  }
+
+  .metric-icon-dropdown-menu {
+    max-width: min(360px, calc(100vw - 48px));
+  }
+
+  :is(
+    .history-table,
+    .alarm-table,
+    .notification-history-table,
+    .activity-history-table
+  ) {
+    min-width: 760px;
+  }
+
+  .history-table-wrap::after,
+  .alarm-table-wrap::after,
+  .notification-table-wrap::after,
+  .activity-table-wrap::after {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 1px;
+  }
+
+  .dashboard-map-card-v2
+    :is(.dashboard-map, .device-map-wrapper, .device-map-empty),
+  .device-map-wrapper,
+  .location-picker-map,
+  .history-chart-box,
+  .dw-chart-card {
+    min-height: 320px;
+  }
+
+  .recharts-wrapper,
+  .recharts-surface {
+    max-width: 100%;
+  }
+
+  .command-palette,
+  .workspace-help-dialog,
+  .modal,
+  .confirm-dialog,
+  [role='dialog'] {
+    max-width: 100%;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+}
+
+/* -------------------------
+   Mobile
+-------------------------- */
+@media (max-width: 640px) {
+  :is([class*='stat-grid'], [class*='summary-grid']):has(
+    > :is(.dw-stat-card, .stat-card, .summary-card, .compact-summary-card)
+  ) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: auto !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+  }
+  :root {
+    --dw-touch-target: 46px;
+  }
+
+  .page,
+  .app-page,
+  .unified-page {
+    gap: 14px !important;
+  }
+
+  .dw-page-header,
+  .page-header,
+  .app-card,
+  .panel,
+  .history-filter-card,
+  .history-chart-card,
+  .history-table-card,
+  .device-detail-tab-panel,
+  .notifications-panel,
+  .activity-feed-card,
+  .system-health-card,
+  .settings-v3-card {
+    padding: 15px !important;
+    border-radius: 18px !important;
+  }
+
+  .dw-page-header {
+    min-height: 0 !important;
+  }
+
+  .dw-page-header h1,
+  .page-header h1 {
+    font-size: clamp(24px, 8vw, 31px) !important;
+    line-height: 1.08 !important;
+  }
+
+  .dw-page-header p,
+  .page-header p {
+    max-width: none !important;
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+  }
+
+  :is(
+    .dw-page-stat-grid,
+    .dashboard-style-stat-grid,
+    .history-stat-grid,
+    .notifications-stat-grid,
+    .activity-stat-grid,
+    .system-health-stat-grid,
+    .profile-v3-stat-grid,
+    .settings-v3-stat-grid,
+    .device-detail-stat-grid,
+    .alarms-stat-grid,
+    .devices-ops-stat-grid
+  ) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  :is(.dw-stat-card, .stat-card, .summary-card, .compact-summary-card) {
+    min-height: 100px !important;
+    padding: 13px !important;
+  }
+
+  :is(
+    .history-filter-grid,
+    .alarm-history-filter-grid,
+    .notification-history-filter-grid,
+    .activity-history-filter-grid,
+    .history-export-filter-grid,
+    .alarm-event-export-filter-grid,
+    .notification-export-filter-grid,
+    .profile-v3-form-grid,
+    .profile-info-grid,
+    .settings-v3-option-grid,
+    .settings-recording-fields,
+    .system-health-info-grid,
+    .device-info-grid-ds,
+    .device-metrics-ds-grid,
+    .devices-v3-reset-secret-grid
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  :is(
+    .filter-header-actions,
+    .history-filter-actions,
+    .alarm-history-filter-actions,
+    .notification-history-filter-actions,
+    .activity-history-filter-actions,
+    .history-table-actions,
+    .alarm-table-actions,
+    .notification-table-actions,
+    .activity-table-actions,
+    .history-trend-actions,
+    .device-detail-header-actions,
+    .metric-config-actions,
+    .metric-config-footer-actions,
+    .devices-v3-reset-secret-actions,
+    .profile-v3-security-actions
+  ) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    gap: 9px !important;
+  }
+
+  :is(
+      .filter-header-actions,
+      .history-filter-actions,
+      .alarm-history-filter-actions,
+      .notification-history-filter-actions,
+      .activity-history-filter-actions,
+      .history-table-actions,
+      .alarm-table-actions,
+      .notification-table-actions,
+      .activity-table-actions,
+      .history-trend-actions,
+      .device-detail-header-actions,
+      .metric-config-actions,
+      .metric-config-footer-actions,
+      .devices-v3-reset-secret-actions,
+      .profile-v3-security-actions
+    )
+    > :is(button, a, label, select, .unified-select) {
+    width: 100% !important;
+  }
+
+  :is(
+    .history-filter-field,
+    .alarm-filter-field,
+    .notification-filter-field,
+    .settings-recording-field
+  ) {
+    width: 100%;
+  }
+
+  :is(input, select, textarea, button, .unified-select-trigger) {
+    min-height: var(--dw-touch-target);
+  }
+
+  .live-metrics-overview-grid,
+  .dashboard-device-grid,
+  .overview-grid,
+  .dashboard-alerts-under-map,
+  .system-health-mini-list,
+  .session-grid,
+  .settings-v3-accent-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .metric-alarm-config-metric-row,
+  .metric-alarm-config-rule {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .metric-alarm-config-field,
+  .metric-alarm-config-control,
+  .metric-alarm-config-active-field,
+  .metric-alarm-config-action,
+  .metric-alarm-config-message-field,
+  .metric-alarm-config-rules {
+    grid-column: 1 !important;
+    width: 100%;
+  }
+
+  .metric-alarm-config-action .metric-config-delete-btn,
+  .metric-config-footer-actions button {
+    width: 100% !important;
+  }
+
+  :is(
+    .history-table,
+    .alarm-table,
+    .notification-history-table,
+    .activity-history-table
+  ) {
+    min-width: 700px;
+  }
+
+  :is(
+      .history-table,
+      .alarm-table,
+      .notification-history-table,
+      .activity-history-table
+    )
+    :is(th, td) {
+    padding: 11px 12px !important;
+  }
+
+  .dashboard-map-card-v2
+    :is(.dashboard-map, .device-map-wrapper, .device-map-empty),
+  .device-map-wrapper,
+  .location-picker-map,
+  .history-chart-box,
+  .dw-chart-card {
+    min-height: 260px;
+  }
+
+  .history-chart-card .recharts-legend-wrapper {
+    font-size: 11px;
+  }
+
+  .history-chart-card .recharts-cartesian-axis-tick-value {
+    font-size: 10px;
+  }
+
+  .notification-card,
+  .latest-active-alarm-item,
+  .device-timeline-item-ds {
+    min-width: 0;
+  }
+
+  .notification-card {
+    grid-template-columns: 38px minmax(0, 1fr) !important;
+  }
+
+  .notification-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .command-palette-backdrop,
+  .workspace-help-backdrop,
+  .modal-backdrop,
+  .confirm-backdrop {
+    align-items: end !important;
+    padding: max(8px, env(safe-area-inset-top)) 8px
+      max(8px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .command-palette,
+  .workspace-help-dialog,
+  .modal,
+  .confirm-dialog,
+  [role='dialog'] {
+    width: 100% !important;
+    max-height: min(88dvh, 760px) !important;
+    border-radius: 20px 20px 14px 14px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  :is([class*='stat-grid'], [class*='summary-grid']):has(
+    > :is(.dw-stat-card, .stat-card, .summary-card, .compact-summary-card)
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  :is(
+    .dw-page-stat-grid,
+    .dashboard-style-stat-grid,
+    .history-stat-grid,
+    .notifications-stat-grid,
+    .activity-stat-grid,
+    .system-health-stat-grid,
+    .profile-v3-stat-grid,
+    .settings-v3-stat-grid,
+    .device-detail-stat-grid,
+    .alarms-stat-grid,
+    .devices-ops-stat-grid
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  :is(.dw-stat-card, .stat-card, .summary-card, .compact-summary-card) {
+    min-height: 88px !important;
+  }
+
+  .mobile-header-context strong {
+    max-width: 96px;
+  }
+
+  .sidebar {
+    width: min(92vw, 304px) !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) and (max-width: 1000px) {
+  .sidebar {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .sidebar .brand {
+    margin-bottom: 10px;
+  }
+
+  .sidebar .menu-item {
+    height: 42px;
+  }
+
+  .command-palette,
+  .workspace-help-dialog,
+  .modal,
+  [role='dialog'] {
+    max-height: calc(100dvh - 12px) !important;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  :is(button, a, input, select, textarea, .unified-select-trigger) {
+    min-height: var(--dw-touch-target);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

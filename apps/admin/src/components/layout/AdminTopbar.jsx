@@ -1,9 +1,16 @@
 import { signOut } from 'firebase/auth'
-import { LogOut, Moon, Shield, Sun } from 'lucide-react'
+import { LogOut, Menu, Moon, Shield, Sun } from 'lucide-react'
 import { auth } from '../../services/firebase'
 import { ADMIN_PAGE_META } from '../../config/adminPages'
 
-function AdminTopbar({ activePage, adminUser, theme, setTheme }) {
+function AdminTopbar({
+  activePage,
+  adminUser,
+  theme,
+  setTheme,
+  sidebarOpen,
+  onToggleSidebar,
+}) {
   const meta = ADMIN_PAGE_META[activePage] || ADMIN_PAGE_META.overview
   const displayName =
     adminUser?.name ||
@@ -23,9 +30,23 @@ function AdminTopbar({ activePage, adminUser, theme, setTheme }) {
 
   return (
     <header className="admin-topbar top-header">
-      <div className="admin-topbar-title">
-        <p className="eyebrow page-eyebrow">{meta.section}</p>
-        <h1>{meta.title}</h1>
+      <div className="admin-mobile-header-main">
+        <button
+          type="button"
+          className="icon-button admin-mobile-menu-button"
+          onClick={onToggleSidebar}
+          aria-label={
+            sidebarOpen ? 'Close admin navigation' : 'Open admin navigation'
+          }
+          aria-expanded={sidebarOpen}
+        >
+          <Menu size={20} />
+        </button>
+
+        <div className="admin-topbar-title">
+          <p className="eyebrow page-eyebrow">{meta.section}</p>
+          <h1>{meta.title}</h1>
+        </div>
       </div>
 
       <div className="admin-topbar-actions header-actions">

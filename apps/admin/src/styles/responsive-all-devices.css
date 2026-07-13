@@ -1,0 +1,717 @@
+/* =========================================================
+   dotWatch Admin responsive system
+   Coverage: desktop, tablet, mobile, and large TV displays.
+   Imported after all legacy admin styles.
+========================================================= */
+
+:root {
+  --admin-content-max: 2400px;
+  --admin-touch-target: 44px;
+}
+
+html {
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body,
+#root,
+.admin-layout,
+.admin-main,
+.admin-content,
+.admin-page {
+  min-width: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.admin-page,
+.app-page,
+.unified-page {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+.admin-mobile-menu-button,
+.admin-sidebar-close-btn,
+.admin-sidebar-backdrop {
+  display: none;
+}
+
+.admin-mobile-header-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-content > * {
+  width: min(100%, var(--admin-content-max));
+  margin-inline: auto;
+}
+
+.admin-page,
+.admin-panel,
+.panel-card,
+.table-card,
+.toolbar-card,
+.settings-panel,
+.table-wrap,
+.responsive-table {
+  min-width: 0;
+}
+
+.table-wrap,
+.responsive-table {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table,
+.responsive-table table {
+  width: 100%;
+}
+
+:is(input, select, textarea, button) {
+  max-width: 100%;
+}
+
+/* -------------------------
+   Large desktop / TV
+-------------------------- */
+@media (min-width: 1600px) {
+  .admin-main {
+    padding: 0 clamp(32px, 2.4vw, 56px) clamp(32px, 2.4vw, 56px);
+  }
+
+  .admin-topbar.top-header {
+    min-height: 84px;
+    height: 84px;
+    margin-inline: calc(0px - clamp(32px, 2.4vw, 56px));
+    padding-inline: clamp(32px, 2.4vw, 56px);
+  }
+
+  .admin-page,
+  .app-page,
+  .unified-page {
+    gap: clamp(20px, 1.3vw, 30px);
+  }
+
+  .page-header,
+  .dw-page-header,
+  .admin-panel,
+  .panel-card,
+  .table-card,
+  .toolbar-card {
+    border-radius: 24px;
+  }
+
+  .page-header,
+  .dw-page-header {
+    padding: clamp(24px, 1.8vw, 36px);
+  }
+
+  .page-header h1,
+  .dw-page-header h1 {
+    font-size: clamp(34px, 1.9vw, 48px);
+  }
+
+  .admin-stat-grid {
+    grid-template-columns: repeat(6, minmax(180px, 1fr)) !important;
+    gap: 16px;
+  }
+
+  .admin-stat-grid.compact {
+    grid-template-columns: repeat(4, minmax(200px, 1fr)) !important;
+  }
+
+  :is(.admin-stat-card, .admin-stat-grid .stat-card) {
+    min-height: 116px;
+    padding: 20px;
+  }
+
+  .admin-table,
+  .responsive-table table {
+    font-size: 15px;
+  }
+
+  .admin-table :is(th, td),
+  .responsive-table :is(th, td) {
+    padding-block: 15px;
+  }
+}
+
+@media (min-width: 2200px) {
+  :root {
+    --admin-content-max: 2800px;
+  }
+
+  .admin-layout:not(.sidebar-collapsed) {
+    --admin-sidebar-width: 300px;
+  }
+}
+
+/* -------------------------
+   Laptop / tablet landscape
+-------------------------- */
+@media (min-width: 901px) and (max-width: 1366px) {
+  .admin-main {
+    padding: 0 20px 24px;
+  }
+
+  .admin-topbar.top-header {
+    margin-inline: -20px;
+    padding-inline: 20px;
+  }
+
+  .workspace-route-bar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .workspace-route-main {
+    flex: 1 1 480px;
+  }
+
+  .workspace-route-actions {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .admin-stat-grid,
+  .admin-stat-grid.compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .admin-models-layout,
+  .admin-two-column {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-toolbar,
+  .toolbar-card,
+  .table-header,
+  .page-header,
+  .panel-header {
+    flex-wrap: wrap;
+  }
+}
+
+/* -------------------------
+   Tablet portrait / mobile shell
+-------------------------- */
+@media (max-width: 900px) {
+  .admin-layout,
+  .admin-layout.sidebar-collapsed {
+    display: block !important;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .admin-main {
+    width: 100%;
+    min-width: 0;
+    padding: 0 max(16px, env(safe-area-inset-right))
+      calc(22px + env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left)) !important;
+    overflow-x: clip;
+  }
+
+  .admin-topbar.top-header {
+    z-index: 40;
+    width: auto;
+    min-height: calc(64px + env(safe-area-inset-top)) !important;
+    height: calc(64px + env(safe-area-inset-top)) !important;
+    margin: 0 calc(0px - max(16px, env(safe-area-inset-right))) 16px
+      calc(0px - max(16px, env(safe-area-inset-left))) !important;
+    padding: env(safe-area-inset-top) max(16px, env(safe-area-inset-right)) 0
+      max(16px, env(safe-area-inset-left)) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .admin-mobile-header-main {
+    flex: 1 1 auto;
+  }
+
+  .admin-mobile-menu-button,
+  .admin-sidebar-close-btn {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 14px;
+  }
+
+  .admin-mobile-menu-button {
+    flex: 0 0 auto;
+  }
+
+  .admin-topbar-title {
+    min-width: 0;
+  }
+
+  .admin-topbar-title h1,
+  .admin-topbar-title p {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-topbar-title h1 {
+    font-size: 18px;
+  }
+
+  .admin-topbar-title .eyebrow {
+    margin-bottom: 3px;
+    font-size: 9px;
+  }
+
+  .admin-topbar-actions.header-actions {
+    width: auto !important;
+    flex: 0 0 auto;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px;
+  }
+
+  .admin-topbar .icon-button,
+  .admin-topbar .admin-signout-button {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 14px;
+  }
+
+  .admin-sidebar,
+  .admin-sidebar.collapsed,
+  .admin-layout.sidebar-collapsed .admin-sidebar {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    z-index: 100 !important;
+    width: min(86vw, 304px) !important;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0 !important;
+    padding: calc(18px + env(safe-area-inset-top)) 16px
+      calc(18px + env(safe-area-inset-bottom)) !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transform: translateX(0) !important;
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+      transform 220ms ease,
+      visibility 220ms ease !important;
+    box-shadow: 24px 0 56px rgba(2, 6, 23, 0.42) !important;
+  }
+
+  .admin-sidebar.collapsed,
+  .admin-layout.sidebar-collapsed .admin-sidebar {
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(-105%) !important;
+  }
+
+  .admin-sidebar .admin-brand,
+  .admin-sidebar.collapsed .admin-brand,
+  .admin-layout.sidebar-collapsed .admin-sidebar .admin-brand {
+    height: 58px;
+    margin: 0 0 18px;
+    padding: 10px;
+    justify-content: space-between;
+  }
+
+  .admin-sidebar .admin-brand-left,
+  .admin-sidebar.collapsed .admin-brand-left,
+  .admin-layout.sidebar-collapsed .admin-sidebar .admin-brand-left {
+    display: flex !important;
+    width: auto !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .admin-sidebar .admin-menu-section-label,
+  .admin-sidebar .admin-menu-label,
+  .admin-sidebar.collapsed .admin-menu-section-label,
+  .admin-sidebar.collapsed .admin-menu-label,
+  .admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-section-label,
+  .admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-label {
+    display: initial !important;
+    width: auto !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .admin-sidebar .admin-menu-section-label,
+  .admin-sidebar.collapsed .admin-menu-section-label,
+  .admin-layout.sidebar-collapsed .admin-sidebar .admin-menu-section-label {
+    display: block !important;
+  }
+
+  .admin-sidebar .admin-nav-item,
+  .admin-sidebar.collapsed .admin-nav-item,
+  .admin-layout.sidebar-collapsed .admin-sidebar .admin-nav-item {
+    width: 100% !important;
+    height: 48px;
+    padding: 0 14px !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .admin-sidebar .collapse-btn {
+    display: none !important;
+  }
+
+  .admin-sidebar-close-btn {
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .admin-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgba(2, 6, 23, 0.62);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 180ms ease,
+      visibility 180ms ease;
+  }
+
+  .admin-sidebar-backdrop.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .workspace-route-bar {
+    display: none !important;
+  }
+
+  .admin-page-toolbar {
+    justify-content: stretch;
+  }
+
+  .admin-page-toolbar > button {
+    width: 100%;
+  }
+
+  .admin-page,
+  .app-page,
+  .unified-page {
+    gap: 16px;
+  }
+
+  .page-header,
+  .dw-page-header,
+  .panel-header,
+  .table-header,
+  .admin-toolbar,
+  .toolbar-card {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 12px;
+  }
+
+  .admin-stat-grid,
+  .admin-stat-grid.compact {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .admin-stat-grid:has(> :is(.dw-stat-card, .admin-stat-card, .stat-card)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: auto !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+  }
+
+  .admin-two-column,
+  .admin-models-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .admin-model-form,
+  .admin-model-metric-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .admin-model-full,
+  .admin-model-metrics,
+  .admin-model-check,
+  .admin-model-form .table-actions {
+    grid-column: 1 / -1;
+  }
+
+  .admin-toolbar > *,
+  .toolbar-card > *,
+  .search-box,
+  .admin-toolbar .unified-select {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .table-actions {
+    flex-wrap: wrap;
+  }
+
+  .admin-table,
+  .responsive-table table {
+    min-width: 760px;
+  }
+
+  .admin-confirm-dialog,
+  .admin-command-palette,
+  .admin-workspace-help-dialog,
+  [role='dialog'] {
+    max-width: 100%;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+}
+
+/* -------------------------
+   Mobile
+-------------------------- */
+@media (max-width: 640px) {
+  .admin-stat-grid:has(> :is(.dw-stat-card, .admin-stat-card, .stat-card)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: auto !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+  }
+  :root {
+    --admin-touch-target: 46px;
+  }
+
+  .admin-main {
+    padding: 0 max(12px, env(safe-area-inset-right))
+      calc(18px + env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left)) !important;
+  }
+
+  .admin-topbar.top-header {
+    margin-inline: calc(0px - max(12px, env(safe-area-inset-right))) !important;
+    padding-inline: max(12px, env(safe-area-inset-right)) !important;
+  }
+
+  .admin-profile-pill {
+    display: none !important;
+  }
+
+  .admin-page,
+  .app-page,
+  .unified-page {
+    gap: 14px;
+  }
+
+  .page-header,
+  .dw-page-header,
+  .admin-panel,
+  .panel-card,
+  .table-card,
+  .toolbar-card,
+  .settings-panel {
+    padding: 15px !important;
+    border-radius: 18px !important;
+  }
+
+  .page-header h1,
+  .dw-page-header h1 {
+    font-size: clamp(24px, 8vw, 31px) !important;
+    line-height: 1.08 !important;
+  }
+
+  .page-header p,
+  .dw-page-header p {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .admin-stat-grid,
+  .admin-stat-grid.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  :is(.admin-stat-card, .admin-stat-grid .stat-card) {
+    min-height: 100px;
+    padding: 13px;
+  }
+
+  .admin-model-form,
+  .admin-model-metric-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .admin-model-full,
+  .admin-model-metrics,
+  .admin-model-check,
+  .admin-model-form .table-actions {
+    grid-column: 1;
+  }
+
+  .admin-toolbar,
+  .toolbar-card,
+  .table-actions,
+  .admin-confirm-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    gap: 9px !important;
+  }
+
+  .admin-toolbar > *,
+  .toolbar-card > *,
+  .table-actions > *,
+  .admin-confirm-actions > * {
+    width: 100% !important;
+  }
+
+  :is(input, select, textarea, button, .unified-select-trigger) {
+    min-height: var(--admin-touch-target);
+  }
+
+  .admin-table,
+  .responsive-table table {
+    min-width: 700px;
+  }
+
+  .admin-table :is(th, td),
+  .responsive-table :is(th, td) {
+    padding: 11px 12px !important;
+  }
+
+  .admin-list-row,
+  .health-row,
+  .timeline-item {
+    align-items: flex-start;
+  }
+
+  .admin-popup-toast-viewport {
+    top: auto;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    left: 10px;
+    width: auto;
+  }
+
+  .admin-confirm-backdrop,
+  .admin-command-palette-backdrop,
+  .admin-workspace-help-backdrop {
+    align-items: end !important;
+    padding: max(8px, env(safe-area-inset-top)) 8px
+      max(8px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .admin-confirm-dialog,
+  .admin-command-palette,
+  .admin-workspace-help-dialog,
+  [role='dialog'] {
+    width: 100% !important;
+    max-height: min(88dvh, 760px) !important;
+    border-radius: 20px 20px 14px 14px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-stat-grid:has(> :is(.dw-stat-card, .admin-stat-card, .stat-card)) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .admin-stat-grid,
+  .admin-stat-grid.compact {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  :is(.admin-stat-card, .admin-stat-grid .stat-card) {
+    min-height: 88px;
+  }
+
+  .admin-sidebar,
+  .admin-sidebar.collapsed,
+  .admin-layout.sidebar-collapsed .admin-sidebar {
+    width: min(92vw, 304px) !important;
+  }
+
+  .admin-topbar-title h1 {
+    max-width: 112px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 560px) and (max-width: 1000px) {
+  .admin-sidebar,
+  .admin-sidebar.collapsed,
+  .admin-layout.sidebar-collapsed .admin-sidebar {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .admin-sidebar .admin-brand {
+    margin-bottom: 10px;
+  }
+
+  .admin-sidebar .admin-nav-item {
+    height: 42px;
+  }
+
+  .admin-confirm-dialog,
+  .admin-command-palette,
+  .admin-workspace-help-dialog,
+  [role='dialog'] {
+    max-height: calc(100dvh - 12px) !important;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  :is(button, a, input, select, textarea, .unified-select-trigger) {
+    min-height: var(--admin-touch-target);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-sidebar,
+  .admin-sidebar-backdrop {
+    transition: none !important;
+  }
+}
