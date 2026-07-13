@@ -7,6 +7,7 @@ import {
   Clock3,
   CheckCircle2,
   Edit3,
+  ExternalLink,
   Copy,
   Eye,
   EyeOff,
@@ -1010,7 +1011,22 @@ function SelectedDevicePanel({
                 <span>IP Address</span>
                 <small>Latest ingest IP</small>
               </dt>
-              <dd>{selectedDevice.last_ip_address || '--'}</dd>
+              <dd>
+                {selectedDevice.last_ip_address ? (
+                  <a
+                    className="devices-v3-device-settings-link"
+                    href={`http://${selectedDevice.last_ip_address}/#device`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Open Device Settings"
+                  >
+                    <span>{selectedDevice.last_ip_address}</span>
+                    <ExternalLink size={15} aria-hidden="true" />
+                  </a>
+                ) : (
+                  '--'
+                )}
+              </dd>
             </div>
 
             <div className="devices-v3-overview-list-item">
