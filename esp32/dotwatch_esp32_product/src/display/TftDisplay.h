@@ -1,8 +1,8 @@
 #pragma once
 
 #include <Arduino.h>
-#include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
+#include <lvgl.h>
 
 #include "AppTypes.h"
 
@@ -15,69 +15,97 @@ class TftDisplay {
   bool ready() const;
 
  private:
-  void drawFrame();
-  void drawHeader();
-  void drawHeaderStatus(const RuntimeStatus &status, bool pulseOn);
-  void drawFooter(const RuntimeStatus &status);
-  void drawStatusChip(
-      int16_t x,
+  static constexpr int16_t DISPLAY_WIDTH = 240;
+  static constexpr int16_t DISPLAY_HEIGHT = 320;
+  static constexpr uint16_t DRAW_BUFFER_ROWS = 24;
+
+  static void flushDisplay(
+      lv_disp_drv_t *displayDriver,
+      const lv_area_t *area,
+      lv_color_t *colorMap);
+
+  void createDashboard();
+  void createHeader();
+  void createMetricCard(
       int16_t y,
-      int16_t width,
-      const char *text,
-      uint16_t indicatorColor,
-      uint16_t textColor);
-  void drawMetricCard(
-      int16_t y,
-      const char *label,
-      float value,
-      float sessionMin,
-      float sessionMax,
+      const char *badgeText,
+      const char *title,
       const char *unit,
-      uint16_t accent,
-      float gaugeMin,
-      float gaugeMax,
-      bool available,
-      bool temperatureCard);
-  void drawMetricIcon(
-      int16_t centerX,
-      int16_t centerY,
-      uint16_t accent,
-      bool temperatureCard);
-  void drawGauge(
+      lv_color_t accent,
+      int32_t barMinimum,
+      int32_t barMaximum,
+      lv_obj_t *&valueLabel,
+      lv_obj_t *&minimumLabel,
+      lv_obj_t *&maximumLabel,
+      lv_obj_t *&bar);
+  void createFooter();
+  void createStatusChip(
       int16_t x,
       int16_t y,
       int16_t width,
+      lv_obj_t *&dot,
+      lv_obj_t *&label);
+
+  void updateDashboard(const RuntimeStatus &status, bool force);
+  void updateMetric(
+      lv_obj_t *valueLabel,
+      lv_obj_t *minimumLabel,
+      lv_obj_t *maximumLabel,
+      lv_obj_t *bar,
       float value,
-      float minimum,
-      float maximum,
-      uint16_t accent,
+      float sessionMinimum,
+      float sessionMaximum,
       bool available);
-  void drawText(
-      const char *text,
-      int16_t x,
-      int16_t baselineY,
-      const GFXfont *font,
-      uint16_t color);
-  void drawCenteredText(
-      const char *text,
-      int16_t centerX,
-      int16_t baselineY,
-      const GFXfont *font,
-      uint16_t color);
-  void drawRightAlignedText(
-      const char *text,
-      int16_t rightX,
-      int16_t baselineY,
-      const GFXfont *font,
-      uint16_t color);
   void updateSessionExtrema(const RuntimeStatus &status);
   void resetSessionExtrema();
+
+  void stylePanel(
+      lv_obj_t *object,
+      lv_color_t background,
+      lv_color_t border,
+      int16_t radius,
+      int16_t borderWidth = 1);
+  void styleLabel(
+      lv_obj_t *label,
+      const lv_font_t *font,
+      lv_color_t color,
+      int16_t letterSpacing = 0);
+
   const char *stateText(AppState state) const;
-  uint16_t stateColor(AppState state) const;
+  lv_color_t stateColor(AppState state) const;
   bool valueChanged(float current, float previous) const;
-  bool pulseChanged(bool pulseOn) const;
 
   Adafruit_ILI9341 tft_;
+
+  lv_disp_draw_buf_t drawBufferDescriptor_;
+  lv_color_t drawBuffer_[DISPLAY_WIDTH * DRAW_BUFFER_ROWS];
+  lv_disp_drv_t displayDriver_;
+
+  lv_obj_t *screen_ = nullptr;
+  lv_obj_t *liveChip_ = nullptr;
+  lv_obj_t *liveDot_ = nullptr;
+  lv_obj_t *liveLabel_ = nullptr;
+
+  lv_obj_t *temperatureValueLabel_ = nullptr;
+  lv_obj_t *temperatureMinimumLabel_ = nullptr;
+  lv_obj_t *temperatureMaximumLabel_ = nullptr;
+  lv_obj_t *temperatureBar_ = nullptr;
+
+  lv_obj_t *humidityValueLabel_ = nullptr;
+  lv_obj_t *humidityMinimumLabel_ = nullptr;
+  lv_obj_t *humidityMaximumLabel_ = nullptr;
+  lv_obj_t *humidityBar_ = nullptr;
+
+  lv_obj_t *stateChip_ = nullptr;
+  lv_obj_t *stateDot_ = nullptr;
+  lv_obj_t *stateLabel_ = nullptr;
+  lv_obj_t *wifiDot_ = nullptr;
+  lv_obj_t *wifiLabel_ = nullptr;
+  lv_obj_t *serverDot_ = nullptr;
+  lv_obj_t *serverLabel_ = nullptr;
+  lv_obj_t *ipLabel_ = nullptr;
+  lv_obj_t *ageLabel_ = nullptr;
+
   bool ready_ = false;
   bool firstDraw_ = true;
   bool lastPulseOn_ = false;
@@ -92,6 +120,9 @@ class TftDisplay {
   float maxTemperature_ = NAN;
   float minHumidity_ = NAN;
   float maxHumidity_ = NAN;
-  unsigned long lastRefreshAt_ = 0;
-  unsigned long lastFooterSecond_ = 0;
+
+  unsigned long lastLvglTickAt_ = 0;
+  unsigned long lastHandlerAt_ = 0;
+  unsigned long lastUiRefreshAt_ = 0;
+  unsigned long lastAgeSecond_ = 0;
 };
