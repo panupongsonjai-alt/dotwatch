@@ -14,6 +14,12 @@ import {
 } from '../components/common'
 import { getLocalDateInputValue, isDateInRange } from '../utils/tableExport'
 import { showSuccessToast } from '../utils/uiFeedback'
+import {
+  readTablePageSize,
+  TABLE_PAGE_SIZE_OPTIONS,
+  TABLE_PAGE_SIZE_STORAGE_KEYS,
+  writeTablePageSize,
+} from '../utils/tablePageSizePreference'
 
 const ACTIVITY_TYPE_LABELS = {
   all: 'All Activity Types',
@@ -24,7 +30,7 @@ const ACTIVITY_TYPE_LABELS = {
   other: 'Other',
 }
 
-const ACTIVITY_PAGE_SIZES = [10, 20, 50, 100]
+const ACTIVITY_PAGE_SIZES = TABLE_PAGE_SIZE_OPTIONS
 
 function formatActivityDate(value) {
   const date = new Date(value)
@@ -110,7 +116,9 @@ function ActivityCenter() {
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [clearingActivities, setClearingActivities] = useState(false)
   const [activityPage, setActivityPage] = useState(1)
-  const [activityPageSize, setActivityPageSize] = useState(20)
+  const [activityPageSize, setActivityPageSize] = useState(() =>
+    readTablePageSize(TABLE_PAGE_SIZE_STORAGE_KEYS.activity)
+  )
   const [activitySortOrder, setActivitySortOrder] = useState('desc')
 
   async function loadActivity({ quiet = false } = {}) {
@@ -252,13 +260,6 @@ function ActivityCenter() {
     Math.ceil(sortedActivities.length / activityPageSize)
   )
   const safeActivityPage = Math.min(activityPage, activityTotalPages)
-  const activityRangeStart = sortedActivities.length
-    ? (safeActivityPage - 1) * activityPageSize + 1
-    : 0
-  const activityRangeEnd = Math.min(
-    safeActivityPage * activityPageSize,
-    sortedActivities.length
-  )
   const paginatedActivities = sortedActivities.slice(
     (safeActivityPage - 1) * activityPageSize,
     safeActivityPage * activityPageSize
@@ -267,6 +268,10 @@ function ActivityCenter() {
   useEffect(() => {
     setActivityPage(1)
   }, [selectedDeviceId, startDate, endDate, activityTypeFilter, activityPageSize, activitySortOrder])
+
+  useEffect(() => {
+    writeTablePageSize(TABLE_PAGE_SIZE_STORAGE_KEYS.activity, activityPageSize)
+  }, [activityPageSize])
 
   useEffect(() => {
     if (activityPage > activityTotalPages) setActivityPage(activityTotalPages)
@@ -349,7 +354,12 @@ function ActivityCenter() {
             <button
               type="button"
               className="secondary-button filter-refresh-button"
-              onClick={() => loadActivity({ quiet: true })}
+              onClick={() => {
+                const currentDate = getLocalDateInputValue()
+                setStartDate(currentDate)
+                setEndDate(currentDate)
+                loadActivity({ quiet: true })
+              }}
               disabled={refreshing}
             >
               <RefreshCw size={16} />
@@ -474,10 +484,6 @@ function ActivityCenter() {
           </div>
 
           <div className="activity-table-actions">
-            <span>
-              {activityRangeStart}-{activityRangeEnd} / {sortedActivities.length} rows
-            </span>
-
             <label>
               <span>Show</span>
               <UnifiedSelect

@@ -39,10 +39,16 @@ import {
   formatMetricValue,
   getMetricDecimalPlaces,
 } from '../utils/metricDisplayConfig'
+import {
+  readTablePageSize,
+  TABLE_PAGE_SIZE_OPTIONS,
+  TABLE_PAGE_SIZE_STORAGE_KEYS,
+  writeTablePageSize,
+} from '../utils/tablePageSizePreference'
 
 const READ_STORAGE_KEY = 'dotwatchReadNotifications'
 
-const TABLE_PAGE_SIZES = [10, 20, 50, 100]
+const TABLE_PAGE_SIZES = TABLE_PAGE_SIZE_OPTIONS
 
 function formatDate(value) {
   if (!value) return '--'
@@ -67,13 +73,6 @@ function getRelativeTime(value) {
   if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}h ago`
 
   return `${Math.floor(diffSeconds / 86400)}d ago`
-}
-
-function getPageRange(page, pageSize, total) {
-  if (total === 0) return { start: 0, end: 0 }
-
-  const start = (page - 1) * pageSize + 1
-  return { start, end: Math.min(total, start + pageSize - 1) }
 }
 
 function readStoredIds() {
@@ -248,7 +247,9 @@ function NotificationCenter() {
   const [clearingNotifications, setClearingNotifications] = useState(false)
   const [notice, setNotice] = useState('')
   const [pageError, setPageError] = useState('')
-  const [pageSize, setPageSize] = useState(20)
+  const [pageSize, setPageSize] = useState(() =>
+    readTablePageSize(TABLE_PAGE_SIZE_STORAGE_KEYS.notifications)
+  )
   const [sortOrder, setSortOrder] = useState('desc')
   const [page, setPage] = useState(1)
 
@@ -548,11 +549,13 @@ function NotificationCenter() {
     (safePage - 1) * pageSize,
     safePage * pageSize
   )
-  const range = getPageRange(safePage, pageSize, filteredNotifications.length)
-
   useEffect(() => {
     setPage(1)
   }, [deviceFilter, metricFilter, startDate, endDate, pageSize, sortOrder])
+
+  useEffect(() => {
+    writeTablePageSize(TABLE_PAGE_SIZE_STORAGE_KEYS.notifications, pageSize)
+  }, [pageSize])
 
   useEffect(() => {
     if (
@@ -634,7 +637,12 @@ function NotificationCenter() {
             <button
               type="button"
               className="secondary-button filter-refresh-button"
-              onClick={loadData}
+              onClick={() => {
+                const currentDate = getLocalDateInputValue()
+                setStartDate(currentDate)
+                setEndDate(currentDate)
+                loadData()
+              }}
             >
               <RefreshCw size={16} />
               Refresh
@@ -797,10 +805,6 @@ function NotificationCenter() {
           </div>
 
           <div className="notification-table-actions">
-            <span>
-              {range.start}-{range.end} / {filteredNotifications.length} rows
-            </span>
-
             <label>
               <span>Show</span>
               <UnifiedSelect
