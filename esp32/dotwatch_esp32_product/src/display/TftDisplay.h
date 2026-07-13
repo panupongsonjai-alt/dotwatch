@@ -15,9 +15,9 @@ class TftDisplay {
   bool ready() const;
 
  private:
-  static constexpr int16_t DISPLAY_WIDTH = 240;
-  static constexpr int16_t DISPLAY_HEIGHT = 320;
-  static constexpr uint16_t DRAW_BUFFER_ROWS = 24;
+  static constexpr int16_t DISPLAY_WIDTH = 320;
+  static constexpr int16_t DISPLAY_HEIGHT = 240;
+  static constexpr uint16_t DRAW_BUFFER_ROWS = 18;
 
   static void flushDisplay(
       lv_disp_drv_t *displayDriver,
@@ -25,39 +25,24 @@ class TftDisplay {
       lv_color_t *colorMap);
 
   void createDashboard();
-  void createHeader();
-  void createMetricCard(
-      int16_t y,
-      const char *badgeText,
-      const char *title,
-      const char *unit,
-      lv_color_t accent,
-      int32_t barMinimum,
-      int32_t barMaximum,
-      lv_obj_t *&valueLabel,
-      lv_obj_t *&minimumLabel,
-      lv_obj_t *&maximumLabel,
-      lv_obj_t *&bar);
-  void createFooter();
-  void createStatusChip(
+  void createMetricSection(
+      lv_obj_t *parent,
       int16_t x,
-      int16_t y,
+      bool temperatureSection,
+      lv_obj_t *&valueLabel);
+  void createThermometerIcon(lv_obj_t *parent);
+  void createHumidityIcon(lv_obj_t *parent);
+  void createStatusBar();
+  void createStatusItem(
+      lv_obj_t *parent,
+      int16_t x,
       int16_t width,
       lv_obj_t *&dot,
       lv_obj_t *&label);
 
   void updateDashboard(const RuntimeStatus &status, bool force);
-  void updateMetric(
-      lv_obj_t *valueLabel,
-      lv_obj_t *minimumLabel,
-      lv_obj_t *maximumLabel,
-      lv_obj_t *bar,
-      float value,
-      float sessionMinimum,
-      float sessionMaximum,
-      bool available);
-  void updateSessionExtrema(const RuntimeStatus &status);
-  void resetSessionExtrema();
+  void updateTemperature(float value, bool available);
+  void updateHumidity(float value, bool available);
 
   void stylePanel(
       lv_obj_t *object,
@@ -70,6 +55,7 @@ class TftDisplay {
       const lv_font_t *font,
       lv_color_t color,
       int16_t letterSpacing = 0);
+  void styleDot(lv_obj_t *dot, lv_color_t color);
 
   const char *stateText(AppState state) const;
   lv_color_t stateColor(AppState state) const;
@@ -82,47 +68,26 @@ class TftDisplay {
   lv_disp_drv_t displayDriver_;
 
   lv_obj_t *screen_ = nullptr;
-  lv_obj_t *liveChip_ = nullptr;
-  lv_obj_t *liveDot_ = nullptr;
-  lv_obj_t *liveLabel_ = nullptr;
-
   lv_obj_t *temperatureValueLabel_ = nullptr;
-  lv_obj_t *temperatureMinimumLabel_ = nullptr;
-  lv_obj_t *temperatureMaximumLabel_ = nullptr;
-  lv_obj_t *temperatureBar_ = nullptr;
-
   lv_obj_t *humidityValueLabel_ = nullptr;
-  lv_obj_t *humidityMinimumLabel_ = nullptr;
-  lv_obj_t *humidityMaximumLabel_ = nullptr;
-  lv_obj_t *humidityBar_ = nullptr;
 
-  lv_obj_t *stateChip_ = nullptr;
   lv_obj_t *stateDot_ = nullptr;
   lv_obj_t *stateLabel_ = nullptr;
   lv_obj_t *wifiDot_ = nullptr;
   lv_obj_t *wifiLabel_ = nullptr;
-  lv_obj_t *serverDot_ = nullptr;
-  lv_obj_t *serverLabel_ = nullptr;
-  lv_obj_t *ipLabel_ = nullptr;
-  lv_obj_t *ageLabel_ = nullptr;
+  lv_obj_t *cloudDot_ = nullptr;
+  lv_obj_t *cloudLabel_ = nullptr;
 
   bool ready_ = false;
   bool firstDraw_ = true;
-  bool lastPulseOn_ = false;
   AppState lastState_ = AppState::BOOTING;
   bool lastWifiConnected_ = false;
   bool lastBackendConnected_ = false;
   bool lastSensorAvailable_ = false;
-  bool lastFallbackUsed_ = false;
   float lastTemperature_ = NAN;
   float lastHumidity_ = NAN;
-  float minTemperature_ = NAN;
-  float maxTemperature_ = NAN;
-  float minHumidity_ = NAN;
-  float maxHumidity_ = NAN;
 
   unsigned long lastLvglTickAt_ = 0;
   unsigned long lastHandlerAt_ = 0;
   unsigned long lastUiRefreshAt_ = 0;
-  unsigned long lastAgeSecond_ = 0;
 };

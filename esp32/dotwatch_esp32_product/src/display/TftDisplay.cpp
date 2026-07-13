@@ -8,37 +8,41 @@
 
 namespace {
 
-constexpr uint32_t COLOR_BACKGROUND_HEX = 0x09070A;
-constexpr uint32_t COLOR_HEADER_HEX = 0x130B0E;
-constexpr uint32_t COLOR_SURFACE_HEX = 0x181215;
-constexpr uint32_t COLOR_SURFACE_RAISED_HEX = 0x23181C;
-constexpr uint32_t COLOR_BORDER_HEX = 0x482C32;
-constexpr uint32_t COLOR_DIVIDER_HEX = 0x3A2329;
-constexpr uint32_t COLOR_RED_PRIMARY_HEX = 0xDC2333;
-constexpr uint32_t COLOR_RED_BRIGHT_HEX = 0xFF3F4E;
-constexpr uint32_t COLOR_RED_DARK_HEX = 0x68111D;
-constexpr uint32_t COLOR_ROSE_HEX = 0xF45B75;
-constexpr uint32_t COLOR_TEXT_HEX = 0xFFFFFF;
-constexpr uint32_t COLOR_TEXT_SECONDARY_HEX = 0xD3C1C6;
-constexpr uint32_t COLOR_TEXT_MUTED_HEX = 0x927D83;
-constexpr uint32_t COLOR_SUCCESS_HEX = 0x37D27A;
-constexpr uint32_t COLOR_WARNING_HEX = 0xFFB84D;
-constexpr uint32_t COLOR_DANGER_HEX = 0xFF4A55;
-constexpr uint32_t COLOR_INFO_HEX = 0x69A4FF;
-constexpr uint32_t COLOR_GAUGE_TRACK_HEX = 0x39272C;
+constexpr uint32_t COLOR_OUTER_HEX = 0x080A0C;
+constexpr uint32_t COLOR_SCREEN_HEX = 0x000000;
+constexpr uint32_t COLOR_PANEL_BORDER_HEX = 0x30363B;
+constexpr uint32_t COLOR_DIVIDER_HEX = 0x252B30;
+constexpr uint32_t COLOR_TEXT_HEX = 0xF7FAFC;
+constexpr uint32_t COLOR_TEXT_MUTED_HEX = 0xAEB7BE;
+constexpr uint32_t COLOR_BLUE_HEX = 0x62B5E5;
+constexpr uint32_t COLOR_BLUE_DIM_HEX = 0x2E6688;
+constexpr uint32_t COLOR_SUCCESS_HEX = 0x55D68B;
+constexpr uint32_t COLOR_WARNING_HEX = 0xFFBD59;
+constexpr uint32_t COLOR_DANGER_HEX = 0xFF6670;
+constexpr uint32_t COLOR_INFO_HEX = 0x62B5E5;
+constexpr uint32_t COLOR_OFF_HEX = 0x68727A;
 
-constexpr unsigned long LIVE_PULSE_INTERVAL_MS = 650UL;
 constexpr unsigned long LVGL_HANDLER_INTERVAL_MS = 5UL;
 
 lv_color_t color(uint32_t value) {
   return lv_color_hex(value);
 }
 
-float clampFloat(float value, float minimum, float maximum) {
-  if (value < minimum) return minimum;
-  if (value > maximum) return maximum;
-  return value;
-}
+static const lv_point_t HUMIDITY_DROP_POINTS[] = {
+    {17, 1},
+    {7, 17},
+    {4, 24},
+    {4, 31},
+    {7, 37},
+    {12, 41},
+    {17, 43},
+    {22, 41},
+    {27, 37},
+    {30, 31},
+    {30, 24},
+    {27, 17},
+    {17, 1},
+};
 
 }  // namespace
 
@@ -78,20 +82,18 @@ void TftDisplay::begin() {
   displayDriver_.user_data = this;
   lv_disp_drv_register(&displayDriver_);
 
-  resetSessionExtrema();
   createDashboard();
 
   const unsigned long now = millis();
   lastLvglTickAt_ = now;
   lastHandlerAt_ = now;
   lastUiRefreshAt_ = now;
-  lastAgeSecond_ = now / 1000UL;
 
   ready_ = true;
   firstDraw_ = true;
 
   Serial.println(
-      "TftDisplay: LVGL Montserrat dashboard typography initialized");
+      "TftDisplay: clean two-column reference UI initialized");
 }
 
 void TftDisplay::tick(const RuntimeStatus &status) {
@@ -106,7 +108,6 @@ void TftDisplay::tick(const RuntimeStatus &status) {
   }
 
   if (now - lastUiRefreshAt_ >= ProductConfig::TFT_REFRESH_INTERVAL_MS) {
-    updateSessionExtrema(status);
     updateDashboard(status, firstDraw_);
     lastUiRefreshAt_ = now;
     firstDraw_ = false;
@@ -152,342 +153,297 @@ void TftDisplay::flushDisplay(
 void TftDisplay::createDashboard() {
   screen_ = lv_scr_act();
   lv_obj_clear_flag(screen_, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_style_bg_color(screen_, color(COLOR_BACKGROUND_HEX), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(screen_, color(COLOR_OUTER_HEX), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(screen_, LV_OPA_COVER, LV_PART_MAIN);
   lv_obj_set_style_pad_all(screen_, 0, LV_PART_MAIN);
 
-  lv_obj_t *accentBright = lv_obj_create(screen_);
-  lv_obj_set_pos(accentBright, 0, 0);
-  lv_obj_set_size(accentBright, DISPLAY_WIDTH, 4);
+  lv_obj_t *displayPanel = lv_obj_create(screen_);
+  lv_obj_set_pos(displayPanel, 7, 7);
+  lv_obj_set_size(displayPanel, 306, 193);
   stylePanel(
-      accentBright,
-      color(COLOR_RED_BRIGHT_HEX),
-      color(COLOR_RED_BRIGHT_HEX),
-      0,
-      0);
+      displayPanel,
+      color(COLOR_SCREEN_HEX),
+      color(COLOR_PANEL_BORDER_HEX),
+      15,
+      1);
 
-  lv_obj_t *accentPrimary = lv_obj_create(screen_);
-  lv_obj_set_pos(accentPrimary, 0, 4);
-  lv_obj_set_size(accentPrimary, DISPLAY_WIDTH, 3);
+  createMetricSection(
+      displayPanel,
+      0,
+      true,
+      temperatureValueLabel_);
+
+  createMetricSection(
+      displayPanel,
+      153,
+      false,
+      humidityValueLabel_);
+
+  lv_obj_t *divider = lv_obj_create(displayPanel);
+  lv_obj_set_pos(divider, 152, 22);
+  lv_obj_set_size(divider, 1, 145);
   stylePanel(
-      accentPrimary,
-      color(COLOR_RED_PRIMARY_HEX),
-      color(COLOR_RED_PRIMARY_HEX),
-      0,
-      0);
-
-  lv_obj_t *accentDark = lv_obj_create(screen_);
-  lv_obj_set_pos(accentDark, 0, 7);
-  lv_obj_set_size(accentDark, DISPLAY_WIDTH, 2);
-  stylePanel(
-      accentDark,
-      color(COLOR_RED_DARK_HEX),
-      color(COLOR_RED_DARK_HEX),
-      0,
-      0);
-
-  createHeader();
-
-  createMetricCard(
-      66,
-      "T",
-      "TEMPERATURE",
-      "C",
-      color(COLOR_RED_BRIGHT_HEX),
-      -10,
-      60,
-      temperatureValueLabel_,
-      temperatureMinimumLabel_,
-      temperatureMaximumLabel_,
-      temperatureBar_);
-
-  createMetricCard(
-      162,
-      "H",
-      "HUMIDITY",
-      "%",
-      color(COLOR_ROSE_HEX),
-      0,
-      100,
-      humidityValueLabel_,
-      humidityMinimumLabel_,
-      humidityMaximumLabel_,
-      humidityBar_);
-
-  createFooter();
-}
-
-void TftDisplay::createHeader() {
-  lv_obj_t *header = lv_obj_create(screen_);
-  lv_obj_set_pos(header, 0, 9);
-  lv_obj_set_size(header, DISPLAY_WIDTH, 51);
-  stylePanel(
-      header,
-      color(COLOR_HEADER_HEX),
+      divider,
+      color(COLOR_DIVIDER_HEX),
       color(COLOR_DIVIDER_HEX),
       0,
-      1);
-  lv_obj_set_style_border_side(header, LV_BORDER_SIDE_BOTTOM, LV_PART_MAIN);
-
-  lv_obj_t *brand = lv_label_create(header);
-  lv_label_set_text(brand, "dotWatch");
-  lv_obj_set_pos(brand, 10, 4);
-  styleLabel(
-      brand,
-      &lv_font_montserrat_28,
-      color(COLOR_TEXT_HEX),
-      -1);
-
-  lv_obj_t *subtitle = lv_label_create(header);
-  lv_label_set_text(subtitle, "ENVIRONMENT MONITOR");
-  lv_obj_set_pos(subtitle, 11, 34);
-  styleLabel(
-      subtitle,
-      &lv_font_montserrat_12,
-      color(COLOR_RED_BRIGHT_HEX),
-      1);
-
-  liveChip_ = lv_obj_create(header);
-  lv_obj_set_pos(liveChip_, 172, 8);
-  lv_obj_set_size(liveChip_, 60, 29);
-  stylePanel(
-      liveChip_,
-      color(COLOR_SURFACE_RAISED_HEX),
-      color(COLOR_BORDER_HEX),
-      9,
-      1);
-
-  liveDot_ = lv_obj_create(liveChip_);
-  lv_obj_set_pos(liveDot_, 7, 9);
-  lv_obj_set_size(liveDot_, 9, 9);
-  stylePanel(
-      liveDot_,
-      color(COLOR_TEXT_MUTED_HEX),
-      color(COLOR_TEXT_MUTED_HEX),
-      LV_RADIUS_CIRCLE,
       0);
 
-  liveLabel_ = lv_label_create(liveChip_);
-  lv_label_set_text(liveLabel_, "WAIT");
-  lv_obj_set_pos(liveLabel_, 21, 7);
-  styleLabel(
-      liveLabel_,
-      &lv_font_montserrat_12,
-      color(COLOR_TEXT_MUTED_HEX));
+  createStatusBar();
 }
 
-void TftDisplay::createMetricCard(
-    int16_t y,
-    const char *badgeText,
-    const char *title,
-    const char *unit,
-    lv_color_t accent,
-    int32_t barMinimum,
-    int32_t barMaximum,
-    lv_obj_t *&valueLabel,
-    lv_obj_t *&minimumLabel,
-    lv_obj_t *&maximumLabel,
-    lv_obj_t *&bar) {
-  lv_obj_t *card = lv_obj_create(screen_);
-  lv_obj_set_pos(card, 8, y);
-  lv_obj_set_size(card, 224, 89);
+void TftDisplay::createMetricSection(
+    lv_obj_t *parent,
+    int16_t x,
+    bool temperatureSection,
+    lv_obj_t *&valueLabel) {
+  lv_obj_t *section = lv_obj_create(parent);
+  lv_obj_set_pos(section, x, 0);
+  lv_obj_set_size(section, 153, 193);
   stylePanel(
-      card,
-      color(COLOR_SURFACE_HEX),
-      color(COLOR_BORDER_HEX),
-      13,
-      1);
+      section,
+      color(COLOR_SCREEN_HEX),
+      color(COLOR_SCREEN_HEX),
+      0,
+      0);
 
-  lv_obj_t *rail = lv_obj_create(card);
-  lv_obj_set_pos(rail, 0, 0);
-  lv_obj_set_size(rail, 6, 89);
-  stylePanel(rail, accent, accent, 4, 0);
+  if (temperatureSection) {
+    createThermometerIcon(section);
+  } else {
+    createHumidityIcon(section);
+  }
 
-  lv_obj_t *badge = lv_obj_create(card);
-  lv_obj_set_pos(badge, 13, 23);
-  lv_obj_set_size(badge, 37, 37);
-  stylePanel(
-      badge,
-      color(COLOR_SURFACE_RAISED_HEX),
-      color(COLOR_RED_DARK_HEX),
-      LV_RADIUS_CIRCLE,
-      1);
-
-  lv_obj_t *badgeLabel = lv_label_create(badge);
-  lv_label_set_text(badgeLabel, badgeText);
+  lv_obj_t *title = lv_label_create(section);
+  lv_label_set_text(
+      title,
+      temperatureSection ? "Temperature" : "Humidity");
+  lv_obj_set_pos(title, 51, 31);
   styleLabel(
-      badgeLabel,
-      &lv_font_montserrat_18,
-      accent);
-  lv_obj_center(badgeLabel);
-
-  lv_obj_t *titleLabel = lv_label_create(card);
-  lv_label_set_text(titleLabel, title);
-  lv_obj_set_pos(titleLabel, 59, 7);
-  styleLabel(
-      titleLabel,
+      title,
       &lv_font_montserrat_14,
-      color(COLOR_TEXT_SECONDARY_HEX),
-      1);
+      color(COLOR_TEXT_MUTED_HEX));
 
-  valueLabel = lv_label_create(card);
-  lv_label_set_text(valueLabel, "--.-");
-  lv_obj_set_pos(valueLabel, 58, 24);
-  lv_obj_set_width(valueLabel, 112);
-  lv_obj_set_style_text_align(valueLabel, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  valueLabel = lv_label_create(section);
+  lv_label_set_text(
+      valueLabel,
+      temperatureSection ? "--.-" : "--");
+  lv_obj_set_pos(valueLabel, 10, 79);
+  lv_obj_set_size(valueLabel, 110, 54);
+  lv_obj_set_style_text_align(
+      valueLabel,
+      LV_TEXT_ALIGN_CENTER,
+      LV_PART_MAIN);
   styleLabel(
       valueLabel,
       &lv_font_montserrat_40,
       color(COLOR_TEXT_HEX),
       -1);
 
-  lv_obj_t *unitLabel = lv_label_create(card);
-  lv_label_set_text(unitLabel, unit);
-  lv_obj_set_pos(unitLabel, 181, 36);
-  styleLabel(
-      unitLabel,
-      &lv_font_montserrat_18,
-      accent);
+  if (temperatureSection) {
+    lv_obj_t *degree = lv_obj_create(section);
+    lv_obj_set_pos(degree, 120, 91);
+    lv_obj_set_size(degree, 7, 7);
+    lv_obj_set_style_bg_opa(degree, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_color(
+        degree,
+        color(COLOR_TEXT_HEX),
+        LV_PART_MAIN);
+    lv_obj_set_style_border_width(degree, 2, LV_PART_MAIN);
+    lv_obj_set_style_radius(degree, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(degree, 0, LV_PART_MAIN);
 
-  minimumLabel = lv_label_create(card);
-  lv_label_set_text(minimumLabel, "MIN --.-");
-  lv_obj_set_pos(minimumLabel, 59, 65);
-  styleLabel(
-      minimumLabel,
-      &lv_font_montserrat_12,
-      color(COLOR_TEXT_MUTED_HEX));
+    lv_obj_t *unit = lv_label_create(section);
+    lv_label_set_text(unit, "C");
+    lv_obj_set_pos(unit, 128, 91);
+    styleLabel(
+        unit,
+        &lv_font_montserrat_18,
+        color(COLOR_TEXT_HEX));
+  } else {
+    lv_obj_t *unit = lv_label_create(section);
+    lv_label_set_text(unit, "%");
+    lv_obj_set_pos(unit, 120, 91);
+    styleLabel(
+        unit,
+        &lv_font_montserrat_18,
+        color(COLOR_TEXT_HEX));
+  }
 
-  maximumLabel = lv_label_create(card);
-  lv_label_set_text(maximumLabel, "MAX --.-");
-  lv_obj_set_pos(maximumLabel, 141, 65);
-  lv_obj_set_width(maximumLabel, 70);
-  lv_obj_set_style_text_align(
-      maximumLabel,
-      LV_TEXT_ALIGN_RIGHT,
-      LV_PART_MAIN);
-  styleLabel(
-      maximumLabel,
-      &lv_font_montserrat_12,
-      color(COLOR_TEXT_MUTED_HEX));
-
-  bar = lv_bar_create(card);
-  lv_obj_set_pos(bar, 59, 80);
-  lv_obj_set_size(bar, 152, 5);
-  lv_bar_set_range(bar, barMinimum, barMaximum);
-  lv_bar_set_value(bar, barMinimum, LV_ANIM_OFF);
-  lv_obj_set_style_bg_color(
-      bar,
-      color(COLOR_GAUGE_TRACK_HEX),
-      LV_PART_MAIN);
-  lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_MAIN);
-  lv_obj_set_style_radius(bar, LV_RADIUS_CIRCLE, LV_PART_MAIN);
-  lv_obj_set_style_bg_color(bar, accent, LV_PART_INDICATOR);
-  lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_INDICATOR);
-  lv_obj_set_style_radius(bar, LV_RADIUS_CIRCLE, LV_PART_INDICATOR);
-}
-
-void TftDisplay::createFooter() {
-  lv_obj_t *footer = lv_obj_create(screen_);
-  lv_obj_set_pos(footer, 0, 257);
-  lv_obj_set_size(footer, DISPLAY_WIDTH, 63);
+  lv_obj_t *accent = lv_obj_create(section);
+  lv_obj_set_pos(accent, 51, 148);
+  lv_obj_set_size(accent, 51, 3);
   stylePanel(
-      footer,
-      color(COLOR_HEADER_HEX),
-      color(COLOR_RED_DARK_HEX),
-      0,
-      1);
-  lv_obj_set_style_border_side(footer, LV_BORDER_SIDE_TOP, LV_PART_MAIN);
-
-  stateChip_ = lv_obj_create(footer);
-  lv_obj_set_pos(stateChip_, 7, 7);
-  lv_obj_set_size(stateChip_, 94, 25);
-  stylePanel(
-      stateChip_,
-      color(COLOR_SURFACE_RAISED_HEX),
-      color(COLOR_BORDER_HEX),
-      7,
-      1);
-
-  stateDot_ = lv_obj_create(stateChip_);
-  lv_obj_set_pos(stateDot_, 7, 8);
-  lv_obj_set_size(stateDot_, 8, 8);
-  stylePanel(
-      stateDot_,
-      color(COLOR_TEXT_MUTED_HEX),
-      color(COLOR_TEXT_MUTED_HEX),
+      accent,
+      color(COLOR_BLUE_HEX),
+      color(COLOR_BLUE_HEX),
       LV_RADIUS_CIRCLE,
       0);
 
-  stateLabel_ = lv_label_create(stateChip_);
-  lv_label_set_text(stateLabel_, "BOOTING");
-  lv_obj_set_pos(stateLabel_, 21, 6);
+  lv_obj_t *caption = lv_label_create(section);
+  lv_label_set_text(
+      caption,
+      temperatureSection ? "AMBIENT" : "RELATIVE RH");
+  lv_obj_set_pos(caption, 0, 161);
+  lv_obj_set_width(caption, 153);
+  lv_obj_set_style_text_align(
+      caption,
+      LV_TEXT_ALIGN_CENTER,
+      LV_PART_MAIN);
   styleLabel(
-      stateLabel_,
+      caption,
       &lv_font_montserrat_12,
-      color(COLOR_TEXT_HEX));
+      color(COLOR_BLUE_HEX),
+      1);
+}
 
-  createStatusChip(
-      105,
-      7,
-      59,
-      serverDot_,
-      serverLabel_);
+void TftDisplay::createThermometerIcon(lv_obj_t *parent) {
+  lv_obj_t *tube = lv_obj_create(parent);
+  lv_obj_set_pos(tube, 25, 25);
+  lv_obj_set_size(tube, 9, 31);
+  lv_obj_set_style_bg_opa(tube, LV_OPA_TRANSP, LV_PART_MAIN);
+  lv_obj_set_style_border_color(
+      tube,
+      color(COLOR_BLUE_HEX),
+      LV_PART_MAIN);
+  lv_obj_set_style_border_width(tube, 2, LV_PART_MAIN);
+  lv_obj_set_style_radius(tube, 5, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(tube, 0, LV_PART_MAIN);
 
-  createStatusChip(
-      168,
+  lv_obj_t *mercury = lv_obj_create(parent);
+  lv_obj_set_pos(mercury, 28, 35);
+  lv_obj_set_size(mercury, 3, 22);
+  stylePanel(
+      mercury,
+      color(COLOR_BLUE_HEX),
+      color(COLOR_BLUE_HEX),
+      LV_RADIUS_CIRCLE,
+      0);
+
+  lv_obj_t *bulb = lv_obj_create(parent);
+  lv_obj_set_pos(bulb, 20, 50);
+  lv_obj_set_size(bulb, 19, 19);
+  lv_obj_set_style_bg_color(
+      bulb,
+      color(COLOR_SCREEN_HEX),
+      LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(bulb, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_set_style_border_color(
+      bulb,
+      color(COLOR_BLUE_HEX),
+      LV_PART_MAIN);
+  lv_obj_set_style_border_width(bulb, 2, LV_PART_MAIN);
+  lv_obj_set_style_radius(bulb, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(bulb, 0, LV_PART_MAIN);
+
+  lv_obj_t *bulbFill = lv_obj_create(parent);
+  lv_obj_set_pos(bulbFill, 25, 55);
+  lv_obj_set_size(bulbFill, 9, 9);
+  stylePanel(
+      bulbFill,
+      color(COLOR_BLUE_HEX),
+      color(COLOR_BLUE_HEX),
+      LV_RADIUS_CIRCLE,
+      0);
+}
+
+void TftDisplay::createHumidityIcon(lv_obj_t *parent) {
+  lv_obj_t *drop = lv_line_create(parent);
+  lv_line_set_points(
+      drop,
+      HUMIDITY_DROP_POINTS,
+      sizeof(HUMIDITY_DROP_POINTS) / sizeof(HUMIDITY_DROP_POINTS[0]));
+  lv_obj_set_pos(drop, 18, 22);
+  lv_obj_set_size(drop, 35, 45);
+  lv_obj_set_style_line_color(
+      drop,
+      color(COLOR_BLUE_HEX),
+      LV_PART_MAIN);
+  lv_obj_set_style_line_width(drop, 3, LV_PART_MAIN);
+  lv_obj_set_style_line_rounded(drop, true, LV_PART_MAIN);
+
+  static const lv_point_t highlightPoints[] = {
+      {10, 28},
+      {11, 32},
+      {14, 35},
+  };
+
+  lv_obj_t *highlight = lv_line_create(parent);
+  lv_line_set_points(
+      highlight,
+      highlightPoints,
+      sizeof(highlightPoints) / sizeof(highlightPoints[0]));
+  lv_obj_set_pos(highlight, 18, 22);
+  lv_obj_set_size(highlight, 35, 45);
+  lv_obj_set_style_line_color(
+      highlight,
+      color(COLOR_TEXT_HEX),
+      LV_PART_MAIN);
+  lv_obj_set_style_line_width(highlight, 2, LV_PART_MAIN);
+  lv_obj_set_style_line_rounded(highlight, true, LV_PART_MAIN);
+}
+
+void TftDisplay::createStatusBar() {
+  lv_obj_t *statusBar = lv_obj_create(screen_);
+  lv_obj_set_pos(statusBar, 7, 207);
+  lv_obj_set_size(statusBar, 306, 26);
+  stylePanel(
+      statusBar,
+      color(COLOR_SCREEN_HEX),
+      color(COLOR_PANEL_BORDER_HEX),
+      9,
+      1);
+
+  createStatusItem(
+      statusBar,
       7,
-      65,
+      87,
+      stateDot_,
+      stateLabel_);
+
+  createStatusItem(
+      statusBar,
+      99,
+      103,
       wifiDot_,
       wifiLabel_);
 
-  ipLabel_ = lv_label_create(footer);
-  lv_label_set_text(ipLabel_, "IP --.--.--.--");
-  lv_obj_set_pos(ipLabel_, 9, 39);
-  styleLabel(
-      ipLabel_,
-      &lv_font_montserrat_12,
-      color(COLOR_TEXT_MUTED_HEX));
-
-  ageLabel_ = lv_label_create(footer);
-  lv_label_set_text(ageLabel_, "AGE --s");
-  lv_obj_set_pos(ageLabel_, 164, 39);
-  lv_obj_set_width(ageLabel_, 67);
-  lv_obj_set_style_text_align(ageLabel_, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-  styleLabel(
-      ageLabel_,
-      &lv_font_montserrat_12,
-      color(COLOR_TEXT_SECONDARY_HEX));
+  createStatusItem(
+      statusBar,
+      207,
+      92,
+      cloudDot_,
+      cloudLabel_);
 }
 
-void TftDisplay::createStatusChip(
+void TftDisplay::createStatusItem(
+    lv_obj_t *parent,
     int16_t x,
-    int16_t y,
     int16_t width,
     lv_obj_t *&dot,
     lv_obj_t *&label) {
-  lv_obj_t *chip = lv_obj_create(lv_obj_get_parent(stateChip_));
-  lv_obj_set_pos(chip, x, y);
-  lv_obj_set_size(chip, width, 25);
+  lv_obj_t *item = lv_obj_create(parent);
+  lv_obj_set_pos(item, x, 0);
+  lv_obj_set_size(item, width, 24);
   stylePanel(
-      chip,
-      color(COLOR_SURFACE_RAISED_HEX),
-      color(COLOR_BORDER_HEX),
-      7,
-      1);
-
-  dot = lv_obj_create(chip);
-  lv_obj_set_pos(dot, 7, 8);
-  lv_obj_set_size(dot, 8, 8);
-  stylePanel(
-      dot,
-      color(COLOR_DANGER_HEX),
-      color(COLOR_DANGER_HEX),
-      LV_RADIUS_CIRCLE,
+      item,
+      color(COLOR_SCREEN_HEX),
+      color(COLOR_SCREEN_HEX),
+      0,
       0);
 
-  label = lv_label_create(chip);
+  dot = lv_obj_create(item);
+  lv_obj_set_pos(dot, 4, 8);
+  lv_obj_set_size(dot, 7, 7);
+  styleDot(dot, color(COLOR_OFF_HEX));
+
+  label = lv_label_create(item);
   lv_label_set_text(label, "WAIT");
-  lv_obj_set_pos(label, 20, 6);
+  lv_obj_set_pos(label, 16, 5);
+  lv_obj_set_width(label, width - 18);
+  lv_obj_set_style_text_align(
+      label,
+      LV_TEXT_ALIGN_LEFT,
+      LV_PART_MAIN);
   styleLabel(
       label,
       &lv_font_montserrat_12,
@@ -497,75 +453,51 @@ void TftDisplay::createStatusChip(
 void TftDisplay::updateDashboard(
     const RuntimeStatus &status,
     bool force) {
-  const unsigned long now = millis();
-  const bool pulseOn =
-      ((now / LIVE_PULSE_INTERVAL_MS) % 2UL) == 0UL;
-  const bool live = status.sensorReadingAvailable;
-  const bool simulated = live && status.lastSensorFallbackUsed;
+  const bool wifiConnected = WiFi.status() == WL_CONNECTED;
 
   if (force ||
-      pulseOn != lastPulseOn_ ||
-      live != lastSensorAvailable_ ||
-      simulated != lastFallbackUsed_) {
-    lv_label_set_text(
-        liveLabel_,
-        simulated ? "SIM" : (live ? "LIVE" : "WAIT"));
+      status.sensorReadingAvailable != lastSensorAvailable_ ||
+      valueChanged(status.lastTemperature, lastTemperature_)) {
+    updateTemperature(
+        status.lastTemperature,
+        status.sensorReadingAvailable);
+  }
 
-    const lv_color_t liveColor = simulated
-                                     ? color(COLOR_WARNING_HEX)
-                                     : (live
-                                            ? color(COLOR_RED_BRIGHT_HEX)
-                                            : color(COLOR_TEXT_MUTED_HEX));
-
-    lv_obj_set_style_bg_color(liveDot_, liveColor, LV_PART_MAIN);
-    lv_obj_set_style_border_color(liveDot_, liveColor, LV_PART_MAIN);
-    lv_obj_set_style_opa(
-        liveDot_,
-        live && !simulated && !pulseOn ? 96 : LV_OPA_COVER,
-        LV_PART_MAIN);
-    lv_obj_set_style_text_color(liveLabel_, liveColor, LV_PART_MAIN);
-    lv_obj_set_style_border_color(
-        liveChip_,
-        simulated
-            ? color(COLOR_WARNING_HEX)
-            : (live
-                   ? color(COLOR_RED_DARK_HEX)
-                   : color(COLOR_BORDER_HEX)),
-        LV_PART_MAIN);
+  if (force ||
+      status.sensorReadingAvailable != lastSensorAvailable_ ||
+      valueChanged(status.lastHumidity, lastHumidity_)) {
+    updateHumidity(
+        status.lastHumidity,
+        status.sensorReadingAvailable);
   }
 
   if (force || status.state != lastState_) {
     const lv_color_t currentStateColor = stateColor(status.state);
     lv_label_set_text(stateLabel_, stateText(status.state));
-    lv_obj_set_style_bg_color(
-        stateDot_,
-        currentStateColor,
-        LV_PART_MAIN);
-    lv_obj_set_style_border_color(
-        stateDot_,
-        currentStateColor,
-        LV_PART_MAIN);
-    lv_obj_set_style_border_color(
-        stateChip_,
+    styleDot(stateDot_, currentStateColor);
+    lv_obj_set_style_text_color(
+        stateLabel_,
         currentStateColor,
         LV_PART_MAIN);
   }
 
-  const bool wifiConnected = WiFi.status() == WL_CONNECTED;
   if (force || wifiConnected != lastWifiConnected_) {
-    lv_obj_set_style_bg_color(
+    styleDot(
         wifiDot_,
         wifiConnected
-            ? color(COLOR_SUCCESS_HEX)
-            : color(COLOR_DANGER_HEX),
-        LV_PART_MAIN);
+            ? color(COLOR_BLUE_HEX)
+            : color(COLOR_OFF_HEX));
   }
 
-  char wifiBuffer[16];
+  char wifiBuffer[18];
   if (wifiConnected) {
-    snprintf(wifiBuffer, sizeof(wifiBuffer), "%ddB", WiFi.RSSI());
+    snprintf(
+        wifiBuffer,
+        sizeof(wifiBuffer),
+        "Wi-Fi %ddB",
+        WiFi.RSSI());
   } else {
-    snprintf(wifiBuffer, sizeof(wifiBuffer), "OFF");
+    snprintf(wifiBuffer, sizeof(wifiBuffer), "Wi-Fi Off");
   }
   lv_label_set_text(wifiLabel_, wifiBuffer);
   lv_obj_set_style_text_color(
@@ -577,166 +509,56 @@ void TftDisplay::updateDashboard(
 
   if (force ||
       status.backendConnected != lastBackendConnected_) {
-    lv_label_set_text(
-        serverLabel_,
-        status.backendConnected ? "SERVER" : "WAIT");
-    lv_obj_set_style_bg_color(
-        serverDot_,
+    styleDot(
+        cloudDot_,
         status.backendConnected
-            ? color(COLOR_SUCCESS_HEX)
-            : color(COLOR_DANGER_HEX),
-        LV_PART_MAIN);
+            ? color(COLOR_BLUE_HEX)
+            : color(COLOR_OFF_HEX));
+
+    lv_label_set_text(
+        cloudLabel_,
+        status.backendConnected ? "Cloud On" : "Cloud Wait");
+
     lv_obj_set_style_text_color(
-        serverLabel_,
+        cloudLabel_,
         status.backendConnected
             ? color(COLOR_TEXT_HEX)
             : color(COLOR_TEXT_MUTED_HEX),
         LV_PART_MAIN);
   }
 
-  if (force ||
-      status.sensorReadingAvailable != lastSensorAvailable_ ||
-      valueChanged(status.lastTemperature, lastTemperature_)) {
-    updateMetric(
-        temperatureValueLabel_,
-        temperatureMinimumLabel_,
-        temperatureMaximumLabel_,
-        temperatureBar_,
-        status.lastTemperature,
-        minTemperature_,
-        maxTemperature_,
-        status.sensorReadingAvailable);
-  }
-
-  if (force ||
-      status.sensorReadingAvailable != lastSensorAvailable_ ||
-      valueChanged(status.lastHumidity, lastHumidity_)) {
-    updateMetric(
-        humidityValueLabel_,
-        humidityMinimumLabel_,
-        humidityMaximumLabel_,
-        humidityBar_,
-        status.lastHumidity,
-        minHumidity_,
-        maxHumidity_,
-        status.sensorReadingAvailable);
-  }
-
-  char ipBuffer[28];
-  if (wifiConnected) {
-    const String localIp = WiFi.localIP().toString();
-    snprintf(ipBuffer, sizeof(ipBuffer), "IP %s", localIp.c_str());
-  } else {
-    snprintf(ipBuffer, sizeof(ipBuffer), "IP --.--.--.--");
-  }
-  lv_label_set_text(ipLabel_, ipBuffer);
-  lv_obj_set_style_text_color(
-      ipLabel_,
-      wifiConnected
-          ? color(COLOR_TEXT_SECONDARY_HEX)
-          : color(COLOR_TEXT_MUTED_HEX),
-      LV_PART_MAIN);
-
-  const unsigned long ageSecond = now / 1000UL;
-  if (force || ageSecond != lastAgeSecond_) {
-    char ageBuffer[18];
-    if (!status.sensorReadingAvailable ||
-        status.lastSensorReadAtMs == 0UL) {
-      snprintf(ageBuffer, sizeof(ageBuffer), "AGE --s");
-    } else {
-      const unsigned long sensorAge =
-          (now - status.lastSensorReadAtMs) / 1000UL;
-      snprintf(ageBuffer, sizeof(ageBuffer), "AGE %lus", sensorAge);
-    }
-
-    lv_label_set_text(ageLabel_, ageBuffer);
-    lastAgeSecond_ = ageSecond;
-  }
-
-  lastPulseOn_ = pulseOn;
   lastState_ = status.state;
   lastWifiConnected_ = wifiConnected;
   lastBackendConnected_ = status.backendConnected;
   lastSensorAvailable_ = status.sensorReadingAvailable;
-  lastFallbackUsed_ = simulated;
   lastTemperature_ = status.lastTemperature;
   lastHumidity_ = status.lastHumidity;
 }
 
-void TftDisplay::updateMetric(
-    lv_obj_t *valueLabel,
-    lv_obj_t *minimumLabel,
-    lv_obj_t *maximumLabel,
-    lv_obj_t *bar,
+void TftDisplay::updateTemperature(
     float value,
-    float sessionMinimum,
-    float sessionMaximum,
     bool available) {
   if (!available || isnan(value)) {
-    lv_label_set_text(valueLabel, "--.-");
-    lv_label_set_text(minimumLabel, "MIN --.-");
-    lv_label_set_text(maximumLabel, "MAX --.-");
-    lv_bar_set_value(bar, lv_bar_get_min_value(bar), LV_ANIM_OFF);
+    lv_label_set_text(temperatureValueLabel_, "--.-");
     return;
   }
 
   char valueBuffer[16];
-  char minimumBuffer[18];
-  char maximumBuffer[18];
-
   snprintf(valueBuffer, sizeof(valueBuffer), "%.1f", value);
-  snprintf(minimumBuffer, sizeof(minimumBuffer), "MIN %.1f", sessionMinimum);
-  snprintf(maximumBuffer, sizeof(maximumBuffer), "MAX %.1f", sessionMaximum);
-
-  lv_label_set_text(valueLabel, valueBuffer);
-  lv_label_set_text(minimumLabel, minimumBuffer);
-  lv_label_set_text(maximumLabel, maximumBuffer);
-
-  const int32_t barMinimum = lv_bar_get_min_value(bar);
-  const int32_t barMaximum = lv_bar_get_max_value(bar);
-  const float clampedValue = clampFloat(
-      value,
-      static_cast<float>(barMinimum),
-      static_cast<float>(barMaximum));
-
-  lv_bar_set_value(
-      bar,
-      static_cast<int32_t>(lroundf(clampedValue)),
-      LV_ANIM_OFF);
+  lv_label_set_text(temperatureValueLabel_, valueBuffer);
 }
 
-void TftDisplay::updateSessionExtrema(
-    const RuntimeStatus &status) {
-  if (!status.sensorReadingAvailable) return;
-
-  if (!isnan(status.lastTemperature)) {
-    if (isnan(minTemperature_) ||
-        status.lastTemperature < minTemperature_) {
-      minTemperature_ = status.lastTemperature;
-    }
-    if (isnan(maxTemperature_) ||
-        status.lastTemperature > maxTemperature_) {
-      maxTemperature_ = status.lastTemperature;
-    }
+void TftDisplay::updateHumidity(
+    float value,
+    bool available) {
+  if (!available || isnan(value)) {
+    lv_label_set_text(humidityValueLabel_, "--");
+    return;
   }
 
-  if (!isnan(status.lastHumidity)) {
-    if (isnan(minHumidity_) ||
-        status.lastHumidity < minHumidity_) {
-      minHumidity_ = status.lastHumidity;
-    }
-    if (isnan(maxHumidity_) ||
-        status.lastHumidity > maxHumidity_) {
-      maxHumidity_ = status.lastHumidity;
-    }
-  }
-}
-
-void TftDisplay::resetSessionExtrema() {
-  minTemperature_ = NAN;
-  maxTemperature_ = NAN;
-  minHumidity_ = NAN;
-  maxHumidity_ = NAN;
+  char valueBuffer[16];
+  snprintf(valueBuffer, sizeof(valueBuffer), "%.0f", value);
+  lv_label_set_text(humidityValueLabel_, valueBuffer);
 }
 
 void TftDisplay::stylePanel(
@@ -770,28 +592,39 @@ void TftDisplay::styleLabel(
   lv_obj_set_style_pad_all(label, 0, LV_PART_MAIN);
 }
 
+void TftDisplay::styleDot(
+    lv_obj_t *dot,
+    lv_color_t dotColor) {
+  lv_obj_set_style_bg_color(dot, dotColor, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_set_style_border_color(dot, dotColor, LV_PART_MAIN);
+  lv_obj_set_style_border_width(dot, 0, LV_PART_MAIN);
+  lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(dot, 0, LV_PART_MAIN);
+}
+
 const char *TftDisplay::stateText(AppState state) const {
   switch (state) {
     case AppState::BOOTING:
-      return "BOOTING";
+      return "Booting";
     case AppState::UNPROVISIONED:
-      return "SETUP";
+      return "Setup";
     case AppState::SETUP_PORTAL:
-      return "PORTAL";
+      return "Portal";
     case AppState::CONNECTING_WIFI:
-      return "WIFI";
+      return "Wi-Fi";
     case AppState::CONNECTING_BACKEND:
-      return "SERVER";
+      return "Server";
     case AppState::ONLINE:
-      return "ONLINE";
+      return "Online";
     case AppState::DEGRADED:
-      return "DEGRADED";
+      return "Degraded";
     case AppState::RECOVERY:
-      return "RECOVERY";
+      return "Recovery";
     case AppState::UPDATING:
-      return "UPDATING";
+      return "Updating";
     default:
-      return "UNKNOWN";
+      return "Unknown";
   }
 }
 
@@ -811,7 +644,7 @@ lv_color_t TftDisplay::stateColor(AppState state) const {
       return color(COLOR_INFO_HEX);
     case AppState::BOOTING:
     default:
-      return color(COLOR_TEXT_MUTED_HEX);
+      return color(COLOR_OFF_HEX);
   }
 }
 

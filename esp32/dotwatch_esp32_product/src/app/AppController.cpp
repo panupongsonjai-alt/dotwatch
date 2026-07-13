@@ -86,7 +86,7 @@ void AppController::printBootBanner() {
   Serial.print(" (");
   Serial.print(DOTWATCH_MODEL_KEY);
   Serial.println(")");
-  Serial.println("Architecture: Modular portal + LVGL ILI9341 dashboard + HTTPS Internet OTA");
+  Serial.println("Architecture: Modular portal + landscape reference display + HTTPS Internet OTA");
   Serial.println("============================================================");
 }
 
