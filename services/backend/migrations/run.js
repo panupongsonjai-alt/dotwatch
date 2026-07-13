@@ -1340,6 +1340,7 @@ async function main() {
     await runSqlFileIfExists('017_phase5_commercial_foundation.sql')
     await runSqlFileIfExists('019_phase7_multi_tenant_access_control.sql')
     await runSqlFileIfExists('020_phase9f_required_nullability_normalization.sql')
+    await runSqlFileIfExists('021_add_device_last_ip_address.sql')
     await createDemoTables()
     await createIndexes()
     await seedDeviceModels()

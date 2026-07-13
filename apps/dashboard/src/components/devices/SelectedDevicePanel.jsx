@@ -1005,6 +1005,14 @@ function SelectedDevicePanel({
               />
             </div>
 
+            <div className="devices-v3-overview-stat devices-v3-overview-stat-ip">
+              <StatCard
+                label="IP Address"
+                value={selectedDevice.last_ip_address || '--'}
+                hint="Latest ingest IP"
+              />
+            </div>
+
             <div className="devices-v3-overview-stat devices-v3-overview-stat-last-seen">
               <StatCard
                 label="Last Seen"

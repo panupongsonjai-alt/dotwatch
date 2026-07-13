@@ -26,7 +26,8 @@ export async function ensureDeviceMetricSettingsSchema() {
       await client.query(`
         ALTER TABLE devices
           ADD COLUMN IF NOT EXISTS record_interval_seconds INTEGER,
-          ADD COLUMN IF NOT EXISTS last_recorded_at TIMESTAMPTZ
+          ADD COLUMN IF NOT EXISTS last_recorded_at TIMESTAMPTZ,
+          ADD COLUMN IF NOT EXISTS last_ip_address TEXT
       `)
 
       await client.query(`

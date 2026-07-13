@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isIP } from 'node:net'
 import { pool } from '../db/pool.js'
 import { env } from '../config/env.js'
 import { checkAlarms } from '../services/alarm.service.js'
@@ -14,6 +15,15 @@ const DEFAULT_RECORD_INTERVAL_SECONDS = 10
 const MAX_FUTURE_TIMESTAMP_MS = 5 * 60 * 1000
 const MAX_BACKDATE_TIMESTAMP_MS = 7 * 24 * 60 * 60 * 1000
 const METRIC_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_:-]{0,63}$/
+
+function getRequestIp(req) {
+  const value = String(req.ip || req.socket?.remoteAddress || '')
+    .split(',')[0]
+    .trim()
+    .replace(/^::ffff:/, '')
+
+  return isIP(value) ? value : null
+}
 
 const ingestSchema = z.object({
   metrics: z.record(z.string(), z.number()).optional(),
@@ -342,7 +352,13 @@ async function insertLegacySensorRows(client, rows = []) {
   return rows.length
 }
 
-async function persistReadings({ client, device, readings, firmwareVersion }) {
+async function persistReadings({
+  client,
+  device,
+  readings,
+  firmwareVersion,
+  ipAddress,
+}) {
   const historyReadings = filterReadingsForHistory(device, readings)
   const historyMetricRows = flattenMetricRows(device.id, historyReadings)
   const latestMetricRows = flattenMetricRows(device.id, readings)
@@ -363,7 +379,8 @@ async function persistReadings({ client, device, readings, firmwareVersion }) {
       last_ingest_at = now(),
       last_recorded_at = COALESCE($3::timestamptz, last_recorded_at),
       status = 'online',
-      firmware_version = COALESCE($2, firmware_version)
+      firmware_version = COALESCE($2, firmware_version),
+      last_ip_address = COALESCE($4, last_ip_address)
     FROM users u
     WHERE d.id = $1
       AND u.id = d.user_id
@@ -378,12 +395,14 @@ async function persistReadings({ client, device, readings, firmwareVersion }) {
       d.last_ingest_at,
       d.last_recorded_at,
       d.record_interval_seconds,
-      d.firmware_version
+      d.firmware_version,
+      d.last_ip_address
     `,
     [
       device.id,
       firmwareVersion || newestReading?.firmwareVersion || null,
       newestRecordedReading?.time || null,
+      ipAddress,
     ]
   )
 
@@ -444,6 +463,7 @@ async function publishIngestSideEffects({
       last_seen_at: updatedDevice.last_seen_at,
       last_ingest_at: updatedDevice.last_ingest_at,
       firmware_version: updatedDevice.firmware_version,
+      last_ip_address: updatedDevice.last_ip_address,
       latest_time: time,
       temperature: latestMetrics.temperature ?? latestMetrics.metric_1,
       humidity: latestMetrics.humidity ?? latestMetrics.metric_2,
@@ -560,6 +580,7 @@ export async function ingestReading(req, res) {
         device,
         readings: [reading],
         firmwareVersion: data.firmwareVersion || null,
+        ipAddress: getRequestIp(req),
       })
 
     await client.query('COMMIT')
@@ -623,6 +644,7 @@ export async function ingestBatch(req, res) {
         device,
         readings,
         firmwareVersion: data.firmwareVersion || newestReading?.firmwareVersion || null,
+        ipAddress: getRequestIp(req),
       })
 
     await client.query('COMMIT')
