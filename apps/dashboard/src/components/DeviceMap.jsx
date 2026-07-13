@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 
@@ -151,7 +151,9 @@ function groupDevicesByDistance(items) {
       devices,
       position,
       key: devices
-        .map((device) => device.id || device.device_code || getDeviceName(device))
+        .map(
+          (device) => device.id || device.device_code || getDeviceName(device)
+        )
         .join('-'),
     }
   })
@@ -205,7 +207,8 @@ function addTooltipLayouts(groups) {
         )
       })
       .forEach(({ index }, layoutIndex) => {
-        const direction = TOOLTIP_DIRECTIONS[layoutIndex % TOOLTIP_DIRECTIONS.length]
+        const direction =
+          TOOLTIP_DIRECTIONS[layoutIndex % TOOLTIP_DIRECTIONS.length]
         const tier = Math.floor(layoutIndex / TOOLTIP_DIRECTIONS.length)
         const distance = 16 + tier * 34
         const offsets = {
@@ -471,15 +474,11 @@ function ViewportDeviceMarkers({ groups, onOpenDevice }) {
   )
 
   return displayGroups.map((group) => (
-    <DeviceMarker
-      key={group.key}
-      group={group}
-      onOpenDevice={onOpenDevice}
-    />
+    <DeviceMarker key={group.key} group={group} onOpenDevice={onOpenDevice} />
   ))
 }
 
-function DeviceMap({ devices = [], onOpenDevice }) {
+function LeafletDeviceMap({ devices = [], onOpenDevice, fallbackReason = '' }) {
   const visibleDevices = useMemo(() => {
     return Array.isArray(devices) ? devices : []
   }, [devices])
@@ -512,7 +511,7 @@ function DeviceMap({ devices = [], onOpenDevice }) {
   }
 
   return (
-    <div className="device-map-wrapper">
+    <div className="device-map-wrapper device-map-wrapper-leaflet">
       <MapContainer
         center={positions[0] || DEFAULT_CENTER}
         zoom={12}
@@ -531,7 +530,438 @@ function DeviceMap({ devices = [], onOpenDevice }) {
           onOpenDevice={onOpenDevice}
         />
       </MapContainer>
+
+      <div
+        className="device-map-provider-badge is-fallback"
+        title={fallbackReason || 'Google Maps is unavailable'}
+      >
+        OpenStreetMap fallback
+      </div>
     </div>
+  )
+}
+
+let googleMapsLoaderPromise
+
+function getGoogleMapsOptions() {
+  const apiKey = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim()
+  const language = String(
+    import.meta.env.VITE_GOOGLE_MAPS_LANGUAGE || 'th'
+  ).trim()
+  const region = String(import.meta.env.VITE_GOOGLE_MAPS_REGION || 'TH').trim()
+  const requestedType = String(
+    import.meta.env.VITE_GOOGLE_MAPS_DEFAULT_TYPE || 'hybrid'
+  )
+    .trim()
+    .toLowerCase()
+  const defaultType = ['roadmap', 'satellite', 'hybrid'].includes(requestedType)
+    ? requestedType
+    : 'hybrid'
+
+  return { apiKey, language, region, defaultType }
+}
+
+function loadGoogleMapsApi({ apiKey, language, region }) {
+  if (typeof window === 'undefined') {
+    return Promise.reject(
+      new Error('Google Maps requires a browser environment.')
+    )
+  }
+
+  if (window.google?.maps?.Map) {
+    return Promise.resolve(window.google.maps)
+  }
+
+  if (!apiKey) {
+    return Promise.reject(
+      new Error('VITE_GOOGLE_MAPS_API_KEY is not configured.')
+    )
+  }
+
+  if (googleMapsLoaderPromise) return googleMapsLoaderPromise
+
+  googleMapsLoaderPromise = new Promise((resolve, reject) => {
+    const scriptId = 'dotwatch-google-maps-script'
+    const callbackName = '__dotwatchGoogleMapsReady'
+    const existingScript = document.getElementById(scriptId)
+    const timeoutId = window.setTimeout(() => {
+      reject(new Error('Google Maps loading timed out.'))
+    }, 20000)
+
+    const finish = () => {
+      window.clearTimeout(timeoutId)
+      if (window.google?.maps?.Map) {
+        resolve(window.google.maps)
+      } else {
+        reject(new Error('Google Maps loaded without the Maps library.'))
+      }
+    }
+
+    window[callbackName] = finish
+    window.gm_authFailure = () => {
+      window.dispatchEvent(new CustomEvent('dotwatch:google-maps-auth-failure'))
+      reject(new Error('Google Maps API authentication failed.'))
+    }
+
+    if (existingScript) {
+      existingScript.addEventListener('load', finish, { once: true })
+      existingScript.addEventListener(
+        'error',
+        () => reject(new Error('Unable to load Google Maps JavaScript API.')),
+        { once: true }
+      )
+      return
+    }
+
+    const params = new URLSearchParams({
+      key: apiKey,
+      v: 'weekly',
+      loading: 'async',
+      callback: callbackName,
+    })
+
+    if (language) params.set('language', language)
+    if (region) params.set('region', region)
+
+    const script = document.createElement('script')
+    script.id = scriptId
+    script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`
+    script.async = true
+    script.defer = true
+    script.onerror = () => {
+      window.clearTimeout(timeoutId)
+      reject(new Error('Unable to load Google Maps JavaScript API.'))
+    }
+    document.head.appendChild(script)
+  }).catch((error) => {
+    googleMapsLoaderPromise = undefined
+    throw error
+  })
+
+  return googleMapsLoaderPromise
+}
+
+function createStatusDot(device) {
+  const status = getStatus(device)
+  const dot = document.createElement('span')
+  dot.className = 'device-map-label-status-dot'
+  dot.style.backgroundColor = getStatusColor(status)
+  dot.style.color = getStatusColor(status)
+  dot.setAttribute('aria-label', status)
+  dot.title = status
+  return dot
+}
+
+function createGoogleOverlayContent(group, onOpenDevice) {
+  const root = document.createElement('div')
+  root.className = 'google-device-overlay'
+
+  const label = document.createElement('div')
+  label.className =
+    'google-device-label device-map-label-content device-map-label-list'
+
+  group.devices.forEach((device) => {
+    const canOpen =
+      typeof onOpenDevice === 'function' && device.id !== undefined
+    const row = document.createElement(canOpen ? 'button' : 'div')
+    row.className = canOpen
+      ? 'device-map-label-row google-device-label-row'
+      : 'device-map-label-row device-map-label-row-static google-device-label-row'
+
+    if (canOpen) {
+      row.type = 'button'
+      row.addEventListener('click', (event) => {
+        event.stopPropagation()
+        onOpenDevice(device.id)
+      })
+    }
+
+    const name = document.createElement('strong')
+    name.textContent = getDeviceName(device)
+    row.append(createStatusDot(device), name)
+    label.appendChild(row)
+  })
+
+  const pin = document.createElement('button')
+  pin.type = 'button'
+  pin.className = 'google-device-location-pin'
+  pin.setAttribute('aria-label', `Open ${getDeviceName(group.devices[0])}`)
+  pin.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20 10c0 5.5-8 12-8 12S4 15.5 4 10a8 8 0 1 1 16 0Z"></path>
+      <circle cx="12" cy="10" r="3"></circle>
+    </svg>
+  `
+
+  if (
+    typeof onOpenDevice === 'function' &&
+    group.devices.length === 1 &&
+    group.devices[0].id !== undefined
+  ) {
+    pin.addEventListener('click', (event) => {
+      event.stopPropagation()
+      onOpenDevice(group.devices[0].id)
+    })
+  } else {
+    pin.tabIndex = -1
+    pin.setAttribute('aria-hidden', 'true')
+  }
+
+  root.append(label, pin)
+  return root
+}
+
+function createGoogleDeviceOverlay(maps, map, group, onOpenDevice) {
+  class DeviceOverlay extends maps.OverlayView {
+    constructor() {
+      super()
+      this.position = new maps.LatLng(group.position[0], group.position[1])
+      this.root = createGoogleOverlayContent(group, onOpenDevice)
+    }
+
+    onAdd() {
+      this.getPanes()?.overlayMouseTarget.appendChild(this.root)
+    }
+
+    draw() {
+      const point = this.getProjection()?.fromLatLngToDivPixel(this.position)
+      if (!point) return
+
+      this.root.style.left = `${point.x}px`
+      this.root.style.top = `${point.y}px`
+      this.root.style.zIndex = String(
+        Math.round(100000 - group.position[0] * 100)
+      )
+    }
+
+    onRemove() {
+      this.root.remove()
+    }
+  }
+
+  const overlay = new DeviceOverlay()
+  overlay.setMap(map)
+  return overlay
+}
+
+function fitGoogleMapToPositions(maps, map, positions) {
+  if (!positions.length) {
+    map.setCenter({ lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1] })
+    map.setZoom(11)
+    return
+  }
+
+  if (positions.length === 1) {
+    map.setCenter({ lat: positions[0][0], lng: positions[0][1] })
+    map.setZoom(14)
+    return
+  }
+
+  const bounds = new maps.LatLngBounds()
+  positions.forEach(([latitude, longitude]) => {
+    bounds.extend({ lat: latitude, lng: longitude })
+  })
+  map.fitBounds(bounds, 52)
+
+  maps.event.addListenerOnce(map, 'idle', () => {
+    if ((map.getZoom() || 0) > 15) map.setZoom(15)
+  })
+}
+
+function formatGoogleMapType(mapType) {
+  if (mapType === 'satellite') return 'Satellite'
+  if (mapType === 'roadmap') return 'Roadmap'
+  return 'Hybrid'
+}
+
+function GoogleDeviceMap({
+  devices = [],
+  onOpenDevice,
+  googleMapsOptions,
+  onUnavailable,
+}) {
+  const mapElementRef = useRef(null)
+  const mapRef = useRef(null)
+  const overlaysRef = useRef([])
+  const lastFitSignatureRef = useRef('')
+  const [mapType, setMapType] = useState(googleMapsOptions.defaultType)
+  const [mapReadyVersion, setMapReadyVersion] = useState(0)
+
+  const visibleDevices = useMemo(
+    () => (Array.isArray(devices) ? devices : []),
+    [devices]
+  )
+
+  const devicesWithPositions = useMemo(() => {
+    return visibleDevices.map((device, index) => ({
+      device,
+      position: getDevicePosition(device, index),
+      hasCoordinates: isValidCoordinate(device.latitude, device.longitude),
+    }))
+  }, [visibleDevices])
+
+  const deviceGroups = useMemo(
+    () => groupDevicesByDistance(devicesWithPositions),
+    [devicesWithPositions]
+  )
+
+  const positions = useMemo(
+    () => deviceGroups.map((group) => group.position),
+    [deviceGroups]
+  )
+
+  useEffect(() => {
+    let disposed = false
+    let mapTypeListener
+
+    const handleAuthFailure = () => {
+      if (!disposed) onUnavailable('Google Maps API authentication failed.')
+    }
+
+    window.addEventListener(
+      'dotwatch:google-maps-auth-failure',
+      handleAuthFailure
+    )
+
+    loadGoogleMapsApi(googleMapsOptions)
+      .then((maps) => {
+        if (disposed || !mapElementRef.current) return
+
+        const map = new maps.Map(mapElementRef.current, {
+          center: { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1] },
+          zoom: 11,
+          mapTypeId: googleMapsOptions.defaultType,
+          mapTypeControl: true,
+          mapTypeControlOptions: {
+            mapTypeIds: [
+              maps.MapTypeId.ROADMAP,
+              maps.MapTypeId.HYBRID,
+              maps.MapTypeId.SATELLITE,
+            ],
+            style: maps.MapTypeControlStyle.HORIZONTAL_BAR,
+            position: maps.ControlPosition.TOP_RIGHT,
+          },
+          zoomControl: true,
+          fullscreenControl: true,
+          streetViewControl: false,
+          scaleControl: true,
+          rotateControl: false,
+          gestureHandling: 'cooperative',
+          clickableIcons: false,
+          keyboardShortcuts: true,
+        })
+
+        mapRef.current = map
+        setMapType(map.getMapTypeId() || googleMapsOptions.defaultType)
+        mapTypeListener = map.addListener('maptypeid_changed', () => {
+          setMapType(map.getMapTypeId() || googleMapsOptions.defaultType)
+        })
+        setMapReadyVersion((current) => current + 1)
+      })
+      .catch((error) => {
+        if (!disposed) onUnavailable(error.message)
+      })
+
+    return () => {
+      disposed = true
+      window.removeEventListener(
+        'dotwatch:google-maps-auth-failure',
+        handleAuthFailure
+      )
+      mapTypeListener?.remove()
+      overlaysRef.current.forEach((overlay) => overlay.setMap(null))
+      overlaysRef.current = []
+      mapRef.current = null
+      lastFitSignatureRef.current = ''
+    }
+  }, [googleMapsOptions, onUnavailable])
+
+  useEffect(() => {
+    const map = mapRef.current
+    const maps = window.google?.maps
+    if (!map || !maps) return undefined
+
+    overlaysRef.current.forEach((overlay) => overlay.setMap(null))
+    overlaysRef.current = deviceGroups.map((group) =>
+      createGoogleDeviceOverlay(maps, map, group, onOpenDevice)
+    )
+    const fitSignature = positions
+      .map(
+        ([latitude, longitude]) =>
+          `${latitude.toFixed(6)},${longitude.toFixed(6)}`
+      )
+      .join('|')
+
+    if (lastFitSignatureRef.current !== fitSignature) {
+      fitGoogleMapToPositions(maps, map, positions)
+      lastFitSignatureRef.current = fitSignature
+    }
+
+    return () => {
+      overlaysRef.current.forEach((overlay) => overlay.setMap(null))
+      overlaysRef.current = []
+    }
+  }, [deviceGroups, mapReadyVersion, onOpenDevice, positions])
+
+  if (!visibleDevices.length) {
+    return (
+      <div className="device-map-empty">
+        <strong>No devices on map</strong>
+        <p>ยังไม่มี Device สำหรับแสดงบนแผนที่</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="device-map-wrapper device-map-wrapper-google">
+      <div ref={mapElementRef} className="dashboard-map google-device-map" />
+      <div className="device-map-provider-badge">
+        Google Maps · {formatGoogleMapType(mapType)}
+      </div>
+    </div>
+  )
+}
+
+function DeviceMap({ devices = [], onOpenDevice }) {
+  const googleMapsOptions = useMemo(() => getGoogleMapsOptions(), [])
+  const [googleMapsError, setGoogleMapsError] = useState(
+    googleMapsOptions.apiKey
+      ? ''
+      : 'VITE_GOOGLE_MAPS_API_KEY is not configured.'
+  )
+
+  const handleGoogleMapsUnavailable = useCallback((message) => {
+    setGoogleMapsError(message || 'Google Maps is unavailable.')
+  }, [])
+
+  const visibleDevices = Array.isArray(devices) ? devices : []
+
+  if (!visibleDevices.length) {
+    return (
+      <div className="device-map-empty">
+        <strong>No devices on map</strong>
+        <p>ยังไม่มี Device สำหรับแสดงบนแผนที่</p>
+      </div>
+    )
+  }
+
+  if (googleMapsError) {
+    return (
+      <LeafletDeviceMap
+        devices={visibleDevices}
+        onOpenDevice={onOpenDevice}
+        fallbackReason={googleMapsError}
+      />
+    )
+  }
+
+  return (
+    <GoogleDeviceMap
+      devices={visibleDevices}
+      onOpenDevice={onOpenDevice}
+      googleMapsOptions={googleMapsOptions}
+      onUnavailable={handleGoogleMapsUnavailable}
+    />
   )
 }
 

@@ -1,0 +1,258 @@
+/* =========================================================
+   dotWatch Google Device Map
+   Google Hybrid/Satellite renderer with OpenStreetMap fallback.
+========================================================= */
+
+.device-map-wrapper-google,
+.device-map-wrapper-leaflet {
+  position: relative;
+  isolation: isolate;
+}
+
+.device-map-wrapper-google::after {
+  content: none !important;
+  display: none !important;
+}
+
+.google-device-map {
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  font-family:
+    'Inter',
+    'Prompt',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
+.device-map-provider-badge {
+  position: absolute;
+  z-index: 800;
+  left: 12px;
+  top: 12px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.28);
+  backdrop-filter: blur(12px);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.device-map-provider-badge.is-fallback {
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.38);
+  background: rgba(69, 42, 5, 0.9);
+}
+
+.google-device-overlay {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -100%);
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  user-select: none;
+  will-change: left, top;
+}
+
+.google-device-label {
+  position: relative;
+  min-width: 112px;
+  max-width: 220px;
+  display: grid;
+  gap: 4px;
+  max-height: 190px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-bottom: 5px;
+  padding: 7px 8px;
+  border-radius: 15px;
+  color: #f8fafc;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent),
+    rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  box-shadow: 0 16px 34px rgba(2, 6, 23, 0.32);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+.google-device-label-row {
+  width: 100%;
+  min-width: 0;
+  min-height: 28px;
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 10px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  pointer-events: auto;
+}
+
+button.google-device-label-row {
+  cursor: pointer;
+}
+
+button.google-device-label-row:hover,
+button.google-device-label-row:focus-visible {
+  color: #ffffff;
+  background: rgba(37, 99, 235, 0.34);
+  outline: none;
+}
+
+.google-device-label-row strong {
+  min-width: 0;
+  max-width: 184px;
+  overflow: hidden;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1.15;
+  font-weight: 900;
+  letter-spacing: -0.015em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.google-device-label-row .device-map-label-status-dot {
+  width: 7px;
+  height: 7px;
+  display: block;
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.google-device-location-pin {
+  position: relative;
+  z-index: 1;
+  width: 34px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #2563eb;
+  background: transparent;
+  filter: drop-shadow(0 8px 9px rgba(2, 6, 23, 0.34));
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.google-device-location-pin[aria-hidden='true'] {
+  cursor: default;
+  pointer-events: none;
+}
+
+.google-device-location-pin svg {
+  width: 34px;
+  height: 42px;
+  display: block;
+  overflow: visible;
+  fill: currentColor;
+  stroke: #ffffff;
+  stroke-width: 1.15;
+}
+
+.google-device-location-pin circle {
+  fill: #ffffff;
+  stroke: none;
+}
+
+.google-device-location-pin:hover,
+.google-device-location-pin:focus-visible {
+  color: #1d4ed8;
+  outline: none;
+  transform: translateY(-2px) scale(1.05);
+}
+
+/* Keep native Google controls legible above satellite imagery. */
+.google-device-map .gm-style-mtc,
+.google-device-map .gm-bundled-control,
+.google-device-map .gmnoprint {
+  font-family: inherit !important;
+}
+
+.google-device-map .gm-style-mtc button,
+.google-device-map .gm-control-active {
+  font-family: inherit !important;
+  font-weight: 800 !important;
+}
+
+@media (max-width: 620px) {
+  .device-map-provider-badge {
+    left: 8px;
+    top: 8px;
+    min-height: 25px;
+    padding: 0 8px;
+    font-size: 9px;
+  }
+
+  .google-device-label {
+    min-width: 96px;
+    max-width: 164px;
+    padding: 6px;
+    border-radius: 13px;
+  }
+
+  .google-device-label-row {
+    min-height: 25px;
+    gap: 6px;
+    padding: 3px 5px;
+  }
+
+  .google-device-label-row strong {
+    max-width: 136px;
+    font-size: 10px;
+  }
+
+  .google-device-location-pin,
+  .google-device-location-pin svg {
+    width: 30px;
+    height: 38px;
+  }
+
+  .google-device-map .gm-style-mtc button {
+    min-width: auto !important;
+    padding-inline: 7px !important;
+    font-size: 10px !important;
+  }
+}
+
+@media (min-width: 1920px) {
+  .device-map-provider-badge {
+    min-height: 32px;
+    padding-inline: 12px;
+    font-size: 11px;
+  }
+
+  .google-device-label {
+    min-width: 128px;
+    max-width: 250px;
+  }
+
+  .google-device-label-row strong {
+    max-width: 210px;
+    font-size: 12px;
+  }
+}
