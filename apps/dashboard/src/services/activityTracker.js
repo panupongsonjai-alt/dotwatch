@@ -90,13 +90,13 @@ function describeMutation(path, method) {
     return ['operation.recording_settings_updated', 'Recording settings updated', 'Device recording interval was changed.', deviceId]
   }
   if (/\/metrics\/reset(?:\/|$)/i.test(path)) {
-    return ['operation.metrics_reset', 'Metric settings reset', 'Metric configuration was restored to its defaults.', deviceId]
+    return ['operation.metrics_reset', 'Value settings reset', 'Value configuration was restored to its defaults.', deviceId]
   }
   if (/\/metrics\//i.test(path) && method === 'DELETE') {
-    return ['operation.metric_deleted', 'Metric deleted', 'A device metric was deleted.', deviceId]
+    return ['operation.metric_deleted', 'Value deleted', 'A device value was deleted.', deviceId]
   }
   if (/\/metrics(?:\/|$)/i.test(path)) {
-    return ['operation.metrics_updated', 'Metric settings updated', 'Device metric display or recording settings were changed.', deviceId]
+    return ['operation.metrics_updated', 'Value settings updated', 'Device value display or recording settings were changed.', deviceId]
   }
   if (/\/reset-secret(?:\/|$)/i.test(path)) {
     return ['operation.device_secret_reset', 'Device secret reset', 'A new device secret was generated.', deviceId]

@@ -517,7 +517,7 @@ function normalizeDeviceModelPayload(data) {
       metric.default_name ||
       metric.metricName ||
       metric.metric_name ||
-      `Metric ${index + 1}`,
+      `Value ${index + 1}`,
     defaultType:
       metric.defaultType || metric.default_type || metric.metricType || 'custom',
     defaultUnit: metric.defaultUnit || metric.default_unit || metric.unit || '',
@@ -548,7 +548,7 @@ function normalizeDeviceModelPayload(data) {
 function buildDefaultMetrics(metricCount) {
   return Array.from({ length: Number(metricCount || 0) }, (_, index) => ({
     metricKey: `metric_${index + 1}`,
-    defaultName: `Metric ${index + 1}`,
+    defaultName: `Value ${index + 1}`,
     defaultType: 'custom',
     defaultUnit: '',
     defaultIcon: 'Activity',

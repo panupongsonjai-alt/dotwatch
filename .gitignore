@@ -109,3 +109,7 @@ apps/dashboard/.env.local
 services/backend/.env
 services/backend/.env.*
 .pio/
+
+apps/dashboard/.env.local
+
+apps/dashboard/.env.local

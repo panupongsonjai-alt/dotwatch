@@ -40,7 +40,7 @@ FROM devices d
 ORDER BY d.last_ingest_at DESC NULLS LAST
 LIMIT 20;
 
-\echo '== metric latest coverage =='
+\echo '== value latest coverage =='
 SELECT
   device_id,
   COUNT(*)::int AS latest_metric_count,

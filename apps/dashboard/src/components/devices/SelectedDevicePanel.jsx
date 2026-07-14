@@ -46,7 +46,7 @@ import {
 
 const DETAIL_TABS = [
   { key: 'overview', label: 'Overview' },
-  { key: 'metrics', label: 'Metrics & Alarms' },
+  { key: 'metrics', label: 'Values & Alarms' },
   { key: 'location', label: 'Location' },
   { key: 'security', label: 'Security' },
 ]
@@ -219,8 +219,8 @@ function DeviceAlarmRulesPanel({
     return (
       <div className="alarm-rules-panel-v2 devices-v3-alarm-rules-panel">
         <div className="app-empty-state">
-          <h3>กำลังโหลด Metric</h3>
-          <p>กำลังเตรียมรายการ Metric สำหรับตั้ง Alarm</p>
+          <h3>กำลังโหลด Value</h3>
+          <p>กำลังเตรียมรายการ Value สำหรับตั้ง Alarm</p>
         </div>
       </div>
     )
@@ -230,7 +230,7 @@ function DeviceAlarmRulesPanel({
     return (
       <div className="alarm-rules-panel-v2 devices-v3-alarm-rules-panel">
         <div className="alarm-rule-empty">
-          ยังไม่มี Metric สำหรับตั้ง Alarm กรุณาเพิ่ม Metric ในแท็บ Metrics ก่อน
+          ยังไม่มี Value สำหรับตั้ง Alarm กรุณาเพิ่ม Value ในแท็บ Values ก่อน
         </div>
       </div>
     )
@@ -610,10 +610,10 @@ function getProductionReadiness(
     },
     {
       key: 'metrics',
-      title: 'Metric payload',
+      title: 'Value payload',
       description: hasMetricData
-        ? `${metricPills.length} latest metrics available`
-        : 'ยังไม่พบ latest metric จากอุปกรณ์นี้',
+        ? `${metricPills.length} latest values available`
+        : 'ยังไม่พบ latest value จากอุปกรณ์นี้',
       tone: hasMetricData ? 'success' : 'warning',
       icon: hasMetricData ? Activity : AlertTriangle,
     },
@@ -1060,9 +1060,9 @@ function SelectedDevicePanel({
       {activeTab === 'metrics' && (
         <div className="devices-v3-tab-panel devices-v3-metrics-alarms-panel">
           <DeviceTabHeader
-            eyebrow="Metric & Alarm Configuration"
-            title="Metrics & Alarms"
-            description="ตั้งชื่อ Metric, หน่วย, Icon, การแสดงผล และกำหนด Warning / Critical Threshold ได้จากหน้าเดียว"
+            eyebrow="Value & Alarm Configuration"
+            title="Values & Alarms"
+            description="ตั้งชื่อ Value, หน่วย, Icon, การแสดงผล และกำหนด Warning / Critical Threshold ได้จากหน้าเดียว"
             meta={`${selectedDevice.metric_count || 0} Channels`}
           />
 

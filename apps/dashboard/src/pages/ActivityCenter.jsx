@@ -333,7 +333,7 @@ function ActivityCenter() {
         <StatCard
           label="Changes"
           value={loading ? '...' : summary.changes}
-          hint="การแก้ไข Device, Metric และการตั้งค่า"
+          hint="การแก้ไข Device, Value และการตั้งค่า"
           tone="warning"
         />
         <StatCard

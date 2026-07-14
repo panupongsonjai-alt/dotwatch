@@ -26,7 +26,7 @@ WITH upsert_model AS (
     'esp32_dht3',
     'ESP32-DHT3',
     2,
-    'Additional ESP32 Wi-Fi model with DHT temperature and humidity. Metrics: metric_1 temperature, metric_2 humidity. RSSI is operational metadata.',
+    'Additional ESP32 Wi-Fi model with DHT temperature and humidity. Values: metric_1 temperature, metric_2 humidity. RSSI is operational metadata.',
     true,
     NOW(),
     NOW()

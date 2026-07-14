@@ -208,7 +208,7 @@ function getFallbackMetricName(metricKey = '') {
 
   const index = getMetricIndex(key)
 
-  return index > 0 ? `Metric ${index}` : key
+  return index > 0 ? `Value ${index}` : key
 }
 
 function getFallbackMetricUnit(metricKey = '') {
@@ -425,7 +425,7 @@ function Dashboard({ onOpenDevice }) {
       loadDevices()
 
       if (import.meta.env.DEV) {
-        console.info('Metric config changed:', event.detail)
+        console.info('Value config changed:', event.detail)
       }
     }
 
@@ -531,7 +531,7 @@ function Dashboard({ onOpenDevice }) {
       <PageHeader
         eyebrow="Operations Center"
         title="Dashboard"
-        description="หน้าสรุปภาพรวมสถานะอุปกรณ์และ Metric ล่าสุด พร้อมแผนที่และ Alarm ล่าสุด"
+        description="หน้าสรุปภาพรวมสถานะอุปกรณ์และ Value ล่าสุด พร้อมแผนที่และ Alarm ล่าสุด"
       />
 
       <section className="dw-page-stat-grid dashboard-kpi-grid dashboard-health-kpi-grid">
@@ -571,12 +571,12 @@ function Dashboard({ onOpenDevice }) {
         <div className="app-section-title dashboard-section-title-row live-metrics-overview-header">
           <div>
             <h2>Data Overview</h2>
-            <p>แยก Metric ตาม Device และแสดงเฉพาะรายการที่เปิด Visible</p>
+            <p>แยก Value ตาม Device และแสดงเฉพาะรายการที่เปิด Visible</p>
           </div>
 
           <span className="device-count-badge live-metrics-count-badge">
             {dataOverviewGroups.length} Devices · {dataOverviewMetricCount}{' '}
-            Metrics
+            Values
           </span>
         </div>
 
@@ -587,8 +587,8 @@ function Dashboard({ onOpenDevice }) {
           />
         ) : dataOverviewGroups.length === 0 ? (
           <EmptyState
-            title="ยังไม่มี Metric ที่ตั้งค่าให้แสดง"
-            description="ตรวจสอบ Metric Display ว่าเปิด Visible แล้ว และ Backend ส่ง metric_configs มาครบ"
+            title="ยังไม่มี Value ที่ตั้งค่าให้แสดง"
+            description="ตรวจสอบ Value Display ว่าเปิด Visible แล้ว และ Backend ส่ง metric_configs มาครบ"
           />
         ) : (
           <div className="live-metrics-device-groups">
@@ -610,7 +610,7 @@ function Dashboard({ onOpenDevice }) {
                   </div>
 
                   <span className="live-metric-device-count">
-                    {group.metrics.length} Metrics
+                    {group.metrics.length} Values
                   </span>
                 </header>
 

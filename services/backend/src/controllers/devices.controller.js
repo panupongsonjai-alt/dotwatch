@@ -1096,7 +1096,7 @@ export async function clearHistory(req, res) {
 
   if (rawMetricKey && metricKey === null) {
     return res.status(400).json({
-      message: 'Invalid metric key',
+      message: 'Invalid value key',
     })
   }
 
@@ -1304,7 +1304,7 @@ export async function getHistory(req, res) {
 
   if (rawMetricKey && metricKey === null) {
     return res.status(400).json({
-      message: 'Invalid metric key',
+      message: 'Invalid value key',
     })
   }
 
@@ -1385,7 +1385,7 @@ export async function getHistory(req, res) {
 
     if (!metricConfigResult.rows.length) {
       return res.status(404).json({
-        message: 'Metric is not configured or visible for this device',
+        message: 'Value is not configured or visible for this device',
       })
     }
   }

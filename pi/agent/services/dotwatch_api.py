@@ -84,7 +84,7 @@ def get_connected_wifi_ssid():
 
 def build_ingest_payload(settings, metrics, timestamp=None, firmware_version=None):
     if not isinstance(metrics, dict) or not metrics:
-        raise RuntimeError("metrics must be a non-empty dictionary")
+        raise RuntimeError("values must be a non-empty dictionary")
 
     payload = {
         "firmwareVersion": firmware_version or settings.firmware_version,

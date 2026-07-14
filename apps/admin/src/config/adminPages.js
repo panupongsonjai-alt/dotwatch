@@ -36,7 +36,7 @@ export const ADMIN_PAGE_META = {
     section: 'Operations',
     title: 'Device Models',
     description:
-      'Maintain device model definitions and default metric mapping.',
+      'Maintain device model definitions and default value mapping.',
     icon: Cpu,
   },
   subscriptions: {

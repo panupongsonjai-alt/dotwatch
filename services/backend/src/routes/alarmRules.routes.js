@@ -140,7 +140,7 @@ function normalizeAlarmPayload(payload = {}) {
 
   if (!metric) {
     return {
-      error: 'Metric is required',
+      error: 'Value is required',
     }
   }
 
@@ -702,7 +702,7 @@ router.post(
       if (missingMetric) {
         await client.query('ROLLBACK')
         return res.status(400).json({
-          message: `Metric ${missingMetric} was not found for this device`,
+          message: `Value ${missingMetric} was not found for this device`,
         })
       }
 
@@ -811,7 +811,7 @@ router.post(
       if (!metricExists) {
         await client.query('ROLLBACK')
         return res.status(400).json({
-          message: `Metric ${normalized.value.metric} was not found for this device`,
+          message: `Value ${normalized.value.metric} was not found for this device`,
         })
       }
 
@@ -906,7 +906,7 @@ router.put(
       if (!metricExists) {
         await client.query('ROLLBACK')
         return res.status(400).json({
-          message: `Metric ${normalized.value.metric} was not found for this device`,
+          message: `Value ${normalized.value.metric} was not found for this device`,
         })
       }
 

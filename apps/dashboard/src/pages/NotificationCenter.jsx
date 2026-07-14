@@ -90,7 +90,7 @@ function storeReadIds(ids) {
 }
 
 function getAlarmTitle(alarm) {
-  const metric = alarm.metric_name || alarm.metric || 'Metric'
+  const metric = alarm.metric_name || alarm.metric || 'Value'
   const device = alarm.device_name || alarm.device_code || 'Unknown Device'
 
   if (alarm.status === 'acknowledged') {
@@ -105,7 +105,7 @@ function getAlarmTitle(alarm) {
 function buildAlarmNotification(alarm, metricInfo = {}) {
   const id = `alarm-${alarm.id}-${alarm.status || 'active'}`
   const metric =
-    alarm.metric_name || metricInfo.name || alarm.metric || 'Metric'
+    alarm.metric_name || metricInfo.name || alarm.metric || 'Value'
   const metricKey = alarm.metric || alarm.metric_key || metric
   const unit = alarm.unit || metricInfo.unit || ''
   const decimalPlaces = getMetricDecimalPlaces(
@@ -176,7 +176,7 @@ function getAlarmKey(alarm) {
     alarm.id ||
       alarm.alarm_id ||
       `${alarm.device_id || alarm.deviceId || alarm.device_code || 'device'}-${
-        alarm.metric || alarm.metric_key || 'metric'
+        alarm.metric || alarm.metric_key || 'value'
       }-${alarm.triggered_at || alarm.time || alarm.created_at || Date.now()}`
   )
 }
@@ -286,7 +286,7 @@ function NotificationCenter() {
             return [device.id, metrics]
           } catch (error) {
             console.error(
-              `Load notification metrics error device ${device.id}:`,
+              `Load notification values error device ${device.id}:`,
               error
             )
             return [device.id, []]
@@ -325,7 +325,7 @@ function NotificationCenter() {
     const columns = [
       { key: 'notification', label: 'Notification' },
       { key: 'device', label: 'Device' },
-      { key: 'metric', label: 'Metric' },
+      { key: 'metric', label: 'Value' },
       { key: 'type', label: 'Type' },
       { key: 'severity', label: 'Severity' },
       { key: 'readStatus', label: 'Read Status' },
@@ -342,7 +342,7 @@ function NotificationCenter() {
     }))
     const metadata = [
       ['Device', selectedDevice?.name || 'All Devices'],
-      ['Metric', selectedMetric?.name || 'All Metrics'],
+      ['Value', selectedMetric?.name || 'All Values'],
       ['Start Date', startDate || '--'],
       ['End Date', endDate || '--'],
       ['Records', filteredNotifications.length],
@@ -631,7 +631,7 @@ function NotificationCenter() {
         <div className="history-section-title">
           <div>
             <h2>Filter</h2>
-            <p>เลือก Device, ช่วงวันที่ และ Metric ที่ต้องการตรวจสอบ</p>
+            <p>เลือก Device, ช่วงวันที่ และ Value ที่ต้องการตรวจสอบ</p>
           </div>
           <div className="filter-header-actions">
             <button
@@ -736,13 +736,13 @@ function NotificationCenter() {
           </div>
 
           <label>
-            <span>Metric</span>
+            <span>Value</span>
             <UnifiedSelect
               value={metricFilter}
               onChange={(event) => setMetricFilter(event.target.value)}
-              aria-label="กรอง Notification ตาม Metric"
+              aria-label="กรอง Notification ตาม Value"
             >
-              <option value="all">All Metrics</option>
+              <option value="all">All Values</option>
               {notificationMetricOptions.map((metric) => (
                 <option key={metric.key} value={metric.key}>
                   {metric.name}
@@ -941,10 +941,10 @@ function NotificationCenter() {
           { label: 'Start Date', value: formatDateOnly(startDate) },
           { label: 'End Date', value: formatDateOnly(endDate) },
           {
-            label: 'Metric',
+            label: 'Value',
             value:
               metricFilter === 'all'
-                ? 'All Metrics'
+                ? 'All Values'
                 : notificationMetricOptions.find(
                     (metric) => metric.key === metricFilter
                   )?.name || metricFilter,
@@ -955,7 +955,7 @@ function NotificationCenter() {
           },
         ]}
         confirmationKeyword="Delete"
-        confirmationHelp="ตรวจสอบ Device, ช่วงวันที่ และ Metric ให้ถูกต้องก่อนยืนยัน"
+        confirmationHelp="ตรวจสอบ Device, ช่วงวันที่ และ Value ให้ถูกต้องก่อนยืนยัน"
         confirmLabel="Delete Notifications"
         busyLabel="กำลังลบ Notification..."
         busy={clearingNotifications}

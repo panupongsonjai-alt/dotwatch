@@ -138,7 +138,7 @@ function getAlarmKey(alarm) {
     alarm.id ||
       alarm.alarm_id ||
       `${alarm.device_id || alarm.deviceId || alarm.device_code || 'device'}-${
-        alarm.metric || alarm.metric_key || 'metric'
+        alarm.metric || alarm.metric_key || 'value'
       }-${alarm.triggered_at || alarm.time || alarm.created_at || Date.now()}`
   )
 }
@@ -243,7 +243,7 @@ function Alarms() {
 
             return [device.id, metrics]
           } catch (error) {
-            console.error(`Load metrics error device ${device.id}:`, error)
+            console.error(`Load values error device ${device.id}:`, error)
             return [device.id, []]
           }
         })
@@ -399,7 +399,7 @@ function Alarms() {
     )
     const columns = [
       { key: 'device', label: 'Device' },
-      { key: 'metric', label: 'Metric' },
+      { key: 'metric', label: 'Value' },
       { key: 'condition', label: 'Condition' },
       { key: 'value', label: 'Value' },
       { key: 'severity', label: 'Severity' },
@@ -421,7 +421,7 @@ function Alarms() {
     })
     const metadata = [
       ['Device', selectedDevice?.name || 'All Devices'],
-      ['Metric', selectedMetric?.name || 'All Metrics'],
+      ['Value', selectedMetric?.name || 'All Values'],
       ['Start Date', eventStartDate || '--'],
       ['End Date', eventEndDate || '--'],
       ['Records', filteredAlarms.length],
@@ -670,7 +670,7 @@ function Alarms() {
                 <thead>
                   <tr>
                     <th>Device</th>
-                    <th>Metric</th>
+                    <th>Value</th>
                     <th>Condition</th>
                     <th>Severity</th>
                     <th>Status</th>
@@ -738,7 +738,7 @@ function Alarms() {
         <div className="history-section-title">
           <div>
             <h2>Filter</h2>
-            <p>เลือก Device, ช่วงวันที่ และ Metric ที่ต้องการตรวจสอบ</p>
+            <p>เลือก Device, ช่วงวันที่ และ Value ที่ต้องการตรวจสอบ</p>
           </div>
           <div className="filter-header-actions">
             <button
@@ -844,13 +844,13 @@ function Alarms() {
           </div>
 
           <label>
-            <span>Metric</span>
+            <span>Value</span>
             <UnifiedSelect
               value={eventMetricFilter}
               onChange={(event) => setEventMetricFilter(event.target.value)}
-              aria-label="กรอง Alarm Events ตาม Metric"
+              aria-label="กรอง Alarm Events ตาม Value"
             >
-              <option value="all">All Metrics</option>
+              <option value="all">All Values</option>
               {eventMetricOptions.map((metric) => (
                 <option key={metric.key} value={metric.key}>
                   {metric.name}
@@ -910,7 +910,7 @@ function Alarms() {
         <div className="app-section-title alarm-section-heading">
           <div>
             <h2>Alarm Events</h2>
-            <p>รายการแจ้งเตือนล่าสุดจาก Dynamic Metrics</p>
+            <p>รายการแจ้งเตือนล่าสุดจาก Dynamic Values</p>
           </div>
 
           <TableViewControls
@@ -940,7 +940,7 @@ function Alarms() {
                 <thead>
                   <tr>
                     <th>Device</th>
-                    <th>Metric</th>
+                    <th>Value</th>
                     <th>Condition</th>
                     <th>Value</th>
                     <th>Severity</th>
@@ -1044,10 +1044,10 @@ function Alarms() {
           { label: 'Start Date', value: formatDateOnly(eventStartDate) },
           { label: 'End Date', value: formatDateOnly(eventEndDate) },
           {
-            label: 'Metric',
+            label: 'Value',
             value:
               eventMetricFilter === 'all'
-                ? 'All Metrics'
+                ? 'All Values'
                 : eventMetricOptions.find(
                     (metric) => metric.key === eventMetricFilter
                   )?.name || eventMetricFilter,
@@ -1058,7 +1058,7 @@ function Alarms() {
           },
         ]}
         confirmationKeyword="Delete"
-        confirmationHelp="ตรวจสอบ Device, ช่วงวันที่ และ Metric ให้ถูกต้องก่อนยืนยัน"
+        confirmationHelp="ตรวจสอบ Device, ช่วงวันที่ และ Value ให้ถูกต้องก่อนยืนยัน"
         confirmLabel="Delete Alarm Events"
         busyLabel="กำลังลบ Alarm..."
         busy={clearingAlarms}

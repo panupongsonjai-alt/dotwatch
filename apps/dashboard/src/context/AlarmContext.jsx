@@ -17,7 +17,7 @@ export function AlarmProvider({ children }) {
         title: 'Critical Alarm',
         message:
           notificationMessage ||
-          `${alarm.metric || 'Metric'} • Value: ${formatMetricValue(
+          `${alarm.metric || 'Value'} • Value: ${formatMetricValue(
             alarm.value,
             alarm.unit,
             alarm.decimal_places

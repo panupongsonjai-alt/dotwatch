@@ -401,7 +401,7 @@ function Settings() {
                 <div>
                   <strong>Data Overview</strong>
                   <span>
-                    แสดงค่าล่าสุดของ Metric ที่เปิด Visible ใน Dashboard
+                    แสดงค่าล่าสุดของ Value ที่เปิด Visible ใน Dashboard
                   </span>
                 </div>
                 <input

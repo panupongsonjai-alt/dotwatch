@@ -52,7 +52,7 @@ function getAlarmDeviceId(alarm) {
 function getAlarmTitle(alarm) {
   const severity = String(alarm?.severity || 'alarm').toUpperCase()
   const metric =
-    alarm?.metric_key || alarm?.metric || alarm?.metric_name || 'Metric'
+    alarm?.metric_key || alarm?.metric || alarm?.metric_name || 'Value'
 
   return `${severity} alarm: ${metric}`
 }
@@ -187,7 +187,7 @@ function buildTimeline(device, visibleMetrics, realtimeAlarms = []) {
     id: 'profile',
     tone: 'muted',
     title: 'Device profile loaded',
-    description: `${device?.model_name || 'Unknown model'} • ${visibleMetrics.length} visible metrics configured.`,
+    description: `${device?.model_name || 'Unknown model'} • ${visibleMetrics.length} visible values configured.`,
     time:
       device?.created_at ||
       device?.last_seen_at ||
@@ -330,7 +330,7 @@ function DeviceDetail({ deviceId, onBack }) {
 
   const tabs = [
     { id: 'overview', label: 'Overview', count: null },
-    { id: 'metrics', label: 'Metrics', count: metricSummary.total },
+    { id: 'metrics', label: 'Values', count: metricSummary.total },
     { id: 'timeline', label: 'Timeline', count: timeline.length },
   ]
 
@@ -372,7 +372,7 @@ function DeviceDetail({ deviceId, onBack }) {
             <span>Latest Reading: {formatShortTime(device.latest_time)}</span>
             <span>Last Seen: {formatShortTime(device.last_seen_at)}</span>
             <span>
-              {metricSummary.active}/{metricSummary.total} Active Metrics
+              {metricSummary.active}/{metricSummary.total} Active Values
             </span>
           </div>
         }
@@ -408,7 +408,7 @@ function DeviceDetail({ deviceId, onBack }) {
           hint="Device model"
         />
         <StatCard
-          label="Metrics"
+          label="Values"
           value={metricSummary.total}
           hint={`${metricSummary.active} active`}
         />

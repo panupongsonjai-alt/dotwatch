@@ -4,15 +4,15 @@ Production-ready dotWatch IoT monitoring monorepo.
 
 ## Source of truth
 
-| Area                      | Path                           |
-| ------------------------- | ------------------------------ |
-| Dashboard                 | `apps/dashboard`               |
-| Admin console             | `apps/admin`                   |
-| Backend API               | `services/backend`             |
-| Raspberry Pi agent        | `pi/agent`                     |
+| Area | Path |
+|---|---|
+| Dashboard | `apps/dashboard` |
+| Admin console | `apps/admin` |
+| Backend API | `services/backend` |
+| Raspberry Pi agent | `pi/agent` |
 | ESP32 production firmware | `esp32/dotwatch_esp32_product` |
-| Operations scripts        | `scripts`                      |
-| Project documentation     | `docs`                         |
+| Operations scripts | `scripts` |
+| Project documentation | `docs` |
 
 ## Common commands
 
@@ -48,10 +48,6 @@ python -m platformio device monitor --baud 115200
 ```powershell
 npm run verify:esp32:product -- -SkipBuild
 ```
-
-## Google Maps Device Map
-
-Dashboard Device Map รองรับ Google Maps แบบ Hybrid/Satellite และมี OpenStreetMap fallback เมื่อไม่มี API key ดูวิธีตั้งค่าที่ `docs/GOOGLE_MAPS_DEVICE_MAP_TH.md`
 
 ## Local/Render database parity
 

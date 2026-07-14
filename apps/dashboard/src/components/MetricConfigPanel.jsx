@@ -192,7 +192,7 @@ function MetricIconPicker({ value, disabled, isOpen, onOpenChange, onChange }) {
     <details className="metric-icon-dropdown" open={isOpen}>
       <summary
         className="metric-icon-dropdown-summary"
-        aria-label="Select metric icon"
+        aria-label="Select value icon"
         aria-expanded={isOpen}
         onClick={handleSummaryClick}
       >
@@ -330,13 +330,13 @@ export default function MetricConfigPanel({
   async function removeMetric(indexToRemove) {
     const metric = draftMetrics[indexToRemove]
     const ok = await confirmDeleteAction({
-      title: 'Confirm Delete Metric',
+      title: 'Confirm Delete Value',
       targetName:
         metric?.metric_name ||
         metric?.metric_key ||
-        `Metric ${indexToRemove + 1}`,
+        `Value ${indexToRemove + 1}`,
       description:
-        'Metric นี้จะถูกลบออกจากรายการ Draft กรุณาพิมพ์ Delete เพื่อยืนยัน',
+        'Value นี้จะถูกลบออกจากรายการ Draft กรุณาพิมพ์ Delete เพื่อยืนยัน',
     })
 
     if (!ok) return
@@ -437,7 +437,7 @@ export default function MetricConfigPanel({
         if (!Number.isFinite(threshold)) {
           const severityLabel = severity === 'critical' ? 'Critical' : 'Warning'
           const metricLabel =
-            metric.metric_name || metric.metric_key || 'Metric'
+            metric.metric_name || metric.metric_key || 'Value'
 
           throw new Error(
             `กรุณากรอก Threshold ของ ${metricLabel} / ${severityLabel} ให้ถูกต้อง`
@@ -477,7 +477,7 @@ export default function MetricConfigPanel({
     }
 
     setSavingAll(true)
-    setAlarmMessage('กำลังบันทึก Metric และ Alarm Rules...')
+    setAlarmMessage('กำลังบันทึก Value และ Alarm Rules...')
     setAlarmMessageTone('info')
 
     try {
@@ -485,7 +485,7 @@ export default function MetricConfigPanel({
 
       if (!metricSaved) {
         throw new Error(
-          'บันทึก Metric ไม่สำเร็จ จึงยังไม่ได้บันทึก Alarm Rules'
+          'บันทึก Value ไม่สำเร็จ จึงยังไม่ได้บันทึก Alarm Rules'
         )
       }
 
@@ -539,7 +539,7 @@ export default function MetricConfigPanel({
         (rule) => rule.is_active !== false
       ).length
 
-      const successMessage = `บันทึกสำเร็จ: ${normalizedMetrics.length} Metrics และ ${activeRuleCount} Active Alarm Rules`
+      const successMessage = `บันทึกสำเร็จ: ${normalizedMetrics.length} Values และ ${activeRuleCount} Active Alarm Rules`
       setAlarmMessage(successMessage)
       setAlarmMessageTone('success')
       showSuccessToast(successMessage)
@@ -578,17 +578,17 @@ export default function MetricConfigPanel({
       <div className="metric-config-toolbar metric-config-toolbar-redesign">
         <div className="metric-config-toolbar-main">
           <div className="metric-config-toolbar-title">
-            <span className="page-eyebrow">Metric Configuration</span>
+            <span className="page-eyebrow">Value Configuration</span>
             <h3>Display Fields & Alarm Rules</h3>
             <p className="metric-config-helper">
-              กำหนดข้อมูลที่แสดงผล และตั้ง Warning หรือ Critical Threshold ของแต่ละ Metric
+              กำหนดข้อมูลที่แสดงผล และตั้ง Warning หรือ Critical Threshold ของแต่ละ Value
             </p>
           </div>
 
-          <div className="metric-config-toolbar-summary" aria-label="Metric configuration summary">
+          <div className="metric-config-toolbar-summary" aria-label="Value configuration summary">
             <span>
               <strong>{draftMetrics.length}</strong>
-              Metrics
+              Values
             </span>
             <span>
               <strong>{visibleMetricCount}</strong>
@@ -608,7 +608,7 @@ export default function MetricConfigPanel({
           disabled={busy}
         >
           <Plus size={16} />
-          Add Metric
+          Add Value
         </button>
       </div>
 
@@ -625,18 +625,18 @@ export default function MetricConfigPanel({
 
       {loading ? (
         <div className="app-empty-state">
-          <h3>กำลังโหลด Metric</h3>
-          <p>กำลังดึง Metric และ Alarm configuration ของ Device นี้</p>
+          <h3>กำลังโหลด Value</h3>
+          <p>กำลังดึง Value และ Alarm configuration ของ Device นี้</p>
         </div>
       ) : draftMetrics.length === 0 ? (
         <div className="app-empty-state">
-          <h3>ยังไม่มี Metric</h3>
-          <p>กด Add Metric เพื่อเพิ่มค่าที่ต้องการแสดงผล</p>
+          <h3>ยังไม่มี Value</h3>
+          <p>กด Add Value เพื่อเพิ่มค่าที่ต้องการแสดงผล</p>
         </div>
       ) : (
         <div className="metric-alarm-config-table">
           <div className="metric-alarm-config-head" aria-hidden="true">
-            <span className="metric-alarm-head-name">Metric Name</span>
+            <span className="metric-alarm-head-name">Value Name</span>
             <span className="metric-alarm-head-unit">Unit</span>
             <span className="metric-alarm-head-decimals">Decimals</span>
             <span className="metric-alarm-head-icon">Icon</span>
@@ -647,7 +647,7 @@ export default function MetricConfigPanel({
             {draftMetrics.map((metric, index) => {
               const metricKey = metric.metric_key || `metric_${index + 1}`
               const metricLabel =
-                metric.metric_name || metricKey || `Metric ${index + 1}`
+                metric.metric_name || metricKey || `Value ${index + 1}`
               const pickerKey = String(
                 metric.id || metricKey || `metric-${index}`
               )
@@ -661,11 +661,11 @@ export default function MetricConfigPanel({
                 >
                   <div className="metric-alarm-config-metric-row">
                     <label className="metric-alarm-config-field metric-alarm-config-name">
-                      <span>Metric Name</span>
+                      <span>Value Name</span>
                       <input
                         value={metric.metric_name || ''}
                         placeholder={`เช่น ${
-                          index === 0 ? 'Temperature' : 'Metric Name'
+                          index === 0 ? 'Temperature' : 'Value Name'
                         }`}
                         onChange={(event) =>
                           updateMetric(index, 'metric_name', event.target.value)
@@ -883,7 +883,7 @@ export default function MetricConfigPanel({
                       aria-label={`Delete ${metricLabel}`}
                     >
                       <Trash2 size={15} />
-                      <span>Delete Metric</span>
+                      <span>Delete Value</span>
                     </button>
                   </div>
                 </article>

@@ -59,7 +59,7 @@ def normalize_metrics_result(result):
         metrics = result
 
     if not isinstance(metrics, dict):
-        raise RuntimeError(f"Sensor returned invalid metrics type: {type(metrics).__name__}")
+        raise RuntimeError(f"Sensor returned invalid values type: {type(metrics).__name__}")
 
     clean_metrics = {}
     for key, value in metrics.items():
@@ -74,7 +74,7 @@ def normalize_metrics_result(result):
             clean_metrics[metric_key] = number_value
 
     if not clean_metrics:
-        raise RuntimeError("No valid metrics returned from sensor")
+        raise RuntimeError("No valid values returned from sensor")
 
     return clean_metrics, errors
 

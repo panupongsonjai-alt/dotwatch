@@ -54,7 +54,7 @@ const PAGE_META = {
   devices: {
     section: 'Monitoring',
     title: 'Devices',
-    description: 'Manage devices, metrics, location, alarms, and credentials.',
+    description: 'Manage devices, values, location, alarms, and credentials.',
     icon: Radio,
   },
   history: {
@@ -104,7 +104,7 @@ const PAGE_META = {
   'device-detail': {
     section: 'Monitoring',
     title: 'Device Detail',
-    description: 'Realtime metrics, timeline, chart, and device information.',
+    description: 'Realtime values, timeline, chart, and device information.',
     icon: Gauge,
   },
 }
@@ -378,7 +378,7 @@ function WorkspaceHelp({ open, onClose, onNavigate }) {
 
   const quickLinks = [
     { id: 'dashboard', label: 'View operations overview' },
-    { id: 'devices', label: 'Manage devices and metrics' },
+    { id: 'devices', label: 'Manage devices and values' },
     { id: 'history', label: 'Review telemetry history' },
     { id: 'alarms', label: 'Check active alarms' },
     { id: 'activity', label: 'Review operations activity' },

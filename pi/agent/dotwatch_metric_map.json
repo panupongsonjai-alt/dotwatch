@@ -1,7 +1,7 @@
 {
   "device_code": "DW-261103731",
   "profile": "standard_power_meter",
-  "description": "Default dotWatch metric naming for Modbus power meter / PLC / sensor gateway.",
+  "description": "Default dotWatch value naming for Modbus power meter / PLC / sensor gateway.",
   "metrics": [
     {
       "metric_key": "metric_1",

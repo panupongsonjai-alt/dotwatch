@@ -53,7 +53,7 @@ function normalizeDeviceModel(model) {
     name: model.name || model.modelName || model.model_name || 'Device Model',
     description:
       model.description ||
-      `${model.metricCount || model.metric_count || 0} metrics`,
+      `${model.metricCount || model.metric_count || 0} values`,
     metricCount: model.metricCount || model.metric_count || 0,
   }
 }
@@ -514,7 +514,7 @@ function Devices() {
         deletedCount: Number(result?.deleted_count || 0),
       }
     } catch (error) {
-      console.error('Save all metric alarm rules error:', error)
+      console.error('Save all value alarm rules error:', error)
       const message = error.message || 'บันทึก Alarm Rules ไม่สำเร็จ'
       showNotice('error', message)
 
@@ -529,7 +529,7 @@ function Devices() {
 
   async function handleCreateMetricAlarm(deviceId, metricKey, draft) {
     if (!metricKey) {
-      showNotice('warning', 'ไม่พบ Metric Key')
+      showNotice('warning', 'ไม่พบ Value Key')
       return false
     }
 
@@ -549,7 +549,7 @@ function Devices() {
     )
 
     if (!existingRule && existingRules.length >= 2) {
-      showNotice('warning', 'แต่ละ Metric ตั้ง Alarm Rule ได้สูงสุด 2 รายการ')
+      showNotice('warning', 'แต่ละ Value ตั้ง Alarm Rule ได้สูงสุด 2 รายการ')
       return false
     }
 
@@ -575,7 +575,7 @@ function Devices() {
       await loadAlarmRules(deviceId)
       return true
     } catch (error) {
-      console.error('Create metric alarm rule error:', error)
+      console.error('Create value alarm rule error:', error)
       showNotice('error', error.message || 'เพิ่ม Alarm Rule ไม่สำเร็จ')
       return false
     } finally {
@@ -613,7 +613,7 @@ function Devices() {
       await loadAlarmRules(deviceId)
       return true
     } catch (error) {
-      console.error('Update metric alarm rule error:', error)
+      console.error('Update value alarm rule error:', error)
       showNotice('error', error.message || 'แก้ไข Alarm Rule ไม่สำเร็จ')
       return false
     } finally {

@@ -61,7 +61,7 @@ VALUES
   'custom',
   'Custom Device',
   0,
-  'กำหนด Metric เองในอนาคต'
+  'กำหนด Value เองในอนาคต'
 )
 ON CONFLICT (model_key) DO NOTHING;
 

@@ -383,7 +383,7 @@ function getFallbackMetricName(metricKey = '') {
   if (metricKey === 'humidity') return 'Humidity'
   if (metricKey === 'rssi') return 'Signal'
 
-  return index > 0 ? `Metric ${index}` : metricKey || 'Metric'
+  return index > 0 ? `Value ${index}` : metricKey || 'Value'
 }
 
 function getLatestMetrics(device = {}) {
@@ -718,7 +718,7 @@ function HistoryAlarmBadge({ evaluation, compact = false }) {
     return (
       <span
         className="history-alarm-badge no-rule"
-        title="Metric นี้ยังไม่มี Active Alarm Rule"
+        title="Value นี้ยังไม่มี Active Alarm Rule"
       >
         {compact ? '—' : 'No Rule'}
       </span>
@@ -839,7 +839,7 @@ function History() {
       selectedMetricKey === 'all'
         ? {
             metricKey: 'all',
-            metricName: 'All Metrics',
+            metricName: 'All Values',
             unit: '',
           }
         : metrics.find((metric) => metric.metricKey === selectedMetricKey) ||
@@ -1009,7 +1009,7 @@ function History() {
           : []
     } catch (err) {
       if (requestId !== metricsRequestRef.current) return
-      console.warn('History metric config fallback:', err)
+      console.warn('History value config fallback:', err)
     }
 
     const nextMetrics = mergeMetrics(
@@ -1157,7 +1157,7 @@ function History() {
       `Device ${selectedDeviceId}`
     const metricTitle =
       selectedMetricKey === 'all'
-        ? 'All Metrics'
+        ? 'All Values'
         : selectedMetric?.metricName || selectedMetricKey
     const fileBaseName = [
       'dotWatch-history',
@@ -1169,7 +1169,7 @@ function History() {
     const csvRows = [
       ['dotWatch History Report'],
       ['Device Name', deviceName],
-      ['Metric', metricTitle],
+      ['Value', metricTitle],
       ['Start Date', formatDateOnly(startDate)],
       ['End Date', formatDateOnly(endDate)],
       ['Display Interval', selectedResolutionLabel],
@@ -1191,7 +1191,7 @@ function History() {
         ['Alarm Rules'],
         [
           'Severity',
-          'Metric',
+          'Value',
           'Condition',
           'Threshold',
           'Unit',
@@ -1261,8 +1261,8 @@ function History() {
       csvRows.push([
         'Date',
         'Time',
-        'Metric Key',
-        'Metric Name',
+        'Value Key',
+        'Value Name',
         'Value',
         'Unit',
         'Alarm Status',
@@ -1330,7 +1330,7 @@ function History() {
       `Device ${selectedDeviceId}`
     const metricTitle =
       selectedMetricKey === 'all'
-        ? 'All Metrics'
+        ? 'All Values'
         : selectedMetric?.metricName || selectedMetricKey
     const chartSvg =
       document.querySelector('.history-chart-box .recharts-wrapper svg')
@@ -1495,7 +1495,7 @@ function History() {
   <main class="report">
     <header class="report-header">
       <div><span>Device Name :</span><strong>${escapeReportHtml(deviceName)}</strong></div>
-      <div><span>Metric :</span><strong>${escapeReportHtml(metricTitle)}</strong></div>
+      <div><span>Value :</span><strong>${escapeReportHtml(metricTitle)}</strong></div>
       <div><span>Start Date :</span><strong>${escapeReportHtml(formatDateOnly(startDate))}</strong></div>
       <div><span>End Date :</span><strong>${escapeReportHtml(formatDateOnly(endDate))}</strong></div>
     </header>
@@ -1767,7 +1767,7 @@ function History() {
       <PageHeader
         eyebrow="Data Center"
         title="History Analytics"
-        description="ตรวจสอบข้อมูลย้อนหลังของอุปกรณ์และ Metric ที่เลือก พร้อมแสดงผลเป็นกราฟและตาราง"
+        description="ตรวจสอบข้อมูลย้อนหลังของอุปกรณ์และ Value ที่เลือก พร้อมแสดงผลเป็นกราฟและตาราง"
       />
 
       <section className="history-stat-grid history-stat-grid-tight">
@@ -1802,7 +1802,7 @@ function History() {
         <div className="history-section-title">
           <div>
             <h2>Filter</h2>
-            <p>เลือก Device, ช่วงวันที่, Metric และช่วงเวลาที่ต้องการแสดงผล</p>
+            <p>เลือก Device, ช่วงวันที่, Value และช่วงเวลาที่ต้องการแสดงผล</p>
           </div>
           <div className="filter-header-actions">
             <button
@@ -1910,17 +1910,17 @@ function History() {
           </div>
 
           <label>
-            <span>Metric</span>
+            <span>Value</span>
             <UnifiedSelect
               value={selectedMetricKey}
               onChange={(event) => setSelectedMetricKey(event.target.value)}
               disabled={!metrics.length}
             >
               {metrics.length === 0 ? (
-                <option value="">No metric</option>
+                <option value="">No value</option>
               ) : (
                 <>
-                  <option value="all">All Metrics</option>
+                  <option value="all">All Values</option>
                   {metrics.map((metric) => (
                     <option key={metric.metricKey} value={metric.metricKey}>
                       {metric.metricName}
@@ -1998,8 +1998,8 @@ function History() {
             <h2>Trend Graph</h2>
             <p>
               {selectedMetricKey === 'all'
-                ? 'All Metrics'
-                : selectedMetric?.metricName || 'Metric'}{' '}
+                ? 'All Values'
+                : selectedMetric?.metricName || 'Value'}{' '}
               จาก{' '}
               {selectedDevice?.name || selectedDevice?.device_code || 'Device'}{' '}
               • {formatDateOnly(startDate)} - {formatDateOnly(endDate)} •{' '}
@@ -2044,7 +2044,7 @@ function History() {
             <span />
             <strong>ยังไม่มีข้อมูลสำหรับกราฟ</strong>
             <p>
-              ตรวจสอบวันที่, Metric และ Interval Record ในหน้า Settings
+              ตรวจสอบวันที่, Value และ Interval Record ในหน้า Settings
               จากนั้นรอให้ Device ส่งค่ารอบถัดไป
             </p>
           </div>
@@ -2347,10 +2347,10 @@ function History() {
           { label: 'Start Date', value: formatDateOnly(startDate) },
           { label: 'End Date', value: formatDateOnly(endDate) },
           {
-            label: 'Metric',
+            label: 'Value',
             value:
               selectedMetricKey === 'all'
-                ? 'All Metrics'
+                ? 'All Values'
                 : selectedMetric?.metricName || selectedMetricKey,
           },
           {
@@ -2359,7 +2359,7 @@ function History() {
           },
         ]}
         confirmationKeyword="Delete"
-        confirmationHelp="ตรวจสอบ Device, ช่วงวันที่ และ Metric ให้ถูกต้องก่อนยืนยัน"
+        confirmationHelp="ตรวจสอบ Device, ช่วงวันที่ และ Value ให้ถูกต้องก่อนยืนยัน"
         confirmLabel="Delete Data"
         busyLabel="กำลังลบข้อมูล..."
         busy={clearingHistory}

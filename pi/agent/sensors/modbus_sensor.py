@@ -225,6 +225,6 @@ def read_modbus_metrics(config_path):
         raise RuntimeError(f"{first_key}: {errors[first_key]}")
 
     if not metrics:
-        raise RuntimeError("No metrics were read from Modbus")
+        raise RuntimeError("No values were read from Modbus")
 
     return metrics, errors

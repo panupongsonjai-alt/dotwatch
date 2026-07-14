@@ -54,7 +54,7 @@ function buildMetrics(metricCount, existingMetrics = []) {
 
     return {
       metricKey: key,
-      defaultName: existing.defaultName || `Metric ${index + 1}`,
+      defaultName: existing.defaultName || `Value ${index + 1}`,
       defaultType: existing.defaultType || 'custom',
       defaultUnit: existing.defaultUnit || '',
       defaultIcon: existing.defaultIcon || 'Activity',
@@ -81,7 +81,7 @@ function normalizeModel(model) {
             metric.default_name ||
             metric.metricName ||
             metric.metric_name ||
-            `Metric ${index + 1}`,
+            `Value ${index + 1}`,
           defaultType:
             metric.defaultType ||
             metric.default_type ||
@@ -362,7 +362,7 @@ function AdminModels({ adminUser }) {
           <div className="panel-header">
             <div>
               <h3>{form.id ? 'Edit Model' : 'Create Model'}</h3>
-              <span>Metric rows will become defaults for new devices.</span>
+              <span>Value rows will become defaults for new devices.</span>
             </div>
             <button
               type="button"
@@ -400,7 +400,7 @@ function AdminModels({ adminUser }) {
             </label>
 
             <label>
-              Metric Count
+              Value Count
               <input
                 type="number"
                 min="0"
@@ -439,7 +439,7 @@ function AdminModels({ adminUser }) {
 
             <div className="admin-model-metrics">
               <div className="panel-header">
-                <h3>Default Metrics</h3>
+                <h3>Default Values</h3>
                 <span>{form.metrics.length} rows</span>
               </div>
 
@@ -522,7 +522,7 @@ function AdminModels({ adminUser }) {
               <thead>
                 <tr>
                   <th>Model</th>
-                  <th>Metrics</th>
+                  <th>Values</th>
                   <th>Devices</th>
                   <th>Status</th>
                   <th>Actions</th>

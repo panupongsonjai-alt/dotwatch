@@ -111,7 +111,7 @@ export async function createReadingActivity({
         userId,
         deviceId,
         `${deviceName || 'Device'} sent telemetry`,
-        'Latest metrics were received and saved.',
+        'Latest values were received and saved.',
         JSON.stringify({ latestMetrics: latestMetrics || {} }),
         createdAt,
       ]
@@ -199,7 +199,7 @@ export async function createDeviceStatusActivity({
 export async function createAlarmActivity({ userId, deviceId, alarm }) {
   if (!userId || !alarm) return null
 
-  const metricName = alarm.metric_name || alarm.metric || 'Metric'
+  const metricName = alarm.metric_name || alarm.metric || 'Value'
   const severity = alarm.severity === 'critical' ? 'critical' : 'warning'
   const notificationMessage = String(alarm.notification_message || '').trim()
   const decimals = Math.min(

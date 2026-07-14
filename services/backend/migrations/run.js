@@ -424,6 +424,28 @@ async function createCoreTables() {
   `)
 
   await run(`
+    UPDATE device_model_metrics
+    SET
+      default_name = CASE
+        WHEN BTRIM(default_name) = 'Metric' THEN 'Value'
+        ELSE REGEXP_REPLACE(default_name, '^Metric[[:space:]]+', 'Value ')
+      END,
+      updated_at = NOW()
+    WHERE BTRIM(default_name) = 'Metric'
+       OR default_name ~ '^Metric[[:space:]]+[0-9]+$';
+
+    UPDATE device_metrics
+    SET
+      metric_name = CASE
+        WHEN BTRIM(metric_name) = 'Metric' THEN 'Value'
+        ELSE REGEXP_REPLACE(metric_name, '^Metric[[:space:]]+', 'Value ')
+      END,
+      updated_at = NOW()
+    WHERE BTRIM(metric_name) = 'Metric'
+       OR metric_name ~ '^Metric[[:space:]]+[0-9]+$';
+  `)
+
+  await run(`
     UPDATE devices
     SET record_interval_seconds = 10
     WHERE record_interval_seconds IS NULL
@@ -968,7 +990,7 @@ async function seedDeviceModels() {
       modelKey: 'custom',
       modelName: 'Custom Device',
       metricCount: 0,
-      description: 'กำหนด Metric เอง',
+      description: 'กำหนด Value เอง',
     },
     {
       id: 5,
@@ -1264,7 +1286,7 @@ async function createMetricContinuousAggregatesIfAvailable() {
   ]
 
   for (const sql of aggregateIndexes) {
-    await runOptional('metric aggregate index', sql)
+    await runOptional('value aggregate index', sql)
   }
 
   await runOptional(

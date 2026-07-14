@@ -167,7 +167,7 @@ function normalizeFiniteMetrics(metrics) {
   const maxMetrics = getMaxMetricsPerReading()
 
   if (entries.length > maxMetrics) {
-    throw httpError(400, `Too many metrics. Maximum is ${maxMetrics}`)
+    throw httpError(400, `Too many values. Maximum is ${maxMetrics}`)
   }
 
   return entries
@@ -176,7 +176,7 @@ function normalizeFiniteMetrics(metrics) {
       const numberValue = Number(value)
 
       if (!METRIC_KEY_PATTERN.test(normalizedKey)) {
-        throw httpError(400, `Invalid metric key: ${normalizedKey || '(empty)'}`)
+        throw httpError(400, `Invalid value key: ${normalizedKey || '(empty)'}`)
       }
 
       if (!Number.isFinite(numberValue)) {
@@ -193,7 +193,7 @@ function normalizeReading(data) {
   const values = normalizeFiniteMetrics(metrics)
 
   if (!values.length) {
-    throw httpError(400, 'No valid metrics provided')
+    throw httpError(400, 'No valid values provided')
   }
 
   const time = normalizeTimestamp(data.timestamp)

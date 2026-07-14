@@ -53,7 +53,7 @@ def run_check(send_test=False):
         try:
             metrics = read_dummy_metrics()
             send_result = post_ingest(settings, metrics)
-            add("Test ingest", True, "dummy metrics sent")
+            add("Test ingest", True, "dummy values sent")
         except Exception as error:
             send_result = {"ok": False, "error": str(error)}
             add("Test ingest", False, str(error))

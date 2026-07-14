@@ -763,7 +763,7 @@ def live_page(message="", message_type="info"):
             </div>
             <details open>
               <summary>Advanced Mapping 20 Values · Enabled {enabled_count}/20</summary>
-              <div class="map-table-wrap"><table class="map-table"><thead><tr><th>On</th><th>Metric</th><th>Name</th><th>Unit</th><th>Function</th><th>Addr</th><th>Type</th><th>Cnt</th><th>Scale</th><th>Offset</th><th>Round</th><th>ID</th><th>Byte</th><th>Word</th></tr></thead><tbody>{render_register_rows(registers)}</tbody></table></div>
+              <div class="map-table-wrap"><table class="map-table"><thead><tr><th>On</th><th>Value</th><th>Name</th><th>Unit</th><th>Function</th><th>Addr</th><th>Type</th><th>Cnt</th><th>Scale</th><th>Offset</th><th>Round</th><th>ID</th><th>Byte</th><th>Word</th></tr></thead><tbody>{render_register_rows(registers)}</tbody></table></div>
             </details>
           </div>
         </form>
@@ -914,7 +914,7 @@ def parse_register(form, i):
     return {
         "enabled": form.get(f"reg_{i}_enabled") == "true",
         "metric_key": f"metric_{i + 1}",
-        "name": form.get(f"reg_{i}_name", f"Metric {i + 1}").strip(),
+        "name": form.get(f"reg_{i}_name", f"Value {i + 1}").strip(),
         "unit": form.get(f"reg_{i}_unit", "").strip(),
         "function": form.get(f"reg_{i}_function", "holding"),
         "address": int(form.get(f"reg_{i}_address", i) or i),

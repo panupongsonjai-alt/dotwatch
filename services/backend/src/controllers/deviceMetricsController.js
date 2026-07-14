@@ -92,7 +92,7 @@ function cleanMetric(metric, index) {
   }
 
   if (!metricKey || !METRIC_KEY_PATTERN.test(metricKey)) {
-    throw new Error('Invalid metric key')
+    throw new Error('Invalid value key')
   }
 
   return {
@@ -461,7 +461,7 @@ export async function listDeviceMetrics(req, res) {
     console.error('listDeviceMetrics error:', error)
 
     res.status(500).json({
-      message: 'Failed to load device metrics',
+      message: 'Failed to load device values',
     })
   } finally {
     client.release()
@@ -497,7 +497,7 @@ export async function saveDeviceMetrics(req, res) {
 
     if (metrics.length > MAX_DEVICE_METRICS) {
       return res.status(400).json({
-        message: `Too many metrics. Maximum is ${MAX_DEVICE_METRICS}`,
+        message: `Too many values. Maximum is ${MAX_DEVICE_METRICS}`,
       })
     }
 
@@ -522,7 +522,7 @@ export async function saveDeviceMetrics(req, res) {
       }
     } catch {
       return res.status(400).json({
-        message: 'Invalid metric config',
+        message: 'Invalid value config',
       })
     }
 
@@ -531,7 +531,7 @@ export async function saveDeviceMetrics(req, res) {
     for (const metric of cleaned) {
       if (seen.has(metric.metric_key)) {
         return res.status(400).json({
-          message: `Duplicate metric name: ${metric.metric_name}`,
+          message: `Duplicate value name: ${metric.metric_name}`,
         })
       }
 
@@ -602,7 +602,7 @@ export async function saveDeviceMetrics(req, res) {
     console.error('saveDeviceMetrics error:', error)
 
     res.status(500).json({
-      message: 'Failed to save device metrics',
+      message: 'Failed to save device values',
     })
   } finally {
     client.release()
@@ -653,7 +653,7 @@ export async function resetDeviceMetrics(req, res) {
     console.error('resetDeviceMetrics error:', error)
 
     res.status(500).json({
-      message: 'Failed to reset device metrics',
+      message: 'Failed to reset device values',
     })
   } finally {
     client.release()
@@ -693,7 +693,7 @@ export async function deleteDeviceMetric(req, res) {
 
     if (!result.rows.length) {
       return res.status(404).json({
-        message: 'Metric not found',
+        message: 'Value not found',
       })
     }
 
@@ -704,7 +704,7 @@ export async function deleteDeviceMetric(req, res) {
     console.error('deleteDeviceMetric error:', error)
 
     res.status(500).json({
-      message: 'Failed to delete metric',
+      message: 'Failed to delete value',
     })
   }
 }
