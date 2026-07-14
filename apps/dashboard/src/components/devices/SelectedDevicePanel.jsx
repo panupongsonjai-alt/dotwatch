@@ -1007,8 +1007,16 @@ function SelectedDevicePanel({
 
             <div className="devices-v3-overview-list-item">
               <dt>
-                <span>IP Address</span>
-                <small>Latest ingest IP</small>
+                <span>Local IP</span>
+                <small>Reported by device</small>
+              </dt>
+              <dd>{selectedDevice.last_local_ip_address || '--'}</dd>
+            </div>
+
+            <div className="devices-v3-overview-list-item">
+              <dt>
+                <span>Public IP</span>
+                <small>Observed by backend</small>
               </dt>
               <dd>{selectedDevice.last_ip_address || '--'}</dd>
             </div>

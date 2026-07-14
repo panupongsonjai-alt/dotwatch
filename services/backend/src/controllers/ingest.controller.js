@@ -34,6 +34,12 @@ const ingestSchema = z.object({
 
   firmwareVersion: z.string().max(50).optional(),
   wifiSsid: z.string().max(64).optional(),
+  localIp: z
+    .string()
+    .trim()
+    .max(45)
+    .refine((value) => isIP(value) > 0, 'Invalid local IP address')
+    .optional(),
   // Accept normal ISO timestamps from Python/Raspberry Pi, including '+00:00' offsets.
   // normalizeTimestamp() below remains the source of truth for validity, future, and backdate checks.
   timestamp: z.string().min(1).max(80).optional(),
@@ -43,6 +49,12 @@ const ingestBatchSchema = z.object({
   readings: z.array(ingestSchema).min(1),
   firmwareVersion: z.string().max(50).optional(),
   wifiSsid: z.string().max(64).optional(),
+  localIp: z
+    .string()
+    .trim()
+    .max(45)
+    .refine((value) => isIP(value) > 0, 'Invalid local IP address')
+    .optional(),
 })
 
 function httpError(status, message) {
@@ -193,6 +205,7 @@ function normalizeReading(data) {
     latestMetrics,
     firmwareVersion: data.firmwareVersion || null,
     wifiSsid: data.wifiSsid || null,
+    localIp: data.localIp || null,
     legacySensor:
       data.temperature != null && data.humidity != null
         ? {
@@ -361,6 +374,7 @@ async function persistReadings({
   readings,
   firmwareVersion,
   ipAddress,
+  localIp,
   wifiSsid,
 }) {
   const historyReadings = filterReadingsForHistory(device, readings)
@@ -385,7 +399,8 @@ async function persistReadings({
       status = 'online',
       firmware_version = COALESCE($2, firmware_version),
       last_ip_address = COALESCE($4, last_ip_address),
-      last_wifi_ssid = COALESCE($5, last_wifi_ssid)
+      last_local_ip_address = COALESCE($5, last_local_ip_address),
+      last_wifi_ssid = COALESCE($6, last_wifi_ssid)
     FROM users u
     WHERE d.id = $1
       AND u.id = d.user_id
@@ -402,6 +417,7 @@ async function persistReadings({
       d.record_interval_seconds,
       d.firmware_version,
       d.last_ip_address,
+      d.last_local_ip_address,
       d.last_wifi_ssid
     `,
     [
@@ -409,6 +425,7 @@ async function persistReadings({
       firmwareVersion || newestReading?.firmwareVersion || null,
       newestRecordedReading?.time || null,
       ipAddress,
+      localIp || newestReading?.localIp || null,
       wifiSsid || newestReading?.wifiSsid || null,
     ]
   )
@@ -471,6 +488,7 @@ async function publishIngestSideEffects({
       last_ingest_at: updatedDevice.last_ingest_at,
       firmware_version: updatedDevice.firmware_version,
       last_ip_address: updatedDevice.last_ip_address,
+      last_local_ip_address: updatedDevice.last_local_ip_address,
       last_wifi_ssid: updatedDevice.last_wifi_ssid,
       latest_time: time,
       temperature: latestMetrics.temperature ?? latestMetrics.metric_1,
@@ -589,6 +607,7 @@ export async function ingestReading(req, res) {
         readings: [reading],
         firmwareVersion: data.firmwareVersion || null,
         ipAddress: getRequestIp(req),
+        localIp: data.localIp || reading.localIp || null,
         wifiSsid: data.wifiSsid || reading.wifiSsid || null,
       })
 
@@ -654,6 +673,7 @@ export async function ingestBatch(req, res) {
         readings,
         firmwareVersion: data.firmwareVersion || newestReading?.firmwareVersion || null,
         ipAddress: getRequestIp(req),
+        localIp: data.localIp || newestReading?.localIp || null,
         wifiSsid: data.wifiSsid || newestReading?.wifiSsid || null,
       })
 
