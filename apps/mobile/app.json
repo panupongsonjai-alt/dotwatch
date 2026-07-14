@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "dotWatch",
+    "slug": "dotwatch-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "dotwatch",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.dotwatch.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0b1220"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.dotwatch.mobile",
+      "supportsTablet": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
