@@ -15,9 +15,9 @@ class TftDisplay {
   bool ready() const;
 
  private:
-  static constexpr int16_t DISPLAY_WIDTH = 240;
-  static constexpr int16_t DISPLAY_HEIGHT = 320;
-  static constexpr uint16_t DRAW_BUFFER_ROWS = 20;
+  static constexpr int16_t DISPLAY_WIDTH = 320;
+  static constexpr int16_t DISPLAY_HEIGHT = 240;
+  static constexpr uint16_t DRAW_BUFFER_ROWS = 18;
 
   static void flushDisplay(
       lv_disp_drv_t *displayDriver,
@@ -26,10 +26,8 @@ class TftDisplay {
 
   void createDashboard();
   void createHeader();
-  void createWiFiGroup(lv_obj_t *parent, int16_t x, int16_t y);
-  void createPowerGroup(lv_obj_t *parent, int16_t x, int16_t y);
   void createMetricCard(
-      int16_t y,
+      int16_t x,
       bool temperatureCard,
       lv_obj_t *&valueLabel,
       lv_obj_t *&unitLabel,
@@ -38,7 +36,9 @@ class TftDisplay {
       lv_obj_t *&statusLabel);
   void createThermometerIcon(lv_obj_t *parent, int16_t x, int16_t y);
   void createHumidityIcon(lv_obj_t *parent, int16_t x, int16_t y);
-  void createConnectionCard();
+  void createWiFiGroup(lv_obj_t *parent, int16_t x, int16_t y);
+  void createPowerGroup(lv_obj_t *parent, int16_t x, int16_t y);
+  void createConnectionBar();
 
   void updateDashboard(const RuntimeStatus &status, bool force);
   void updateWiFiStatus(bool connected, int rssi);
@@ -57,7 +57,7 @@ class TftDisplay {
   bool readPowerConnected() const;
 
   void styleBaseObject(lv_obj_t *object);
-  void styleCard(lv_obj_t *card);
+  void styleCard(lv_obj_t *card, lv_color_t bgColor);
   void stylePill(lv_obj_t *pill, lv_color_t background, lv_color_t border);
   void styleLabel(
       lv_obj_t *label,
@@ -103,7 +103,7 @@ class TftDisplay {
   lv_obj_t *humidityStatusDot_ = nullptr;
   lv_obj_t *humidityStatusLabel_ = nullptr;
 
-  lv_obj_t *connectionSecondaryLabel_ = nullptr;
+  lv_obj_t *connectionDetailLabel_ = nullptr;
   lv_obj_t *connectionPill_ = nullptr;
   lv_obj_t *connectionDot_ = nullptr;
   lv_obj_t *connectionPillLabel_ = nullptr;

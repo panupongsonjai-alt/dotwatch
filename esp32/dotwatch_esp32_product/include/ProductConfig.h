@@ -37,7 +37,7 @@ static constexpr float DISPLAY_TEMP_NORMAL_MAX = 35.0f;
 static constexpr float DISPLAY_HUMIDITY_NORMAL_MIN = 30.0f;
 static constexpr float DISPLAY_HUMIDITY_NORMAL_MAX = 70.0f;
 
-// 2.4-inch SPI TFT, ILI9341, portrait 240x320 product UI.
+// 2.4-inch SPI TFT, ILI9341, landscape 320x240 comfort UI.
 // TFT pin label mapping:
 // SCK/CLK -> GPIO 18, MOSI/SDI -> GPIO 23, MISO/SDO -> GPIO 19,
 // CS -> GPIO 25, DC/RS -> GPIO 27, RST/RESET -> GPIO 26.
@@ -49,7 +49,7 @@ static constexpr int TFT_MISO_PIN = 19;
 static constexpr int TFT_CS_PIN = 25;
 static constexpr int TFT_DC_PIN = 27;
 static constexpr int TFT_RST_PIN = 26;
-static constexpr uint8_t TFT_ROTATION = 0;
+static constexpr uint8_t TFT_ROTATION = 1;
 static constexpr bool TFT_INVERT_COLORS = false;
 static constexpr uint32_t TFT_SPI_FREQUENCY_HZ = 40000000UL;
 static constexpr unsigned long TFT_REFRESH_INTERVAL_MS = 200UL;

@@ -3,6 +3,6 @@
 #define DOTWATCH_PRODUCT_NAME "dotTH ESP32 Product"
 #define DOTWATCH_MODEL_KEY "esp32_dht3"
 #define DOTWATCH_MODEL_NAME "ESP32-DHT3"
-#define DOTWATCH_FIRMWARE_VERSION "esp32-product-1.2.4-portrait-product-ui"
-#define DOTWATCH_FIRMWARE_BUILD 1240UL
+#define DOTWATCH_FIRMWARE_VERSION "esp32-product-1.2.5-landscape-comfort-ui"
+#define DOTWATCH_FIRMWARE_BUILD 1250UL
 #define DOTWATCH_CONFIG_SCHEMA_VERSION 3
