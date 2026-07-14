@@ -24,7 +24,20 @@ static constexpr int DEFAULT_DHT_TYPE = 11;
 static constexpr unsigned long DEFAULT_SEND_INTERVAL_MS = 20000UL;
 static constexpr unsigned long MIN_SEND_INTERVAL_MS = 10000UL;
 
-// 2.4-inch SPI TFT, ILI9341, landscape UI (320x240).
+// Optional external power-sense input.
+// Set to -1 when no dedicated power-detect wire is connected.
+// If you later wire 5V or charger status through a safe divider/transistor
+// to an ESP32 input, set the GPIO number below.
+static constexpr int POWER_SENSE_PIN = -1;
+static constexpr bool POWER_SENSE_ACTIVE_HIGH = true;
+
+// Local product-display status ranges. These do not replace backend alarms.
+static constexpr float DISPLAY_TEMP_NORMAL_MIN = 18.0f;
+static constexpr float DISPLAY_TEMP_NORMAL_MAX = 35.0f;
+static constexpr float DISPLAY_HUMIDITY_NORMAL_MIN = 30.0f;
+static constexpr float DISPLAY_HUMIDITY_NORMAL_MAX = 70.0f;
+
+// 2.4-inch SPI TFT, ILI9341, landscape 320x240 showroom product UI.
 // TFT pin label mapping:
 // SCK/CLK -> GPIO 18, MOSI/SDI -> GPIO 23, MISO/SDO -> GPIO 19,
 // CS -> GPIO 25, DC/RS -> GPIO 27, RST/RESET -> GPIO 26.

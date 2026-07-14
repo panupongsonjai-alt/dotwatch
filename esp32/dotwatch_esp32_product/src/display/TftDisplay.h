@@ -25,40 +25,53 @@ class TftDisplay {
       lv_color_t *colorMap);
 
   void createDashboard();
-  void createMetricSection(
-      lv_obj_t *parent,
+  void createHeader();
+  void createMetricCard(
       int16_t x,
-      bool temperatureSection,
-      lv_obj_t *&valueLabel);
-  void createThermometerIcon(lv_obj_t *parent);
-  void createHumidityIcon(lv_obj_t *parent);
-  void createStatusBar();
-  void createStatusItem(
-      lv_obj_t *parent,
-      int16_t x,
-      int16_t width,
-      lv_obj_t *&dot,
-      lv_obj_t *&label);
+      bool isTemperature,
+      lv_obj_t *&valueLabel,
+      lv_obj_t *&unitLabel,
+      lv_obj_t *&statusPill,
+      lv_obj_t *&statusDot,
+      lv_obj_t *&statusLabel);
+  void createThermometerIcon(lv_obj_t *parent, int16_t x, int16_t y);
+  void createHumidityIcon(lv_obj_t *parent, int16_t x, int16_t y);
+  void createWiFiSignalGroup(lv_obj_t *parent, int16_t x, int16_t y);
+  void createBatteryGroup(lv_obj_t *parent, int16_t x, int16_t y);
+  void createConnectionCard();
 
   void updateDashboard(const RuntimeStatus &status, bool force);
-  void updateTemperature(float value, bool available);
-  void updateHumidity(float value, bool available);
+  void updateWiFiStatus(bool connected, int rssi);
+  void updatePowerStatus(bool powerConnected);
+  void updateMetricStatus(
+      bool isTemperature,
+      float value,
+      bool available,
+      lv_obj_t *statusPill,
+      lv_obj_t *statusDot,
+      lv_obj_t *statusLabel);
+  void updateConnectionStatus(
+      AppState state,
+      bool wifiConnected,
+      bool backendConnected);
+  bool readPowerConnected() const;
 
-  void stylePanel(
-      lv_obj_t *object,
-      lv_color_t background,
-      lv_color_t border,
-      int16_t radius,
-      int16_t borderWidth = 1);
+  void styleBaseObject(lv_obj_t *object);
+  void styleCard(lv_obj_t *card);
+  void stylePill(lv_obj_t *pill, lv_color_t bg, lv_color_t border);
   void styleLabel(
       lv_obj_t *label,
       const lv_font_t *font,
       lv_color_t color,
       int16_t letterSpacing = 0);
-  void styleDot(lv_obj_t *dot, lv_color_t color);
+  void styleCircle(
+      lv_obj_t *object,
+      lv_color_t background,
+      lv_color_t border,
+      int16_t borderWidth = 1);
+  void styleBar(lv_obj_t *object, lv_color_t background);
 
   const char *stateText(AppState state) const;
-  lv_color_t stateColor(AppState state) const;
   bool valueChanged(float current, float previous) const;
 
   Adafruit_ILI9341 tft_;
@@ -68,15 +81,35 @@ class TftDisplay {
   lv_disp_drv_t displayDriver_;
 
   lv_obj_t *screen_ = nullptr;
-  lv_obj_t *temperatureValueLabel_ = nullptr;
-  lv_obj_t *humidityValueLabel_ = nullptr;
 
-  lv_obj_t *stateDot_ = nullptr;
-  lv_obj_t *stateLabel_ = nullptr;
-  lv_obj_t *wifiDot_ = nullptr;
+  lv_obj_t *wifiBars_[4] = {nullptr, nullptr, nullptr, nullptr};
   lv_obj_t *wifiLabel_ = nullptr;
-  lv_obj_t *cloudDot_ = nullptr;
-  lv_obj_t *cloudLabel_ = nullptr;
+  lv_obj_t *wifiDetailLabel_ = nullptr;
+
+  lv_obj_t *powerBody_ = nullptr;
+  lv_obj_t *powerCap_ = nullptr;
+  lv_obj_t *powerFill_ = nullptr;
+  lv_obj_t *powerBolt_ = nullptr;
+  lv_obj_t *powerLabel_ = nullptr;
+  lv_obj_t *powerDetailLabel_ = nullptr;
+
+  lv_obj_t *temperatureValueLabel_ = nullptr;
+  lv_obj_t *temperatureUnitLabel_ = nullptr;
+  lv_obj_t *temperatureStatusPill_ = nullptr;
+  lv_obj_t *temperatureStatusDot_ = nullptr;
+  lv_obj_t *temperatureStatusLabel_ = nullptr;
+
+  lv_obj_t *humidityValueLabel_ = nullptr;
+  lv_obj_t *humidityUnitLabel_ = nullptr;
+  lv_obj_t *humidityStatusPill_ = nullptr;
+  lv_obj_t *humidityStatusDot_ = nullptr;
+  lv_obj_t *humidityStatusLabel_ = nullptr;
+
+  lv_obj_t *connectionPrimaryLabel_ = nullptr;
+  lv_obj_t *connectionSecondaryLabel_ = nullptr;
+  lv_obj_t *onlinePill_ = nullptr;
+  lv_obj_t *onlineDot_ = nullptr;
+  lv_obj_t *onlineLabel_ = nullptr;
 
   bool ready_ = false;
   bool firstDraw_ = true;
@@ -84,6 +117,8 @@ class TftDisplay {
   bool lastWifiConnected_ = false;
   bool lastBackendConnected_ = false;
   bool lastSensorAvailable_ = false;
+  bool lastPowerConnected_ = true;
+  int lastRssi_ = -127;
   float lastTemperature_ = NAN;
   float lastHumidity_ = NAN;
 
