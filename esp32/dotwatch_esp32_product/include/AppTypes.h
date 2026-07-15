@@ -30,6 +30,7 @@ struct DeviceConfig {
   String apiUrl = ProductConfig::DEFAULT_API_URL;
   String deviceCode;
   String deviceSecret;
+  String setupApPassword;
   String adminPin;
   String tlsCaCert;
 

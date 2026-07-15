@@ -22,6 +22,8 @@ class AppController {
   void printBootBanner();
   void setState(AppState state);
   void updateConnectivityStatus();
+  void serviceProvisioningButton();
+  void serviceProvisioningLifecycle();
   void serviceWiFi();
   void serviceSensor();
   void serviceTelemetry();
@@ -49,6 +51,8 @@ class AppController {
   bool hasLatestSnapshot_ = false;
 
   unsigned long lastWiFiRetryAt_ = 0;
+  unsigned long provisioningButtonPressedAt_ = 0;
+  bool provisioningButtonTriggered_ = false;
   unsigned long nextSensorSampleAt_ = 0;
   unsigned long nextSendAt_ = 0;
 };

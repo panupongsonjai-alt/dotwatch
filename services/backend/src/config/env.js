@@ -90,6 +90,7 @@ function isUnsafePlaceholderSecretKey(value) {
     'CHANGE_ME',
     'CHANGE-THIS',
     'change-this',
+    'RameT7KiqYLV5vio0fsHKfxkQmh10+N+u4OAveuq5NI=',
   ])
 
   if (placeholders.has(cleaned)) return true
@@ -171,6 +172,12 @@ export const env = {
   port: parseNumber(process.env.PORT, 4000),
   nodeEnv,
   databaseUrl: cleanEnvString(process.env.DATABASE_URL),
+  databaseSslDisabled: parseBoolean(process.env.DATABASE_SSL_DISABLED, false),
+  databaseSslRejectUnauthorized: parseBoolean(
+    process.env.DATABASE_SSL_REJECT_UNAUTHORIZED,
+    nodeEnv === 'production'
+  ),
+  databaseSslCa: normalizePrivateKey(process.env.DATABASE_SSL_CA),
 
   corsOrigin: cleanEnvString(process.env.CORS_ORIGIN) || 'http://localhost:5173',
   corsOrigins: parseCorsOrigins(process.env.CORS_ORIGIN),
@@ -320,6 +327,16 @@ export function validateEnv() {
     requireEnv('FIREBASE_CLIENT_EMAIL', env.firebaseClientEmail)
     requireEnv('FIREBASE_PRIVATE_KEY', env.firebasePrivateKey)
     requireEnv('DEVICE_SECRET_ENCRYPTION_KEY', env.deviceSecretEncryptionKey)
+
+    if (env.databaseSslDisabled) {
+      throw new Error('DATABASE_SSL_DISABLED must be false in production')
+    }
+
+    if (!env.databaseSslRejectUnauthorized) {
+      throw new Error(
+        'DATABASE_SSL_REJECT_UNAUTHORIZED must be true in production'
+      )
+    }
 
     validateProductionCorsOrigins(env.corsOrigins, {
       allowLocalOrigins: env.allowLocalCorsInProduction,

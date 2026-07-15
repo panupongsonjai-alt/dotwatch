@@ -18,12 +18,47 @@ constexpr const char *KEY_PENDING_BACKUPS = "pendBackup";
 constexpr const char *KEY_API_URL = "apiUrl";
 constexpr const char *KEY_DEVICE_CODE = "devCode";
 constexpr const char *KEY_DEVICE_SECRET = "devSecret";
+constexpr const char *KEY_SETUP_AP_PASSWORD = "setupApPass";
 constexpr const char *KEY_ADMIN_PIN = "adminPin";
 constexpr const char *KEY_TLS_CA = "tlsCaCert";
 constexpr const char *KEY_DHT_PIN = "dhtPin";
 constexpr const char *KEY_DHT_TYPE = "dhtType";
 constexpr const char *KEY_SEND_MS = "sendMs";
 constexpr const char *KEY_DUMMY = "dummy";
+
+String generateSecurityCredential(size_t length) {
+  static constexpr char ALPHABET[] =
+      "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  static constexpr size_t ALPHABET_LENGTH = sizeof(ALPHABET) - 1;
+
+  String value;
+  value.reserve(length);
+  while (value.length() < length) {
+    value += ALPHABET[random(0, ALPHABET_LENGTH)];
+  }
+  return value;
+}
+
+bool isKnownFleetDefault(const String &value) {
+  return value.equalsIgnoreCase("admin") ||
+         value.equalsIgnoreCase("dotwatch-setup") ||
+         value.equalsIgnoreCase("dotth-setup");
+}
+
+bool setupCredentialNeedsRotation(const String &value) {
+  String cleaned = value;
+  cleaned.trim();
+  return cleaned.length() < ProductConfig::ADMIN_PIN_MIN_LENGTH ||
+         isKnownFleetDefault(cleaned);
+}
+
+bool adminCredentialNeedsRotation(const String &value) {
+  String cleaned = value;
+  cleaned.trim();
+  // Preserve legacy custom PINs during migration so existing field devices do
+  // not become inaccessible. New/changed PINs are still required to be 8+.
+  return cleaned.length() == 0 || isKnownFleetDefault(cleaned);
+}
 
 }  // namespace
 
@@ -108,6 +143,7 @@ bool ConfigStore::load(DeviceConfig &config) {
         String(document[KEY_API_URL] | ProductConfig::DEFAULT_API_URL));
     config.deviceCode = String(document[KEY_DEVICE_CODE] | "");
     config.deviceSecret = String(document[KEY_DEVICE_SECRET] | "");
+    config.setupApPassword = String(document[KEY_SETUP_AP_PASSWORD] | "");
     config.adminPin = String(document[KEY_ADMIN_PIN] | "");
     config.tlsCaCert = String(document[KEY_TLS_CA] | "");
     config.dhtPin = document[KEY_DHT_PIN] | ProductConfig::DEFAULT_DHT_PIN;
@@ -122,6 +158,7 @@ bool ConfigStore::load(DeviceConfig &config) {
   config.pendingWifiSsid.trim();
   config.deviceCode.trim();
   config.deviceSecret.trim();
+  config.setupApPassword.trim();
   config.adminPin.trim();
   config.tlsCaCert.trim();
 
@@ -141,8 +178,20 @@ bool ConfigStore::load(DeviceConfig &config) {
     config.pendingWifiPassword = "";
   }
 
+  bool securityCredentialsChanged = false;
+  if (setupCredentialNeedsRotation(config.setupApPassword)) {
+    config.setupApPassword = generateSecurityCredential(
+        ProductConfig::GENERATED_CREDENTIAL_LENGTH);
+    securityCredentialsChanged = true;
+  }
+  if (adminCredentialNeedsRotation(config.adminPin)) {
+    config.adminPin = config.setupApPassword;
+    securityCredentialsChanged = true;
+  }
+
   const uint16_t storedSchema = loaded ? (document[KEY_SCHEMA] | 0) : 0;
-  if (!loaded || storedSchema != DOTWATCH_CONFIG_SCHEMA_VERSION) {
+  if (!loaded || securityCredentialsChanged ||
+      storedSchema != DOTWATCH_CONFIG_SCHEMA_VERSION) {
     return save(config);
   }
   return true;
@@ -160,6 +209,7 @@ bool ConfigStore::save(const DeviceConfig &config) {
   document[KEY_API_URL] = StringUtils::normalizeApiUrl(config.apiUrl);
   document[KEY_DEVICE_CODE] = config.deviceCode;
   document[KEY_DEVICE_SECRET] = config.deviceSecret;
+  document[KEY_SETUP_AP_PASSWORD] = config.setupApPassword;
   document[KEY_ADMIN_PIN] = config.adminPin;
   document[KEY_TLS_CA] = config.tlsCaCert;
   document[KEY_DHT_PIN] = config.dhtPin;

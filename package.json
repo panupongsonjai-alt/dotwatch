@@ -78,7 +78,9 @@
     "verify:phase11g:admin-dashboard-parity": "node scripts/phase11g-admin-dashboard-parity-verify.mjs",
     "verify:phase11h:dashboard-sidebar-vertical": "node scripts/phase11h-dashboard-sidebar-vertical-verify.mjs",
     "verify:phase11i:admin-dashboard-comfort": "node scripts/phase11i-admin-dashboard-comfort-verify.mjs",
-    "verify:phase11j:dashboard-sidebar-spacing": "node scripts/phase11j-dashboard-sidebar-admin-spacing-verify.mjs"
+    "verify:phase11j:dashboard-sidebar-spacing": "node scripts/phase11j-dashboard-sidebar-admin-spacing-verify.mjs",
+    "verify:phase-s1:security": "node scripts/verify-phase-s1-security.mjs",
+    "test:phase-s1:prod-env": "node scripts/test-phase-s1-production-env.mjs"
   },
   "engines": {
     "node": ">=20"

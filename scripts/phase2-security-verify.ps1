@@ -55,10 +55,24 @@ if ($installer -notmatch 'generate_password') {
 
 $productConfig = Get-Content -LiteralPath (Join-Path $Root 'esp32\dotwatch_esp32_product\include\ProductConfig.h') -Raw
 $backendClient = Get-Content -LiteralPath (Join-Path $Root 'esp32\dotwatch_esp32_product\src\backend\BackendClient.cpp') -Raw
+$configStore = Get-Content -LiteralPath (Join-Path $Root 'esp32\dotwatch_esp32_product\src\config\ConfigStore.cpp') -Raw
+$portalServer = Get-Content -LiteralPath (Join-Path $Root 'esp32\dotwatch_esp32_product\src\portal\PortalServer.cpp') -Raw
 $platformio = Get-Content -LiteralPath (Join-Path $Root 'esp32\dotwatch_esp32_product\platformio.ini') -Raw
 
-if ($productConfig -notmatch 'SETUP_AP_PASSWORD\s*=\s*"dotwatch-setup"') {
-  throw 'ESP32 setup AP must not be open by default'
+if ($productConfig -match 'SETUP_AP_PASSWORD\s*=') {
+  throw 'ESP32 must not contain a fleet-wide setup AP password constant'
+}
+if ($productConfig -notmatch 'SETUP_PORTAL_TIMEOUT_MS') {
+  throw 'ESP32 setup portal timeout is missing'
+}
+if ($configStore -notmatch 'generateSecurityCredential') {
+  throw 'ESP32 unique credential generation is missing'
+}
+if ($portalServer -notmatch 'ADMIN_SESSION_COOKIE') {
+  throw 'ESP32 Local Admin session cookie authentication is missing'
+}
+if ($portalServer -match '\?pin=') {
+  throw 'ESP32 must not propagate Local Admin PIN in URLs'
 }
 if ($productConfig -notmatch '#define\s+DOTWATCH_ALLOW_INSECURE_TLS_FALLBACK\s+0') {
   throw 'ESP32 firmware must disable insecure TLS fallback by default'

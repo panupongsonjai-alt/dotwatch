@@ -37,13 +37,18 @@ void AppController::begin() {
   }
 
   const bool configReady = configStore_.hasRequiredConfig(config_);
-  if (!wifiConnected || !configReady) {
-    setState(configReady ? AppState::SETUP_PORTAL : AppState::UNPROVISIONED);
-    portalServer_.startSetupPortal();
+  if (!configReady) {
+    setState(AppState::UNPROVISIONED);
+    portalServer_.startSetupPortal(true);
     setState(AppState::SETUP_PORTAL);
   } else {
-    setState(AppState::CONNECTING_BACKEND);
+    // A configured device no longer exposes a fleet-wide recovery AP merely
+    // because Wi-Fi is unavailable. Hold the hardware button for 2 seconds to
+    // open the time-limited provisioning AP deliberately.
     portalServer_.startLocalAdmin();
+    setState(wifiConnected
+                 ? AppState::CONNECTING_BACKEND
+                 : AppState::CONNECTING_WIFI);
   }
 
   scheduleNextSend(ProductConfig::FIRST_SEND_DELAY_MS);
@@ -51,6 +56,7 @@ void AppController::begin() {
 
 void AppController::loop() {
   updateConnectivityStatus();
+  serviceProvisioningButton();
 
   recoveryManager_.tick(
       portalServer_.isSetupMode(),
@@ -58,6 +64,7 @@ void AppController::loop() {
       configStore_.hasRequiredConfig(config_));
 
   portalServer_.loop();
+  serviceProvisioningLifecycle();
   serviceWiFi();
   serviceTelemetry();
   statusLed_.tick(status_);
@@ -91,6 +98,53 @@ void AppController::updateConnectivityStatus() {
   status_.wifiConnected = wifiManager_.isConnected();
   if (!status_.wifiConnected) {
     status_.backendConnected = false;
+  }
+}
+
+void AppController::serviceProvisioningButton() {
+  const bool pressed =
+      digitalRead(ProductConfig::RESET_BUTTON_PIN) == LOW;
+
+  if (!pressed) {
+    provisioningButtonPressedAt_ = 0;
+    provisioningButtonTriggered_ = false;
+    return;
+  }
+
+  if (provisioningButtonPressedAt_ == 0) {
+    provisioningButtonPressedAt_ = millis();
+    return;
+  }
+
+  if (provisioningButtonTriggered_ || portalServer_.isSetupMode()) return;
+  if (millis() - provisioningButtonPressedAt_ <
+      ProductConfig::SETUP_BUTTON_HOLD_MS) {
+    return;
+  }
+
+  provisioningButtonTriggered_ = true;
+  Serial.println("AppController: FLASH short hold opened provisioning portal");
+  portalServer_.startSetupPortal(false);
+  setState(AppState::SETUP_PORTAL);
+}
+
+void AppController::serviceProvisioningLifecycle() {
+  const bool configReady = configStore_.hasRequiredConfig(config_);
+
+  if (portalServer_.shouldAutoCloseWhenReady() &&
+      status_.wifiConnected && configReady) {
+    Serial.println("AppController: commissioning complete; closing setup AP");
+    portalServer_.stopSetupPortal();
+    setState(AppState::CONNECTING_BACKEND);
+    scheduleNextSend(500UL);
+    return;
+  }
+
+  if (!portalServer_.isSetupMode() &&
+      status_.state == AppState::SETUP_PORTAL) {
+    setState(status_.wifiConnected
+                 ? AppState::CONNECTING_BACKEND
+                 : AppState::CONNECTING_WIFI);
   }
 }
 

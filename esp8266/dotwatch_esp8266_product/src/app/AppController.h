@@ -20,6 +20,8 @@ class AppController {
   void printBootBanner();
   void setState(AppState state);
   void updateConnectivityStatus();
+  void serviceProvisioningButton();
+  void serviceProvisioningLifecycle();
   void serviceWiFi();
   void serviceTelemetry();
   bool sendDue(unsigned long now) const;
@@ -38,5 +40,7 @@ class AppController {
   RecoveryManager recoveryManager_;
 
   unsigned long lastWiFiRetryAt_ = 0;
+  unsigned long provisioningButtonPressedAt_ = 0;
+  bool provisioningButtonTriggered_ = false;
   unsigned long nextSendAt_ = 0;
 };

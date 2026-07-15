@@ -31,12 +31,22 @@ void PortalServer::begin(DeviceConfig &config,
   view_.begin(config, status, store, wifi, sensors, backend);
 }
 
-void PortalServer::startSetupPortal() {
+void PortalServer::startSetupPortal(bool autoCloseWhenReady) {
   if (wifi_ == nullptr || status_ == nullptr) return;
 
   setupMode_ = true;
+  setupAutoCloseWhenReady_ = autoCloseWhenReady;
+  setupStartedAt_ = millis();
   status_->portalMode = true;
-  wifi_->startSetupAccessPoint();
+  clearAdminSession();
+  if (!wifi_->startSetupAccessPoint()) {
+    setupMode_ = false;
+    setupAutoCloseWhenReady_ = false;
+    setupStartedAt_ = 0;
+    status_->portalMode = false;
+    Serial.println("PortalServer: setup portal start failed");
+    return;
+  }
   dnsServer_.start(
       ProductConfig::DNS_PORT,
       "*",
@@ -52,10 +62,26 @@ void PortalServer::startSetupPortal() {
   Serial.println(WiFi.softAPIP());
 }
 
+void PortalServer::stopSetupPortal() {
+  if (!setupMode_) return;
+
+  dnsServer_.stop();
+  if (wifi_ != nullptr) wifi_->stopSetupAccessPoint();
+  setupMode_ = false;
+  setupAutoCloseWhenReady_ = false;
+  setupStartedAt_ = 0;
+  if (status_ != nullptr) status_->portalMode = false;
+  clearAdminSession();
+
+  Serial.println("PortalServer: setup portal closed");
+}
+
 void PortalServer::startLocalAdmin() {
   if (status_ == nullptr) return;
 
+  if (setupMode_) stopSetupPortal();
   setupMode_ = false;
+  setupAutoCloseWhenReady_ = false;
   status_->portalMode = false;
 
   registerRoutes();
@@ -71,7 +97,14 @@ void PortalServer::startLocalAdmin() {
 }
 
 void PortalServer::loop() {
-  if (setupMode_) dnsServer_.processNextRequest();
+  if (setupMode_) {
+    dnsServer_.processNextRequest();
+    if (setupStartedAt_ > 0 &&
+        millis() - setupStartedAt_ >= ProductConfig::SETUP_PORTAL_TIMEOUT_MS) {
+      Serial.println("PortalServer: setup portal timed out");
+      stopSetupPortal();
+    }
+  }
   if (serverStarted_) server_.handleClient();
 }
 
@@ -79,10 +112,19 @@ bool PortalServer::isSetupMode() const {
   return setupMode_;
 }
 
+bool PortalServer::shouldAutoCloseWhenReady() const {
+  return setupMode_ && setupAutoCloseWhenReady_;
+}
+
 void PortalServer::registerRoutes() {
   if (routesRegistered_) return;
 
+  const char *headerKeys[] = {"Cookie"};
+  server_.collectHeaders(headerKeys, 1);
+
   server_.on("/", HTTP_GET, [this]() { handleRoot(); });
+  server_.on("/login", HTTP_POST, [this]() { handleLogin(); });
+  server_.on("/logout", HTTP_POST, [this]() { handleLogout(); });
   server_.on("/wifi-scan", HTTP_GET, [this]() { handleWiFiScan(); });
   server_.on("/wifi-save", HTTP_POST, [this]() { handleWiFiSave(); });
   server_.on("/wifi-clear", HTTP_POST, [this]() { handleWiFiClear(); });
@@ -106,7 +148,7 @@ void PortalServer::registerRoutes() {
 }
 
 void PortalServer::handleRoot() {
-  if (!setupMode_ && !isAdminAuthorized()) {
+  if (!isAdminAuthorized()) {
     sendLocalAdminLogin();
     return;
   }
@@ -118,8 +160,41 @@ void PortalServer::handleRoot() {
       view_.dashboardPage());
 }
 
+
+void PortalServer::handleLogin() {
+  if (isLoginBlocked()) {
+    sendLocalAdminLogin(
+        429,
+        "เข้าสู่ระบบผิดหลายครั้ง กรุณารอ 5 นาทีแล้วลองใหม่");
+    return;
+  }
+
+  String provided = server_.hasArg("pin") ? server_.arg("pin") : "";
+  provided.trim();
+  if (!constantTimeEquals(provided, effectiveAdminPin())) {
+    recordFailedLogin();
+    sendLocalAdminLogin(401, "Local Admin PIN ไม่ถูกต้อง");
+    return;
+  }
+
+  resetFailedLoginState();
+  issueAdminSession();
+  server_.sendHeader("Location", "/", true);
+  server_.send(303, "text/plain; charset=utf-8", "Signed in");
+}
+
+void PortalServer::handleLogout() {
+  clearAdminSession();
+  server_.sendHeader(
+      "Set-Cookie",
+      String(ProductConfig::ADMIN_SESSION_COOKIE) +
+          "=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0");
+  server_.sendHeader("Location", "/", true);
+  server_.send(303, "text/plain; charset=utf-8", "Signed out");
+}
+
 void PortalServer::handleWiFiScan() {
-  if (!setupMode_ && !isAdminAuthorized()) {
+  if (!isAdminAuthorized()) {
     server_.send(
         403,
         "application/json; charset=utf-8",
@@ -286,6 +361,7 @@ void PortalServer::handleDeviceSave() {
   if (!requireAdmin()) return;
 
   DeviceConfig next = *config_;
+  const String previousAdminPin = config_->adminPin;
 
   if (server_.hasArg("apiUrl")) {
     next.apiUrl = StringUtils::normalizeApiUrl(server_.arg("apiUrl"));
@@ -335,14 +411,14 @@ void PortalServer::handleDeviceSave() {
     next.dhtPin = ProductConfig::DEFAULT_DHT_PIN;
   }
 
-  if (next.adminPin.length() > 0 && next.adminPin.length() < 4) {
+  if (next.adminPin.length() > 0 && next.adminPin.length() < ProductConfig::ADMIN_PIN_MIN_LENGTH) {
     server_.send(
         400,
         "text/html; charset=utf-8",
         renderNoticePage(
             "Invalid PIN",
             "Local Admin PIN ไม่ถูกต้อง",
-            "PIN ต้องมีอย่างน้อย 4 ตัวอักษร"));
+            "PIN ต้องมีอย่างน้อย 8 ตัวอักษร"));
     return;
   }
 
@@ -370,6 +446,7 @@ void PortalServer::handleDeviceSave() {
   }
 
   *config_ = next;
+  if (previousAdminPin != config_->adminPin) clearAdminSession();
   sensors_->reconfigure(*config_);
 
   server_.send(
@@ -470,7 +547,7 @@ void PortalServer::handleOtaInstall() {
 }
 
 void PortalServer::handleJson() {
-  if (!setupMode_ && !isAdminAuthorized()) {
+  if (!isAdminAuthorized()) {
     JsonDocument publicDocument;
     publicDocument["firmwareVersion"] = DOTWATCH_FIRMWARE_VERSION;
     publicDocument["modelKey"] = DOTWATCH_MODEL_KEY;
@@ -506,7 +583,8 @@ void PortalServer::handleJson() {
   document["apiUrl"] = config_->apiUrl;
   document["deviceCode"] = config_->deviceCode;
   document["deviceSecretMasked"] = StringUtils::maskSecret(config_->deviceSecret);
-  document["adminPinSet"] = config_->adminPin.length() >= 4;
+  document["adminPinSet"] =
+      config_->adminPin.length() > 0;
   document["tlsMode"] = backend_->tlsModeText();
   document["tlsCaSource"] = backend_->tlsCaSourceText();
   document["dhtPin"] = config_->dhtPin;
@@ -623,41 +701,130 @@ void PortalServer::handleNotFound() {
 }
 
 bool PortalServer::isAdminAuthorized() {
-  if (setupMode_) return true;
-  if (!server_.hasArg("pin")) return false;
+  if (adminSessionToken_.length() == 0 || adminSessionExpiresAt_ == 0) {
+    return false;
+  }
 
-  String provided = server_.arg("pin");
-  provided.trim();
-  return provided == effectiveAdminPin();
+  if (static_cast<long>(adminSessionExpiresAt_ - millis()) <= 0) {
+    clearAdminSession();
+    return false;
+  }
+
+  const String provided = sessionCookieValue();
+  if (!constantTimeEquals(provided, adminSessionToken_)) return false;
+
+  // Sliding expiration keeps an actively used local session alive while still
+  // limiting the lifetime of a copied cookie.
+  adminSessionExpiresAt_ = millis() + ProductConfig::ADMIN_SESSION_TTL_MS;
+  return true;
 }
 
 bool PortalServer::requireAdmin() {
   if (isAdminAuthorized()) return true;
-  sendLocalAdminLogin(403, "PIN ไม่ถูกต้อง หรือยังไม่ได้กรอก PIN");
+  sendLocalAdminLogin(401, "กรุณาเข้าสู่ระบบ Local Admin ก่อนดำเนินการ");
   return false;
 }
 
-String PortalServer::defaultAdminPin() const {
-  return "admin";
+String PortalServer::effectiveAdminPin() const {
+  if (config_ == nullptr) return "";
+
+  String pin = config_->adminPin;
+  pin.trim();
+  return pin;
 }
 
-String PortalServer::effectiveAdminPin() const {
-  if (config_ != nullptr) {
-    String pin = config_->adminPin;
-    pin.trim();
-    if (pin.length() >= 4) return pin;
+String PortalServer::generateSessionToken() const {
+  static constexpr char HEX[] = "0123456789abcdef";
+  String token;
+  token.reserve(40);
+  for (uint8_t index = 0; index < 40; index++) {
+    token += HEX[random(0, 16)];
   }
-  return defaultAdminPin();
+  return token;
+}
+
+String PortalServer::sessionCookieValue() {
+  String cookie = server_.header("Cookie");
+  if (cookie.length() == 0) return "";
+
+  const String prefix = String(ProductConfig::ADMIN_SESSION_COOKIE) + "=";
+  int start = cookie.indexOf(prefix);
+  if (start < 0) return "";
+  start += prefix.length();
+
+  int end = cookie.indexOf(';', start);
+  if (end < 0) end = cookie.length();
+
+  String value = cookie.substring(start, end);
+  value.trim();
+  return value;
+}
+
+void PortalServer::issueAdminSession() {
+  adminSessionToken_ = generateSessionToken();
+  adminSessionExpiresAt_ = millis() + ProductConfig::ADMIN_SESSION_TTL_MS;
+
+  server_.sendHeader(
+      "Set-Cookie",
+      String(ProductConfig::ADMIN_SESSION_COOKIE) + "=" +
+          adminSessionToken_ +
+          "; Path=/; HttpOnly; SameSite=Strict; Max-Age=" +
+          String(ProductConfig::ADMIN_SESSION_TTL_MS / 1000UL));
+}
+
+void PortalServer::clearAdminSession() {
+  adminSessionToken_ = "";
+  adminSessionExpiresAt_ = 0;
+}
+
+bool PortalServer::isLoginBlocked() const {
+  return loginBlockedUntil_ > 0 &&
+         static_cast<long>(loginBlockedUntil_ - millis()) > 0;
+}
+
+void PortalServer::recordFailedLogin() {
+  const unsigned long now = millis();
+  if (failedLoginWindowStartedAt_ == 0 ||
+      now - failedLoginWindowStartedAt_ >
+          ProductConfig::ADMIN_LOGIN_WINDOW_MS) {
+    failedLoginWindowStartedAt_ = now;
+    failedLoginCount_ = 0;
+  }
+
+  failedLoginCount_++;
+  if (failedLoginCount_ >= ProductConfig::ADMIN_LOGIN_MAX_ATTEMPTS) {
+    loginBlockedUntil_ = now + ProductConfig::ADMIN_LOGIN_BLOCK_MS;
+    failedLoginWindowStartedAt_ = 0;
+    failedLoginCount_ = 0;
+  }
+}
+
+void PortalServer::resetFailedLoginState() {
+  failedLoginWindowStartedAt_ = 0;
+  loginBlockedUntil_ = 0;
+  failedLoginCount_ = 0;
+}
+
+bool PortalServer::constantTimeEquals(const String &left,
+                                      const String &right) const {
+  const size_t maxLength = left.length() > right.length()
+                               ? left.length()
+                               : right.length();
+  uint8_t difference = static_cast<uint8_t>(left.length() ^ right.length());
+  for (size_t index = 0; index < maxLength; index++) {
+    const uint8_t leftValue = index < left.length() ? left[index] : 0;
+    const uint8_t rightValue = index < right.length() ? right[index] : 0;
+    difference |= leftValue ^ rightValue;
+  }
+  return difference == 0;
 }
 
 String PortalServer::currentPinValue() {
-  if (setupMode_ || !server_.hasArg("pin")) return "";
-  return StringUtils::htmlEscape(server_.arg("pin"));
+  return "";
 }
 
 String PortalServer::authQuery() {
-  if (setupMode_ || !server_.hasArg("pin")) return "";
-  return "?pin=" + currentPinValue();
+  return "";
 }
 
 void PortalServer::syncViewContext() {
@@ -697,8 +864,8 @@ String PortalServer::renderSensorTestPage(const MetricSnapshot &snapshot,
 void PortalServer::sendLocalAdminLogin(int statusCode,
                                        const String &message) {
   view_.setRequestContext(false, "");
-  const bool showDefaultPinHint = config_ == nullptr ||
-                                  config_->adminPin.length() == 0;
+  const bool showDefaultPinHint =
+      config_ != nullptr && config_->adminPin == config_->setupApPassword;
   server_.send(
       statusCode,
       "text/html; charset=utf-8",

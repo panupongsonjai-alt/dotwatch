@@ -1,5 +1,6 @@
-import { pool } from '../db/pool.js'
-
+﻿import { pool } from '../db/pool.js'
+
+import { sendAlarmTriggeredPush } from './mobilePush.service.js'
 const STATE_RANK = {
   normal: 0,
   warning: 1,
@@ -268,7 +269,7 @@ export async function checkAlarms({ userId, deviceId, reading }) {
         time: reading.time,
       })
 
-      alerts.push({
+    alerts.push({
         ...event,
         metric_name: recoveryRule?.metric_name || metric,
         unit: recoveryRule?.unit || '',
@@ -289,6 +290,25 @@ export async function checkAlarms({ userId, deviceId, reading }) {
       time: reading.time,
     })
 
+        
+    void sendAlarmTriggeredPush({
+      userId,
+      deviceId,
+      alarmEvent: {
+        ...event,
+        metric_name: triggeredRule.metric_name || metric,
+        unit: triggeredRule.unit || '',
+        decimal_places: triggeredRule.decimal_places ?? 2,
+      },
+    }).catch((error) => {
+      console.error('Alarm push notification failed:', {
+        userId,
+        deviceId,
+        alarmEventId: event.id,
+        message: error.message,
+      })
+    })
+
     alerts.push({
       ...event,
       metric_name: triggeredRule.metric_name || metric,
@@ -300,3 +320,9 @@ export async function checkAlarms({ userId, deviceId, reading }) {
 
   return alerts
 }
+
+
+
+
+
+

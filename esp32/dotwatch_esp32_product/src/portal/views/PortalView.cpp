@@ -50,14 +50,14 @@ String PortalView::loginPage(const String &message,
   body += "<p class='muted'>กรอก Local Admin PIN เพื่อเปิด Dashboard, เปลี่ยน Wi-Fi และตรวจสถานะอุปกรณ์</p>";
 
   if (showDefaultPinHint) {
-    body += "<div class='notice info' style='margin-top:12px'>ค่าเริ่มต้นคือ admin จนกว่าจะตั้ง Custom PIN</div>";
+    body += "<div class='notice info' style='margin-top:12px'>PIN เริ่มต้นเป็นรหัสเฉพาะเครื่องเดียวกับ Setup AP Password บนฉลาก/Serial Monitor ควรเปลี่ยนหลังติดตั้งเสร็จ</div>";
   }
   if (message.length() > 0) {
     body += "<div class='notice' style='margin-top:10px'>" +
             StringUtils::htmlEscape(message) + "</div>";
   }
 
-  body += "<form method='GET' action='/' style='margin-top:16px'><div class='field'><label>Local Admin PIN</label><input type='password' name='pin' inputmode='text' autocomplete='current-password' autocapitalize='none' spellcheck='false' placeholder='admin'></div><div class='button-row'><button class='btn-primary' type='submit'>เปิด ESP32 Dashboard</button><a class='btn btn-secondary' href='/json'>ดู Public Status</a></div></form></section>";
+  body += "<form method='POST' action='/login' style='margin-top:16px'><div class='field'><label>Local Admin PIN</label><input type='password' name='pin' inputmode='text' autocomplete='current-password' autocapitalize='none' spellcheck='false' placeholder='รหัสเฉพาะอุปกรณ์'></div><div class='button-row'><button class='btn-primary' type='submit'>เปิด ESP32 Dashboard</button><a class='btn btn-secondary' href='/json'>ดู Public Status</a></div></form></section>";
 
   const bool previousSetupMode = setupMode_;
   const String previousPin = pinValue_;
@@ -109,7 +109,7 @@ String PortalView::pageShell(const String &title,
           "</span></div></aside>";
   html += "<button id='portalOverlay' class='portal-overlay' type='button' aria-label='ปิดเมนู'></button>";
 
-  html += "<div class='portal-workspace'><header class='portal-header'><button id='portalMenuButton' class='portal-menu-button' type='button' aria-label='เปิดเมนู'>☰</button></header><main class='portal-content'>";
+  html += "<div class='portal-workspace'><header class='portal-header'><button id='portalMenuButton' class='portal-menu-button' type='button' aria-label='เปิดเมนู'>☰</button><form method='POST' action='/logout' style='margin-left:auto'><button class='btn-secondary' type='submit'>ออกจากระบบ</button></form></header><main class='portal-content'>";
   html += body;
   html += "</main><footer class='portal-footer'>";
   html += DOTWATCH_MODEL_NAME;
@@ -120,13 +120,11 @@ String PortalView::pageShell(const String &title,
 }
 
 String PortalView::pinHiddenInput() const {
-  if (setupMode_ || pinValue_.length() == 0) return "";
-  return "<input type='hidden' name='pin' value='" + pinValue_ + "'>";
+  return "";
 }
 
 String PortalView::authQuery() const {
-  if (setupMode_ || pinValue_.length() == 0) return "";
-  return "?pin=" + pinValue_;
+  return "";
 }
 
 String PortalView::restartPage(const String &kicker,

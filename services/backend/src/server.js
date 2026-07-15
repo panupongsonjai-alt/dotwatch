@@ -1,4 +1,4 @@
-import express from 'express'
+﻿import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
@@ -28,6 +28,7 @@ import { organizationsRouter } from './routes/organizations.routes.js'
 import { sitesRouter } from './routes/sites.routes.js'
 import { deviceGroupsRouter } from './routes/deviceGroups.routes.js'
 import { billingRouter } from './routes/billing.routes.js'
+import { mobilePushRouter } from './routes/mobilePush.routes.js'
 import { tenantRouter } from './routes/tenant.routes.js'
 import { createHttpLogger, logger, logStartupSummary, startOpsHeartbeat } from './utils/logger.js'
 
@@ -429,6 +430,7 @@ app.use('/api/alarm-rules', apiLimiter, alarmRulesRouter)
 app.use('/api/alarm-states', apiLimiter, alarmStateRouter)
 app.use('/api/admin', apiLimiter, adminRouter)
 app.use('/api/billing', apiLimiter, billingRouter)
+app.use('/api/mobile-push', apiLimiter, mobilePushRouter)
 app.use('/api/tenant', apiLimiter, tenantRouter)
 app.use('/api/organizations', apiLimiter, organizationsRouter)
 app.use('/api/sites', apiLimiter, sitesRouter)
@@ -579,3 +581,6 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
   shutdown('SIGINT').finally(() => process.exit(0))
 })
+
+
+

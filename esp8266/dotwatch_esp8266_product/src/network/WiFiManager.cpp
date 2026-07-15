@@ -53,14 +53,22 @@ bool WiFiManager::startSetupAccessPoint() {
   if (accessPointActive_) return true;
 
   WiFi.mode(WIFI_AP_STA);
+  const String password = setupPassword();
+  if (password.length() < 8) {
+    Serial.println("WiFiManager: setup AP password is missing or too short");
+    return false;
+  }
+
   const bool started = WiFi.softAP(
       setupSsid().c_str(),
-      ProductConfig::SETUP_AP_PASSWORD);
+      password.c_str());
 
   accessPointActive_ = started;
   if (started) {
     Serial.print("Setup AP started. SSID=");
     Serial.println(setupSsid());
+    Serial.print("Setup AP password: ");
+    Serial.println(password);
     Serial.print("Setup AP URL: http://");
     Serial.println(WiFi.softAPIP());
   } else {
@@ -142,7 +150,7 @@ String WiFiManager::setupSsid() const {
 }
 
 String WiFiManager::setupPassword() const {
-  return ProductConfig::SETUP_AP_PASSWORD;
+  return config_ != nullptr ? config_->setupApPassword : String();
 }
 
 String WiFiManager::currentSsid() const {

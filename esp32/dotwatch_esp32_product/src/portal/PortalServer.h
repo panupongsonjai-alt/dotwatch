@@ -24,15 +24,19 @@ class PortalServer {
              BackendClient &backend,
              OtaManager &ota);
 
-  void startSetupPortal();
+  void startSetupPortal(bool autoCloseWhenReady = false);
+  void stopSetupPortal();
   void startLocalAdmin();
   void loop();
   bool isSetupMode() const;
+  bool shouldAutoCloseWhenReady() const;
 
  private:
   void registerRoutes();
 
   void handleRoot();
+  void handleLogin();
+  void handleLogout();
   void handleWiFiScan();
   void handleWiFiSave();
   void handleWiFiClear();
@@ -50,8 +54,15 @@ class PortalServer {
 
   bool isAdminAuthorized();
   bool requireAdmin();
-  String defaultAdminPin() const;
   String effectiveAdminPin() const;
+  String generateSessionToken() const;
+  String sessionCookieValue();
+  void issueAdminSession();
+  void clearAdminSession();
+  bool isLoginBlocked() const;
+  void recordFailedLogin();
+  void resetFailedLoginState();
+  bool constantTimeEquals(const String &left, const String &right) const;
   String currentPinValue();
   String authQuery();
   void syncViewContext();
@@ -77,6 +88,14 @@ class PortalServer {
   bool routesRegistered_ = false;
   bool serverStarted_ = false;
   bool setupMode_ = false;
+  bool setupAutoCloseWhenReady_ = false;
+  unsigned long setupStartedAt_ = 0;
+
+  String adminSessionToken_;
+  unsigned long adminSessionExpiresAt_ = 0;
+  unsigned long failedLoginWindowStartedAt_ = 0;
+  unsigned long loginBlockedUntil_ = 0;
+  uint8_t failedLoginCount_ = 0;
 
   DeviceConfig *config_ = nullptr;
   RuntimeStatus *status_ = nullptr;

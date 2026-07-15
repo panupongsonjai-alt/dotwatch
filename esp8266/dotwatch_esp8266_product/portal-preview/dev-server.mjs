@@ -71,33 +71,69 @@ async function serveStatic(req, res) {
   }
 }
 
+async function readRequestBody(req, limitBytes = 16 * 1024) {
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of req) {
+    total += chunk.length;
+    if (total > limitBytes) throw new Error("Preview request body too large");
+    chunks.push(chunk);
+  }
+  return chunks.length ? Buffer.concat(chunks) : undefined;
+}
+
 async function proxyDevice(req, res) {
   const incoming = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
   const targetPath = incoming.pathname.replace(/^\/device-api/, "") || "/";
   const targetUrl = `${deviceTarget}${targetPath}${incoming.search}`;
 
   try {
+    const requestBody = ["GET", "HEAD"].includes(req.method || "GET")
+      ? undefined
+      : await readRequestBody(req);
+    const headers = {
+      Accept: req.headers.accept || "*/*",
+      "User-Agent": "dotTH-Portal-Preview/1.1"
+    };
+    if (req.headers["content-type"]) headers["Content-Type"] = req.headers["content-type"];
+    if (req.headers.cookie) headers.Cookie = req.headers.cookie;
+
     const response = await fetch(targetUrl, {
       method: req.method,
-      headers: {
-        Accept: req.headers.accept || "*/*",
-        "User-Agent": "dotTH-ESP8266-Portal-Preview/1.0"
-      },
+      headers,
+      body: requestBody,
+      redirect: "manual",
       signal: AbortSignal.timeout(7000)
     });
 
     const payload = Buffer.from(await response.arrayBuffer());
+    const responseHeaders = { "X-ESP8266-Target": deviceTarget };
+    const setCookie = response.headers.get("set-cookie");
+    if (setCookie) responseHeaders["Set-Cookie"] = setCookie;
+
+    // Device login/logout uses 303. Keep the cookie but avoid redirecting fetch()
+    // away from the preview application.
+    if ((targetPath === "/login" || targetPath === "/logout") && response.status === 303) {
+      send(res, 204, "", "text/plain; charset=utf-8", responseHeaders);
+      return;
+    }
+
+    const location = response.headers.get("location");
+    if (location) responseHeaders.Location = location.startsWith("/")
+      ? `/device-api${location}`
+      : location;
+
     send(
       res,
       response.status,
       payload,
       response.headers.get("content-type") || "application/octet-stream",
-      { "X-ESP8266-Target": deviceTarget }
+      responseHeaders
     );
   } catch (error) {
     const message = error?.name === "TimeoutError"
-      ? `ESP8266 request timed out: ${deviceTarget}`
-      : `Cannot connect to ESP8266: ${deviceTarget}`;
+      ? `Device request timed out: ${deviceTarget}`
+      : error?.message || `Cannot connect to device: ${deviceTarget}`;
     send(
       res,
       502,
