@@ -1,4 +1,4 @@
-﻿import express from 'express'
+import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
@@ -34,12 +34,28 @@ import { createHttpLogger, logger, logStartupSummary, startOpsHeartbeat } from '
 
 const app = express()
 const server = http.createServer(app)
-const wss = new WebSocketServer({ server })
+const wss = new WebSocketServer({
+  noServer: true,
+  maxPayload: env.wsMaxPayloadBytes,
+  perMessageDeflate: false,
+  clientTracking: true,
+})
 
 app.set('trust proxy', 1)
 app.disable('x-powered-by')
 
 const clients = new Map()
+const socketStates = new Map()
+const wsSecurityCounters = {
+  rejectedPath: 0,
+  rejectedOrigin: 0,
+  rejectedCapacity: 0,
+  rejectedPerIp: 0,
+  rejectedUnauthenticatedPerIp: 0,
+  rejectedMessageRate: 0,
+  rejectedProtocol: 0,
+  terminatedSlowConsumer: 0,
+}
 let isShuttingDown = false
 
 logStartupSummary()
@@ -50,6 +66,33 @@ function getSocketStateLabel(ws) {
   if (ws.readyState === ws.CLOSING) return 'CLOSING'
   if (ws.readyState === ws.CLOSED) return 'CLOSED'
   return String(ws.readyState)
+}
+
+function getRequestIp(req) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '')
+    .split(',')[0]
+    .trim()
+  const connecting = String(req.headers['cf-connecting-ip'] || '').trim()
+  const direct = String(req.socket?.remoteAddress || 'unknown').trim()
+
+  return String(connecting || forwarded || direct || 'unknown').slice(0, 128)
+}
+
+function countSocketsByIp(ip, { authenticated } = {}) {
+  let count = 0
+
+  for (const state of socketStates.values()) {
+    if (state.ip !== ip) continue
+    if (
+      typeof authenticated === 'boolean' &&
+      Boolean(state.authenticated) !== authenticated
+    ) {
+      continue
+    }
+    count += 1
+  }
+
+  return count
 }
 
 function getClientCountByUser(userId) {
@@ -65,14 +108,16 @@ function getClientCountByUser(userId) {
 function getWebSocketSummary() {
   const byUser = {}
 
-  for (const [ws, userId] of clients.entries()) {
+  for (const [, userId] of clients.entries()) {
     byUser[userId] = (byUser[userId] || 0) + 1
   }
 
   return {
-    totalClients: clients.size,
-    connectedSockets: wss.clients.size,
+    authenticatedClients: clients.size,
+    connectedSockets: socketStates.size,
+    unauthenticatedSockets: Math.max(0, socketStates.size - clients.size),
     byUser,
+    security: { ...wsSecurityCounters },
   }
 }
 
@@ -88,23 +133,111 @@ async function verifyWebSocketToken(token) {
   return admin.auth().verifyIdToken(token)
 }
 
-function closeWebSocketUnauthorized(ws, message = 'Unauthorized WebSocket') {
+function closeWebSocketPolicy(ws, message = 'WebSocket policy violation') {
   try {
-    ws.send(
-      JSON.stringify({
-        type: 'error',
-        message,
-      })
-    )
+    if (ws.readyState === ws.OPEN) {
+      ws.send(
+        JSON.stringify({
+          type: 'error',
+          message,
+        })
+      )
+    }
   } catch {
     // Ignore send errors before closing the socket.
   }
 
-  ws.close(1008, message)
+  try {
+    ws.close(1008, String(message).slice(0, 120))
+
+    if (!ws.policyCloseTimer) {
+      ws.policyCloseTimer = setTimeout(() => {
+        if (ws.readyState !== ws.CLOSED) ws.terminate()
+      }, 2000)
+      ws.policyCloseTimer.unref?.()
+    }
+  } catch {
+    ws.terminate()
+  }
 }
 
-function closeWebSocketTooManyConnections(ws) {
-  closeWebSocketUnauthorized(ws, 'Too many WebSocket connections')
+function rejectWebSocketUpgrade(socket, statusCode, statusText, message) {
+  const body = JSON.stringify({ ok: false, message })
+
+  socket.end(
+    [
+      `HTTP/1.1 ${statusCode} ${statusText}`,
+      'Connection: close',
+      'Content-Type: application/json; charset=utf-8',
+      `Content-Length: ${Buffer.byteLength(body)}`,
+      '',
+      body,
+    ].join('\r\n')
+  )
+}
+
+function getUpgradePath(req) {
+  try {
+    return new URL(req.url || '/', 'http://localhost').pathname
+  } catch {
+    return ''
+  }
+}
+
+function isWebSocketOriginAllowed(req) {
+  const origin = String(req.headers.origin || '').trim()
+  if (!origin) return true
+  return env.corsOrigins.includes(origin)
+}
+
+function consumeSocketMessage(state) {
+  const now = Date.now()
+
+  if (now - state.messageWindowStartedAt >= env.wsMessageRateWindowMs) {
+    state.messageWindowStartedAt = now
+    state.messageCount = 0
+  }
+
+  state.messageCount += 1
+  return state.messageCount <= env.wsMaxMessagesPerWindow
+}
+
+function cleanupSocket(ws) {
+  clients.delete(ws)
+  socketStates.delete(ws)
+}
+
+function sendSerializedPayload(ws, message, context = {}) {
+  if (ws.readyState !== ws.OPEN) return false
+
+  if (ws.bufferedAmount > env.wsMaxBufferedBytes) {
+    wsSecurityCounters.terminatedSlowConsumer += 1
+    console.warn('WS slow consumer terminated:', {
+      ...context,
+      bufferedAmount: ws.bufferedAmount,
+    })
+    ws.terminate()
+    return false
+  }
+
+  try {
+    ws.send(message, (error) => {
+      if (!error) return
+      console.error('WS send failed:', {
+        ...context,
+        message: error.message,
+      })
+      ws.terminate()
+    })
+    return true
+  } catch (error) {
+    console.error('WS send failed:', {
+      ...context,
+      message: error.message,
+    })
+    ws.terminate()
+    return false
+  }
 }
 
 function requireDevelopment(req, res, next) {
@@ -116,37 +249,143 @@ function requireDevelopment(req, res, next) {
   res.status(404).json({ message: 'Not found' })
 }
 
+server.on('upgrade', (req, socket, head) => {
+  socket.on('error', (error) => {
+    console.error('WS upgrade socket error:', error.message)
+  })
+
+  if (isShuttingDown) {
+    rejectWebSocketUpgrade(socket, 503, 'Service Unavailable', 'Server is shutting down')
+    return
+  }
+
+  if (getUpgradePath(req) !== env.wsPath) {
+    wsSecurityCounters.rejectedPath += 1
+    rejectWebSocketUpgrade(socket, 404, 'Not Found', 'WebSocket path not found')
+    return
+  }
+
+  if (!isWebSocketOriginAllowed(req)) {
+    wsSecurityCounters.rejectedOrigin += 1
+    rejectWebSocketUpgrade(socket, 403, 'Forbidden', 'WebSocket origin is not allowed')
+    return
+  }
+
+  if (socketStates.size >= env.wsMaxTotalClients) {
+    wsSecurityCounters.rejectedCapacity += 1
+    rejectWebSocketUpgrade(socket, 503, 'Service Unavailable', 'WebSocket capacity reached')
+    return
+  }
+
+  const ip = getRequestIp(req)
+
+  if (countSocketsByIp(ip) >= env.wsMaxClientsPerIp) {
+    wsSecurityCounters.rejectedPerIp += 1
+    rejectWebSocketUpgrade(socket, 429, 'Too Many Requests', 'Too many WebSocket connections')
+    return
+  }
+
+  if (
+    countSocketsByIp(ip, { authenticated: false }) >=
+    env.wsMaxUnauthenticatedClientsPerIp
+  ) {
+    wsSecurityCounters.rejectedUnauthenticatedPerIp += 1
+    rejectWebSocketUpgrade(
+      socket,
+      429,
+      'Too Many Requests',
+      'Too many unauthenticated WebSocket connections'
+    )
+    return
+  }
+
+  req.dotwatchClientIp = ip
+
+  wss.handleUpgrade(req, socket, head, (ws) => {
+    wss.emit('connection', ws, req)
+  })
+})
+
 wss.on('connection', (ws, req) => {
-  const ip =
-    req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown'
+  const ip = req.dotwatchClientIp || getRequestIp(req)
+  const state = {
+    ip,
+    authenticated: false,
+    authenticating: false,
+    userId: '',
+    connectedAt: Date.now(),
+    messageWindowStartedAt: Date.now(),
+    messageCount: 0,
+  }
 
-  console.log('WS connected:', ip)
-
-  const subscribeTimeout = setTimeout(() => {
-    if (!clients.has(ws)) {
-      console.warn('WS subscribe timeout:', ip)
-      closeWebSocketUnauthorized(ws, 'WebSocket subscribe timeout')
-    }
-  }, env.wsSubscribeTimeoutMs)
-
+  socketStates.set(ws, state)
   ws.isAlive = true
 
-  ws.send(
+  console.log('WS connected:', {
+    ip,
+    connectedSockets: socketStates.size,
+  })
+
+  const subscribeTimeout = setTimeout(() => {
+    if (!state.authenticated) {
+      console.warn('WS subscribe timeout:', ip)
+      closeWebSocketPolicy(ws, 'WebSocket subscribe timeout')
+    }
+  }, env.wsSubscribeTimeoutMs)
+  subscribeTimeout.unref?.()
+
+  sendSerializedPayload(
+    ws,
     JSON.stringify({
       type: 'connected',
       message: 'WebSocket connected',
-    })
+    }),
+    { ip, type: 'connected' }
   )
 
   ws.on('pong', () => {
     ws.isAlive = true
   })
 
-  ws.on('message', async (message) => {
-    try {
-      const data = JSON.parse(message)
+  ws.on('message', async (message, isBinary) => {
+    if (!consumeSocketMessage(state)) {
+      wsSecurityCounters.rejectedMessageRate += 1
+      closeWebSocketPolicy(ws, 'WebSocket message rate limit exceeded')
+      return
+    }
 
-      if (data.type === 'subscribe') {
+    if (isBinary) {
+      wsSecurityCounters.rejectedProtocol += 1
+      closeWebSocketPolicy(ws, 'Binary WebSocket messages are not supported')
+      return
+    }
+
+    let data
+
+    try {
+      data = JSON.parse(String(message))
+    } catch {
+      wsSecurityCounters.rejectedProtocol += 1
+      closeWebSocketPolicy(ws, 'Invalid WebSocket message')
+      return
+    }
+
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      wsSecurityCounters.rejectedProtocol += 1
+      closeWebSocketPolicy(ws, 'Invalid WebSocket message')
+      return
+    }
+
+    if (!state.authenticated) {
+      if (data.type !== 'subscribe' || state.authenticating) {
+        wsSecurityCounters.rejectedProtocol += 1
+        closeWebSocketPolicy(ws, 'Subscribe authentication is required')
+        return
+      }
+
+      state.authenticating = true
+
+      try {
         const token = data.token || data.idToken || data.authToken
         let userId = ''
 
@@ -154,80 +393,99 @@ wss.on('connection', (ws, req) => {
           const decoded = await verifyWebSocketToken(token)
           userId = String(decoded.uid)
         } else if (env.isDevelopment && data.userId) {
-          // Development-only fallback for local testing.
-          // Production must always subscribe with a verified Firebase token.
           userId = String(data.userId)
-
           console.warn('WS legacy subscribe accepted in development only:', {
             userId,
           })
         } else {
-          closeWebSocketUnauthorized(ws, 'Missing WebSocket token')
+          closeWebSocketPolicy(ws, 'Missing WebSocket token')
+          return
+        }
+
+        if (!socketStates.has(ws) || ws.readyState !== ws.OPEN) {
           return
         }
 
         if (getClientCountByUser(userId) >= env.wsMaxClientsPerUser) {
-          closeWebSocketTooManyConnections(ws)
+          closeWebSocketPolicy(ws, 'Too many WebSocket connections for user')
           return
         }
 
         clearTimeout(subscribeTimeout)
+        state.authenticated = true
+        state.authenticating = false
+        state.userId = userId
         clients.set(ws, userId)
 
         console.log('WS subscribed:', {
           userId,
+          ip,
           clientsForUser: getClientCountByUser(userId),
           totalClients: clients.size,
         })
 
-        ws.send(
+        sendSerializedPayload(
+          ws,
           JSON.stringify({
             type: 'subscribed',
             userId,
-          })
+          }),
+          { userId, ip, type: 'subscribed' }
         )
-
-        return
+      } catch (error) {
+        state.authenticating = false
+        console.warn('WS authentication rejected:', {
+          ip,
+          message: error.message,
+        })
+        closeWebSocketPolicy(ws, 'WebSocket authentication failed')
       }
 
-      if (data.type === 'ping') {
-        ws.send(
-          JSON.stringify({
-            type: 'pong',
-            time: new Date().toISOString(),
-          })
-        )
-      }
-    } catch (error) {
-      console.error('WebSocket message error:', error.message)
-      closeWebSocketUnauthorized(ws, 'Invalid WebSocket token')
+      return
     }
+
+    if (data.type === 'ping') {
+      sendSerializedPayload(
+        ws,
+        JSON.stringify({
+          type: 'pong',
+          time: new Date().toISOString(),
+        }),
+        { userId: state.userId, ip, type: 'pong' }
+      )
+      return
+    }
+
+    wsSecurityCounters.rejectedProtocol += 1
+    closeWebSocketPolicy(ws, 'Unsupported WebSocket message type')
   })
 
   ws.on('close', () => {
     clearTimeout(subscribeTimeout)
-
+    if (ws.policyCloseTimer) clearTimeout(ws.policyCloseTimer)
     const userId = clients.get(ws)
-
-    clients.delete(ws)
+    cleanupSocket(ws)
 
     console.log('WS closed:', {
       userId,
+      ip,
       totalClients: clients.size,
+      connectedSockets: socketStates.size,
     })
   })
 
   ws.on('error', (error) => {
     clearTimeout(subscribeTimeout)
-
+    if (ws.policyCloseTimer) clearTimeout(ws.policyCloseTimer)
     const userId = clients.get(ws)
 
     console.error('WebSocket error:', {
       userId,
+      ip,
       message: error.message,
     })
 
-    clients.delete(ws)
+    cleanupSocket(ws)
   })
 })
 
@@ -235,6 +493,7 @@ export function broadcastToUser(userId, payload) {
   if (!userId) return 0
 
   const targetUserId = String(userId)
+  const message = JSON.stringify(payload)
   let sentCount = 0
   let matchedCount = 0
 
@@ -243,8 +502,12 @@ export function broadcastToUser(userId, payload) {
 
     matchedCount += 1
 
-    if (ws.readyState === ws.OPEN) {
-      ws.send(JSON.stringify(payload))
+    if (
+      sendSerializedPayload(ws, message, {
+        userId: targetUserId,
+        type: payload?.type,
+      })
+    ) {
       sentCount += 1
     }
   }
@@ -272,12 +535,16 @@ export function broadcastToAll(payload) {
   const message = JSON.stringify(payload)
   let sentCount = 0
 
-  wss.clients.forEach((ws) => {
-    if (ws.readyState === ws.OPEN) {
-      ws.send(message)
+  for (const [ws, userId] of clients.entries()) {
+    if (
+      sendSerializedPayload(ws, message, {
+        userId,
+        type: payload?.type,
+      })
+    ) {
       sentCount += 1
     }
-  })
+  }
 
   return sentCount
 }
@@ -448,7 +715,7 @@ const heartbeatInterval = setInterval(() => {
         userId,
       })
 
-      clients.delete(ws)
+      cleanupSocket(ws)
       ws.terminate()
       return
     }

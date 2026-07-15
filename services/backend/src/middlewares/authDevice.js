@@ -1,11 +1,20 @@
 import bcrypt from 'bcryptjs'
+import { env } from '../config/env.js'
 import { pool } from '../db/pool.js'
+import { FixedWindowLimiter } from '../security/fixedWindowLimiter.js'
 import { ensureDeviceMetricSettingsSchema } from '../services/schemaCompatibility.service.js'
 
-const FAILED_AUTH_WINDOW_MS = 5 * 60 * 1000
-const MAX_FAILED_AUTH_ATTEMPTS = 10
+const failedAuthByIp = new FixedWindowLimiter({
+  windowMs: env.deviceAuthFailureWindowMs,
+  limit: env.deviceAuthMaxFailuresPerIp,
+  maxEntries: env.deviceAuthFailureTrackerMaxEntries,
+})
 
-const failedDeviceAuthAttempts = new Map()
+const failedAuthByDevice = new FixedWindowLimiter({
+  windowMs: env.deviceAuthFailureWindowMs,
+  limit: env.deviceAuthMaxFailuresPerDevice,
+  maxEntries: env.deviceAuthFailureTrackerMaxEntries,
+})
 
 function getHeaderValue(req, names = []) {
   for (const name of names) {
@@ -17,68 +26,58 @@ function getHeaderValue(req, names = []) {
   return ''
 }
 
-function getDeviceAuthAttemptKey(req, deviceCode = '') {
-  const ip = req.ip || req.socket?.remoteAddress || 'unknown'
-
-  return `${String(deviceCode || 'unknown').toLowerCase()}|${ip}`
+function getRequestIp(req) {
+  return String(req.ip || req.socket?.remoteAddress || 'unknown').slice(0, 128)
 }
 
-function getFailedAttemptState(key) {
-  const now = Date.now()
-  const existing = failedDeviceAuthAttempts.get(key)
-
-  if (!existing || existing.expiresAt <= now) {
-    const next = {
-      count: 0,
-      expiresAt: now + FAILED_AUTH_WINDOW_MS,
-    }
-
-    failedDeviceAuthAttempts.set(key, next)
-    return next
-  }
-
-  return existing
+function getDeviceKey(deviceCode) {
+  return String(deviceCode || 'unknown').trim().toLowerCase().slice(0, 128)
 }
 
-function assertDeviceAuthNotLocked(key) {
-  const state = getFailedAttemptState(key)
+function sendRateLimitResponse(res, state) {
+  const retryAfterSeconds = Math.max(1, Math.ceil(state.retryAfterMs / 1000))
 
-  if (state.count >= MAX_FAILED_AUTH_ATTEMPTS) {
-    const seconds = Math.ceil((state.expiresAt - Date.now()) / 1000)
-    const error = new Error(
-      `Too many invalid device auth attempts. Try again in ${seconds}s`
-    )
-
-    error.status = 429
-    throw error
-  }
+  res.setHeader('Retry-After', String(retryAfterSeconds))
+  return res.status(429).json({
+    message: 'Too many invalid device authentication attempts',
+    retryAfterSeconds,
+  })
 }
 
-function recordFailedDeviceAuth(key) {
-  const state = getFailedAttemptState(key)
+function getLockedState(ipKey, deviceKey) {
+  const ipState = failedAuthByIp.check(ipKey)
+  if (!ipState.allowed) return ipState
 
-  state.count += 1
-  failedDeviceAuthAttempts.set(key, state)
+  const deviceState = failedAuthByDevice.check(deviceKey)
+  if (!deviceState.allowed) return deviceState
+
+  return null
 }
 
-function clearFailedDeviceAuth(key) {
-  failedDeviceAuthAttempts.delete(key)
+function recordFailedDeviceAuth(ipKey, deviceKey) {
+  failedAuthByIp.consume(ipKey)
+  failedAuthByDevice.consume(deviceKey)
 }
 
 export async function authDevice(req, res, next) {
   const deviceCode = getHeaderValue(req, ['x-device-code', 'x-device-id'])
   const deviceSecret = getHeaderValue(req, ['x-device-secret'])
-  const attemptKey = getDeviceAuthAttemptKey(req, deviceCode)
+  const ipKey = `ip:${getRequestIp(req)}`
+  const deviceKey = `device:${getDeviceKey(deviceCode)}`
 
   try {
+    const lockedState = getLockedState(ipKey, deviceKey)
+    if (lockedState) return sendRateLimitResponse(res, lockedState)
+
     if (!deviceCode || !deviceSecret) {
+      recordFailedDeviceAuth(ipKey, deviceKey)
+
       return res.status(401).json({
         message: 'Missing device credentials',
       })
     }
 
     await ensureDeviceMetricSettingsSchema()
-    assertDeviceAuthNotLocked(attemptKey)
 
     const result = await pool.query(
       `
@@ -103,24 +102,22 @@ export async function authDevice(req, res, next) {
     const device = result.rows[0]
 
     if (!device || !device.is_active || !device.secret_hash) {
-      recordFailedDeviceAuth(attemptKey)
+      recordFailedDeviceAuth(ipKey, deviceKey)
 
       return res.status(401).json({
-        message: 'Invalid device',
+        message: 'Invalid device credentials',
       })
     }
 
     const ok = await bcrypt.compare(deviceSecret, device.secret_hash)
 
     if (!ok) {
-      recordFailedDeviceAuth(attemptKey)
+      recordFailedDeviceAuth(ipKey, deviceKey)
 
       return res.status(401).json({
-        message: 'Invalid device secret',
+        message: 'Invalid device credentials',
       })
     }
-
-    clearFailedDeviceAuth(attemptKey)
 
     req.device = device
     next()

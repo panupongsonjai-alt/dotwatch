@@ -237,8 +237,33 @@ export const env = {
   ),
   ingestRateLimitPerMinute: parsePositiveInteger(
     process.env.INGEST_RATE_LIMIT_PER_MINUTE,
-    50_000,
+    12_000,
     { min: 60, max: 1_000_000 }
+  ),
+  ingestDeviceRateLimitPerMinute: parsePositiveInteger(
+    process.env.INGEST_DEVICE_RATE_LIMIT_PER_MINUTE,
+    180,
+    { min: 10, max: 10_000 }
+  ),
+  deviceAuthFailureWindowMs: parsePositiveInteger(
+    process.env.DEVICE_AUTH_FAILURE_WINDOW_MS,
+    5 * 60 * 1000,
+    { min: 10_000, max: 60 * 60 * 1000 }
+  ),
+  deviceAuthMaxFailuresPerIp: parsePositiveInteger(
+    process.env.DEVICE_AUTH_MAX_FAILURES_PER_IP,
+    30,
+    { min: 5, max: 10_000 }
+  ),
+  deviceAuthMaxFailuresPerDevice: parsePositiveInteger(
+    process.env.DEVICE_AUTH_MAX_FAILURES_PER_DEVICE,
+    10,
+    { min: 3, max: 10_000 }
+  ),
+  deviceAuthFailureTrackerMaxEntries: parsePositiveInteger(
+    process.env.DEVICE_AUTH_FAILURE_TRACKER_MAX_ENTRIES,
+    10_000,
+    { min: 100, max: 1_000_000 }
   ),
   jsonBodyLimit: cleanEnvString(process.env.JSON_BODY_LIMIT) || '128kb',
 
@@ -258,15 +283,51 @@ export const env = {
   renderServiceName: cleanEnvString(process.env.RENDER_SERVICE_NAME),
   renderInstanceId: cleanEnvString(process.env.RENDER_INSTANCE_ID),
 
+  wsPath: cleanEnvString(process.env.WS_PATH) || '/',
   wsSubscribeTimeoutMs: parsePositiveInteger(
     process.env.WS_SUBSCRIBE_TIMEOUT_MS,
     15_000,
     { min: 1_000, max: 120_000 }
   ),
+  wsMaxPayloadBytes: parsePositiveInteger(
+    process.env.WS_MAX_PAYLOAD_BYTES,
+    16 * 1024,
+    { min: 1024, max: 1024 * 1024 }
+  ),
+  wsMaxTotalClients: parsePositiveInteger(
+    process.env.WS_MAX_TOTAL_CLIENTS,
+    2000,
+    { min: 10, max: 100_000 }
+  ),
+  wsMaxClientsPerIp: parsePositiveInteger(
+    process.env.WS_MAX_CLIENTS_PER_IP,
+    20,
+    { min: 1, max: 1000 }
+  ),
+  wsMaxUnauthenticatedClientsPerIp: parsePositiveInteger(
+    process.env.WS_MAX_UNAUTHENTICATED_CLIENTS_PER_IP,
+    5,
+    { min: 1, max: 100 }
+  ),
   wsMaxClientsPerUser: parsePositiveInteger(
     process.env.WS_MAX_CLIENTS_PER_USER,
     5,
     { min: 1, max: 100 }
+  ),
+  wsMessageRateWindowMs: parsePositiveInteger(
+    process.env.WS_MESSAGE_RATE_WINDOW_MS,
+    10_000,
+    { min: 1000, max: 60_000 }
+  ),
+  wsMaxMessagesPerWindow: parsePositiveInteger(
+    process.env.WS_MAX_MESSAGES_PER_WINDOW,
+    30,
+    { min: 2, max: 10_000 }
+  ),
+  wsMaxBufferedBytes: parsePositiveInteger(
+    process.env.WS_MAX_BUFFERED_BYTES,
+    1024 * 1024,
+    { min: 64 * 1024, max: 64 * 1024 * 1024 }
   ),
 
   deviceWarningAfterSeconds: parsePositiveInteger(
@@ -306,6 +367,16 @@ export function validateEnv() {
   if (env.devAuthBypass && !env.isDevelopment) {
     throw new Error(
       'DEV_AUTH_BYPASS=true is allowed only when NODE_ENV=development'
+    )
+  }
+
+  if (!env.wsPath.startsWith('/') || env.wsPath.includes('?') || env.wsPath.includes('#')) {
+    throw new Error('WS_PATH must be an absolute URL path without query or fragment')
+  }
+
+  if (env.wsMaxUnauthenticatedClientsPerIp > env.wsMaxClientsPerIp) {
+    throw new Error(
+      'WS_MAX_UNAUTHENTICATED_CLIENTS_PER_IP must not exceed WS_MAX_CLIENTS_PER_IP'
     )
   }
 
@@ -363,6 +434,11 @@ export function getPublicRuntimeConfig() {
     devAuthBypass: env.isDevelopment ? env.devAuthBypass : false,
     apiRateLimitPerMinute: env.apiRateLimitPerMinute,
     ingestRateLimitPerMinute: env.ingestRateLimitPerMinute,
+    ingestDeviceRateLimitPerMinute: env.ingestDeviceRateLimitPerMinute,
+    deviceAuthFailureWindowMs: env.deviceAuthFailureWindowMs,
+    deviceAuthMaxFailuresPerIp: env.deviceAuthMaxFailuresPerIp,
+    deviceAuthMaxFailuresPerDevice: env.deviceAuthMaxFailuresPerDevice,
+    deviceAuthFailureTrackerMaxEntries: env.deviceAuthFailureTrackerMaxEntries,
     jsonBodyLimit: env.jsonBodyLimit,
     logLevel: env.logLevel,
     httpLogEnabled: env.httpLogEnabled,
@@ -370,8 +446,16 @@ export function getPublicRuntimeConfig() {
     opsSummaryIntervalSeconds: env.opsSummaryIntervalSeconds,
     releaseVersion: env.releaseVersion,
     renderServiceName: env.renderServiceName,
+    wsPath: env.wsPath,
     wsSubscribeTimeoutMs: env.wsSubscribeTimeoutMs,
+    wsMaxPayloadBytes: env.wsMaxPayloadBytes,
+    wsMaxTotalClients: env.wsMaxTotalClients,
+    wsMaxClientsPerIp: env.wsMaxClientsPerIp,
+    wsMaxUnauthenticatedClientsPerIp: env.wsMaxUnauthenticatedClientsPerIp,
     wsMaxClientsPerUser: env.wsMaxClientsPerUser,
+    wsMessageRateWindowMs: env.wsMessageRateWindowMs,
+    wsMaxMessagesPerWindow: env.wsMaxMessagesPerWindow,
+    wsMaxBufferedBytes: env.wsMaxBufferedBytes,
     deviceWarningAfterSeconds: env.deviceWarningAfterSeconds,
     deviceOfflineAfterSeconds: env.deviceOfflineAfterSeconds,
     deviceStatusCheckSeconds: env.deviceStatusCheckSeconds,

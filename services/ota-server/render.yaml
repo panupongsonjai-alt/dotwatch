@@ -9,9 +9,29 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 24
+      - key: NODE_ENV
+        value: production
       - key: PUBLIC_BASE_URL
         sync: false
       - key: OTA_ALLOW_UNREGISTERED_DEVICES
         value: "false"
-      - key: OTA_DEVICE_SECRETS_JSON
+      - key: OTA_REQUIRE_DEVICE_SCOPE
+        value: "true"
+      - key: OTA_DEVICE_REGISTRY_JSON
         sync: false
+      - key: OTA_DEVICE_SECRETS_JSON
+        value: "{}"
+      - key: OTA_MAX_BODY_BYTES
+        value: "16384"
+      - key: OTA_RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: OTA_RATE_LIMIT_PER_IP
+        value: "120"
+      - key: OTA_RATE_LIMIT_PER_DEVICE
+        value: "60"
+      - key: OTA_AUTH_FAILURE_LIMIT_PER_IP
+        value: "20"
+      - key: OTA_AUTH_FAILURE_LIMIT_PER_DEVICE
+        value: "10"
+      - key: OTA_RATE_LIMIT_MAX_ENTRIES
+        value: "10000"

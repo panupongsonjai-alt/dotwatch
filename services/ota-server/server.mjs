@@ -1,9 +1,11 @@
+import { timingSafeEqual } from "node:crypto";
 import { createReadStream, existsSync, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
-import { timingSafeEqual } from "node:crypto";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { FixedWindowLimiter } from "./lib/fixed-window-limiter.mjs";
 
 const serviceDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,26 +21,174 @@ function loadEnvFile(filePath) {
   }
 }
 
+function parseBoolean(value, fallback = false) {
+  if (value === undefined || value === null || value === "") return fallback;
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "yes", "on"].includes(normalized)) return true;
+  if (["false", "0", "no", "off"].includes(normalized)) return false;
+  return fallback;
+}
+
+function parsePositiveInteger(value, fallback, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) {
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue) || numberValue < min || numberValue > max) return fallback;
+  return numberValue;
+}
+
+function parseJsonObject(name, rawValue) {
+  try {
+    const value = JSON.parse(rawValue || "{}");
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("must be a JSON object");
+    }
+    return value;
+  } catch (error) {
+    throw new Error(`${name} is invalid: ${error.message}`);
+  }
+}
+
+function normalizeStringList(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((item) => String(item || "").trim()).filter(Boolean))];
+}
+
 loadEnvFile(path.join(serviceDir, ".env"));
 
 const releasesDir = path.join(serviceDir, "releases");
 const manifestPath = path.join(releasesDir, "manifest.json");
-const port = Number(process.env.PORT || 4100);
-const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || "").replace(/\/$/, "");
-const allowUnregistered = String(process.env.OTA_ALLOW_UNREGISTERED_DEVICES || "false").toLowerCase() === "true";
+const nodeEnv = String(process.env.NODE_ENV || "development").trim().toLowerCase();
+const isProduction = nodeEnv === "production";
+const port = parsePositiveInteger(process.env.PORT, 4100, { min: 1, max: 65535 });
+const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || "").trim().replace(/\/$/, "");
+const allowUnregistered = parseBoolean(process.env.OTA_ALLOW_UNREGISTERED_DEVICES, false);
+const requireDeviceScope = parseBoolean(process.env.OTA_REQUIRE_DEVICE_SCOPE, isProduction);
+const maxBodyBytes = parsePositiveInteger(process.env.OTA_MAX_BODY_BYTES, 16 * 1024, {
+  min: 1024,
+  max: 1024 * 1024
+});
+const rateLimitWindowMs = parsePositiveInteger(process.env.OTA_RATE_LIMIT_WINDOW_MS, 60_000, {
+  min: 1000,
+  max: 60 * 60 * 1000
+});
+const rateLimitPerIp = parsePositiveInteger(process.env.OTA_RATE_LIMIT_PER_IP, 120, {
+  min: 10,
+  max: 100_000
+});
+const rateLimitPerDevice = parsePositiveInteger(process.env.OTA_RATE_LIMIT_PER_DEVICE, 60, {
+  min: 5,
+  max: 100_000
+});
+const authFailureLimitPerIp = parsePositiveInteger(process.env.OTA_AUTH_FAILURE_LIMIT_PER_IP, 20, {
+  min: 3,
+  max: 10_000
+});
+const authFailureLimitPerDevice = parsePositiveInteger(process.env.OTA_AUTH_FAILURE_LIMIT_PER_DEVICE, 10, {
+  min: 3,
+  max: 10_000
+});
+const limiterMaxEntries = parsePositiveInteger(process.env.OTA_RATE_LIMIT_MAX_ENTRIES, 10_000, {
+  min: 100,
+  max: 1_000_000
+});
 
-function parseDeviceSecrets() {
-  const raw = process.env.OTA_DEVICE_SECRETS_JSON || "{}";
-  try {
-    const value = JSON.parse(raw);
-    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
-  } catch (error) {
-    console.error("Invalid OTA_DEVICE_SECRETS_JSON:", error.message);
-    return {};
+function parseDeviceRegistry() {
+  const registryValue = parseJsonObject(
+    "OTA_DEVICE_REGISTRY_JSON",
+    process.env.OTA_DEVICE_REGISTRY_JSON || "{}"
+  );
+  const legacySecrets = parseJsonObject(
+    "OTA_DEVICE_SECRETS_JSON",
+    process.env.OTA_DEVICE_SECRETS_JSON || "{}"
+  );
+  const registry = new Map();
+
+  for (const [rawCode, rawRegistration] of Object.entries(registryValue)) {
+    const deviceCode = String(rawCode || "").trim();
+    if (!deviceCode) continue;
+
+    const registration = typeof rawRegistration === "string"
+      ? { secret: rawRegistration }
+      : rawRegistration;
+
+    if (!registration || typeof registration !== "object" || Array.isArray(registration)) {
+      throw new Error(`OTA_DEVICE_REGISTRY_JSON entry ${deviceCode} must be a string or object`);
+    }
+
+    const secret = String(registration.secret || "").trim();
+    if (!secret) throw new Error(`OTA device ${deviceCode} is missing secret`);
+
+    registry.set(deviceCode, {
+      secret,
+      modelKeys: normalizeStringList(registration.modelKeys),
+      channels: normalizeStringList(registration.channels),
+      source: "registry"
+    });
+  }
+
+  for (const [rawCode, rawSecret] of Object.entries(legacySecrets)) {
+    const deviceCode = String(rawCode || "").trim();
+    const secret = String(rawSecret || "").trim();
+    if (!deviceCode || !secret || registry.has(deviceCode)) continue;
+
+    registry.set(deviceCode, {
+      secret,
+      modelKeys: [],
+      channels: [],
+      source: "legacy"
+    });
+  }
+
+  return registry;
+}
+
+const deviceRegistry = parseDeviceRegistry();
+
+function validateConfiguration() {
+  if (isProduction && allowUnregistered) {
+    throw new Error("OTA_ALLOW_UNREGISTERED_DEVICES must be false in production");
+  }
+
+  if (isProduction && (!publicBaseUrl || !publicBaseUrl.startsWith("https://"))) {
+    throw new Error("PUBLIC_BASE_URL must use https:// in production");
+  }
+
+  if (isProduction && deviceRegistry.size === 0) {
+    throw new Error("At least one OTA device registration is required in production");
+  }
+
+  if (requireDeviceScope) {
+    for (const [deviceCode, registration] of deviceRegistry.entries()) {
+      if (registration.modelKeys.length === 0 || registration.channels.length === 0) {
+        throw new Error(
+          `OTA device ${deviceCode} must define modelKeys and channels when OTA_REQUIRE_DEVICE_SCOPE=true`
+        );
+      }
+    }
   }
 }
 
-const deviceSecrets = parseDeviceSecrets();
+validateConfiguration();
+
+const requestByIpLimiter = new FixedWindowLimiter({
+  windowMs: rateLimitWindowMs,
+  limit: rateLimitPerIp,
+  maxEntries: limiterMaxEntries
+});
+const requestByDeviceLimiter = new FixedWindowLimiter({
+  windowMs: rateLimitWindowMs,
+  limit: rateLimitPerDevice,
+  maxEntries: limiterMaxEntries
+});
+const authFailureByIpLimiter = new FixedWindowLimiter({
+  windowMs: rateLimitWindowMs,
+  limit: authFailureLimitPerIp,
+  maxEntries: limiterMaxEntries
+});
+const authFailureByDeviceLimiter = new FixedWindowLimiter({
+  windowMs: rateLimitWindowMs,
+  limit: authFailureLimitPerDevice,
+  maxEntries: limiterMaxEntries
+});
 
 function json(res, status, payload, headers = {}) {
   const body = JSON.stringify(payload);
@@ -46,6 +196,7 @@ function json(res, status, payload, headers = {}) {
     "Content-Type": "application/json; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
     "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
     ...headers
   });
   res.end(body);
@@ -58,20 +209,71 @@ function safeEqual(left, right) {
   return timingSafeEqual(a, b);
 }
 
-function authenticate(req) {
-  const deviceCode = String(req.headers["x-device-code"] || "").trim();
+function getRequestIp(req) {
+  const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  const connecting = String(req.headers["cf-connecting-ip"] || "").trim();
+  return String(connecting || forwarded || req.socket.remoteAddress || "unknown").slice(0, 128);
+}
+
+function rateLimitResponse(res, state, message) {
+  const retryAfterSeconds = Math.max(1, Math.ceil(state.retryAfterMs / 1000));
+  json(res, 429, { ok: false, message, retryAfterSeconds }, {
+    "Retry-After": String(retryAfterSeconds)
+  });
+}
+
+function authenticate(req, ip) {
+  const deviceCode = String(req.headers["x-device-code"] || "").trim().slice(0, 128);
   const deviceSecret = String(req.headers["x-device-secret"] || "").trim();
+  const ipKey = `ip:${ip}`;
+  const deviceKey = `device:${deviceCode.toLowerCase() || "unknown"}`;
+
+  const ipLock = authFailureByIpLimiter.check(ipKey);
+  if (!ipLock.allowed) return { ok: false, rateLimited: true, state: ipLock };
+
+  const deviceLock = authFailureByDeviceLimiter.check(deviceKey);
+  if (!deviceLock.allowed) return { ok: false, rateLimited: true, state: deviceLock };
+
   if (!deviceCode || !deviceSecret) {
+    authFailureByIpLimiter.consume(ipKey);
+    authFailureByDeviceLimiter.consume(deviceKey);
     return { ok: false, status: 401, message: "Missing device credentials" };
   }
-  const expected = deviceSecrets[deviceCode];
-  if (expected && safeEqual(deviceSecret, expected)) {
-    return { ok: true, deviceCode };
+
+  const registration = deviceRegistry.get(deviceCode);
+  if (registration && safeEqual(deviceSecret, registration.secret)) {
+    return { ok: true, deviceCode, registration, unregistered: false };
   }
+
   if (allowUnregistered) {
-    return { ok: true, deviceCode, unregistered: true };
+    return {
+      ok: true,
+      deviceCode,
+      registration: { modelKeys: [], channels: [], source: "unregistered" },
+      unregistered: true
+    };
   }
+
+  authFailureByIpLimiter.consume(ipKey);
+  authFailureByDeviceLimiter.consume(deviceKey);
   return { ok: false, status: 403, message: "Invalid device credentials" };
+}
+
+function authorizeScope(auth, modelKey, channel) {
+  if (auth.unregistered && allowUnregistered) return true;
+
+  const { modelKeys, channels } = auth.registration;
+  if (modelKeys.length > 0 && !modelKeys.includes(modelKey)) return false;
+  if (channels.length > 0 && !channels.includes(channel)) return false;
+  return !requireDeviceScope || (modelKeys.length > 0 && channels.length > 0);
+}
+
+function authorizeModel(auth, modelKey) {
+  if (auth.unregistered && allowUnregistered) return true;
+
+  const { modelKeys } = auth.registration;
+  if (modelKeys.length > 0 && !modelKeys.includes(modelKey)) return false;
+  return !requireDeviceScope || modelKeys.length > 0;
 }
 
 async function loadManifest() {
@@ -101,23 +303,49 @@ function selectRelease(manifest, { modelKey, channel, currentBuild }) {
     .sort((a, b) => Number(b.buildNumber) - Number(a.buildNumber))[0] || null;
 }
 
-async function readJsonBody(req, maxBytes = 64 * 1024) {
+async function readJsonBody(req) {
   const chunks = [];
   let total = 0;
   for await (const chunk of req) {
     total += chunk.length;
-    if (total > maxBytes) throw new Error("Request body too large");
+    if (total > maxBodyBytes) {
+      const error = new Error("Request body too large");
+      error.status = 413;
+      throw error;
+    }
     chunks.push(chunk);
   }
   if (!chunks.length) return {};
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+
+  try {
+    const value = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("JSON body must be an object");
+    }
+    return value;
+  } catch (error) {
+    error.status = 400;
+    throw error;
+  }
 }
 
 function safeReleaseFile(filename) {
   const basename = path.basename(String(filename || ""));
   if (!basename || basename !== filename || !basename.endsWith(".bin")) return null;
-  const resolved = path.join(releasesDir, basename);
-  return resolved.startsWith(releasesDir) ? resolved : null;
+  const resolved = path.resolve(releasesDir, basename);
+  const relative = path.relative(releasesDir, resolved);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) return null;
+  return resolved;
+}
+
+function safeText(value, maxLength = 512) {
+  return String(value ?? "").replace(/[\r\n\t]/g, " ").slice(0, maxLength);
+}
+
+function safeInteger(value, min = 0, max = Number.MAX_SAFE_INTEGER) {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return null;
+  return Math.min(max, Math.max(min, Math.trunc(numberValue)));
 }
 
 async function handleCheck(req, res, url, auth) {
@@ -128,6 +356,11 @@ async function handleCheck(req, res, url, auth) {
 
   if (!modelKey) {
     json(res, 400, { ok: false, message: "modelKey is required" });
+    return;
+  }
+
+  if (!authorizeScope(auth, modelKey, channel)) {
+    json(res, 403, { ok: false, message: "Device is not authorized for this firmware scope" });
     return;
   }
 
@@ -166,11 +399,23 @@ async function handleCheck(req, res, url, auth) {
   });
 }
 
-async function handleDownload(req, res, url) {
+async function handleDownload(req, res, url, auth) {
   const filename = decodeURIComponent(url.pathname.split("/").pop() || "");
   const filePath = safeReleaseFile(filename);
   if (!filePath) {
     json(res, 400, { ok: false, message: "Invalid firmware filename" });
+    return;
+  }
+
+  const manifest = await loadManifest();
+  const release = manifest.releases.find((item) => item?.file === filename);
+  if (!release) {
+    json(res, 404, { ok: false, message: "Firmware release not found" });
+    return;
+  }
+
+  if (!authorizeScope(auth, String(release.modelKey || ""), String(release.channel || ""))) {
+    json(res, 403, { ok: false, message: "Device is not authorized for this firmware scope" });
     return;
   }
 
@@ -193,14 +438,31 @@ async function handleDownload(req, res, url) {
   }
 }
 
-async function handleReport(req, res, auth) {
+async function handleReport(req, res, auth, ip) {
   const payload = await readJsonBody(req);
+  const modelKey = safeText(payload.modelKey, 128);
+
+  if (modelKey && !authorizeModel(auth, modelKey)) {
+    json(res, 403, { ok: false, message: "Device is not authorized for this firmware scope" });
+    return;
+  }
+
   const event = {
     receivedAt: new Date().toISOString(),
     deviceCode: auth.deviceCode,
-    remoteAddress: req.socket.remoteAddress,
-    ...payload
+    remoteAddress: ip,
+    event: safeText(payload.event, 64),
+    message: safeText(payload.message, 512),
+    modelKey,
+    firmwareVersion: safeText(payload.firmwareVersion, 128),
+    firmwareBuild: safeInteger(payload.firmwareBuild),
+    availableVersion: safeText(payload.availableVersion, 128),
+    availableBuild: safeInteger(payload.availableBuild),
+    httpStatus: safeInteger(payload.httpStatus, -1, 999),
+    freeHeap: safeInteger(payload.freeHeap),
+    uptimeMs: safeInteger(payload.uptimeMs)
   };
+
   console.log("OTA_REPORT", JSON.stringify(event));
   json(res, 202, { ok: true, accepted: true });
 }
@@ -215,7 +477,9 @@ const server = http.createServer(async (req, res) => {
         ok: true,
         service: "dotwatch-ota-server",
         releaseCount: manifest.releases.length,
-        allowUnregistered
+        registeredDeviceCount: deviceRegistry.size,
+        allowUnregistered,
+        requireDeviceScope
       });
       return;
     }
@@ -226,9 +490,26 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const auth = authenticate(req);
+    const ip = getRequestIp(req);
+    const ipRate = requestByIpLimiter.consume(`ip:${ip}`);
+    if (!ipRate.allowed) {
+      rateLimitResponse(res, ipRate, "OTA request rate limit exceeded");
+      return;
+    }
+
+    const auth = authenticate(req, ip);
     if (!auth.ok) {
-      json(res, auth.status, { ok: false, message: auth.message });
+      if (auth.rateLimited) {
+        rateLimitResponse(res, auth.state, "Too many invalid OTA authentication attempts");
+      } else {
+        json(res, auth.status, { ok: false, message: auth.message });
+      }
+      return;
+    }
+
+    const deviceRate = requestByDeviceLimiter.consume(`device:${auth.deviceCode.toLowerCase()}`);
+    if (!deviceRate.allowed) {
+      rateLimitResponse(res, deviceRate, "OTA device request rate limit exceeded");
       return;
     }
 
@@ -237,28 +518,42 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (req.method === "GET" && url.pathname.startsWith("/api/device-firmware/download/")) {
-      await handleDownload(req, res, url);
+      await handleDownload(req, res, url, auth);
       return;
     }
     if (req.method === "POST" && url.pathname === "/api/device-firmware/report") {
-      await handleReport(req, res, auth);
+      await handleReport(req, res, auth, ip);
       return;
     }
 
     json(res, 404, { ok: false, message: "Firmware route not found" });
   } catch (error) {
     console.error("OTA server error:", error);
-    json(res, 500, { ok: false, message: "Internal OTA server error" });
+    if (!res.headersSent) {
+      json(res, error.status || 500, {
+        ok: false,
+        message: error.status ? error.message : "Internal OTA server error"
+      });
+    } else {
+      res.destroy();
+    }
   }
 });
+
+server.requestTimeout = 30_000;
+server.headersTimeout = 15_000;
+server.keepAliveTimeout = 5_000;
+server.maxRequestsPerSocket = 100;
 
 server.listen(port, "0.0.0.0", () => {
   console.log("============================================================");
   console.log("dotWatch OTA Server");
   console.log("============================================================");
-  console.log(`Port               : ${port}`);
-  console.log(`Public Base URL    : ${publicBaseUrl || "derived from request"}`);
-  console.log(`Registered devices : ${Object.keys(deviceSecrets).length}`);
-  console.log(`Allow unregistered : ${allowUnregistered}`);
+  console.log(`Environment         : ${nodeEnv}`);
+  console.log(`Port                : ${port}`);
+  console.log(`Public Base URL     : ${publicBaseUrl || "derived from request"}`);
+  console.log(`Registered devices  : ${deviceRegistry.size}`);
+  console.log(`Allow unregistered  : ${allowUnregistered}`);
+  console.log(`Require device scope: ${requireDeviceScope}`);
   console.log("============================================================");
 });
