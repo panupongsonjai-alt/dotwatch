@@ -45,9 +45,34 @@ function stateClass(appState) {
   return "warn";
 }
 
-function pinQuery() {
-  const pin = byId("previewPin")?.value.trim() || "";
-  return pin ? `?pin=${encodeURIComponent(pin)}` : "";
+function previewPin() {
+  return byId("previewPin")?.value.trim() || "";
+}
+
+async function authenticateDevice() {
+  const pin = previewPin();
+  if (!pin) {
+    const error = new Error("กรุณากรอก Local Admin PIN");
+    error.status = 401;
+    throw error;
+  }
+
+  const response = await fetch("/device-api/login", {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+    },
+    body: new URLSearchParams({ pin })
+  });
+  if (!response.ok) {
+    const error = new Error(response.status === 429
+      ? "เข้าสู่ระบบผิดหลายครั้ง กรุณารอแล้วลองใหม่"
+      : "Local Admin PIN ไม่ถูกต้อง");
+    error.status = response.status;
+    throw error;
+  }
 }
 
 function showToast(message) {
@@ -222,12 +247,19 @@ function applyStatus(data) {
   });
 }
 
-async function fetchDeviceJson(path) {
-  const response = await fetch(`/device-api${path}${pinQuery()}`, {
+async function fetchDeviceJson(path, allowAuthenticationRetry = true) {
+  const response = await fetch(`/device-api${path}`, {
     cache: "no-store",
     headers: { Accept: "application/json" }
   });
   const payload = await response.json().catch(() => ({}));
+
+  const publicStatusNeedsLogin = path === "/json" && payload.localAdminProtected === true;
+  if (allowAuthenticationRetry && (response.status === 401 || response.status === 403 || publicStatusNeedsLogin)) {
+    await authenticateDevice();
+    return fetchDeviceJson(path, false);
+  }
+
   if (!response.ok) {
     const error = new Error(payload.message || `HTTP ${response.status}`);
     error.status = response.status;
@@ -413,9 +445,6 @@ function bindEvents() {
     scanWifi();
   });
 
-  byId("previewPin")?.addEventListener("input", (event) => {
-    localStorage.setItem("dotwatch.preview.pin", event.currentTarget.value);
-  });
   byId("previewPin")?.addEventListener("change", () => {
     refreshStatus({ notify: true });
     scanWifi();
@@ -458,9 +487,6 @@ function init() {
   const configuredTarget = document.querySelector('meta[name="esp32-target"]')?.content;
   const targetInput = byId("previewDeviceUrl");
   if (targetInput && configuredTarget) targetInput.value = configuredTarget;
-
-  const savedPin = localStorage.getItem("dotwatch.preview.pin") || "";
-  if (byId("previewPin")) byId("previewPin").value = savedPin;
 
   const mockToggle = byId("previewMockToggle");
   if (mockToggle) {

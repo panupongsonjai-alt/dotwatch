@@ -120,16 +120,34 @@ function parseBoolean(value, fallback = false) {
   return fallback
 }
 
-function getDatabaseSslConfig() {
-  if (parseBoolean(process.env.DATABASE_SSL_DISABLED, false)) return false
+function normalizePem(value) {
+  const cleaned = String(value || '').trim()
+  return cleaned ? cleaned.replace(/\\n/g, '\n') : ''
+}
 
+function getDatabaseSslConfig() {
+  const sslDisabled = parseBoolean(process.env.DATABASE_SSL_DISABLED, false)
   const rejectUnauthorized = parseBoolean(
     process.env.DATABASE_SSL_REJECT_UNAUTHORIZED,
-    false
+    process.env.NODE_ENV === 'production'
   )
+  const ca = normalizePem(process.env.DATABASE_SSL_CA)
+
+  if (process.env.NODE_ENV === 'production' && sslDisabled) {
+    throw new Error('DATABASE_SSL_DISABLED must be false in production')
+  }
+  if (process.env.NODE_ENV === 'production' && !rejectUnauthorized) {
+    throw new Error(
+      'DATABASE_SSL_REJECT_UNAUTHORIZED must be true in production'
+    )
+  }
+  if (sslDisabled) return false
 
   if (isRenderDb || databaseUrl.includes('sslmode=require')) {
-    return { rejectUnauthorized }
+    return {
+      rejectUnauthorized,
+      ...(ca ? { ca } : {}),
+    }
   }
 
   return false

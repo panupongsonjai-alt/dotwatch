@@ -12,8 +12,19 @@ static constexpr const char *NVS_NAMESPACE = "dotwatch";
 static constexpr const char *DEFAULT_API_URL = "https://dotwatch-backend.onrender.com";
 
 static constexpr const char *SETUP_AP_PREFIX = "dotWatch-Setup";
-static constexpr const char *SETUP_AP_PASSWORD = "dotwatch-setup";
 static constexpr uint8_t DNS_PORT = 53;
+
+// Provisioning and local-admin security. Credentials are generated uniquely
+// on first boot and persisted in NVS/LittleFS; no fleet-wide default password.
+static constexpr size_t GENERATED_CREDENTIAL_LENGTH = 14;
+static constexpr size_t ADMIN_PIN_MIN_LENGTH = 8;
+static constexpr unsigned long SETUP_BUTTON_HOLD_MS = 2000UL;
+static constexpr unsigned long SETUP_PORTAL_TIMEOUT_MS = 15UL * 60UL * 1000UL;
+static constexpr unsigned long ADMIN_SESSION_TTL_MS = 30UL * 60UL * 1000UL;
+static constexpr unsigned long ADMIN_LOGIN_WINDOW_MS = 5UL * 60UL * 1000UL;
+static constexpr unsigned long ADMIN_LOGIN_BLOCK_MS = 5UL * 60UL * 1000UL;
+static constexpr uint8_t ADMIN_LOGIN_MAX_ATTEMPTS = 5;
+static constexpr const char *ADMIN_SESSION_COOKIE = "dotth_admin_session";
 
 static constexpr int STATUS_LED_PIN = 2;
 static constexpr int RESET_BUTTON_PIN = 0;

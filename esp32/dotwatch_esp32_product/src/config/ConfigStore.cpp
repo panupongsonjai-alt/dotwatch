@@ -1,6 +1,7 @@
 #include "config/ConfigStore.h"
 
 #include <ArduinoJson.h>
+#include <esp_system.h>
 #include "FirmwareVersion.h"
 #include "ProductConfig.h"
 #include "utils/StringUtils.h"
@@ -19,6 +20,7 @@ constexpr const char *KEY_PENDING_BACKUPS = "pendBackup";
 constexpr const char *KEY_API_URL = "apiUrl";
 constexpr const char *KEY_DEVICE_CODE = "devCode";
 constexpr const char *KEY_DEVICE_SECRET = "devSecret";
+constexpr const char *KEY_SETUP_AP_PASSWORD = "setupApPass";
 constexpr const char *KEY_ADMIN_PIN = "adminPin";
 constexpr const char *KEY_TLS_CA = "tlsCaCert";
 constexpr const char *KEY_DHT_PIN = "dhtPin";
@@ -30,6 +32,44 @@ constexpr const char *KEY_OTA_CHANNEL = "otaChannel";
 constexpr const char *KEY_OTA_ENABLED = "otaEnabled";
 constexpr const char *KEY_OTA_AUTO = "otaAuto";
 constexpr const char *KEY_OTA_INTERVAL = "otaInterval";
+
+String generateSecurityCredential(size_t length) {
+  static constexpr char ALPHABET[] =
+      "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  static constexpr size_t ALPHABET_LENGTH = sizeof(ALPHABET) - 1;
+
+  String value;
+  value.reserve(length);
+  while (value.length() < length) {
+    const uint32_t randomValue = esp_random();
+    for (uint8_t shift = 0; shift < 4 && value.length() < length; shift++) {
+      const uint8_t index = (randomValue >> (shift * 8U)) % ALPHABET_LENGTH;
+      value += ALPHABET[index];
+    }
+  }
+  return value;
+}
+
+bool isKnownFleetDefault(const String &value) {
+  return value.equalsIgnoreCase("admin") ||
+         value.equalsIgnoreCase("dotwatch-setup") ||
+         value.equalsIgnoreCase("dotth-setup");
+}
+
+bool setupCredentialNeedsRotation(const String &value) {
+  String cleaned = value;
+  cleaned.trim();
+  return cleaned.length() < ProductConfig::ADMIN_PIN_MIN_LENGTH ||
+         isKnownFleetDefault(cleaned);
+}
+
+bool adminCredentialNeedsRotation(const String &value) {
+  String cleaned = value;
+  cleaned.trim();
+  // Preserve legacy custom PINs during migration so existing field devices do
+  // not become inaccessible. New/changed PINs are still required to be 8+.
+  return cleaned.length() == 0 || isKnownFleetDefault(cleaned);
+}
 
 }  // namespace
 
@@ -53,6 +93,7 @@ bool ConfigStore::load(DeviceConfig &config) {
       prefs.getString(KEY_API_URL, ProductConfig::DEFAULT_API_URL));
   config.deviceCode = prefs.getString(KEY_DEVICE_CODE, "");
   config.deviceSecret = prefs.getString(KEY_DEVICE_SECRET, "");
+  config.setupApPassword = prefs.getString(KEY_SETUP_AP_PASSWORD, "");
   config.adminPin = prefs.getString(KEY_ADMIN_PIN, "");
   config.tlsCaCert = prefs.getString(KEY_TLS_CA, "");
   config.dhtPin = prefs.getInt(KEY_DHT_PIN, ProductConfig::DEFAULT_DHT_PIN);
@@ -73,6 +114,7 @@ bool ConfigStore::load(DeviceConfig &config) {
   config.pendingWifiSsid.trim();
   config.deviceCode.trim();
   config.deviceSecret.trim();
+  config.setupApPassword.trim();
   config.adminPin.trim();
   config.tlsCaCert.trim();
   config.otaBaseUrl.trim();
@@ -106,6 +148,24 @@ bool ConfigStore::load(DeviceConfig &config) {
     config.pendingWifiPassword = "";
   }
 
+  bool securityCredentialsChanged = false;
+  if (setupCredentialNeedsRotation(config.setupApPassword)) {
+    config.setupApPassword = generateSecurityCredential(
+        ProductConfig::GENERATED_CREDENTIAL_LENGTH);
+    securityCredentialsChanged = true;
+  }
+  if (adminCredentialNeedsRotation(config.adminPin)) {
+    // The first Local Admin PIN intentionally matches the per-device Setup AP
+    // password so it can be printed once on the product label/commissioning QR.
+    config.adminPin = config.setupApPassword;
+    securityCredentialsChanged = true;
+  }
+
+  if (securityCredentialsChanged && !save(config)) {
+    Serial.println("ConfigStore: unable to persist generated security credentials");
+    return false;
+  }
+
   // Legacy Phase 4/10/11 firmware did not store a schema version. The keys
   // above intentionally remain compatible, so migration only records the
   // current schema without rewriting secrets or Wi-Fi data.
@@ -133,6 +193,7 @@ bool ConfigStore::save(const DeviceConfig &config) {
   prefs.putString(KEY_API_URL, StringUtils::normalizeApiUrl(config.apiUrl));
   prefs.putString(KEY_DEVICE_CODE, config.deviceCode);
   prefs.putString(KEY_DEVICE_SECRET, config.deviceSecret);
+  prefs.putString(KEY_SETUP_AP_PASSWORD, config.setupApPassword);
   prefs.putString(KEY_ADMIN_PIN, config.adminPin);
   prefs.putString(KEY_TLS_CA, config.tlsCaCert);
   prefs.putInt(KEY_DHT_PIN, config.dhtPin);

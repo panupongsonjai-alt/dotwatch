@@ -81,6 +81,7 @@ function isUnsafePlaceholderKey(value) {
   const cleaned = String(value || '').trim()
   if (!cleaned) return true
   if (/REPLACE|CHANGE|YOUR_|example|placeholder/i.test(cleaned)) return true
+  if (cleaned === 'RameT7KiqYLV5vio0fsHKfxkQmh10+N+u4OAveuq5NI=') return true
 
   try {
     const key = Buffer.from(cleaned, 'base64')
@@ -176,6 +177,14 @@ if (!isValid32ByteKey(env.DEVICE_SECRET_ENCRYPTION_KEY)) {
 
 if (env.DATABASE_URL && /localhost|127\.0\.0\.1/i.test(env.DATABASE_URL)) {
   errors.push('DATABASE_URL must not point to localhost in production')
+}
+
+if (isTruthy(env.DATABASE_SSL_DISABLED)) {
+  errors.push('DATABASE_SSL_DISABLED must be false in production')
+}
+
+if (!isTruthy(env.DATABASE_SSL_REJECT_UNAUTHORIZED)) {
+  errors.push('DATABASE_SSL_REJECT_UNAUTHORIZED must be true in production')
 }
 
 if (env.FIREBASE_PRIVATE_KEY && !env.FIREBASE_PRIVATE_KEY.includes('BEGIN PRIVATE KEY')) {

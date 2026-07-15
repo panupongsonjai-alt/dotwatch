@@ -20,6 +20,8 @@ $MainFile = Join-Path $FullProjectDir "src\main.cpp"
 $PlatformioFile = Join-Path $FullProjectDir "platformio.ini"
 $ProductConfigFile = Join-Path $FullProjectDir "include\ProductConfig.h"
 $BackendClientFile = Join-Path $FullProjectDir "src\backend\BackendClient.cpp"
+$ConfigStoreFile = Join-Path $FullProjectDir "src\config\ConfigStore.cpp"
+$PortalServerFile = Join-Path $FullProjectDir "src\portal\PortalServer.cpp"
 
 Write-Step "dotWatch ESP32 Product Core field check"
 Write-Host "ProjectDir : $FullProjectDir"
@@ -27,7 +29,7 @@ Write-Host "Build      : $Build"
 Write-Host "Upload     : $Upload"
 Write-Host "Monitor    : $Monitor"
 
-foreach ($required in @($FullProjectDir, $MainFile, $PlatformioFile, $ProductConfigFile, $BackendClientFile)) {
+foreach ($required in @($FullProjectDir, $MainFile, $PlatformioFile, $ProductConfigFile, $BackendClientFile, $ConfigStoreFile, $PortalServerFile)) {
   if (-not (Test-Path -LiteralPath $required)) {
     throw "Required ESP32 path not found: $required"
   }
@@ -37,9 +39,23 @@ Write-Step "1. Static firmware safety checks"
 $ProductConfig = Get-Content -LiteralPath $ProductConfigFile -Raw
 $BackendClient = Get-Content -LiteralPath $BackendClientFile -Raw
 $Platformio = Get-Content -LiteralPath $PlatformioFile -Raw
+$ConfigStore = Get-Content -LiteralPath $ConfigStoreFile -Raw
+$PortalServer = Get-Content -LiteralPath $PortalServerFile -Raw
 
-if ($ProductConfig -notmatch 'SETUP_AP_PASSWORD\s*=\s*"dotwatch-setup"') {
-  throw "Setup AP password is not hardened in include/ProductConfig.h"
+if ($ProductConfig -match 'SETUP_AP_PASSWORD\s*=') {
+  throw "Fleet-wide Setup AP password constant must not exist"
+}
+if ($ProductConfig -notmatch 'GENERATED_CREDENTIAL_LENGTH') {
+  throw "Generated per-device credential policy not found"
+}
+if ($ConfigStore -notmatch 'generateSecurityCredential') {
+  throw "Per-device setup credential generation not found"
+}
+if ($PortalServer -notmatch 'HTTP_POST.*handleLogin') {
+  throw "POST Local Admin login route not found"
+}
+if ($PortalServer -match '\?pin=') {
+  throw "Local Admin PIN must not be placed in URLs"
 }
 if ($ProductConfig -notmatch '#define\s+DOTWATCH_ALLOW_INSECURE_TLS_FALLBACK\s+0') {
   throw "Insecure TLS fallback is not disabled by default"
@@ -52,9 +68,6 @@ if ($BackendClient -notmatch 'setCACert') {
 }
 if ($BackendClient -notmatch 'metric_1') {
   throw "metric_1 telemetry mapping not found"
-}
-if ($ProductConfig -match 'SETUP_AP_PASSWORD\s*=\s*""') {
-  throw "Setup AP password is blank"
 }
 Write-Host "ESP32 static safety checks passed." -ForegroundColor Green
 
