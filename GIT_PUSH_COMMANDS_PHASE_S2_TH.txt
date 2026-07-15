@@ -1,0 +1,28 @@
+Set-Location "D:\IoT Project\dotwatch"
+
+git status --short
+
+npm run verify:phase-s1:security
+npm run test:phase-s1:prod-env
+npm run check:backend
+npm --prefix services/ota-server run check
+npm run test:phase-s2
+
+git switch main
+git pull --ff-only origin main
+git switch -c security/phase-s2-network-ota-hardening
+
+git add package.json services/backend/package.json services/backend/src/config/env.js services/backend/src/middlewares/authDevice.js services/backend/src/middlewares/deviceIngestRateLimit.js services/backend/src/routes/ingest.routes.js services/backend/src/security/fixedWindowLimiter.js services/backend/src/server.js services/ota-server/.env.example services/ota-server/package.json services/ota-server/README.md services/ota-server/render.yaml services/ota-server/server.mjs services/ota-server/lib/fixed-window-limiter.mjs scripts/verify-phase-s2-security.mjs scripts/test-phase-s2-rate-limiters.mjs scripts/test-phase-s2-ota-security.mjs docs/PHASE_S2_NETWORK_OTA_HARDENING_TH.md docs/PHASE_S2_VALIDATION_REPORT_TH.md GIT_PUSH_COMMANDS_PHASE_S2_TH.txt
+
+git add -f services/backend/.env.example services/backend/.env.production.example
+
+git diff --cached --check
+git status --short
+git diff --cached --stat
+
+git commit -m "security: harden websocket ingest and OTA access"
+
+git push -u origin security/phase-s2-network-ota-hardening
+
+# เปิด Pull Request และ Merge เข้า main ก่อน
+# ห้ามลบ branch จนกว่าจะตรวจว่า commit อยู่ใน origin/main

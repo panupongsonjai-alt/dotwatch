@@ -19,7 +19,7 @@
     "check:dashboard": "npm --prefix apps/dashboard run build",
     "check:admin": "npm --prefix apps/admin run build",
     "check:mobile": "npm --prefix apps/mobile run typecheck",
-    "check:backend": "node --check services/backend/src/server.js && node --check services/backend/src/config/env.js && node --check services/backend/src/utils/health.js && node --check services/backend/src/middlewares/requestContext.js",
+    "check:backend": "node --check services/backend/src/server.js && node --check services/backend/src/config/env.js && node --check services/backend/src/utils/health.js && node --check services/backend/src/middlewares/requestContext.js && node --check services/backend/src/middlewares/authDevice.js && node --check services/backend/src/middlewares/deviceIngestRateLimit.js && node --check services/backend/src/security/fixedWindowLimiter.js",
     "check:all": "npm run check:backend && npm run check:dashboard && npm run check:admin && npm run check:mobile",
     "env:local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-local-env.ps1",
     "env:prod:check": "node scripts/check-production-env.mjs",
@@ -80,7 +80,11 @@
     "verify:phase11i:admin-dashboard-comfort": "node scripts/phase11i-admin-dashboard-comfort-verify.mjs",
     "verify:phase11j:dashboard-sidebar-spacing": "node scripts/phase11j-dashboard-sidebar-admin-spacing-verify.mjs",
     "verify:phase-s1:security": "node scripts/verify-phase-s1-security.mjs",
-    "test:phase-s1:prod-env": "node scripts/test-phase-s1-production-env.mjs"
+    "test:phase-s1:prod-env": "node scripts/test-phase-s1-production-env.mjs",
+    "verify:phase-s2:security": "node scripts/verify-phase-s2-security.mjs",
+    "test:phase-s2:limiters": "node scripts/test-phase-s2-rate-limiters.mjs",
+    "test:phase-s2:ota": "node scripts/test-phase-s2-ota-security.mjs",
+    "test:phase-s2": "npm run verify:phase-s2:security && npm run test:phase-s2:limiters && npm run test:phase-s2:ota"
   },
   "engines": {
     "node": ">=20"
