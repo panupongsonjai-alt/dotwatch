@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {
   buildOpenMeteoUrl,
+  buildWeatherSnapshotData,
   parseOpenMeteoCurrentResponse,
 } from '../src/services/weatherVirtualDevice.service.js'
 
@@ -29,6 +30,15 @@ const parsed = parseOpenMeteoCurrentResponse({
 assert.equal(parsed.observedAt, '2026-07-16T08:30:00.000Z')
 assert.equal(parsed.temperature, 32.4)
 assert.equal(parsed.humidity, 68)
+
+const snapshot = buildWeatherSnapshotData(
+  parsed,
+  '2026-07-16T08:31:00.000Z'
+)
+
+assert.deepEqual(snapshot.metrics, { temperature: 32.4, humidity: 68 })
+assert.equal(snapshot.timestamp, '2026-07-16T08:31:00.000Z')
+assert.equal(snapshot.firmwareVersion, 'weather-api/open-meteo')
 
 assert.throws(() =>
   parseOpenMeteoCurrentResponse({

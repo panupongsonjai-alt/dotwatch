@@ -73,6 +73,10 @@ function getSafeChartResolution(value) {
     : DEFAULT_CHART_RESOLUTION
 }
 
+function getSafeSortOrder(value) {
+  return String(value || '').toLowerCase() === 'asc' ? 'asc' : 'desc'
+}
+
 function getInitialHistoryState() {
   const fallback = {
     deviceId: '',
@@ -120,7 +124,9 @@ function getInitialHistoryState() {
       tablePageSize: getSafeTablePageSize(
         params.get('pageSize') || saved.tablePageSize || fallback.tablePageSize
       ),
-      sortOrder: params.get('sort') || saved.sortOrder || fallback.sortOrder,
+      sortOrder: getSafeSortOrder(
+        params.get('sort') || saved.sortOrder || fallback.sortOrder
+      ),
       chartResolution: getSafeChartResolution(
         params.get('resolution') || saved.chartResolution
       ),
@@ -562,19 +568,10 @@ function normalizeHistoryTimeKey(value) {
   return date.toISOString()
 }
 
-function buildAllMetricsTableRows(rows = [], metrics = []) {
-  const sortedRows = [...rows].sort((a, b) => {
-    const timeA = new Date(a.time).getTime()
-    const timeB = new Date(b.time).getTime()
-
-    if (Number.isNaN(timeA) || Number.isNaN(timeB)) return 0
-
-    return timeA - timeB
-  })
-
+function buildAllMetricsTableRows(rows = []) {
   const map = new Map()
 
-  for (const row of sortedRows) {
+  for (const row of rows) {
     const timeKey = normalizeHistoryTimeKey(row.time)
 
     if (!timeKey || !row.metricKey) continue
@@ -592,12 +589,27 @@ function buildAllMetricsTableRows(rows = [], metrics = []) {
   return Array.from(map.values())
 }
 
-function getHistoryTableRows(rows = [], selectedMetricKey = '', metrics = []) {
+function getHistoryTableRows(rows = [], selectedMetricKey = '') {
   if (selectedMetricKey === 'all') {
-    return buildAllMetricsTableRows(rows, metrics)
+    return buildAllMetricsTableRows(rows)
   }
 
   return rows
+}
+
+function sortHistoryTableRows(rows = [], sortOrder = 'desc') {
+  const direction = getSafeSortOrder(sortOrder) === 'asc' ? 1 : -1
+
+  return [...rows].sort((a, b) => {
+    const timeA = new Date(a.time).getTime()
+    const timeB = new Date(b.time).getTime()
+
+    if (Number.isNaN(timeA) && Number.isNaN(timeB)) return 0
+    if (Number.isNaN(timeA)) return 1
+    if (Number.isNaN(timeB)) return -1
+
+    return (timeA - timeB) * direction
+  })
 }
 
 function formatHistoryTableValue(row, metricMap, selectedUnit = '') {
@@ -928,8 +940,9 @@ function History() {
   }, [rows, sortOrder])
 
   const historyTableRows = useMemo(() => {
-    return getHistoryTableRows(filteredRows, selectedMetricKey, metrics)
-  }, [filteredRows, selectedMetricKey, metrics])
+    const groupedRows = getHistoryTableRows(rows, selectedMetricKey)
+    return sortHistoryTableRows(groupedRows, sortOrder)
+  }, [rows, selectedMetricKey, sortOrder])
 
   const totalHistoryTablePages = useMemo(() => {
     return Math.max(1, Math.ceil(historyTableRows.length / tablePageSize))
@@ -2193,7 +2206,11 @@ function History() {
               <span>Sort</span>
               <UnifiedSelect
                 value={sortOrder}
-                onChange={(event) => setSortOrder(event.target.value)}
+                onChange={(event) => {
+                  setSortOrder(getSafeSortOrder(event.target.value))
+                  setTablePage(1)
+                }}
+                aria-label="เรียงลำดับข้อมูล History"
               >
                 <option value="desc">ล่าสุด</option>
                 <option value="asc">เก่าสุด</option>

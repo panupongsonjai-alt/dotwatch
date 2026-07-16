@@ -1,0 +1,16 @@
+Set-Location "D:\IoT Project\dotwatch"
+
+git status
+
+git add -- `
+  "apps/dashboard/src/pages/History.jsx" `
+  "apps/dashboard/src/pages/Alarms.jsx" `
+  "services/backend/src/services/weatherVirtualDevice.service.js" `
+  "services/backend/scripts/test-weather-virtual-device.mjs" `
+  "services/backend/migrations/024_weather_api_virtual_devices.sql" `
+  "docs/WEATHER_HISTORY_ALARM_FIX_TH.md" `
+  "GIT_PUSH_COMMANDS_WEATHER_HISTORY_ALARM_FIX_TH.txt"
+
+git commit -m "fix(weather): persist one-minute snapshots and repair dashboard tables"
+
+git push origin main

@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS weather_virtual_devices (
   device_id BIGINT PRIMARY KEY REFERENCES devices(id) ON DELETE CASCADE,
   provider TEXT NOT NULL DEFAULT 'open_meteo',
   enabled BOOLEAN NOT NULL DEFAULT TRUE,
-  poll_interval_seconds INTEGER NOT NULL DEFAULT 600,
+  poll_interval_seconds INTEGER NOT NULL DEFAULT 60,
   last_attempt_at TIMESTAMPTZ,
   last_success_at TIMESTAMPTZ,
   last_observed_at TIMESTAMPTZ,
@@ -22,6 +22,15 @@ CREATE TABLE IF NOT EXISTS weather_virtual_devices (
   CONSTRAINT weather_virtual_devices_failures_check
     CHECK (consecutive_failures >= 0)
 );
+
+ALTER TABLE weather_virtual_devices
+  ALTER COLUMN poll_interval_seconds SET DEFAULT 60;
+
+UPDATE weather_virtual_devices
+SET
+  poll_interval_seconds = 60,
+  updated_at = NOW()
+WHERE poll_interval_seconds IS DISTINCT FROM 60;
 
 CREATE INDEX IF NOT EXISTS idx_weather_virtual_devices_due
 ON weather_virtual_devices (enabled, last_attempt_at, poll_interval_seconds);

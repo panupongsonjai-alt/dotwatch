@@ -55,6 +55,22 @@ export function parseOpenMeteoCurrentResponse(payload) {
   }
 }
 
+export function buildWeatherSnapshotData(
+  reading,
+  recordedAt = new Date().toISOString()
+) {
+  return {
+    metrics: {
+      temperature: reading.temperature,
+      humidity: reading.humidity,
+    },
+    temperature: reading.temperature,
+    humidity: reading.humidity,
+    timestamp: normalizeUtcTimestamp(recordedAt),
+    firmwareVersion: 'weather-api/open-meteo',
+  }
+}
+
 async function fetchJsonWithTimeout(url, timeoutMs) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
@@ -232,60 +248,6 @@ async function markFailure(deviceId, error) {
   return Number(result.rows[0]?.consecutive_failures || 0)
 }
 
-async function touchProviderHeartbeat({ app, device, observedAt }) {
-  const previousStatus = device.status || 'offline'
-  const result = await pool.query(
-    `
-    UPDATE devices d
-    SET
-      last_seen_at = NOW(),
-      last_ingest_at = NOW(),
-      status = 'online',
-      firmware_version = 'weather-api/open-meteo'
-    FROM users u
-    WHERE d.id = $1
-      AND u.id = d.user_id
-    RETURNING
-      d.id,
-      d.user_id,
-      u.firebase_uid,
-      d.device_code,
-      d.name,
-      d.status,
-      d.last_seen_at,
-      d.last_ingest_at,
-      d.last_recorded_at,
-      d.record_interval_seconds,
-      d.firmware_version,
-      d.last_ip_address,
-      d.last_local_ip_address,
-      d.last_wifi_ssid
-    `,
-    [device.id]
-  )
-
-  const updatedDevice = result.rows[0]
-  const broadcastToUser = app?.get?.('broadcastToUser')
-
-  if (updatedDevice && typeof broadcastToUser === 'function') {
-    const payload = {
-      type: 'device:update',
-      data: {
-        ...updatedDevice,
-        latest_time: observedAt,
-      },
-    }
-
-    broadcastToUser(updatedDevice.firebase_uid, payload)
-    broadcastToUser(updatedDevice.user_id, payload)
-  }
-
-  return {
-    previousStatus,
-    updatedDevice,
-  }
-}
-
 async function pollSingleWeatherDevice({ app, device }) {
   if (device.latitude == null || device.longitude == null) {
     return {
@@ -312,43 +274,17 @@ async function pollSingleWeatherDevice({ app, device }) {
     await markAttempt(device.id)
 
     const reading = await fetchOpenMeteoCurrentWeather(device)
-    const previousObservedAt = device.last_observed_at
-      ? new Date(device.last_observed_at).getTime()
-      : Number.NEGATIVE_INFINITY
-    const currentObservedAt = new Date(reading.observedAt).getTime()
 
-    if (
-      Number.isFinite(previousObservedAt) &&
-      currentObservedAt <= previousObservedAt
-    ) {
-      await touchProviderHeartbeat({
-        app,
-        device,
-        observedAt: reading.observedAt,
-      })
-      await markSuccess(device.id, reading.observedAt)
-
-      return {
-        deviceId: device.id,
-        deviceCode: device.device_code,
-        status: 'skipped_duplicate',
-        observedAt: reading.observedAt,
-      }
-    }
-
+    // Open-Meteo may keep the same provider observation for several minutes.
+    // Store one backend-timestamped snapshot per poll so History receives a
+    // continuous one-minute series while preserving the provider timestamp in
+    // weather_virtual_devices.last_observed_at.
+    const snapshot = buildWeatherSnapshotData(reading)
+    const recordedAt = snapshot.timestamp
     const ingestResult = await ingestVirtualReading({
       app,
       device,
-      data: {
-        metrics: {
-          temperature: reading.temperature,
-          humidity: reading.humidity,
-        },
-        temperature: reading.temperature,
-        humidity: reading.humidity,
-        timestamp: reading.observedAt,
-        firmwareVersion: 'weather-api/open-meteo',
-      },
+      data: snapshot,
     })
 
     await markSuccess(device.id, reading.observedAt)
@@ -357,6 +293,7 @@ async function pollSingleWeatherDevice({ app, device }) {
       deviceId: device.id,
       deviceCode: device.device_code,
       status: 'ingested',
+      recordedAt,
       observedAt: reading.observedAt,
       temperature: reading.temperature,
       humidity: reading.humidity,

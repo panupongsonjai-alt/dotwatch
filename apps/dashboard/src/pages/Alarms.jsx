@@ -9,7 +9,6 @@ import {
   getAlarms,
   getDevices,
   getDeviceMetrics,
-  updateAlarmRule,
 } from '../services/api'
 import {
   AlertTriangle,
@@ -432,34 +431,6 @@ function Alarms() {
     showSuccessToast('ส่งออก Alarm Events เป็น CSV สำเร็จ')
   }
 
-  async function handleToggleRule(rule) {
-    try {
-      setSaving(true)
-
-      await updateAlarmRule(rule.id, {
-        device_id: rule.device_id,
-        metric: rule.metric,
-        operator: rule.operator,
-        threshold: rule.threshold,
-        severity: rule.severity,
-        is_active: !rule.is_active,
-        notification_message: rule.notification_message || '',
-      })
-
-      await loadData()
-      showSuccessToast(
-        rule.is_active
-          ? 'Paused Alarm Rule สำเร็จ'
-          : 'เปิดใช้งาน Alarm Rule สำเร็จ'
-      )
-    } catch (error) {
-      console.error('Toggle rule error:', error)
-      showErrorToast(error.message || 'แก้ไขสถานะ Rule ไม่สำเร็จ')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   async function handleDeleteRule(ruleId) {
     const rule = rules.find((item) => String(item.id) === String(ruleId))
     const ok = await confirmDeleteAction({
@@ -673,8 +644,6 @@ function Alarms() {
                     <th>Value</th>
                     <th>Condition</th>
                     <th>Severity</th>
-                    <th>Status</th>
-                    <th>Created</th>
                   </tr>
                 </thead>
 
@@ -707,23 +676,6 @@ function Alarms() {
                             {getSeverityLabel(rule.severity)}
                           </span>
                         </td>
-
-                        <td>
-                          <button
-                            type="button"
-                            className={
-                              rule.is_active
-                                ? 'status online'
-                                : 'status offline'
-                            }
-                            disabled={saving}
-                            onClick={() => handleToggleRule(rule)}
-                          >
-                            {rule.is_active ? 'Active' : 'Disabled'}
-                          </button>
-                        </td>
-
-                        <td>{formatDate(rule.created_at)}</td>
                       </tr>
                     )
                   })}
