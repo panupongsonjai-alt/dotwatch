@@ -1,0 +1,27 @@
+Set-Location "D:\IoT Project\dotwatch"
+
+git fetch origin --prune
+git switch main
+git pull --ff-only origin main
+git switch -c ops/production-release-audit
+
+npm run scan:secrets
+
+git add -- `
+  scripts/production-release-audit.ps1 `
+  docs/PRODUCTION_RELEASE_AUDIT_TH.md `
+  GIT_PUSH_COMMANDS_PRODUCTION_RELEASE_AUDIT_TH.txt
+
+powershell `
+  -NoProfile `
+  -ExecutionPolicy Bypass `
+  -File ".\scripts\scan-sensitive-files.ps1" `
+  -StagedOnly
+
+git diff --cached --check
+git diff --cached --stat
+git diff --cached --name-only
+
+git commit -m "ops: add production release audit runner"
+
+git push --set-upstream origin ops/production-release-audit
