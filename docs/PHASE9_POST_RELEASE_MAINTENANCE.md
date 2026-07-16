@@ -55,8 +55,9 @@ npm run ops:health -- `
   -BackendUrl "https://dotwatch-backend.onrender.com" `
   -AllowReady503
 
-# 2. Rotate exposed database secret in Render, then update DATABASE_URL in this session
-$env:DATABASE_URL='postgresql://NEW_USER_OR_PASSWORD@RENDER_HOST/dotwatch?sslmode=require'
+# 2. Rotate exposed database secret in Render.
+# Paste the new External Database URL only when prompted.
+$env:DATABASE_URL = Read-Host "Paste rotated Render External Database URL"
 
 npm run db:env:check -- -RequireDockerOrPgDump -RequireRender
 npm run db:backup
@@ -80,7 +81,7 @@ If local database is exposed on host port 5432:
 
 ```powershell
 $env:LOCAL_DATABASE_URL='postgres://dotwatch:LOCAL_PASSWORD@localhost:5432/dotwatch'
-$env:DATABASE_URL='postgresql://USER:PASSWORD@RENDER_HOST/dotwatch?sslmode=require'
+$env:DATABASE_URL = Read-Host "Paste Render External Database URL"
 
 npm run db:parity -- `
   -LocalDatabaseUrl $env:LOCAL_DATABASE_URL `
@@ -101,7 +102,9 @@ npm run db:parity -- `
 Reports are written to:
 
 ```text
-_reports\phase9-parity_reports\phase9-security```
+_reports\phase9-parity
+_reports\phase9-security
+```
 
 ## Success criteria
 

@@ -21,8 +21,10 @@ Avoid:
 
 ## Check Render only
 
+Enter the Render External Database URL only when PowerShell prompts for it. This keeps the credential out of the repository and normal command examples.
+
 ```powershell
-$env:DATABASE_URL='postgresql://USER:PASSWORD@RENDER_HOST/dotwatch?sslmode=require'
+$env:DATABASE_URL = Read-Host "Paste Render External Database URL"
 npm run db:env:check -- -RequireDockerOrPgDump -RequireRender
 npm run report:tenant
 npm run ops:health -- -BackendUrl "https://dotwatch-backend.onrender.com" -AllowReady503
