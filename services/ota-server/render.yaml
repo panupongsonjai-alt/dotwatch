@@ -17,6 +17,14 @@ services:
         value: "false"
       - key: OTA_REQUIRE_DEVICE_SCOPE
         value: "true"
+      - key: OTA_REQUIRE_SIGNED_RELEASES
+        value: "true"
+      - key: OTA_RELEASE_KEY_ID
+        sync: false
+      - key: OTA_RELEASE_PUBLIC_KEY_FILE
+        value: "keys/release-signing.public.pem"
+      - key: OTA_RELEASE_PUBLIC_KEY_SHA256
+        sync: false
       - key: OTA_DEVICE_REGISTRY_JSON
         sync: false
       - key: OTA_DEVICE_SECRETS_JSON

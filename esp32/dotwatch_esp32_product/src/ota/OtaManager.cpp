@@ -2,15 +2,19 @@
 
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
+#include <Preferences.h>
 #include <Update.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 #include <esp_err.h>
 #include <esp_ota_ops.h>
+#include <mbedtls/base64.h>
+#include <mbedtls/pk.h>
 #include <mbedtls/sha256.h>
 
 #include "FirmwareVersion.h"
+#include "OtaSigningKey.h"
 #include "ProductConfig.h"
 #include "backend/BackendClient.h"
 #include "utils/StringUtils.h"
@@ -28,6 +32,7 @@ void OtaManager::begin(DeviceConfig &config,
                             : "ปิด Internet OTA อยู่";
   status_->otaBusy = false;
   resetAvailableRelease();
+  loadAntiRollbackFloor();
   scheduleNextCheck(ProductConfig::OTA_FIRST_CHECK_DELAY_MS);
   confirmRunningFirmware();
 }
@@ -177,8 +182,14 @@ bool OtaManager::checkForUpdate() {
   next.channel = String((const char *)(release["channel"] | "stable"));
   next.version = String((const char *)(release["version"] | ""));
   next.firmwareUrl = String((const char *)(release["firmwareUrl"] | ""));
+  next.file = String((const char *)(release["file"] | ""));
   next.sha256 = String((const char *)(release["sha256"] | ""));
   next.releaseNotes = String((const char *)(release["releaseNotes"] | ""));
+  next.releaseNotesSha256 = String((const char *)(release["releaseNotesSha256"] | ""));
+  next.publishedAt = String((const char *)(release["publishedAt"] | ""));
+  next.signatureAlgorithm = String((const char *)(release["signatureAlgorithm"] | ""));
+  next.signatureKeyId = String((const char *)(release["signatureKeyId"] | ""));
+  next.signature = String((const char *)(release["signature"] | ""));
   next.buildNumber = release["buildNumber"] | 0UL;
   next.size = release["size"] | 0UL;
   next.mandatory = release["mandatory"] | false;
@@ -188,18 +199,34 @@ bool OtaManager::checkForUpdate() {
   next.channel.trim();
   next.version.trim();
   next.firmwareUrl.trim();
+  next.file.trim();
   next.sha256.trim();
   next.sha256.toLowerCase();
+  next.releaseNotesSha256.trim();
+  next.releaseNotesSha256.toLowerCase();
+  next.publishedAt.trim();
+  next.signatureAlgorithm.trim();
+  next.signatureKeyId.trim();
+  next.signature.trim();
 
   if (next.modelKey != DOTWATCH_MODEL_KEY ||
-      next.buildNumber <= DOTWATCH_FIRMWARE_BUILD ||
+      next.buildNumber <= minimumAcceptedBuild() ||
       next.version.length() == 0 ||
       next.firmwareUrl.length() == 0 ||
+      next.file.length() == 0 ||
       next.sha256.length() != 64 ||
+      next.releaseNotesSha256.length() != 64 ||
       next.size == 0 ||
       next.size > ProductConfig::OTA_MAX_FIRMWARE_BYTES) {
-    markError("OTA manifest ไม่ผ่านการตรวจสอบ model/build/url/SHA-256/size");
+    markError("OTA manifest ไม่ผ่าน model/build/anti-rollback/url/SHA-256/size");
     reportEvent("manifest_rejected", status_->otaMessage, httpStatus);
+    return false;
+  }
+
+  String signatureReason;
+  if (!verifyReleaseSignature(next, signatureReason)) {
+    markError(String("OTA signature ไม่ผ่าน: ") + signatureReason);
+    reportEvent("signature_rejected", status_->otaMessage, httpStatus);
     return false;
   }
 
@@ -384,7 +411,7 @@ bool OtaManager::installAvailableUpdate() {
   }
 
   status_->otaState = "VERIFYING";
-  status_->otaMessage = "SHA-256 ถูกต้อง กำลังสลับ OTA partition";
+  status_->otaMessage = "ลายเซ็นและ SHA-256 ถูกต้อง กำลังสลับ OTA partition";
   status_->otaProgressPercent = 100;
 
   if (!Update.end(false) || !Update.isFinished()) {
@@ -424,6 +451,8 @@ bool OtaManager::reportEvent(const String &event,
   document["firmwareBuild"] = DOTWATCH_FIRMWARE_BUILD;
   document["availableVersion"] = release_.version;
   document["availableBuild"] = release_.buildNumber;
+  document["signatureKeyId"] = release_.signatureKeyId;
+  document["antiRollbackFloor"] = antiRollbackFloor_;
   document["httpStatus"] = httpStatus;
   document["freeHeap"] = ESP.getFreeHeap();
   document["uptimeMs"] = millis();
@@ -484,6 +513,182 @@ String OtaManager::sha256Hex(const uint8_t digest[32]) const {
   return output;
 }
 
+String OtaManager::sha256TextHex(const String &value) const {
+  uint8_t digest[32] = {0};
+  const int result = mbedtls_sha256_ret(
+      reinterpret_cast<const unsigned char *>(value.c_str()),
+      value.length(),
+      digest,
+      0);
+  return result == 0 ? sha256Hex(digest) : "";
+}
+
+bool OtaManager::isSafeSignedField(const String &value, size_t maxLength) const {
+  if (value.length() == 0 || value.length() > maxLength) return false;
+  for (size_t index = 0; index < value.length(); index++) {
+    const char character = value.charAt(index);
+    if (character == '\r' || character == '\n' || character == '\0') return false;
+  }
+  return true;
+}
+
+String OtaManager::canonicalReleasePayload(const OtaRelease &release) const {
+  String payload;
+  payload.reserve(640);
+  payload += "dotwatch-ota-release-v1\n";
+  payload += "algorithm=";
+  payload += release.signatureAlgorithm;
+  payload += "\nkeyId=";
+  payload += release.signatureKeyId;
+  payload += "\nmodelKey=";
+  payload += release.modelKey;
+  payload += "\nchannel=";
+  payload += release.channel;
+  payload += "\nversion=";
+  payload += release.version;
+  payload += "\nbuildNumber=";
+  payload += String(release.buildNumber);
+  payload += "\nfile=";
+  payload += release.file;
+  payload += "\nsize=";
+  payload += String(release.size);
+  payload += "\nsha256=";
+  payload += release.sha256;
+  payload += "\nmandatory=";
+  payload += release.mandatory ? "1" : "0";
+  payload += "\nautoInstall=";
+  payload += release.autoInstall ? "1" : "0";
+  payload += "\npublishedAt=";
+  payload += release.publishedAt;
+  payload += "\nreleaseNotesSha256=";
+  payload += release.releaseNotesSha256;
+  payload += "\n";
+  return payload;
+}
+
+bool OtaManager::verifyReleaseSignature(const OtaRelease &release,
+                                        String &reason) const {
+#if !DOTWATCH_OTA_SIGNING_KEY_CONFIGURED
+  reason = "ยังไม่ได้กำหนด OTA release public key";
+  return false;
+#else
+  if (release.signatureAlgorithm != "ecdsa-p256-sha256") {
+    reason = "signature algorithm ไม่รองรับ";
+    return false;
+  }
+  if (release.signatureKeyId != DOTWATCH_OTA_SIGNING_KEY_ID) {
+    reason = "signature key id ไม่ตรง";
+    return false;
+  }
+  if (!isSafeSignedField(release.modelKey, 96) ||
+      !isSafeSignedField(release.channel, 32) ||
+      !isSafeSignedField(release.version, 128) ||
+      !isSafeSignedField(release.file, 180) ||
+      !isSafeSignedField(release.publishedAt, 64) ||
+      !isSafeSignedField(release.signatureKeyId, 96) ||
+      !isSafeSignedField(release.signatureAlgorithm, 48)) {
+    reason = "signed metadata มีอักขระหรือความยาวไม่ถูกต้อง";
+    return false;
+  }
+  if (!release.file.endsWith(".bin")) {
+    reason = "signed firmware filename ไม่ถูกต้อง";
+    return false;
+  }
+
+  const String actualNotesSha256 = sha256TextHex(release.releaseNotes);
+  if (actualNotesSha256.length() != 64 ||
+      !actualNotesSha256.equalsIgnoreCase(release.releaseNotesSha256)) {
+    reason = "release notes hash ไม่ตรง";
+    return false;
+  }
+
+  const String payload = canonicalReleasePayload(release);
+  uint8_t payloadDigest[32] = {0};
+  if (mbedtls_sha256_ret(
+          reinterpret_cast<const unsigned char *>(payload.c_str()),
+          payload.length(),
+          payloadDigest,
+          0) != 0) {
+    reason = "คำนวณ signed payload SHA-256 ไม่สำเร็จ";
+    return false;
+  }
+
+  uint8_t signatureBytes[96] = {0};
+  size_t signatureLength = 0;
+  const int decodeResult = mbedtls_base64_decode(
+      signatureBytes,
+      sizeof(signatureBytes),
+      &signatureLength,
+      reinterpret_cast<const unsigned char *>(release.signature.c_str()),
+      release.signature.length());
+  if (decodeResult != 0 || signatureLength < 64 || signatureLength > 80) {
+    reason = "signature base64/length ไม่ถูกต้อง";
+    return false;
+  }
+
+  mbedtls_pk_context publicKey;
+  mbedtls_pk_init(&publicKey);
+  const int parseResult = mbedtls_pk_parse_public_key(
+      &publicKey,
+      reinterpret_cast<const unsigned char *>(DOTWATCH_OTA_SIGNING_PUBLIC_KEY_PEM),
+      strlen(DOTWATCH_OTA_SIGNING_PUBLIC_KEY_PEM) + 1);
+  if (parseResult != 0) {
+    mbedtls_pk_free(&publicKey);
+    reason = String("อ่าน OTA public key ไม่สำเร็จ: ") + parseResult;
+    return false;
+  }
+
+  const int verifyResult = mbedtls_pk_verify(
+      &publicKey,
+      MBEDTLS_MD_SHA256,
+      payloadDigest,
+      sizeof(payloadDigest),
+      signatureBytes,
+      signatureLength);
+  mbedtls_pk_free(&publicKey);
+
+  if (verifyResult != 0) {
+    reason = String("ECDSA verify failed: ") + verifyResult;
+    return false;
+  }
+
+  reason = "";
+  return true;
+#endif
+}
+
+void OtaManager::loadAntiRollbackFloor() {
+  Preferences preferences;
+  if (!preferences.begin(ProductConfig::NVS_NAMESPACE, true)) {
+    antiRollbackFloor_ = DOTWATCH_FIRMWARE_BUILD;
+    return;
+  }
+  antiRollbackFloor_ = preferences.getULong("otaFloor", 0);
+  preferences.end();
+  if (antiRollbackFloor_ < DOTWATCH_FIRMWARE_BUILD) {
+    antiRollbackFloor_ = DOTWATCH_FIRMWARE_BUILD;
+  }
+}
+
+void OtaManager::persistAntiRollbackFloor(uint32_t buildNumber) {
+  if (buildNumber <= antiRollbackFloor_) return;
+
+  Preferences preferences;
+  if (!preferences.begin(ProductConfig::NVS_NAMESPACE, false)) return;
+  const size_t written = preferences.putULong("otaFloor", buildNumber);
+  preferences.end();
+
+  if (written > 0) {
+    antiRollbackFloor_ = buildNumber;
+    Serial.print("OtaManager: anti-rollback floor=");
+    Serial.println(antiRollbackFloor_);
+  }
+}
+
+uint32_t OtaManager::minimumAcceptedBuild() const {
+  return max(static_cast<uint32_t>(DOTWATCH_FIRMWARE_BUILD), antiRollbackFloor_);
+}
+
 void OtaManager::resetAvailableRelease() {
   release_ = OtaRelease();
   if (status_ == nullptr) return;
@@ -522,9 +727,20 @@ void OtaManager::confirmRunningFirmware() {
 
   esp_ota_img_states_t state;
   const esp_err_t result = esp_ota_get_state_partition(running, &state);
-  if (result == ESP_OK && state == ESP_OTA_IMG_PENDING_VERIFY) {
+  if (result != ESP_OK) {
+    Serial.print("OtaManager: running image state unavailable=");
+    Serial.println(esp_err_to_name(result));
+    return;
+  }
+
+  if (state == ESP_OTA_IMG_PENDING_VERIFY) {
     const esp_err_t confirmResult = esp_ota_mark_app_valid_cancel_rollback();
     Serial.print("OtaManager: pending image confirmation result=");
     Serial.println(esp_err_to_name(confirmResult));
+    if (confirmResult != ESP_OK) return;
   }
+
+  // Persist only after the running image is confirmed healthy. This preserves
+  // the ability to retry a failed candidate while preventing later downgrade.
+  persistAntiRollbackFloor(DOTWATCH_FIRMWARE_BUILD);
 }

@@ -26,6 +26,7 @@ temp/
 !.env.example
 !.env.*.example
 *.pem
+!services/ota-server/keys/*.public.pem
 *.key
 *.p8
 *.p12
@@ -113,3 +114,8 @@ services/backend/.env.*
 apps/dashboard/.env.local
 
 apps/dashboard/.env.local
+
+# OTA release signing private keys
+*.private.pem
+*.private.key
+services/ota-server/keys/*.private.*

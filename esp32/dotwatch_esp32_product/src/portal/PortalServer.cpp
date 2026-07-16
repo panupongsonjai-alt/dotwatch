@@ -734,11 +734,11 @@ String PortalServer::effectiveAdminPin() const {
 }
 
 String PortalServer::generateSessionToken() const {
-  static constexpr char HEX[] = "0123456789abcdef";
+  static constexpr char HEX_DIGITS[] = "0123456789abcdef";
   String token;
   token.reserve(40);
   for (uint8_t index = 0; index < 40; index++) {
-    token += HEX[random(0, 16)];
+    token += HEX_DIGITS[random(0, 16)];
   }
   return token;
 }

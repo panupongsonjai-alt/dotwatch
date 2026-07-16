@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "keyId": "dotwatch-release-2026-01",
+  "algorithm": "ecdsa-p256-sha256",
+  "publicKeySha256": "5cff6bc430db8a045a38d467fcf1bbca0ced44d999760605c4fba358905b2a2a",
+  "publicKeyFile": "services/ota-server/keys/release-signing.public.pem",
+  "firmwareHeader": "esp32/dotwatch_esp32_product/include/OtaSigningKey.h",
+  "generatedAt": "2026-07-15T09:13:45.070Z"
+}

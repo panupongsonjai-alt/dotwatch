@@ -11,8 +11,14 @@ struct OtaRelease {
   String channel;
   String version;
   String firmwareUrl;
+  String file;
   String sha256;
   String releaseNotes;
+  String releaseNotesSha256;
+  String publishedAt;
+  String signatureAlgorithm;
+  String signatureKeyId;
+  String signature;
   uint32_t buildNumber = 0;
   uint32_t size = 0;
   bool mandatory = false;
@@ -43,6 +49,13 @@ class OtaManager {
                  const String &url);
   String baseUrl() const;
   String sha256Hex(const uint8_t digest[32]) const;
+  String sha256TextHex(const String &value) const;
+  String canonicalReleasePayload(const OtaRelease &release) const;
+  bool verifyReleaseSignature(const OtaRelease &release, String &reason) const;
+  bool isSafeSignedField(const String &value, size_t maxLength) const;
+  void loadAntiRollbackFloor();
+  void persistAntiRollbackFloor(uint32_t buildNumber);
+  uint32_t minimumAcceptedBuild() const;
   void resetAvailableRelease();
   void markError(const String &message);
   void scheduleNextCheck(unsigned long delayMs);
@@ -53,6 +66,7 @@ class OtaManager {
   BackendClient *backend_ = nullptr;
 
   OtaRelease release_;
+  uint32_t antiRollbackFloor_ = 0;
   bool checkRequested_ = false;
   bool installRequested_ = false;
 };

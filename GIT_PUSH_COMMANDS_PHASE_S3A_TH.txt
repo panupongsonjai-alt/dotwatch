@@ -1,0 +1,23 @@
+Set-Location "D:\IoT Project\dotwatch"
+
+git switch main
+git pull --ff-only origin main
+git switch -c security/phase-s3a-signed-ota
+
+npm run verify:phase-s1:security
+npm run test:phase-s2
+npm run test:phase-s3a
+npm --prefix services/ota-server run check
+
+git add .gitignore package.json GIT_PUSH_COMMANDS_PHASE_S3A_TH.txt docs scripts services/ota-server `
+  esp32/dotwatch_esp32_product/include/FirmwareVersion.h `
+  esp32/dotwatch_esp32_product/include/OtaSigningKey.h `
+  esp32/dotwatch_esp32_product/src/ota/OtaManager.cpp `
+  esp32/dotwatch_esp32_product/src/ota/OtaManager.h
+
+git diff --cached --check
+git status --short
+git diff --cached --stat
+
+git commit -m "security: add signed OTA and anti-rollback"
+git push -u origin security/phase-s3a-signed-ota

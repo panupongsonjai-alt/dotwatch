@@ -1,14 +1,16 @@
 {
   "name": "dotwatch-ota-server",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check lib/fixed-window-limiter.mjs && node --check scripts/publish-release.mjs",
-    "publish:esp32": "node scripts/publish-release.mjs"
+    "check": "node --check server.mjs && node --check lib/fixed-window-limiter.mjs && node --check lib/release-signing.mjs && node --check scripts/generate-signing-key.mjs && node --check scripts/publish-release.mjs && node --check scripts/sign-existing-manifest.mjs",
+    "publish:esp32": "node scripts/publish-release.mjs",
+    "key:generate": "node scripts/generate-signing-key.mjs",
+    "manifest:sign": "node scripts/sign-existing-manifest.mjs"
   }
 }

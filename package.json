@@ -84,7 +84,14 @@
     "verify:phase-s2:security": "node scripts/verify-phase-s2-security.mjs",
     "test:phase-s2:limiters": "node scripts/test-phase-s2-rate-limiters.mjs",
     "test:phase-s2:ota": "node scripts/test-phase-s2-ota-security.mjs",
-    "test:phase-s2": "npm run verify:phase-s2:security && npm run test:phase-s2:limiters && npm run test:phase-s2:ota"
+    "test:phase-s2": "npm run verify:phase-s2:security && npm run test:phase-s2:limiters && npm run test:phase-s2:ota",
+    "ota:key:generate": "npm --prefix services/ota-server run key:generate --",
+    "ota:manifest:sign": "npm --prefix services/ota-server run manifest:sign --",
+    "ota:publish:esp32": "npm --prefix services/ota-server run publish:esp32 --",
+    "verify:phase-s3a:security": "node scripts/verify-phase-s3a-security.mjs",
+    "test:phase-s3a:signing": "node scripts/test-phase-s3a-signing.mjs",
+    "test:phase-s3a:ota": "node scripts/test-phase-s3a-ota-server.mjs",
+    "test:phase-s3a": "npm run verify:phase-s3a:security && npm run test:phase-s3a:signing && npm run test:phase-s3a:ota"
   },
   "engines": {
     "node": ">=20"

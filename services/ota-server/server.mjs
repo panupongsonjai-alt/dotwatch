@@ -6,6 +6,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { FixedWindowLimiter } from "./lib/fixed-window-limiter.mjs";
+import {
+  assertP256PublicKey,
+  publicKeyFingerprint,
+  verifyReleaseSignature
+} from "./lib/release-signing.mjs";
 
 const serviceDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -54,10 +59,30 @@ function normalizeStringList(value) {
 
 loadEnvFile(path.join(serviceDir, ".env"));
 
-const releasesDir = path.join(serviceDir, "releases");
-const manifestPath = path.join(releasesDir, "manifest.json");
+function resolveServicePath(value, fallback) {
+  const configured = String(value || fallback).trim();
+  return path.isAbsolute(configured) ? configured : path.resolve(serviceDir, configured);
+}
+
 const nodeEnv = String(process.env.NODE_ENV || "development").trim().toLowerCase();
 const isProduction = nodeEnv === "production";
+const releasesDir = resolveServicePath(process.env.OTA_RELEASES_DIR, "releases");
+const manifestPath = resolveServicePath(
+  process.env.OTA_MANIFEST_PATH,
+  path.join("releases", "manifest.json")
+);
+const releasePublicKeyPath = resolveServicePath(
+  process.env.OTA_RELEASE_PUBLIC_KEY_FILE,
+  path.join("keys", "release-signing.public.pem")
+);
+const releaseKeyId = String(process.env.OTA_RELEASE_KEY_ID || "").trim();
+const expectedPublicKeyFingerprint = String(
+  process.env.OTA_RELEASE_PUBLIC_KEY_SHA256 || ""
+).trim().toLowerCase();
+const requireSignedReleases = parseBoolean(
+  process.env.OTA_REQUIRE_SIGNED_RELEASES,
+  isProduction
+);
 const port = parsePositiveInteger(process.env.PORT, 4100, { min: 1, max: 65535 });
 const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || "").trim().replace(/\/$/, "");
 const allowUnregistered = parseBoolean(process.env.OTA_ALLOW_UNREGISTERED_DEVICES, false);
@@ -143,6 +168,27 @@ function parseDeviceRegistry() {
 
 const deviceRegistry = parseDeviceRegistry();
 
+function loadReleasePublicKey() {
+  if (!existsSync(releasePublicKeyPath)) {
+    if (requireSignedReleases) {
+      throw new Error(`OTA release public key not found: ${releasePublicKeyPath}`);
+    }
+    return { pem: "", fingerprint: "" };
+  }
+
+  const pem = readFileSync(releasePublicKeyPath, "utf8");
+  assertP256PublicKey(pem);
+  const fingerprint = publicKeyFingerprint(pem);
+  if (expectedPublicKeyFingerprint && fingerprint !== expectedPublicKeyFingerprint) {
+    throw new Error(
+      `OTA release public key fingerprint mismatch: expected ${expectedPublicKeyFingerprint}, got ${fingerprint}`
+    );
+  }
+  return { pem, fingerprint };
+}
+
+const releasePublicKey = loadReleasePublicKey();
+
 function validateConfiguration() {
   if (isProduction && allowUnregistered) {
     throw new Error("OTA_ALLOW_UNREGISTERED_DEVICES must be false in production");
@@ -154,6 +200,14 @@ function validateConfiguration() {
 
   if (isProduction && deviceRegistry.size === 0) {
     throw new Error("At least one OTA device registration is required in production");
+  }
+
+  if (isProduction && !requireSignedReleases) {
+    throw new Error("OTA_REQUIRE_SIGNED_RELEASES must be true in production");
+  }
+
+  if (requireSignedReleases && !releaseKeyId) {
+    throw new Error("OTA_RELEASE_KEY_ID is required when signed releases are enforced");
   }
 
   if (requireDeviceScope) {
@@ -282,7 +336,34 @@ async function loadManifest() {
   if (!manifest || !Array.isArray(manifest.releases)) {
     throw new Error("releases/manifest.json is invalid");
   }
-  return manifest;
+
+  const validation = manifest.releases.map((release) => {
+    if (!releasePublicKey.pem) {
+      return { release, trusted: !requireSignedReleases, reason: "release public key is not configured" };
+    }
+    const result = verifyReleaseSignature(release, releasePublicKey.pem, {
+      expectedKeyId: releaseKeyId
+    });
+    return { release, trusted: result.ok, reason: result.reason || "" };
+  });
+
+  const invalid = validation.filter((item) => !item.trusted);
+  if (requireSignedReleases && invalid.length > 0) {
+    const sample = invalid.slice(0, 3).map(
+      (item) => `${item.release?.file || "unknown"}: ${item.reason}`
+    );
+    throw new Error(`OTA manifest contains untrusted release(s): ${sample.join("; ")}`);
+  }
+
+  return {
+    ...manifest,
+    releases: validation.filter((item) => item.trusted).map((item) => item.release),
+    signatureSummary: {
+      total: validation.length,
+      trusted: validation.filter((item) => item.trusted).length,
+      rejected: invalid.length
+    }
+  };
 }
 
 function requestBaseUrl(req) {
@@ -393,7 +474,12 @@ async function handleCheck(req, res, url, auth) {
       mandatory: release.mandatory === true,
       autoInstall: release.autoInstall === true,
       releaseNotes: release.releaseNotes || "",
+      releaseNotesSha256: release.releaseNotesSha256,
       publishedAt: release.publishedAt,
+      file: release.file,
+      signatureAlgorithm: release.signatureAlgorithm,
+      signatureKeyId: release.signatureKeyId,
+      signature: release.signature,
       firmwareUrl
     }
   });
@@ -477,6 +563,11 @@ const server = http.createServer(async (req, res) => {
         ok: true,
         service: "dotwatch-ota-server",
         releaseCount: manifest.releases.length,
+        signedReleaseCount: manifest.signatureSummary.trusted,
+        rejectedReleaseCount: manifest.signatureSummary.rejected,
+        releaseKeyId,
+        releasePublicKeySha256: releasePublicKey.fingerprint,
+        requireSignedReleases,
         registeredDeviceCount: deviceRegistry.size,
         allowUnregistered,
         requireDeviceScope
@@ -545,6 +636,9 @@ server.headersTimeout = 15_000;
 server.keepAliveTimeout = 5_000;
 server.maxRequestsPerSocket = 100;
 
+// Fail closed before accepting traffic when the manifest or release key is invalid.
+await loadManifest();
+
 server.listen(port, "0.0.0.0", () => {
   console.log("============================================================");
   console.log("dotWatch OTA Server");
@@ -555,5 +649,8 @@ server.listen(port, "0.0.0.0", () => {
   console.log(`Registered devices  : ${deviceRegistry.size}`);
   console.log(`Allow unregistered  : ${allowUnregistered}`);
   console.log(`Require device scope: ${requireDeviceScope}`);
+  console.log(`Require signatures  : ${requireSignedReleases}`);
+  console.log(`Release key ID      : ${releaseKeyId || "not configured"}`);
+  console.log(`Release key SHA-256 : ${releasePublicKey.fingerprint || "not configured"}`);
   console.log("============================================================");
 });

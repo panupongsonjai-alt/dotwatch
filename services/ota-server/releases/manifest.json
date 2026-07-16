@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "releases": [
     {
       "modelKey": "esp32_dht3",
@@ -12,7 +12,11 @@
       "mandatory": false,
       "autoInstall": false,
       "releaseNotes": "ESP32 OTA release 1.2.0",
-      "publishedAt": "2026-07-12T11:54:07.842Z"
+      "publishedAt": "2026-07-12T11:54:07.842Z",
+      "signatureAlgorithm": "ecdsa-p256-sha256",
+      "signatureKeyId": "dotwatch-release-2026-01",
+      "releaseNotesSha256": "dd0096d72de395213fa0c932500690cb701e1c55e2049a8f3748ad7ab42df351",
+      "signature": "MEQCIBjAju0ChqDEKk8oo9uNO03tlik3arZXZu4s+D3QO7mlAiAnp6Cf5++R3OQliU5O7eyO745d8apUcPX4JOKOig9BKA=="
     }
   ]
 }

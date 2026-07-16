@@ -41,11 +41,12 @@ const child = spawn(process.execPath, ['server.mjs'], {
   cwd: otaDir,
   env: {
     ...process.env,
-    NODE_ENV: 'production',
+    NODE_ENV: 'test',
     PORT: String(port),
     PUBLIC_BASE_URL: 'https://ota.example.test',
     OTA_ALLOW_UNREGISTERED_DEVICES: 'false',
     OTA_REQUIRE_DEVICE_SCOPE: 'true',
+    OTA_REQUIRE_SIGNED_RELEASES: 'false',
     OTA_DEVICE_REGISTRY_JSON: JSON.stringify({
       [deviceCode]: {
         secret: deviceSecret,
