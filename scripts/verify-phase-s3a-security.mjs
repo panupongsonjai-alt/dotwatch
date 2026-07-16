@@ -85,11 +85,12 @@ expect(
   'ESP32 anti-rollback persistence is incomplete'
 )
 
+const firmwareBuildMatch = firmwareVersion.match(/DOTWATCH_FIRMWARE_BUILD\s+(\d+)UL/)
 expect(
-  firmwareVersion.includes('esp32-product-1.3.0-signed-ota') &&
-    firmwareVersion.includes('1300UL'),
-  'Firmware version/build advances to the signed OTA trust-chain release',
-  'Firmware version/build was not advanced for Phase S3A'
+  firmwareVersion.includes('DOTWATCH_FIRMWARE_VERSION') &&
+    Number(firmwareBuildMatch?.[1] || 0) >= 1300,
+  'Firmware version/build preserves or advances beyond the signed OTA trust-chain release',
+  'Firmware version/build regressed below Phase S3A'
 )
 
 expect(

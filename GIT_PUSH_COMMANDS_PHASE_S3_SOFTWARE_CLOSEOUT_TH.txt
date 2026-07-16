@@ -1,0 +1,60 @@
+Set-Location "D:\IoT Project\dotwatch"
+
+$PhaseS3Files = @(
+  ".gitignore",
+  "GIT_PUSH_COMMANDS_PHASE_S3A_TH.txt",
+  "GIT_PUSH_COMMANDS_PHASE_S3B_TH.txt",
+  "docs/PHASE_S3A_SIGNED_OTA_ANTI_ROLLBACK_TH.md",
+  "docs/PHASE_S3A_VALIDATION_REPORT_TH.md",
+  "docs/PHASE_S3B_SECURE_BOOT_FLASH_ENCRYPTION_TH.md",
+  "docs/PHASE_S3B_VALIDATION_REPORT_TH.md",
+  "esp32/dotwatch_esp32_product/CMakeLists.txt",
+  "esp32/dotwatch_esp32_product/include/FirmwareVersion.h",
+  "esp32/dotwatch_esp32_product/include/OtaSigningKey.h",
+  "esp32/dotwatch_esp32_product/include/ProductConfig.h",
+  "esp32/dotwatch_esp32_product/partitions_secure_ota.csv",
+  "esp32/dotwatch_esp32_product/platformio.ini",
+  "esp32/dotwatch_esp32_product/sdkconfig.defaults",
+  "esp32/dotwatch_esp32_product/sdkconfig.secure.common",
+  "esp32/dotwatch_esp32_product/sdkconfig.secure.local.example",
+  "esp32/dotwatch_esp32_product/sdkconfig.secure.pilot",
+  "esp32/dotwatch_esp32_product/sdkconfig.secure.release",
+  "esp32/dotwatch_esp32_product/src/CMakeLists.txt",
+  "esp32/dotwatch_esp32_product/src/app/AppController.cpp",
+  "esp32/dotwatch_esp32_product/src/ota/OtaManager.cpp",
+  "esp32/dotwatch_esp32_product/src/ota/OtaManager.h",
+  "esp32/dotwatch_esp32_product/src/security/SecurityPosture.cpp",
+  "esp32/dotwatch_esp32_product/src/security/SecurityPosture.h",
+  "package.json",
+  "scripts/dotwatch-publish-esp32-ota.ps1",
+  "scripts/esp32-security-backup-flash.ps1",
+  "scripts/esp32-security-build.ps1",
+  "scripts/esp32-security-generate-keys.ps1",
+  "scripts/esp32-security-provision.ps1",
+  "scripts/esp32-security-readiness.ps1",
+  "scripts/esp32-security-verify-device.ps1",
+  "scripts/test-phase-s2-ota-security.mjs",
+  "scripts/test-phase-s3a-ota-server.mjs",
+  "scripts/test-phase-s3a-signing.mjs",
+  "scripts/test-phase-s3b-safety.mjs",
+  "scripts/verify-phase-s3a-security.mjs",
+  "scripts/verify-phase-s3b-security.mjs",
+  "services/ota-server/.env.example",
+  "services/ota-server/keys/README.md",
+  "services/ota-server/lib/release-signing.mjs",
+  "services/ota-server/package.json",
+  "services/ota-server/render.yaml",
+  "services/ota-server/scripts/generate-signing-key.mjs",
+  "services/ota-server/scripts/publish-release.mjs",
+  "services/ota-server/scripts/sign-existing-manifest.mjs",
+  "services/ota-server/server.mjs",
+  "docs/PHASE_S3B_SOFTWARE_CLOSEOUT_TH.md",
+  "GIT_PUSH_COMMANDS_PHASE_S3_SOFTWARE_CLOSEOUT_TH.txt"
+)
+
+git status --short
+git add -- $PhaseS3Files
+git status --short
+git diff --cached --stat
+git commit -m "security: complete phase s3 firmware trust software gates"
+git push origin main

@@ -91,7 +91,17 @@
     "verify:phase-s3a:security": "node scripts/verify-phase-s3a-security.mjs",
     "test:phase-s3a:signing": "node scripts/test-phase-s3a-signing.mjs",
     "test:phase-s3a:ota": "node scripts/test-phase-s3a-ota-server.mjs",
-    "test:phase-s3a": "npm run verify:phase-s3a:security && npm run test:phase-s3a:signing && npm run test:phase-s3a:ota"
+    "test:phase-s3a": "npm run verify:phase-s3a:security && npm run test:phase-s3a:signing && npm run test:phase-s3a:ota",
+    "verify:phase-s3b:security": "node scripts/verify-phase-s3b-security.mjs",
+    "test:phase-s3b:safety": "node scripts/test-phase-s3b-safety.mjs",
+    "test:phase-s3b": "npm run verify:phase-s3b:security && npm run test:phase-s3b:safety",
+    "esp32:security:readiness": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/esp32-security-readiness.ps1",
+    "esp32:security:keygen": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/esp32-security-generate-keys.ps1",
+    "esp32:security:backup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/esp32-security-backup-flash.ps1",
+    "esp32:security:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/esp32-security-build.ps1",
+    "esp32:security:provision": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/esp32-security-provision.ps1",
+    "esp32:security:verify-device": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/esp32-security-verify-device.ps1",
+    "test:phase-s3:software": "npm run test:phase-s3a && npm run test:phase-s3b"
   },
   "engines": {
     "node": ">=20"

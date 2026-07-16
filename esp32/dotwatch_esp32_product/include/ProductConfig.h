@@ -99,6 +99,6 @@ static constexpr unsigned long OTA_MAX_CHECK_INTERVAL_MS = 24UL * 60UL * 60UL * 
 static constexpr unsigned long OTA_HTTP_TIMEOUT_MS = 30000UL;
 static constexpr unsigned long OTA_STREAM_IDLE_TIMEOUT_MS = 30000UL;
 static constexpr size_t OTA_DOWNLOAD_BUFFER_SIZE = 4096;
-static constexpr uint32_t OTA_MAX_FIRMWARE_BYTES = 0x180000UL;
+static constexpr uint32_t OTA_MAX_FIRMWARE_BYTES = 0x170000UL;
 
 }  // namespace ProductConfig

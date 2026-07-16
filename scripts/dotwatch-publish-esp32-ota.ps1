@@ -52,7 +52,7 @@ if ($BuildNumber -le 0) {
 }
 
 $firmwareInfo = Get-Item -LiteralPath $FirmwarePath
-$maxFirmwareBytes = 0x180000
+$maxFirmwareBytes = 0x170000
 if ($firmwareInfo.Length -le 0 -or $firmwareInfo.Length -gt $maxFirmwareBytes) {
   throw "Firmware size $($firmwareInfo.Length) bytes exceeds OTA slot limit $maxFirmwareBytes bytes"
 }

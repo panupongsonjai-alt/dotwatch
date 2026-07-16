@@ -6,6 +6,7 @@
 #include "FirmwareVersion.h"
 #include "ProductConfig.h"
 #include "utils/StringUtils.h"
+#include "security/SecurityPosture.h"
 
 void AppController::begin() {
   Serial.begin(115200);
@@ -13,6 +14,11 @@ void AppController::begin() {
   randomSeed(esp_random());
 
   printBootBanner();
+  SecurityPosture::printBootStatus();
+  if (!SecurityPosture::meetsBuildPolicy()) {
+    Serial.println("FATAL: hardware security state does not satisfy this firmware build policy");
+    while (true) delay(1000);
+  }
   setState(AppState::BOOTING);
 
   statusLed_.begin();

@@ -18,6 +18,7 @@
 #include "ProductConfig.h"
 #include "backend/BackendClient.h"
 #include "utils/StringUtils.h"
+#include "security/SecurityPosture.h"
 
 void OtaManager::begin(DeviceConfig &config,
                        RuntimeStatus &status,
@@ -456,6 +457,9 @@ bool OtaManager::reportEvent(const String &event,
   document["httpStatus"] = httpStatus;
   document["freeHeap"] = ESP.getFreeHeap();
   document["uptimeMs"] = millis();
+  document["secureBootEnabled"] = SecurityPosture::secureBootEnabled();
+  document["flashEncryptionEnabled"] = SecurityPosture::flashEncryptionEnabled();
+  document["chipRevision"] = SecurityPosture::chipRevision();
 
   String body;
   serializeJson(document, body);
