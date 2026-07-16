@@ -185,8 +185,7 @@ body {
 .dw-stat-card,
 .admin-card,
 .workspace-help-card,
-.command-palette,
-.workspace-route-bar {
+.command-palette {
   border-radius: var(--dw-shell-card-radius);
   border-color: var(--border);
   box-shadow: var(--shadow);

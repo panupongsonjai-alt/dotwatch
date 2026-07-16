@@ -354,8 +354,7 @@ body {
 .dw-stat-card,
 .admin-card,
 .workspace-help-card,
-.command-palette,
-.workspace-route-bar {
+.command-palette {
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
@@ -460,12 +459,7 @@ textarea:focus,
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
 }
 
-.workspace-route-bar {
-  padding: 16px;
-  box-shadow: var(--shadow-soft, var(--shadow));
-}
 
-.workspace-route-icon,
 .command-palette-icon {
   background: var(--primary);
   box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);

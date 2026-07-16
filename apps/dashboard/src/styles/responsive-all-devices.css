@@ -39,7 +39,6 @@ svg {
 .main
   > :is(
     .api-status-banner,
-    .workspace-route-bar,
     .page,
     .app-page,
     .command-palette-backdrop,
@@ -253,20 +252,8 @@ textarea {
     padding-inline: 20px;
   }
 
-  .workspace-route-bar {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
 
-  .workspace-route-main {
-    flex: 1 1 480px;
-  }
 
-  .workspace-route-actions {
-    flex: 1 1 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
 
   .dw-page-stat-grid,
   .dashboard-style-stat-grid,
@@ -324,7 +311,7 @@ textarea {
    Tablet portrait / mobile shell
 -------------------------- */
 @media (max-width: 900px) {
-  .main > :is(.api-status-banner, .workspace-route-bar, .page, .app-page) {
+  .main > :is(.api-status-banner, .page, .app-page) {
     width: 100%;
   }
 

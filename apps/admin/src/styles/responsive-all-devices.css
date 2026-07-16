@@ -177,20 +177,8 @@ svg {
     padding-inline: 20px;
   }
 
-  .workspace-route-bar {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
 
-  .workspace-route-main {
-    flex: 1 1 480px;
-  }
 
-  .workspace-route-actions {
-    flex: 1 1 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
 
   .admin-stat-grid,
   .admin-stat-grid.compact {
@@ -422,9 +410,6 @@ svg {
     pointer-events: auto;
   }
 
-  .workspace-route-bar {
-    display: none !important;
-  }
 
   .admin-page-toolbar {
     justify-content: stretch;

@@ -1634,22 +1634,7 @@ svg {
   gap: 18px;
 }
 
-.workspace-route-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  background: var(--panel);
-  box-shadow: var(--shadow-soft);
-}
 
-.workspace-route-main,
-.workspace-route-actions,
-.workspace-breadcrumb,
-.workspace-route-copy,
 .workspace-help-header,
 .workspace-help-grid,
 .workspace-shortcut-list,
@@ -1657,13 +1642,7 @@ svg {
   min-width: 0;
 }
 
-.workspace-route-main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 
-.workspace-route-icon,
 .command-palette-icon {
   width: 38px;
   height: 38px;
@@ -1677,42 +1656,10 @@ svg {
   box-shadow: 0 12px 24px rgba(239, 68, 68, 0.2);
 }
 
-.workspace-route-copy p {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
 
-.workspace-breadcrumb {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 7px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-}
 
-.workspace-breadcrumb button {
-  padding: 0;
-  color: var(--primary);
-  border: 0;
-  background: transparent;
-  font-weight: 900;
-}
 
-.workspace-breadcrumb strong {
-  color: var(--text);
-}
 
-.workspace-route-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 10px;
-}
 
 .dw-page-header,
 .page-header {
@@ -2534,15 +2481,11 @@ svg {
     display: none;
   }
 
-  .workspace-route-bar,
   .page-header,
   .dw-page-header {
     display: grid;
   }
 
-  .workspace-route-actions {
-    justify-content: flex-start;
-  }
 }
 
 @media (max-width: 680px) {
@@ -2555,9 +2498,7 @@ svg {
   }
 
   .admin-signout-button span,
-  .admin-profile-pill span,
-  .workspace-command-button span,
-  .workspace-help-button span {
+  .admin-profile-pill span {
     display: none;
   }
 

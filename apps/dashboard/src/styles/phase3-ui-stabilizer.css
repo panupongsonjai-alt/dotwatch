@@ -200,7 +200,6 @@ textarea:focus-visible {
   pointer-events: none;
 }
 
-.workspace-route-bar,
 .command-palette,
 .workspace-help-panel {
   border-color: var(--border) !important;
@@ -290,17 +289,9 @@ textarea:focus-visible {
   .dw-page-header-actions,
   .app-page-actions,
   .device-v2-header-actions,
-  .unified-header-actions,
-  .workspace-route-actions {
+  .unified-header-actions {
     justify-content: flex-start !important;
   }
 
-  .workspace-route-bar {
-    align-items: stretch !important;
-  }
 
-  .workspace-command-button span,
-  .workspace-help-button span {
-    display: none;
-  }
 }

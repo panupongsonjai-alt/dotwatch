@@ -264,30 +264,9 @@
     pointer-events: auto;
   }
 
-  .workspace-route-bar:not(.has-back-action) {
-    display: none;
-  }
 
-  .workspace-route-bar.has-back-action {
-    margin: 0 0 16px;
-    padding: 12px;
-    border-radius: 16px;
-    display: grid;
-    gap: 10px;
-  }
 
-  .workspace-route-bar.has-back-action .workspace-route-icon,
-  .workspace-route-bar.has-back-action .workspace-route-copy p,
-  .workspace-route-bar.has-back-action .workspace-command-button,
-  .workspace-route-bar.has-back-action .workspace-help-button,
-  .workspace-route-bar.has-back-action .workspace-route-actions .ghost-button {
-    display: none;
-  }
 
-  .workspace-route-bar.has-back-action .workspace-route-actions,
-  .workspace-route-bar.has-back-action .secondary-button {
-    width: 100%;
-  }
 
   .page,
   .app-page,

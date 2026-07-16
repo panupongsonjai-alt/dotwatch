@@ -4,7 +4,6 @@ import AdminLayout from './components/layout/AdminLayout'
 import AuthGate from './components/auth/AuthGate'
 import AdminCommandPalette from './components/workspace/AdminCommandPalette'
 import AdminWorkspaceHelp from './components/workspace/AdminWorkspaceHelp'
-import AdminWorkspaceRouteBar from './components/workspace/AdminWorkspaceRouteBar'
 import {
   AppErrorBoundary,
   LoadingState,
@@ -420,11 +419,6 @@ function App() {
         theme={theme}
         setTheme={setTheme}
       >
-        <AdminWorkspaceRouteBar
-          page={activePage}
-          onNavigate={navigateAdminPage}
-          onOpenHelp={() => setWorkspaceHelpOpen(true)}
-        />
 
         {notice ? (
           <NoticeBanner

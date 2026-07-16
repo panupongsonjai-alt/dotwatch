@@ -2,9 +2,7 @@ import { lazy, Suspense, useMemo, useState, useEffect } from 'react'
 import {
   Activity,
   Bell,
-  Command,
   Gauge,
-  HelpCircle,
   HeartPulse,
   History as HistoryIcon,
   LayoutDashboard,
@@ -153,95 +151,6 @@ function clearWorkspaceRoute() {
 
 
 sanitizeStoredPreferences()
-function WorkspaceRouteBar({
-  page,
-  onNavigate,
-  onBackToDashboard,
-  onOpenHelp,
-}) {
-  const meta = PAGE_META[page] || PAGE_META.dashboard
-  const Icon = meta.icon
-
-  return (
-    <div
-      className={`workspace-route-bar ${
-        page === 'device-detail' ? 'has-back-action' : ''
-      }`}
-    >
-      <div className="workspace-route-main">
-        <span className="workspace-route-icon">
-          <Icon size={18} />
-        </span>
-
-        <div className="workspace-route-copy">
-          <div className="workspace-breadcrumb">
-            <button type="button" onClick={() => onNavigate('dashboard')}>
-              dotWatch
-            </button>
-            <span>/</span>
-            <span>{meta.section}</span>
-            <span>/</span>
-            <strong>{meta.title}</strong>
-          </div>
-
-          <p>{meta.description}</p>
-        </div>
-      </div>
-
-      <div className="workspace-route-actions">
-        <button
-          type="button"
-          className="ghost-button workspace-command-button"
-          onClick={() =>
-            window.dispatchEvent(new CustomEvent('dotwatchOpenCommandPalette'))
-          }
-          title="Open command palette"
-        >
-          <Command size={16} />
-          <span>Ctrl K</span>
-        </button>
-
-        <button
-          type="button"
-          className="ghost-button workspace-help-button"
-          onClick={onOpenHelp}
-          title="Open workspace guide"
-        >
-          <HelpCircle size={16} />
-          <span>Help</span>
-        </button>
-
-        {page === 'device-detail' ? (
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={onBackToDashboard}
-          >
-            Back to Dashboard
-          </button>
-        ) : (
-          <>
-            <button
-              type="button"
-              className="ghost-button"
-              onClick={() => onNavigate('history')}
-            >
-              History
-            </button>
-            <button
-              type="button"
-              className="ghost-button"
-              onClick={() => onNavigate('system-health')}
-            >
-              System Health
-            </button>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
 function CommandPalette({ open, page, onClose, onNavigate }) {
   const [query, setQuery] = useState('')
 
@@ -742,13 +651,6 @@ function App() {
         />
 
         <ApiStatusBanner />
-
-        <WorkspaceRouteBar
-          page={page}
-          onNavigate={handleSetPage}
-          onBackToDashboard={backToDashboard}
-          onOpenHelp={() => setWorkspaceHelpOpen(true)}
-        />
 
         <AppErrorBoundary
           key={page}
