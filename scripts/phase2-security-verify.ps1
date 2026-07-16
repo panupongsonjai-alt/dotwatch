@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot '..')
 
@@ -92,13 +92,123 @@ if ($backendDocker -notmatch 'npm ci --omit=dev') {
   throw 'Production backend Dockerfile should install production dependencies with npm ci --omit=dev'
 }
 
-$prodEnv = Get-Content -LiteralPath (Join-Path $Root 'services\backend\.env.production.example') -Raw
-if ($prodEnv -match 'localhost|127\.0\.0\.1|0\.0\.0\.0') {
-  throw '.env.production.example must not include local origins/hosts'
+# Parse only active dotenv assignments. Comments may document local-development
+# examples, but they do not become production settings and must not cause a
+# false-positive release failure.
+$prodEnvPath = Join-Path $Root 'services\backend\.env.production.example'
+$prodEnvAssignments = @{}
+
+foreach ($line in Get-Content -LiteralPath $prodEnvPath) {
+  $trimmed = ([string]$line).Trim()
+
+  if (
+    [string]::IsNullOrWhiteSpace($trimmed) -or
+    $trimmed.StartsWith('#')
+  ) {
+    continue
+  }
+
+  if ($trimmed -notmatch '^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
+    throw ".env.production.example contains an invalid active line: $trimmed"
+  }
+
+  $name = $matches[1]
+  $value = $matches[2].Trim()
+
+  if (
+    $value.Length -ge 2 -and
+    (
+      ($value.StartsWith('"') -and $value.EndsWith('"')) -or
+      ($value.StartsWith("'") -and $value.EndsWith("'"))
+    )
+  ) {
+    $value = $value.Substring(1, $value.Length - 2)
+  }
+
+  if ($prodEnvAssignments.ContainsKey($name)) {
+    throw ".env.production.example contains duplicate active assignment: $name"
+  }
+
+  $prodEnvAssignments[$name] = $value
 }
-if ($prodEnv -match 'DEV_AUTH_BYPASS=true') {
-  throw '.env.production.example must not enable DEV_AUTH_BYPASS'
+
+foreach ($requiredName in @(
+  'NODE_ENV',
+  'ALLOW_LOCAL_CORS_IN_PRODUCTION',
+  'CORS_ORIGIN',
+  'DEV_AUTH_BYPASS'
+)) {
+  if (-not $prodEnvAssignments.ContainsKey($requiredName)) {
+    throw ".env.production.example is missing active assignment: $requiredName"
+  }
 }
+
+if ($prodEnvAssignments['NODE_ENV'].Trim().ToLowerInvariant() -ne 'production') {
+  throw '.env.production.example must set NODE_ENV=production'
+}
+
+$allowLocalCors = $prodEnvAssignments[
+  'ALLOW_LOCAL_CORS_IN_PRODUCTION'
+].Trim().ToLowerInvariant()
+
+if ($allowLocalCors -ne 'false') {
+  throw '.env.production.example must set ALLOW_LOCAL_CORS_IN_PRODUCTION=false'
+}
+
+$activeCorsOrigin = $prodEnvAssignments['CORS_ORIGIN'].Trim()
+
+if ([string]::IsNullOrWhiteSpace($activeCorsOrigin)) {
+  throw '.env.production.example must define at least one production CORS origin'
+}
+
+$activeOrigins = @(
+  $activeCorsOrigin -split ',' |
+    ForEach-Object { $_.Trim() } |
+    Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+)
+
+if ($activeOrigins.Count -eq 0) {
+  throw '.env.production.example must define at least one production CORS origin'
+}
+
+foreach ($origin in $activeOrigins) {
+  $originUri = $null
+
+  if (
+    -not [System.Uri]::TryCreate(
+      $origin,
+      [System.UriKind]::Absolute,
+      [ref]$originUri
+    )
+  ) {
+    throw ".env.production.example contains invalid active CORS origin: $origin"
+  }
+
+  if (
+    $originUri.Host -in @(
+      'localhost',
+      '127.0.0.1',
+      '0.0.0.0',
+      '::1'
+    )
+  ) {
+    throw ".env.production.example active CORS_ORIGIN must not include a local host: $origin"
+  }
+
+  if ($originUri.Scheme -ne 'https') {
+    throw ".env.production.example active CORS_ORIGIN must use HTTPS: $origin"
+  }
+}
+
+$devAuthBypass = $prodEnvAssignments[
+  'DEV_AUTH_BYPASS'
+].Trim().ToLowerInvariant()
+
+if ($devAuthBypass -ne 'false') {
+  throw '.env.production.example must set DEV_AUTH_BYPASS=false'
+}
+
+Write-Host 'Production environment example: OK' -ForegroundColor Green
 
 Write-Host 'Running backend syntax checks...' -ForegroundColor Cyan
 Push-Location (Join-Path $Root 'services\backend')

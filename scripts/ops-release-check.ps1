@@ -1,4 +1,4 @@
-param(
+﻿param(
   [switch]$SkipBuild,
   [switch]$SkipDatabase,
   [switch]$SkipDevice,
@@ -9,6 +9,27 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $reportDir = Join-Path $repoRoot '_reports\ops'
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+
+function Convert-StepOutput {
+  param(
+    [AllowNull()]
+    [object[]]$InputObjects
+  )
+
+  return @(
+    $InputObjects |
+      ForEach-Object {
+        if ($null -ne $_) {
+          if ($_ -is [System.Management.Automation.ErrorRecord]) {
+            [string]$_.Exception.Message
+          }
+          else {
+            [string]$_
+          }
+        }
+      }
+  )
+}
 
 function Invoke-Step {
   param(
@@ -21,15 +42,63 @@ function Invoke-Step {
   Write-Host $Command -ForegroundColor DarkGray
 
   $started = Get-Date
-  $output = & powershell -NoProfile -ExecutionPolicy Bypass -Command $Command 2>&1
-  $exitCode = $LASTEXITCODE
+  $output = @()
+  $exitCode = 1
+  $previousErrorActionPreference = $ErrorActionPreference
+
+  try {
+    # Build tools may write non-fatal diagnostics to stderr. Windows PowerShell
+    # represents redirected native stderr as ErrorRecord objects. Keep those
+    # diagnostics in the report, but decide pass/fail only from the child
+    # process exit code.
+    $ErrorActionPreference = 'Continue'
+
+    $wrappedCommand = @"
+& {
+  $Command
+  if (`$null -eq `$LASTEXITCODE) {
+    exit 0
+  }
+
+  exit [int]`$LASTEXITCODE
+}
+"@
+
+    $output = @(
+      & powershell.exe `
+        -NoProfile `
+        -ExecutionPolicy Bypass `
+        -Command $wrappedCommand `
+        2>&1
+    )
+
+    $exitCode = [int]$LASTEXITCODE
+  }
+  catch {
+    $output += $_
+    $exitCode = 1
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+
+  $textOutput = Convert-StepOutput -InputObjects $output
   $durationMs = [math]::Round(((Get-Date) - $started).TotalMilliseconds)
 
-  if ($output) { $output | ForEach-Object { Write-Host $_ } }
+  if ($textOutput) {
+    $textOutput | ForEach-Object { Write-Host $_ }
+  }
 
   $ok = ($exitCode -eq 0)
   $color = if ($ok) { 'Green' } elseif ($Required) { 'Red' } else { 'Yellow' }
-  Write-Host ("Step {0}: exitCode={1} duration={2}ms" -f ($(if ($ok) { 'OK' } else { 'FAILED' }), $exitCode, $durationMs)) -ForegroundColor $color
+
+  Write-Host (
+    "Step {0}: exitCode={1} duration={2}ms" -f (
+      $(if ($ok) { 'OK' } else { 'FAILED' }),
+      $exitCode,
+      $durationMs
+    )
+  ) -ForegroundColor $color
 
   [pscustomobject]@{
     name = $Name
@@ -38,7 +107,7 @@ function Invoke-Step {
     ok = $ok
     exitCode = $exitCode
     durationMs = $durationMs
-    output = @($output | ForEach-Object { [string]$_ })
+    output = $textOutput
   }
 }
 

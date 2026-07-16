@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$BackendUrl = 'https://dotwatch-backend.onrender.com',
   [string]$DashboardUrl = '',
   [string]$AdminUrl = '',
@@ -23,6 +23,27 @@ function Write-Section([string]$Message) {
   Write-Host "============================================================" -ForegroundColor DarkCyan
 }
 
+function Convert-ReleaseOutput {
+  param(
+    [AllowNull()]
+    [object[]]$InputObjects
+  )
+
+  return @(
+    $InputObjects |
+      ForEach-Object {
+        if ($null -ne $_) {
+          if ($_ -is [System.Management.Automation.ErrorRecord]) {
+            [string]$_.Exception.Message
+          }
+          else {
+            [string]$_
+          }
+        }
+      }
+  )
+}
+
 function Invoke-ReleaseStep {
   param(
     [string]$Name,
@@ -34,14 +55,61 @@ function Invoke-ReleaseStep {
   Write-Host $Command -ForegroundColor DarkGray
 
   $started = Get-Date
-  $output = & powershell -NoProfile -ExecutionPolicy Bypass -Command $Command 2>&1
-  $exitCode = if ($null -ne $LASTEXITCODE) { [int]$LASTEXITCODE } else { 0 }
+  $output = @()
+  $exitCode = 1
+  $previousErrorActionPreference = $ErrorActionPreference
+
+  try {
+    # Preserve stderr diagnostics without converting a successful native
+    # process into a terminating PowerShell error.
+    $ErrorActionPreference = 'Continue'
+
+    $wrappedCommand = @"
+& {
+  $Command
+  if (`$null -eq `$LASTEXITCODE) {
+    exit 0
+  }
+
+  exit [int]`$LASTEXITCODE
+}
+"@
+
+    $output = @(
+      & powershell.exe `
+        -NoProfile `
+        -ExecutionPolicy Bypass `
+        -Command $wrappedCommand `
+        2>&1
+    )
+
+    $exitCode = [int]$LASTEXITCODE
+  }
+  catch {
+    $output += $_
+    $exitCode = 1
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+
+  $textOutput = Convert-ReleaseOutput -InputObjects $output
   $durationMs = [math]::Round(((Get-Date) - $started).TotalMilliseconds)
-  if ($output) { $output | ForEach-Object { Write-Host $_ } }
+
+  if ($textOutput) {
+    $textOutput | ForEach-Object { Write-Host $_ }
+  }
 
   $ok = $exitCode -eq 0
   $color = if ($ok) { 'Green' } elseif ($Required) { 'Red' } else { 'Yellow' }
-  Write-Host ("Step {0}: exitCode={1} duration={2}ms" -f ($(if ($ok) { 'OK' } else { 'FAILED' }), $exitCode, $durationMs)) -ForegroundColor $color
+
+  Write-Host (
+    "Step {0}: exitCode={1} duration={2}ms" -f (
+      $(if ($ok) { 'OK' } else { 'FAILED' }),
+      $exitCode,
+      $durationMs
+    )
+  ) -ForegroundColor $color
 
   return [pscustomobject]@{
     name = $Name
@@ -50,7 +118,7 @@ function Invoke-ReleaseStep {
     ok = $ok
     exitCode = $exitCode
     durationMs = $durationMs
-    output = @($output | ForEach-Object { [string]$_ })
+    output = $textOutput
   }
 }
 
