@@ -25,31 +25,21 @@ class TftDisplay {
       lv_color_t *colorMap);
 
   void createDashboard();
-  void createHeader();
+  void createStatusHeader();
   void createMetricCard(
       int16_t x,
       bool temperatureCard,
       lv_obj_t *&valueLabel,
-      lv_obj_t *&unitLabel,
-      lv_obj_t *&statusPill,
-      lv_obj_t *&statusDot,
-      lv_obj_t *&statusLabel);
+      lv_obj_t *&unitLabel);
   void createThermometerIcon(lv_obj_t *parent, int16_t x, int16_t y);
   void createHumidityIcon(lv_obj_t *parent, int16_t x, int16_t y);
-  void createWiFiGroup(lv_obj_t *parent, int16_t x, int16_t y);
-  void createPowerGroup(lv_obj_t *parent, int16_t x, int16_t y);
-  void createConnectionBar();
+  void createWiFiIcon(lv_obj_t *parent, int16_t centerX, int16_t topY);
+  void createBatteryIcon(lv_obj_t *parent, int16_t centerX, int16_t topY);
+  void createOnlineStatus(lv_obj_t *parent, int16_t centerX, int16_t topY);
 
   void updateDashboard(const RuntimeStatus &status, bool force);
   void updateWiFiStatus(bool connected, int rssi);
-  void updatePowerStatus(bool powerConnected);
-  void updateMetricStatus(
-      bool temperatureCard,
-      float value,
-      bool available,
-      lv_obj_t *statusPill,
-      lv_obj_t *statusDot,
-      lv_obj_t *statusLabel);
+  void updateBatteryStatus(bool powerConnected);
   void updateConnectionStatus(
       AppState state,
       bool wifiConnected,
@@ -57,8 +47,7 @@ class TftDisplay {
   bool readPowerConnected() const;
 
   void styleBaseObject(lv_obj_t *object);
-  void styleCard(lv_obj_t *card, lv_color_t bgColor);
-  void stylePill(lv_obj_t *pill, lv_color_t background, lv_color_t border);
+  void styleCard(lv_obj_t *card, lv_color_t background);
   void styleLabel(
       lv_obj_t *label,
       const lv_font_t *font,
@@ -71,7 +60,6 @@ class TftDisplay {
       int16_t borderWidth = 1);
   void styleBar(lv_obj_t *object, lv_color_t background, int16_t radius = 1);
 
-  const char *stateText(AppState state) const;
   bool valueChanged(float current, float previous) const;
 
   Adafruit_ILI9341 tft_;
@@ -82,31 +70,21 @@ class TftDisplay {
 
   lv_obj_t *screen_ = nullptr;
 
-  lv_obj_t *wifiBars_[4] = {nullptr, nullptr, nullptr, nullptr};
-  lv_obj_t *wifiDetailLabel_ = nullptr;
+  lv_obj_t *wifiArcs_[3] = {nullptr, nullptr, nullptr};
+  lv_obj_t *wifiDot_ = nullptr;
 
-  lv_obj_t *powerBody_ = nullptr;
-  lv_obj_t *powerCap_ = nullptr;
-  lv_obj_t *powerFill_ = nullptr;
-  lv_obj_t *powerBolt_ = nullptr;
-  lv_obj_t *powerDetailLabel_ = nullptr;
+  lv_obj_t *batteryBody_ = nullptr;
+  lv_obj_t *batteryCap_ = nullptr;
+  lv_obj_t *batteryFill_ = nullptr;
+
+  lv_obj_t *onlineGlow_ = nullptr;
+  lv_obj_t *onlineDot_ = nullptr;
+  lv_obj_t *onlineLabel_ = nullptr;
 
   lv_obj_t *temperatureValueLabel_ = nullptr;
   lv_obj_t *temperatureUnitLabel_ = nullptr;
-  lv_obj_t *temperatureStatusPill_ = nullptr;
-  lv_obj_t *temperatureStatusDot_ = nullptr;
-  lv_obj_t *temperatureStatusLabel_ = nullptr;
-
   lv_obj_t *humidityValueLabel_ = nullptr;
   lv_obj_t *humidityUnitLabel_ = nullptr;
-  lv_obj_t *humidityStatusPill_ = nullptr;
-  lv_obj_t *humidityStatusDot_ = nullptr;
-  lv_obj_t *humidityStatusLabel_ = nullptr;
-
-  lv_obj_t *connectionDetailLabel_ = nullptr;
-  lv_obj_t *connectionPill_ = nullptr;
-  lv_obj_t *connectionDot_ = nullptr;
-  lv_obj_t *connectionPillLabel_ = nullptr;
 
   bool ready_ = false;
   bool firstDraw_ = true;

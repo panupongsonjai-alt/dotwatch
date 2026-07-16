@@ -1,0 +1,14 @@
+cd "D:\IoT Project\dotwatch"
+
+git status
+
+git add -- \
+  esp32/dotwatch_esp32_product/src/display/TftDisplay.h \
+  esp32/dotwatch_esp32_product/src/display/TftDisplay.cpp \
+  esp32/dotwatch_esp32_product/include/FirmwareVersion.h \
+  README_ESP32_MINIMAL_TFT_TH.md \
+  GIT_PUSH_COMMANDS_ESP32_MINIMAL_TFT_TH.txt
+
+git commit -m "update ESP32 minimal TFT dashboard"
+
+git push origin main
