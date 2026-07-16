@@ -53,7 +53,7 @@ const channel = String(args.channel || 'stable').trim()
 const mandatory = booleanArg(args.mandatory)
 const autoInstall = booleanArg(args.auto)
 const releaseNotes = String(args.notes || '').trim()
-const maxFirmwareBytes = 0x180000
+const maxFirmwareBytes = 0x170000
 const privateKeyPath = path.resolve(
   String(args['private-key'] || process.env.OTA_SIGNING_PRIVATE_KEY_FILE || '').trim()
 )

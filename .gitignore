@@ -119,3 +119,13 @@ apps/dashboard/.env.local
 *.private.pem
 *.private.key
 services/ota-server/keys/*.private.*
+
+# ESP32 hardware security local state and private key material
+esp32/dotwatch_esp32_product/sdkconfig.secure.local
+esp32/dotwatch_esp32_product/sdkconfig.secure.*.generated
+esp32/dotwatch_esp32_product/sdkconfig.esp32_product_secure_*
+esp32/dotwatch_esp32_product/security/local/
+**/*.flash-encryption-key.bin
+**/*.secure-boot-private.pem
+_reports/esp32-security/
+_backups/esp32-flash/

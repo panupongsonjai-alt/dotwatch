@@ -546,7 +546,10 @@ async function handleReport(req, res, auth, ip) {
     availableBuild: safeInteger(payload.availableBuild),
     httpStatus: safeInteger(payload.httpStatus, -1, 999),
     freeHeap: safeInteger(payload.freeHeap),
-    uptimeMs: safeInteger(payload.uptimeMs)
+    uptimeMs: safeInteger(payload.uptimeMs),
+    secureBootEnabled: payload.secureBootEnabled === true,
+    flashEncryptionEnabled: payload.flashEncryptionEnabled === true,
+    chipRevision: safeInteger(payload.chipRevision, 0, 100)
   };
 
   console.log("OTA_REPORT", JSON.stringify(event));

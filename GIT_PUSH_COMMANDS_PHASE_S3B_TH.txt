@@ -1,0 +1,33 @@
+Phase S3 cumulative Git workflow (S3A + S3B)
+
+Set-Location "D:\IoT Project\dotwatch"
+
+git switch main
+git pull --ff-only origin main
+git switch -c security/phase-s3-hardware-trust
+
+npm run verify:phase-s1:security
+npm run test:phase-s2
+npm run test:phase-s3a
+npm run test:phase-s3b
+npm --prefix services/ota-server run check
+
+git add .gitignore package.json GIT_PUSH_COMMANDS_PHASE_S3A_TH.txt GIT_PUSH_COMMANDS_PHASE_S3B_TH.txt docs scripts services/ota-server esp32/dotwatch_esp32_product
+
+git diff --cached --check
+git status --short
+git diff --cached --stat
+
+git diff --cached --name-only | Select-String -Pattern "private|secure-boot-v2\.pem$|flash-encryption-key|sdkconfig\.secure\.local$"
+
+# The previous command must not show private key or local sdkconfig files.
+
+git commit -m "security: add signed OTA and ESP32 hardware trust"
+git push -u origin security/phase-s3-hardware-trust
+
+Pull Request:
+Base    : main
+Compare : security/phase-s3-hardware-trust
+Title   : security: add signed OTA and ESP32 hardware trust
+
+Do not delete the branch until the PR is merged and origin/main is verified.
