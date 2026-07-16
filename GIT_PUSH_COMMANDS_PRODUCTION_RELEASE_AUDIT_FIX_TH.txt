@@ -1,0 +1,38 @@
+dotWatch Production Release Audit Fix — Git Commands
+
+Set-Location "D:\IoT Project\dotwatch"
+
+git branch --show-current
+git status --short
+
+npm run check:admin
+npm run verify:phase3
+npm run verify:phase11g:admin-dashboard-parity
+npm run scan:secrets
+
+git add -- `
+  scripts/production-release-audit.ps1 `
+  scripts/phase3-verify.ps1 `
+  scripts/phase11g-admin-dashboard-parity-verify.mjs `
+  docs/PRODUCTION_RELEASE_AUDIT_FIX_TH.md `
+  GIT_PUSH_COMMANDS_PRODUCTION_RELEASE_AUDIT_FIX_TH.txt
+
+powershell `
+  -NoProfile `
+  -ExecutionPolicy Bypass `
+  -File ".\scripts\scan-sensitive-files.ps1" `
+  -StagedOnly
+
+git diff --cached --check
+git diff --cached --stat
+git diff --cached --name-only
+
+git commit `
+  -m "fix(ops): eliminate production audit false positives"
+
+git push
+
+powershell `
+  -NoProfile `
+  -ExecutionPolicy Bypass `
+  -File ".\scripts\production-release-audit.ps1"
