@@ -62,7 +62,13 @@ static constexpr int TFT_DC_PIN = 27;
 static constexpr int TFT_RST_PIN = 26;
 static constexpr uint8_t TFT_ROTATION = 1;
 static constexpr bool TFT_INVERT_COLORS = false;
-static constexpr uint32_t TFT_SPI_FREQUENCY_HZ = 40000000UL;
+// 10 MHz is intentionally conservative for 2.4-inch ILI9341 modules connected
+// with jumper wires. 40 MHz can leave some clone boards showing only the white
+// backlight because the controller never receives a valid initialization frame.
+static constexpr uint32_t TFT_SPI_FREQUENCY_HZ = 10000000UL;
+static constexpr unsigned long TFT_RESET_LOW_MS = 30UL;
+static constexpr unsigned long TFT_RESET_RECOVERY_MS = 180UL;
+static constexpr unsigned long TFT_BOOT_TEST_MS = 120UL;
 static constexpr unsigned long TFT_REFRESH_INTERVAL_MS = 200UL;
 
 // A DHT22 should not be sampled faster than roughly every two seconds.

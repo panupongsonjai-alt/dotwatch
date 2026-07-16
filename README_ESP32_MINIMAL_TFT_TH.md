@@ -16,8 +16,8 @@
 - `esp32/dotwatch_esp32_product/src/display/TftDisplay.cpp`
 - `esp32/dotwatch_esp32_product/include/FirmwareVersion.h`
 
-Firmware version: `esp32-product-1.4.1-minimal-tft`  
-Firmware build: `1401`
+Firmware version: `esp32-product-1.4.2-tft-white-screen-fix`  
+Firmware build: `1402`
 
 ## Build และ Upload ผ่าน VS Code + PlatformIO
 
@@ -67,3 +67,14 @@ DHT11 ใช้ GPIO 4 ตามค่าปัจจุบันของโป
 ## หมายเหตุ Battery
 
 ค่าปัจจุบันของ `POWER_SENSE_PIN` เป็น `-1` ดังนั้นไอคอน Battery จะแสดงสถานะพร้อมใช้งานตลอดเวลา หากต้องการอ่านสถานะแบตเตอรี่จากวงจรจริง ให้กำหนดขา digital power sense ใน `ProductConfig.h` หรือเพิ่มวงจรวัดแรงดันผ่าน ADC ก่อนแสดงเปอร์เซ็นต์แบตเตอรี่
+
+
+## White-screen initialization fix 1.4.2
+
+- ลดความเร็ว SPI จาก 40 MHz เป็น 10 MHz เพื่อรองรับจอ ILI9341 clone และการต่อด้วยสาย jumper
+- กำหนดสถานะ CS/DC/RST ให้แน่นอนก่อนเริ่ม SPI
+- ทำ Hardware Reset ที่ขา GPIO 26 ก่อนเรียกไดรเวอร์
+- แสดงสีแดงสั้น ๆ แล้วเปลี่ยนเป็นสีดำเพื่อทดสอบเส้นทางฮาร์ดแวร์ก่อนเริ่ม LVGL
+- บังคับให้ LVGL วาดเฟรมแรกทันที ก่อนขั้นตอนเชื่อมต่อ Wi-Fi ที่อาจใช้เวลาหลายวินาที
+
+หลัง Upload จอควรกะพริบสีแดงประมาณ 0.12 วินาที แล้วเข้าสู่หน้า Dashboard สีดำ หากยังเห็นสีขาวตลอดและไม่มีสีแดงกะพริบ ให้ตรวจสาย `CS`, `DC`, `RST`, `SCK`, `MOSI`, ไฟ `3V3` และ `GND` ตามตารางด้านบน

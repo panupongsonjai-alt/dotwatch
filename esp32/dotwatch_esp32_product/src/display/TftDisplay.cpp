@@ -59,15 +59,47 @@ void TftDisplay::begin() {
     pinMode(ProductConfig::POWER_SENSE_PIN, INPUT);
   }
 
+  // Put every control line in a known idle state before starting SPI. A TFT
+  // module can remain in reset or command mode after an ESP32 warm restart,
+  // which looks exactly like a permanently white screen.
+  pinMode(ProductConfig::TFT_CS_PIN, OUTPUT);
+  pinMode(ProductConfig::TFT_DC_PIN, OUTPUT);
+  pinMode(ProductConfig::TFT_RST_PIN, OUTPUT);
+  digitalWrite(ProductConfig::TFT_CS_PIN, HIGH);
+  digitalWrite(ProductConfig::TFT_DC_PIN, HIGH);
+  digitalWrite(ProductConfig::TFT_RST_PIN, HIGH);
+  delay(10);
+  digitalWrite(ProductConfig::TFT_RST_PIN, LOW);
+  delay(ProductConfig::TFT_RESET_LOW_MS);
+  digitalWrite(ProductConfig::TFT_RST_PIN, HIGH);
+  delay(ProductConfig::TFT_RESET_RECOVERY_MS);
+
   SPI.begin(
       ProductConfig::TFT_SCK_PIN,
       ProductConfig::TFT_MISO_PIN,
       ProductConfig::TFT_MOSI_PIN,
       ProductConfig::TFT_CS_PIN);
 
+  Serial.printf(
+      "TftDisplay: init ILI9341 SCK=%d MOSI=%d MISO=%d CS=%d DC=%d RST=%d SPI=%lu Hz\n",
+      ProductConfig::TFT_SCK_PIN,
+      ProductConfig::TFT_MOSI_PIN,
+      ProductConfig::TFT_MISO_PIN,
+      ProductConfig::TFT_CS_PIN,
+      ProductConfig::TFT_DC_PIN,
+      ProductConfig::TFT_RST_PIN,
+      static_cast<unsigned long>(ProductConfig::TFT_SPI_FREQUENCY_HZ));
+
   tft_.begin(ProductConfig::TFT_SPI_FREQUENCY_HZ);
+  delay(20);
   tft_.setRotation(ProductConfig::TFT_ROTATION);
   tft_.invertDisplay(ProductConfig::TFT_INVERT_COLORS);
+
+  // Very short hardware-path self-test. A red flash followed by black confirms
+  // that CS/DC/RST/SCK/MOSI and the ILI9341 controller are responding before
+  // LVGL takes ownership of the display.
+  tft_.fillScreen(ILI9341_RED);
+  delay(ProductConfig::TFT_BOOT_TEST_MS);
   tft_.fillScreen(ILI9341_BLACK);
 
   lv_init();
@@ -87,6 +119,16 @@ void TftDisplay::begin() {
 
   createDashboard();
 
+  // Force the first LVGL frame immediately. AppController performs Wi-Fi and
+  // provisioning work after this call and some of that work can block for
+  // several seconds; rendering here prevents a blank screen during startup.
+  lv_obj_invalidate(screen_);
+  for (uint8_t attempt = 0; attempt < 3; ++attempt) {
+    lv_tick_inc(5);
+    lv_timer_handler();
+    delay(5);
+  }
+
   const unsigned long now = millis();
   lastLvglTickAt_ = now;
   lastHandlerAt_ = now;
@@ -96,7 +138,7 @@ void TftDisplay::begin() {
   ready_ = true;
   firstDraw_ = true;
 
-  Serial.println("TftDisplay: minimal status dashboard initialized");
+  Serial.println("TftDisplay: minimal status dashboard initialized; boot self-test complete");
 }
 
 void TftDisplay::tick(const RuntimeStatus &status) {
