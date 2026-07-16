@@ -10,11 +10,15 @@ import {
 } from 'react-native';
 
 import { getDevice } from '@/api/devices';
+import { getMetricHistory } from '@/api/history';
+import { HistoryChart } from '@/components/HistoryChart';
 import { MetricCard } from '@/components/MetricCard';
+import { RangeSelector } from '@/components/RangeSelector';
 import { Screen } from '@/components/Screen';
 import { useAuth } from '@/providers/AuthProvider';
 import { connectRealtime } from '@/services/realtime';
 import { theme } from '@/theme';
+import type { HistoryRange } from '@/types/history';
 import {
   formatDateTime,
   getDeviceName,
@@ -28,10 +32,33 @@ export default function DeviceDetailScreen() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [realtimeConnected, setRealtimeConnected] = useState(false);
+  const [historyRange, setHistoryRange] = useState<HistoryRange>('24h');
 
   const deviceQuery = useQuery({
     queryKey: ['device', id],
     queryFn: () => getDevice(id || ''),
+    enabled: Boolean(id)
+  });
+
+  const temperatureHistory = useQuery({
+    queryKey: ['history', id, 'temperature', historyRange],
+    queryFn: () =>
+      getMetricHistory({
+        deviceId: id || '',
+        metricKey: 'temperature',
+        range: historyRange
+      }),
+    enabled: Boolean(id)
+  });
+
+  const humidityHistory = useQuery({
+    queryKey: ['history', id, 'humidity', historyRange],
+    queryFn: () =>
+      getMetricHistory({
+        deviceId: id || '',
+        metricKey: 'humidity',
+        range: historyRange
+      }),
     enabled: Boolean(id)
   });
 
@@ -43,7 +70,7 @@ export default function DeviceDetailScreen() {
       (message) => {
         const data =
           message.data && typeof message.data === 'object'
-            ? message.data as Record<string, unknown>
+            ? (message.data as Record<string, unknown>)
             : null;
         const changedId = data?.id ?? data?.device_id ?? data?.deviceId;
 
@@ -57,10 +84,27 @@ export default function DeviceDetailScreen() {
             });
           }
         }
+
+        if (message.type === 'alarm' || message.type === 'alarm:triggered') {
+          void queryClient.invalidateQueries({ queryKey: ['alarms'] });
+        }
       },
       setRealtimeConnected
     );
   }, [id, queryClient, user]);
+
+  const refreshAll = async () => {
+    await Promise.all([
+      deviceQuery.refetch(),
+      temperatureHistory.refetch(),
+      humidityHistory.refetch()
+    ]);
+  };
+
+  const refreshing =
+    deviceQuery.isRefetching ||
+    temperatureHistory.isRefetching ||
+    humidityHistory.isRefetching;
 
   if (deviceQuery.isLoading) {
     return (
@@ -97,8 +141,8 @@ export default function DeviceDetailScreen() {
       scroll
       refreshControl={
         <RefreshControl
-          refreshing={deviceQuery.isRefetching}
-          onRefresh={deviceQuery.refetch}
+          refreshing={refreshing}
+          onRefresh={refreshAll}
           tintColor={theme.colors.primary}
         />
       }
@@ -106,8 +150,11 @@ export default function DeviceDetailScreen() {
       <View style={styles.headerRow}>
         <View style={styles.headerText}>
           <Text style={styles.title}>{getDeviceName(device)}</Text>
-          <Text style={styles.code}>{device.device_code || `ID ${device.id}`}</Text>
+          <Text style={styles.code}>
+            {device.device_code || `ID ${device.id}`}
+          </Text>
         </View>
+
         <View style={styles.statusWrap}>
           <View
             style={[
@@ -140,6 +187,40 @@ export default function DeviceDetailScreen() {
         <MetricCard label="Humidity" value={humidity} unit="%" />
       </View>
 
+      <View style={styles.historyHeader}>
+        <Text style={styles.sectionTitle}>History Trend</Text>
+        <Text style={styles.sectionSubtitle}>
+          ข้อมูลย้อนหลังสูงสุด 300 จุดต่อ metric
+        </Text>
+      </View>
+
+      <RangeSelector value={historyRange} onChange={setHistoryRange} />
+
+      <View style={styles.chartList}>
+        <HistoryChart
+          title="Temperature"
+          unit="°C"
+          points={temperatureHistory.data || []}
+        />
+        <HistoryChart
+          title="Humidity"
+          unit="%"
+          points={humidityHistory.data || []}
+        />
+      </View>
+
+      {temperatureHistory.isError ? (
+        <Text style={styles.error}>
+          Temperature history: {temperatureHistory.error.message}
+        </Text>
+      ) : null}
+
+      {humidityHistory.isError ? (
+        <Text style={styles.error}>
+          Humidity history: {humidityHistory.error.message}
+        </Text>
+      ) : null}
+
       <View style={styles.infoCard}>
         <InfoRow
           label="Last seen"
@@ -149,8 +230,14 @@ export default function DeviceDetailScreen() {
               device.latest_time
           )}
         />
-        <InfoRow label="Model" value={device.model_name || device.model_key || '-'} />
-        <InfoRow label="Firmware" value={device.firmware_version || '-'} />
+        <InfoRow
+          label="Model"
+          value={device.model_name || device.model_key || '-'}
+        />
+        <InfoRow
+          label="Firmware"
+          value={device.firmware_version || '-'}
+        />
       </View>
     </Screen>
   );
@@ -223,6 +310,24 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     marginTop: theme.spacing.md
   },
+  historyHeader: {
+    marginTop: theme.spacing.xl,
+    marginBottom: theme.spacing.md
+  },
+  sectionTitle: {
+    color: theme.colors.text,
+    fontSize: 19,
+    fontWeight: '800'
+  },
+  sectionSubtitle: {
+    marginTop: 4,
+    color: theme.colors.textMuted,
+    fontSize: 12
+  },
+  chartList: {
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md
+  },
   infoCard: {
     marginTop: theme.spacing.lg,
     padding: theme.spacing.md,
@@ -246,6 +351,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text
   },
   error: {
+    marginTop: theme.spacing.sm,
     color: theme.colors.danger
   }
 });

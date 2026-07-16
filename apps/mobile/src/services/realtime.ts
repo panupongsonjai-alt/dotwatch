@@ -1,4 +1,5 @@
 import type { User } from 'firebase/auth';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import { env } from '@/config/env';
 
@@ -11,16 +12,54 @@ export type RealtimeMessage = {
 export function connectRealtime(
   user: User,
   onMessage: (message: RealtimeMessage) => void,
-  onStateChange?: (connected: boolean) => void
+  onStateChange?: (connected: boolean) => void,
+  onForeground?: () => void
 ): () => void {
   let socket: WebSocket | null = null;
   let closedByClient = false;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let reconnectAttempt = 0;
+  let appState: AppStateStatus = AppState.currentState;
+
+  const clearReconnectTimer = () => {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+  };
+
+  const closeSocket = () => {
+    if (!socket) return;
+
+    socket.onclose = null;
+    socket.close();
+    socket = null;
+    onStateChange?.(false);
+  };
+
+  const scheduleReconnect = () => {
+    if (closedByClient || appState !== 'active') return;
+
+    clearReconnectTimer();
+
+    const delay = Math.min(1_000 * 2 ** reconnectAttempt, 30_000);
+    reconnectAttempt += 1;
+    reconnectTimer = setTimeout(() => {
+      void connect();
+    }, delay);
+  };
 
   const connect = async () => {
+    if (closedByClient || appState !== 'active') return;
+
+    clearReconnectTimer();
+    closeSocket();
+
     try {
       const token = await user.getIdToken();
+
+      if (closedByClient || appState !== 'active') return;
+
       socket = new WebSocket(env.wsUrl);
 
       socket.onopen = () => {
@@ -42,24 +81,42 @@ export function connectRealtime(
       };
 
       socket.onclose = () => {
+        socket = null;
         onStateChange?.(false);
-
-        if (closedByClient) return;
-
-        const delay = Math.min(1_000 * 2 ** reconnectAttempt, 30_000);
-        reconnectAttempt += 1;
-        reconnectTimer = setTimeout(connect, delay);
+        scheduleReconnect();
       };
     } catch {
       onStateChange?.(false);
+      scheduleReconnect();
     }
   };
+
+  const appStateSubscription = AppState.addEventListener(
+    'change',
+    (nextState) => {
+      const wasBackground = appState !== 'active';
+      appState = nextState;
+
+      if (nextState !== 'active') {
+        clearReconnectTimer();
+        closeSocket();
+        return;
+      }
+
+      if (wasBackground) {
+        onForeground?.();
+      }
+
+      void connect();
+    }
+  );
 
   void connect();
 
   return () => {
     closedByClient = true;
-    if (reconnectTimer) clearTimeout(reconnectTimer);
-    socket?.close();
+    clearReconnectTimer();
+    appStateSubscription.remove();
+    closeSocket();
   };
 }
