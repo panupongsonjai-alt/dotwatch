@@ -1,0 +1,12 @@
+Set-Location "D:\IoT Project\dotwatch"
+
+git status
+
+git add -- `
+  "services/backend/migrations/run.js" `
+  "docs/MIGRATION_DEVICE_MODEL_METRICS_DECIMAL_FIX_TH.md" `
+  "GIT_PUSH_COMMANDS_MIGRATION_DEVICE_MODEL_METRICS_DECIMAL_FIX_TH.txt"
+
+git commit -m "fix(backend): normalize model metric decimal precision before seed"
+
+git push origin main

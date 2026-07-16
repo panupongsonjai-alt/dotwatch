@@ -351,6 +351,28 @@ async function createCoreTables() {
     );
   `)
 
+  // Existing databases created before decimal precision support may already
+  // have device_model_metrics without decimal_places. CREATE TABLE IF NOT EXISTS
+  // does not add missing columns, so normalize the legacy table before seeding.
+  await run(`
+    ALTER TABLE device_model_metrics
+      ADD COLUMN IF NOT EXISTS decimal_places SMALLINT;
+  `)
+
+  await run(`
+    UPDATE device_model_metrics
+    SET decimal_places = 2
+    WHERE decimal_places IS NULL
+       OR decimal_places < 0
+       OR decimal_places > 6;
+  `)
+
+  await run(`
+    ALTER TABLE device_model_metrics
+      ALTER COLUMN decimal_places SET DEFAULT 2,
+      ALTER COLUMN decimal_places SET NOT NULL;
+  `)
+
   await run(`
     CREATE TABLE IF NOT EXISTS devices (
       id BIGSERIAL PRIMARY KEY,
@@ -1017,6 +1039,13 @@ async function seedDeviceModels() {
       metricCount: 2,
       description: 'ESP32 Wi-Fi model with DHT temperature and humidity',
     },
+    {
+      id: 6,
+      modelKey: 'weather_api_demo',
+      modelName: 'Weather API Demo',
+      metricCount: 2,
+      description: 'Backend virtual device using Open-Meteo temperature and humidity',
+    },
   ]
 
   for (const model of models) {
@@ -1090,6 +1119,26 @@ async function seedDeviceModels() {
         defaultIcon: 'Droplets',
       },
     }),
+    {
+      modelId: 6,
+      metricKey: 'temperature',
+      defaultName: 'Temperature',
+      defaultType: 'temperature',
+      defaultUnit: '°C',
+      defaultIcon: 'Thermometer',
+      sortOrder: 0,
+      decimalPlaces: 1,
+    },
+    {
+      modelId: 6,
+      metricKey: 'humidity',
+      defaultName: 'Humidity',
+      defaultType: 'humidity',
+      defaultUnit: '%RH',
+      defaultIcon: 'Droplets',
+      sortOrder: 1,
+      decimalPlaces: 1,
+    },
   ]
 
   for (const row of metricRows) {
@@ -1103,9 +1152,10 @@ async function seedDeviceModels() {
         default_unit,
         default_icon,
         sort_order,
+        decimal_places,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
       ON CONFLICT (model_id, metric_key)
       DO UPDATE SET
         default_name = EXCLUDED.default_name,
@@ -1113,6 +1163,7 @@ async function seedDeviceModels() {
         default_unit = EXCLUDED.default_unit,
         default_icon = EXCLUDED.default_icon,
         sort_order = EXCLUDED.sort_order,
+        decimal_places = EXCLUDED.decimal_places,
         updated_at = NOW()
       `,
       [
@@ -1123,6 +1174,7 @@ async function seedDeviceModels() {
         row.defaultUnit,
         row.defaultIcon,
         row.sortOrder,
+        row.decimalPlaces ?? 2,
       ]
     )
   }
@@ -1386,6 +1438,7 @@ async function main() {
     await createDemoTables()
     await createIndexes()
     await seedDeviceModels()
+    await runSqlFileIfExists('024_weather_api_virtual_devices.sql')
     await backfillDefaultOrganizations()
     await enableTimescaleIfAvailable()
     await createMetricContinuousAggregatesIfAvailable()
