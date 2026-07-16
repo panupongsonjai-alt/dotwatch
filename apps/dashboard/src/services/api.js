@@ -350,7 +350,14 @@ export function getDevice(id) {
   return apiFetch(`/api/devices/${encodeURIComponent(id)}`)
 }
 
-export function addDevice({ deviceCode, name, deviceSecret, modelId }) {
+export function addDevice({
+  deviceCode,
+  name,
+  deviceSecret,
+  modelId,
+  latitude,
+  longitude,
+}) {
   return apiFetch('/api/devices', {
     method: 'POST',
     body: JSON.stringify({
@@ -358,6 +365,8 @@ export function addDevice({ deviceCode, name, deviceSecret, modelId }) {
       name,
       deviceSecret,
       modelId,
+      latitude,
+      longitude,
     }),
   })
 }

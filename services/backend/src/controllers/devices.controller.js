@@ -20,6 +20,72 @@ import {
 import { createOrganizationAuditLog } from '../services/organizationAudit.service.js'
 import { assertOrganizationCanCreateDevice } from '../services/organizationUsage.service.js'
 import { ensureDeviceMetricSettingsSchema } from '../services/schemaCompatibility.service.js'
+import {
+  WEATHER_MODEL_KEY,
+  pollWeatherVirtualDevices,
+} from '../services/weatherVirtualDevice.service.js'
+
+async function pollWeatherDeviceImmediately({
+  app,
+  deviceId,
+  modelKey,
+  latitude,
+  longitude,
+}) {
+  if (modelKey !== WEATHER_MODEL_KEY) return null
+
+  if (latitude == null || longitude == null) {
+    return {
+      enabled: env.weatherVirtualDeviceEnabled,
+      selected: 0,
+      unconfigured: 1,
+      ingested: 0,
+      skippedDuplicate: 0,
+      skippedLocked: 0,
+      skippedMissingLocation: 1,
+      failed: 0,
+      results: [
+        {
+          deviceId: Number(deviceId),
+          status: 'skipped_missing_location',
+          error: 'Weather API Demo requires latitude and longitude',
+        },
+      ],
+    }
+  }
+
+  try {
+    return await pollWeatherVirtualDevices({
+      app,
+      deviceId: Number(deviceId),
+      force: true,
+      limit: 1,
+    })
+  } catch (error) {
+    console.error('Immediate weather virtual device polling failed:', {
+      deviceId,
+      message: error.message,
+    })
+
+    return {
+      enabled: env.weatherVirtualDeviceEnabled,
+      selected: 1,
+      unconfigured: 0,
+      ingested: 0,
+      skippedDuplicate: 0,
+      skippedLocked: 0,
+      skippedMissingLocation: 0,
+      failed: 1,
+      results: [
+        {
+          deviceId: Number(deviceId),
+          status: 'failed',
+          error: String(error?.message || error),
+        },
+      ],
+    }
+  }
+}
 
 const HISTORY_METRIC_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_:-]{0,63}$/
 const HISTORY_RESOLUTIONS = new Set([
@@ -458,6 +524,31 @@ export async function createDevice(req, res) {
   const organizationId = req.body.organizationId || req.body.organization_id || null
   const siteId = req.body.siteId || req.body.site_id || null
   const deviceGroupId = req.body.deviceGroupId || req.body.device_group_id || null
+  const hasLatitude = req.body.latitude !== undefined && req.body.latitude !== null
+  const hasLongitude = req.body.longitude !== undefined && req.body.longitude !== null
+
+  if (hasLatitude !== hasLongitude) {
+    return res.status(400).json({
+      message: 'Latitude and longitude must be provided together',
+    })
+  }
+
+  const latitude = hasLatitude ? Number(req.body.latitude) : null
+  const longitude = hasLongitude ? Number(req.body.longitude) : null
+
+  if (
+    (hasLatitude && !Number.isFinite(latitude)) ||
+    (hasLongitude && !Number.isFinite(longitude)) ||
+    (hasLatitude && (latitude < -90 || latitude > 90)) ||
+    (hasLongitude && (longitude < -180 || longitude > 180))
+  ) {
+    return res.status(400).json({
+      message:
+        'Invalid coordinates: latitude must be between -90 and 90, and longitude between -180 and 180',
+    })
+  }
+
+  const mapUrl = req.body.mapUrl || req.body.map_url || null
 
   const deviceCode =
     req.body.deviceCode ||
@@ -489,7 +580,7 @@ export async function createDevice(req, res) {
 
     const modelCheck = await client.query(
       `
-      SELECT id
+      SELECT id, model_key
       FROM device_models
       WHERE id = $1
         AND is_active = true
@@ -517,9 +608,12 @@ export async function createDevice(req, res) {
         model_id,
         organization_id,
         site_id,
-        device_group_id
+        device_group_id,
+        latitude,
+        longitude,
+        map_url
       )
-      VALUES ($1, $2, $3, $4, $5, now(), $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, now(), $6, $7, $8, $9, $10, $11, $12)
       RETURNING
         id,
         device_code,
@@ -544,6 +638,9 @@ export async function createDevice(req, res) {
         placement?.organizationId || null,
         placement?.siteId || null,
         placement?.deviceGroupId || null,
+        latitude,
+        longitude,
+        mapUrl,
       ]
     )
 
@@ -573,7 +670,7 @@ export async function createDevice(req, res) {
         default_icon,
         true,
         sort_order,
-        2
+        decimal_places
       FROM device_model_metrics
       WHERE model_id = $2
       ORDER BY sort_order ASC
@@ -581,6 +678,17 @@ export async function createDevice(req, res) {
       `,
       [device.id, modelId]
     )
+
+    if (modelCheck.rows[0]?.model_key === WEATHER_MODEL_KEY) {
+      await client.query(
+        `
+        INSERT INTO weather_virtual_devices (device_id)
+        VALUES ($1)
+        ON CONFLICT (device_id) DO NOTHING
+        `,
+        [device.id]
+      )
+    }
 
     await createAdminAuditLog({
       actorUserId: user.id,
@@ -616,9 +724,18 @@ export async function createDevice(req, res) {
 
     await client.query('COMMIT')
 
+    const weatherPoll = await pollWeatherDeviceImmediately({
+      app: req.app,
+      deviceId: device.id,
+      modelKey: modelCheck.rows[0]?.model_key,
+      latitude: device.latitude,
+      longitude: device.longitude,
+    })
+
     res.status(201).json({
       ...device,
       deviceSecret,
+      ...(weatherPoll ? { weatherPoll } : {}),
     })
   } catch (error) {
     await client.query('ROLLBACK')
@@ -888,7 +1005,33 @@ export async function updateDevice(req, res) {
     })
   }
 
-  res.json(result.rows[0])
+  let weatherPoll = null
+
+  if (hasLatitude && hasLongitude) {
+    const modelResult = await pool.query(
+      `
+      SELECT dm.model_key
+      FROM devices d
+      JOIN device_models dm ON dm.id = d.model_id
+      WHERE d.id = $1
+      LIMIT 1
+      `,
+      [id]
+    )
+
+    weatherPoll = await pollWeatherDeviceImmediately({
+      app: req.app,
+      deviceId: id,
+      modelKey: modelResult.rows[0]?.model_key,
+      latitude: result.rows[0].latitude,
+      longitude: result.rows[0].longitude,
+    })
+  }
+
+  res.json({
+    ...result.rows[0],
+    ...(weatherPoll ? { weatherPoll } : {}),
+  })
 }
 
 export async function getDeviceSecret(req, res) {

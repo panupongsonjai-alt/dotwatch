@@ -50,6 +50,9 @@ function CreateDeviceWizard({
   const selectedModel = deviceModelOptions.find(
     (model) => Number(model.id) === Number(createForm.modelId)
   )
+  const isWeatherModel = selectedModel?.modelKey === 'weather_api_demo'
+  const hasSelectedLocation =
+    createForm.latitude != null && createForm.longitude != null
 
   const displayName = createForm.name.trim() || `dotWatch ${devices.length + 1}`
 
@@ -263,10 +266,15 @@ function CreateDeviceWizard({
                   <div className="wizard-v2-help-card wizard-v2-help-card-inline">
                     <MapPin size={22} />
                     <div>
-                      <h4>Location is optional</h4>
+                      <h4>
+                        {isWeatherModel
+                          ? 'Location is required for Weather API Demo'
+                          : 'Location is optional'}
+                      </h4>
                       <p>
-                        สามารถข้ามได้ และกลับไปตั้งค่า Location
-                        ได้อีกครั้งในหน้า Devices
+                        {isWeatherModel
+                          ? 'Backend ใช้ Latitude และ Longitude เพื่อดึง Temperature และ Humidity ทันทีหลังสร้าง Device'
+                          : 'สามารถข้ามได้ และกลับไปตั้งค่า Location ได้อีกครั้งในหน้า Devices'}
                       </p>
                     </div>
                   </div>
@@ -410,7 +418,12 @@ function CreateDeviceWizard({
                     type="button"
                     className="primary-button modal-next-button"
                     onClick={goNext}
-                    disabled={saving}
+                    disabled={
+                      saving ||
+                      (createStep === 2 &&
+                        isWeatherModel &&
+                        !hasSelectedLocation)
+                    }
                   >
                     Next
                     <ArrowRight size={16} />

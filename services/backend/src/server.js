@@ -30,6 +30,8 @@ import { deviceGroupsRouter } from './routes/deviceGroups.routes.js'
 import { billingRouter } from './routes/billing.routes.js'
 import { mobilePushRouter } from './routes/mobilePush.routes.js'
 import { tenantRouter } from './routes/tenant.routes.js'
+import { weatherVirtualDeviceRouter } from './routes/weatherVirtualDevice.routes.js'
+import { startWeatherVirtualDeviceScheduler } from './services/weatherVirtualDevice.service.js'
 import { createHttpLogger, logger, logStartupSummary, startOpsHeartbeat } from './utils/logger.js'
 
 const app = express()
@@ -703,6 +705,7 @@ app.use('/api/organizations', apiLimiter, organizationsRouter)
 app.use('/api/sites', apiLimiter, sitesRouter)
 app.use('/api/device-groups', apiLimiter, deviceGroupsRouter)
 app.use('/api/activity', apiLimiter, activityRouter)
+app.use('/api/internal/weather', apiLimiter, weatherVirtualDeviceRouter)
 app.use('/api', apiLimiter, deviceMetricsRoutes)
 app.use('/api', apiLimiter, deviceModelsRoutes)
 
@@ -794,6 +797,8 @@ const listeningServer = server.listen(env.port, () => {
   logger.info({ event: 'listening', port: env.port }, `dotWatch backend running on port ${env.port}`)
 })
 
+const weatherScheduler = startWeatherVirtualDeviceScheduler({ app, logger })
+
 async function shutdown(signal) {
   if (isShuttingDown) return
 
@@ -802,6 +807,7 @@ async function shutdown(signal) {
 
   clearInterval(heartbeatInterval)
   clearInterval(offlineDetectionInterval)
+  weatherScheduler?.stop?.()
   if (opsHeartbeatInterval) clearInterval(opsHeartbeatInterval)
 
   const forceExitTimer = setTimeout(() => {

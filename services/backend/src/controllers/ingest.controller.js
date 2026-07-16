@@ -572,6 +572,55 @@ async function publishIngestSideEffects({
   return alerts
 }
 
+export async function ingestVirtualReading({ app, device, data }) {
+  const parsedData = ingestSchema.parse(data)
+  const previousStatus = device.status || 'offline'
+  const reading = normalizeReading(parsedData)
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+
+    const {
+      updatedDevice,
+      metricRowsInserted,
+      legacyRowsInserted,
+      historyReadingsRecorded,
+    } = await persistReadings({
+      client,
+      device,
+      readings: [reading],
+      firmwareVersion: parsedData.firmwareVersion || null,
+      ipAddress: null,
+      localIp: null,
+      wifiSsid: null,
+    })
+
+    await client.query('COMMIT')
+
+    const alerts = await publishIngestSideEffects({
+      req: { app },
+      updatedDevice,
+      previousStatus,
+      reading,
+    })
+
+    return {
+      updatedDevice,
+      reading,
+      metricRowsInserted,
+      historyReadingsRecorded,
+      legacyRowsInserted,
+      alerts,
+    }
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
 export async function ingestReading(req, res) {
   const data = ingestSchema.parse(req.body)
   const device = req.device

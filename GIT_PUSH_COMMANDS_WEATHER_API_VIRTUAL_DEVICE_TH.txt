@@ -1,0 +1,30 @@
+Set-Location "D:\IoT Project\dotwatch"
+
+git status
+
+git add -- `
+  "services/backend/migrations/024_weather_api_virtual_devices.sql" `
+  "services/backend/migrations/run.js" `
+  "services/backend/src/config/env.js" `
+  "services/backend/src/server.js" `
+  "services/backend/src/controllers/ingest.controller.js" `
+  "services/backend/src/controllers/devices.controller.js" `
+  "services/backend/src/controllers/deviceModelsController.js" `
+  "services/backend/src/controllers/deviceMetricsController.js" `
+  "services/backend/src/controllers/weatherVirtualDevice.controller.js" `
+  "services/backend/src/middlewares/authWeatherPoll.js" `
+  "services/backend/src/routes/weatherVirtualDevice.routes.js" `
+  "services/backend/src/services/deviceStatus.service.js" `
+  "services/backend/src/services/weatherVirtualDevice.service.js" `
+  "services/backend/scripts/poll-weather-virtual-devices.mjs" `
+  "services/backend/scripts/test-weather-virtual-device.mjs" `
+  "services/backend/.env.example" `
+  "services/backend/.env.production.example" `
+  "services/backend/package.json" `
+  "package.json" `
+  "docs/WEATHER_API_VIRTUAL_DEVICE_TH.md" `
+  "GIT_PUSH_COMMANDS_WEATHER_API_VIRTUAL_DEVICE_TH.txt"
+
+git commit -m "feat(backend): add weather API virtual devices"
+
+git push origin main

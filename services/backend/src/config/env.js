@@ -346,6 +346,41 @@ export const env = {
     { min: 10, max: 3600 }
   ),
 
+  weatherVirtualDeviceEnabled: parseBoolean(
+    process.env.WEATHER_VIRTUAL_DEVICE_ENABLED,
+    false
+  ),
+  weatherSchedulerEnabled: parseBoolean(
+    process.env.WEATHER_SCHEDULER_ENABLED,
+    true
+  ),
+  weatherPollSecret: cleanEnvString(process.env.WEATHER_POLL_SECRET),
+  weatherSchedulerTickSeconds: parsePositiveInteger(
+    process.env.WEATHER_SCHEDULER_TICK_SECONDS,
+    60,
+    { min: 10, max: 3600 }
+  ),
+  weatherSchedulerInitialDelayMs: parsePositiveInteger(
+    process.env.WEATHER_SCHEDULER_INITIAL_DELAY_MS,
+    5000,
+    { min: 0, max: 300_000 }
+  ),
+  weatherFetchTimeoutMs: parsePositiveInteger(
+    process.env.WEATHER_FETCH_TIMEOUT_MS,
+    10_000,
+    { min: 1000, max: 60_000 }
+  ),
+  weatherPollBatchSize: parsePositiveInteger(
+    process.env.WEATHER_POLL_BATCH_SIZE,
+    25,
+    { min: 1, max: 500 }
+  ),
+  weatherPollConcurrency: parsePositiveInteger(
+    process.env.WEATHER_POLL_CONCURRENCY,
+    4,
+    { min: 1, max: 20 }
+  ),
+
   healthDbTimeoutMs: parsePositiveInteger(
     process.env.HEALTH_DB_TIMEOUT_MS,
     3000,
@@ -398,6 +433,16 @@ export function validateEnv() {
     requireEnv('FIREBASE_CLIENT_EMAIL', env.firebaseClientEmail)
     requireEnv('FIREBASE_PRIVATE_KEY', env.firebasePrivateKey)
     requireEnv('DEVICE_SECRET_ENCRYPTION_KEY', env.deviceSecretEncryptionKey)
+
+    if (env.weatherVirtualDeviceEnabled) {
+      requireEnv('WEATHER_POLL_SECRET', env.weatherPollSecret)
+
+      if (env.weatherPollSecret.length < 32) {
+        throw new Error(
+          'WEATHER_POLL_SECRET must contain at least 32 characters in production'
+        )
+      }
+    }
 
     if (env.databaseSslDisabled) {
       throw new Error('DATABASE_SSL_DISABLED must be false in production')
@@ -459,6 +504,11 @@ export function getPublicRuntimeConfig() {
     deviceWarningAfterSeconds: env.deviceWarningAfterSeconds,
     deviceOfflineAfterSeconds: env.deviceOfflineAfterSeconds,
     deviceStatusCheckSeconds: env.deviceStatusCheckSeconds,
+    weatherVirtualDeviceEnabled: env.weatherVirtualDeviceEnabled,
+    weatherSchedulerEnabled: env.weatherSchedulerEnabled,
+    weatherSchedulerTickSeconds: env.weatherSchedulerTickSeconds,
+    weatherPollBatchSize: env.weatherPollBatchSize,
+    weatherPollConcurrency: env.weatherPollConcurrency,
     healthDbTimeoutMs: env.healthDbTimeoutMs,
     ingestMaxMetricsPerReading: env.ingestMaxMetricsPerReading,
     ingestBatchMaxReadings: env.ingestBatchMaxReadings,

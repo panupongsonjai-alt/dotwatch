@@ -19,7 +19,7 @@
     "check:dashboard": "npm --prefix apps/dashboard run build",
     "check:admin": "npm --prefix apps/admin run build",
     "check:mobile": "npm --prefix apps/mobile run typecheck",
-    "check:backend": "node --check services/backend/src/server.js && node --check services/backend/src/config/env.js && node --check services/backend/src/utils/health.js && node --check services/backend/src/middlewares/requestContext.js && node --check services/backend/src/middlewares/authDevice.js && node --check services/backend/src/middlewares/deviceIngestRateLimit.js && node --check services/backend/src/security/fixedWindowLimiter.js",
+    "check:backend": "node --check services/backend/src/server.js && node --check services/backend/src/config/env.js && node --check services/backend/src/utils/health.js && node --check services/backend/src/middlewares/requestContext.js && node --check services/backend/src/middlewares/authDevice.js && node --check services/backend/src/middlewares/deviceIngestRateLimit.js && node --check services/backend/src/security/fixedWindowLimiter.js && node --check services/backend/src/middlewares/authWeatherPoll.js && node --check services/backend/src/services/weatherVirtualDevice.service.js && node --check services/backend/src/controllers/weatherVirtualDevice.controller.js && node --check services/backend/src/routes/weatherVirtualDevice.routes.js",
     "check:all": "npm run check:backend && npm run check:dashboard && npm run check:admin && npm run check:mobile",
     "env:local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-local-env.ps1",
     "env:prod:check": "node scripts/check-production-env.mjs",
@@ -101,7 +101,9 @@
     "esp32:security:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/esp32-security-build.ps1",
     "esp32:security:provision": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/esp32-security-provision.ps1",
     "esp32:security:verify-device": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/esp32-security-verify-device.ps1",
-    "test:phase-s3:software": "npm run test:phase-s3a && npm run test:phase-s3b"
+    "test:phase-s3:software": "npm run test:phase-s3a && npm run test:phase-s3b",
+    "backend:weather:poll": "npm --prefix services/backend run weather:poll",
+    "test:weather": "npm --prefix services/backend run test:weather"
   },
   "engines": {
     "node": ">=20"

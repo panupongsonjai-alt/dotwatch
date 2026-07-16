@@ -180,7 +180,7 @@ async function insertModelMetrics(client, deviceId) {
         default_icon,
         true,
         sort_order,
-        2
+        decimal_places
       FROM device_model_metrics
       WHERE model_id = $2
         AND ($3::text IS NULL OR metric_key <> $3)

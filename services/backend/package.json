@@ -11,12 +11,14 @@
     "commercial:report": "node scripts/phase5-commercial-report.mjs",
     "start:prod": "node src/server.js",
     "check:prod-env": "node ../../scripts/check-production-env.mjs",
-    "check:syntax": "node --check src/server.js && node --check src/config/env.js && node --check src/utils/health.js && node --check src/utils/logger.js && node --check src/middlewares/errorHandler.js && node --check src/middlewares/authDevice.js && node --check src/middlewares/deviceIngestRateLimit.js && node --check src/security/fixedWindowLimiter.js",
+    "check:syntax": "node --check src/server.js && node --check src/config/env.js && node --check src/utils/health.js && node --check src/utils/logger.js && node --check src/middlewares/errorHandler.js && node --check src/middlewares/authDevice.js && node --check src/middlewares/deviceIngestRateLimit.js && node --check src/security/fixedWindowLimiter.js && node --check src/middlewares/authWeatherPoll.js && node --check src/services/weatherVirtualDevice.service.js && node --check src/controllers/weatherVirtualDevice.controller.js && node --check src/routes/weatherVirtualDevice.routes.js && node --check scripts/poll-weather-virtual-devices.mjs",
     "db:preflight": "node scripts/db-preflight.mjs",
     "db:health": "node scripts/db-health-check.mjs",
     "db:repair-latest": "node repair-device-metric-latest-table.cjs && node check-device-metric-latest.cjs",
     "ops:report": "node scripts/ops-report.mjs",
-    "tenant:report": "node scripts/phase7-tenant-report.mjs"
+    "tenant:report": "node scripts/phase7-tenant-report.mjs",
+    "weather:poll": "node scripts/poll-weather-virtual-devices.mjs",
+    "test:weather": "node scripts/test-weather-virtual-device.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

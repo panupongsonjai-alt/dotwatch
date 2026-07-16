@@ -1,0 +1,15 @@
+Set-Location "D:\IoT Project\dotwatch"
+
+git status
+
+git add -- `
+  "apps/dashboard/src/services/api.js" `
+  "apps/dashboard/src/pages/Devices.jsx" `
+  "apps/dashboard/src/components/devices/CreateDeviceWizard.jsx" `
+  "services/backend/src/controllers/devices.controller.js" `
+  "docs/WEATHER_DEVICE_VALUE_IMMEDIATE_POLL_FIX_TH.md" `
+  "GIT_PUSH_COMMANDS_WEATHER_DEVICE_VALUE_FIX_TH.txt"
+
+git commit -m "fix(weather): poll virtual device immediately after location setup"
+
+git push origin main

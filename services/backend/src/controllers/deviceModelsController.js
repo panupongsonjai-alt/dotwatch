@@ -23,7 +23,8 @@ export async function listDeviceModels(req, res) {
               'defaultType', dmm.default_type,
               'defaultUnit', dmm.default_unit,
               'defaultIcon', dmm.default_icon,
-              'sortOrder', dmm.sort_order
+              'sortOrder', dmm.sort_order,
+              'decimalPlaces', dmm.decimal_places
             )
             ORDER BY dmm.sort_order ASC, dmm.metric_key ASC
           ) FILTER (WHERE dmm.id IS NOT NULL),

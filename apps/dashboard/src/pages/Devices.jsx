@@ -70,6 +70,61 @@ function createDeviceSecret() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+function getWeatherPollNotice(weatherPoll, successMessage) {
+  if (!weatherPoll) return null
+
+  if (weatherPoll.enabled === false) {
+    return {
+      type: 'warning',
+      message:
+        'สร้าง Weather Device แล้ว แต่ Backend ยังปิด WEATHER_VIRTUAL_DEVICE_ENABLED จึงยังไม่มีค่าแสดง',
+    }
+  }
+
+  if (Number(weatherPoll.ingested || 0) > 0) {
+    return {
+      type: 'success',
+      message: successMessage,
+    }
+  }
+
+  if (Number(weatherPoll.skippedDuplicate || 0) > 0) {
+    return {
+      type: 'success',
+      message: 'Weather Device เชื่อมต่อแล้ว และรอข้อมูลรอบใหม่จากผู้ให้บริการ',
+    }
+  }
+
+  const firstResult = Array.isArray(weatherPoll.results)
+    ? weatherPoll.results[0]
+    : null
+
+  if (
+    firstResult?.status === 'skipped_missing_location' ||
+    Number(weatherPoll.skippedMissingLocation || 0) > 0 ||
+    Number(weatherPoll.unconfigured || 0) > 0
+  ) {
+    return {
+      type: 'warning',
+      message: 'Weather API Demo ต้องกำหนด Latitude และ Longitude ก่อนจึงจะแสดงค่า',
+    }
+  }
+
+  if (Number(weatherPoll.failed || 0) > 0) {
+    return {
+      type: 'warning',
+      message: `บันทึก Device สำเร็จ แต่ดึง Weather API ไม่สำเร็จ: ${
+        firstResult?.error || 'ตรวจสอบ Render Logs และ Environment Variables'
+      }`,
+    }
+  }
+
+  return {
+    type: 'warning',
+    message: 'สร้าง Weather Device สำเร็จ แต่ยังไม่ได้รับค่าจาก Weather API',
+  }
+}
+
 function Devices() {
   const [devices, setDevices] = useState([])
   const [alarmRules, setAlarmRules] = useState([])
@@ -296,18 +351,6 @@ function Devices() {
     }
   }
 
-  async function findCreatedDeviceId(created, deviceCode) {
-    if (created?.id) return created.id
-    if (created?.device?.id) return created.device.id
-    if (created?.deviceId) return created.deviceId
-
-    const latestDevices = await getDevices()
-    const matchedDevice = Array.isArray(latestDevices)
-      ? latestDevices.find((device) => device.device_code === deviceCode)
-      : null
-
-    return matchedDevice?.id || null
-  }
 
   async function handleConfirmCreateDevice() {
     try {
@@ -320,22 +363,12 @@ function Devices() {
         name,
         deviceSecret: createForm.deviceSecret,
         modelId: createForm.modelId,
+        latitude: createForm.latitude,
+        longitude: createForm.longitude,
       })
 
       const deviceCode = created?.device_code || createForm.deviceCode
       const deviceSecret = created?.deviceSecret || createForm.deviceSecret
-
-      if (createForm.latitude != null && createForm.longitude != null) {
-        const createdDeviceId = await findCreatedDeviceId(created, deviceCode)
-
-        if (createdDeviceId) {
-          await updateDeviceLocation(createdDeviceId, {
-            latitude: createForm.latitude,
-            longitude: createForm.longitude,
-            mapUrl: null,
-          })
-        }
-      }
 
       setCreatedDevice({
         name,
@@ -348,6 +381,15 @@ function Devices() {
 
       setCreateStep(4)
       await reloadAll()
+
+      const weatherNotice = getWeatherPollNotice(
+        created?.weatherPoll,
+        'สร้าง Weather Device และดึงค่า Temperature/Humidity สำเร็จ'
+      )
+
+      if (weatherNotice) {
+        showNotice(weatherNotice.type, weatherNotice.message)
+      }
     } catch (error) {
       console.error('Create device error:', error)
       showNotice('error', error.message || 'เพิ่ม Device ไม่สำเร็จ')
@@ -460,7 +502,7 @@ function Devices() {
     try {
       setSaving(true)
 
-      await updateDeviceLocation(device.id, {
+      const updated = await updateDeviceLocation(device.id, {
         latitude,
         longitude,
         mapUrl: null,
@@ -472,7 +514,17 @@ function Devices() {
         delete nextLocations[device.id]
         return nextLocations
       })
-      showNotice('success', 'บันทึกตำแหน่ง Device สำเร็จ')
+
+      const weatherNotice = getWeatherPollNotice(
+        updated?.weatherPoll,
+        'บันทึกตำแหน่งและดึงค่า Weather API สำเร็จ'
+      )
+
+      if (weatherNotice) {
+        showNotice(weatherNotice.type, weatherNotice.message)
+      } else {
+        showNotice('success', 'บันทึกตำแหน่ง Device สำเร็จ')
+      }
     } catch (error) {
       console.error('Save picked location error:', error)
       showNotice('error', error.message || 'บันทึกตำแหน่งไม่สำเร็จ')
