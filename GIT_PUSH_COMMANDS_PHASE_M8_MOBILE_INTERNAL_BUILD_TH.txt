@@ -1,0 +1,29 @@
+Set-Location "D:\IoT Project\dotwatch"
+
+git fetch origin --prune
+git switch main
+git pull --ff-only origin main
+git switch -c feature/mobile-phase-m8-internal-build
+
+npm --prefix apps/mobile install
+npm run check:mobile
+npm --prefix apps/mobile run check:release
+npm run scan:secrets
+
+git add -- `
+  apps/mobile/app.json `
+  apps/mobile/eas.json `
+  apps/mobile/README.md `
+  apps/mobile/PHASE_M8_ANDROID_INTERNAL_BUILD.md `
+  apps/mobile/scripts/check-release.mjs `
+  GIT_PUSH_COMMANDS_PHASE_M8_MOBILE_INTERNAL_BUILD_TH.txt
+
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File ".\scripts\scan-sensitive-files.ps1" `
+  -StagedOnly
+
+git diff --cached --stat
+git diff --cached --name-only
+
+git commit -m "build(mobile): prepare phase m8 Android internal release"
+git push --set-upstream origin feature/mobile-phase-m8-internal-build

@@ -1,66 +1,31 @@
-# dotWatch Mobile Foundation
+# dotWatch Mobile
 
-Mobile MVP foundation สำหรับ dotWatch โดยใช้ React Native, Expo Router,
-TypeScript, Firebase Authentication, Render REST API, TanStack Query
-และ WebSocket realtime เดิมของ Backend
+Mobile application สำหรับ dotWatch โดยใช้ React Native, Expo Router,
+TypeScript, Firebase Authentication, Render REST API, WebSocket realtime,
+Expo Notifications และ EAS Build
 
-## ขอบเขตไฟล์ชุดนี้
+## สถานะปัจจุบัน
 
-- Login ด้วย Firebase Email/Password
-- Session ผ่าน Firebase Auth
+ฟังก์ชันที่รวมแล้ว:
+
+- Firebase Email/Password login และ session persistence
 - Dashboard summary
-- Device list
-- Device detail
+- Device list และ Device detail
 - Temperature และ Humidity
-- WebSocket subscribe ด้วย Firebase ID Token
-- Pull to refresh
-- Settings และ Logout
-- Root npm scripts สำหรับ mobile
-
-ยังไม่รวม Alarm UI, History chart และ Push Notification ซึ่งควรทำใน phase ถัดไป
-
-## ติดตั้งบน Windows PowerShell
-
-จาก root ของ repository:
-
-```powershell
-Copy-Item `
-  -LiteralPath ".\apps\mobile\.env.example" `
-  -Destination ".\apps\mobile\.env"
-```
-
-แก้ไข `apps/mobile/.env` แล้วใส่ Firebase Web App configuration
-ชุดเดียวกับ Dashboard
-
-ติดตั้ง dependency:
-
-```powershell
-npm --prefix apps/mobile install
-```
-
-ตรวจ TypeScript:
-
-```powershell
-npm run check:mobile
-```
-
-เปิด Expo:
-
-```powershell
-npm run mobile:start
-```
-
-จากนั้น:
-
-- กด `a` เพื่อเปิด Android Emulator
-- หรือสแกน QR ด้วย Expo Go เมื่อคอมพิวเตอร์และมือถืออยู่เครือข่ายเดียวกัน
+- WebSocket realtime พร้อม foreground/background lifecycle
+- Alarm list, history และ acknowledge
+- History API และกราฟช่วงเวลา
+- Notification feed และ deep link
+- Expo Push Token registration
+- Backend health banner
+- React error boundary
+- EAS development, preview และ production profiles
 
 ## Environment
 
 ```env
 EXPO_PUBLIC_API_URL=https://dotwatch-backend.onrender.com
 EXPO_PUBLIC_WS_URL=wss://dotwatch-backend.onrender.com
-
 EXPO_PUBLIC_FIREBASE_API_KEY=
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
 EXPO_PUBLIC_FIREBASE_PROJECT_ID=
@@ -69,42 +34,55 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 EXPO_PUBLIC_FIREBASE_APP_ID=
 ```
 
-ห้ามใส่ Firebase Admin private key, Render API key, Database URL
-หรือ Device Secret ลงใน Mobile App
+ค่าที่ขึ้นต้นด้วย `EXPO_PUBLIC_` จะถูกฝังใน client bundle และต้องถือว่าเป็น
+public configuration ห้ามใส่ Firebase Admin private key, Database URL,
+Render API key หรือ Device Secret
 
-## API ที่ใช้
+สำหรับ local development ใช้ `apps/mobile/.env`
+
+สำหรับ EAS Cloud Build ให้สร้างตัวแปรชุดเดียวกันใน EAS Environment:
+`development`, `preview` และ `production`
+
+## ตรวจโครงการ
+
+```powershell
+npm --prefix apps/mobile install
+npm run check:mobile
+npm --prefix apps/mobile run check:release
+npm run scan:secrets
+```
+
+## EAS account และ project
+
+```powershell
+Set-Location "D:\IoT Project\dotwatch\apps\mobile"
+npx eas-cli whoami
+npx eas-cli project:info
+```
+
+Project ต้องตรงกับ:
 
 ```text
-GET /api/devices
-GET /api/devices/:id
+owner: panupongsonjai
+slug: dotwatch-mobile
+projectId: 4a67ad2a-98a6-47a7-85ae-316bcd864365
 ```
 
-ทุก request ส่ง:
+## Android internal APK
 
-```http
-Authorization: Bearer <firebase-id-token>
+```powershell
+npx eas-cli env:list --environment preview
+npx eas-cli build --platform android --profile preview
 ```
 
-WebSocket ส่งหลังเชื่อมต่อ:
+Preview profile สร้าง APK ที่ติดตั้งบน Android ได้โดยตรงและไม่ต้องเปิด Metro
 
-```json
-{
-  "type": "subscribe",
-  "token": "<firebase-id-token>"
-}
+## Android production bundle
+
+หลัง internal APK ผ่าน smoke test แล้ว:
+
+```powershell
+npx eas-cli build --platform android --profile production
 ```
 
-## หมายเหตุเรื่อง Firebase persistence
-
-Firebase JS SDK บน React Native จะรักษาสถานะผู้ใช้ตามความสามารถของ runtime
-แต่ก่อน production release ควรเพิ่ม React Native AsyncStorage persistence
-และทดสอบ cold start บน Android release build โดยตรง
-
-## Phase ต่อไป
-
-1. Alarm list และ acknowledge
-2. History API และ chart
-3. Foreground/background AppState lifecycle สำหรับ WebSocket
-4. Expo Notifications/FCM push token
-5. EAS Android internal build
-6. Sentry และ production error handling
+ดูรายละเอียดใน `PHASE_M8_ANDROID_INTERNAL_BUILD.md`
