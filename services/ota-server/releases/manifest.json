@@ -21,6 +21,23 @@
     {
       "modelKey": "esp32_dht3",
       "channel": "stable",
+      "version": "esp32-product-1.4.4-signed-ota-pilot",
+      "buildNumber": 1404,
+      "file": "esp32_dht3-stable-build-1404.bin",
+      "size": 1364224,
+      "sha256": "2165403b117664b480f3842d00e2458becbfac09c84c8b0638bd17739bb599e9",
+      "mandatory": false,
+      "autoInstall": false,
+      "releaseNotes": "Stable promotion of the physically validated signed OTA build 1404.",
+      "publishedAt": "2026-07-17T18:49:58.769Z",
+      "signatureAlgorithm": "ecdsa-p256-sha256",
+      "signatureKeyId": "dotwatch-release-2026-01",
+      "releaseNotesSha256": "49ee603944a381a225fbd6a6e4f9986c62576a14a9e219183ab1e2068768ed01",
+      "signature": "MEUCIFeVldkpDaX4gARqDhAkC8qojuPzH91h6xJrGWFF1LEoAiEApQku+FpQ/W7OM7iD54d5y5d/AJf+Qd2/umuNr/PyWeY="
+    },
+    {
+      "modelKey": "esp32_dht3",
+      "channel": "stable",
       "version": "esp32-product-1.2.0-ota",
       "buildNumber": 1200,
       "file": "esp32_dht3-stable-build-1200.bin",
