@@ -119,12 +119,27 @@ expect(
   'OTA hardware trust telemetry is missing'
 )
 
+const firmwareVersionMatch = version.match(
+  /DOTWATCH_FIRMWARE_VERSION\s+"([^"]+)"/
+)
+const firmwareBuildMatch = version.match(
+  /DOTWATCH_FIRMWARE_BUILD\s+(\d+)UL/
+)
+const otaMaxFirmwareBytesMatch = productConfig.match(
+  /OTA_MAX_FIRMWARE_BYTES\s*=\s*(0x[0-9a-fA-F]+|\d+)UL/
+)
+
+const firmwareBuild = Number(firmwareBuildMatch?.[1] || 0)
+const otaMaxFirmwareBytes = Number(
+  otaMaxFirmwareBytesMatch?.[1] || Number.NaN
+)
+
 expect(
-  version.includes('esp32-product-1.4.0-hardware-trust') &&
-    version.includes('1400UL') &&
-    productConfig.includes('OTA_MAX_FIRMWARE_BYTES = 0x170000UL'),
-  'Firmware version advances and OTA maximum matches secure partition slots',
-  'Firmware version or secure OTA size limit is incorrect'
+  Boolean(firmwareVersionMatch?.[1]) &&
+    firmwareBuild >= 1400 &&
+    otaMaxFirmwareBytes === 0x170000,
+  'Firmware version/build is monotonic and OTA maximum matches secure partition slots',
+  'Firmware version/build regressed or secure OTA size limit is incorrect'
 )
 
 expect(

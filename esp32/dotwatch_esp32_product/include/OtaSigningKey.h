@@ -1,9 +1,13 @@
 #pragma once
 
-// Safe default: signed OTA is disabled until the owner generates a unique
-// P-256 release key with `npm run ota:key:generate`.
-#define DOTWATCH_OTA_SIGNING_KEY_CONFIGURED 0
-#define DOTWATCH_OTA_SIGNING_KEY_ID "UNCONFIGURED"
-#define DOTWATCH_OTA_SIGNING_PUBLIC_KEY_SHA256 "UNCONFIGURED"
+// Generated from the existing public release key.
+// The private signing key remains outside the repository.
+#define DOTWATCH_OTA_SIGNING_KEY_CONFIGURED 1
+#define DOTWATCH_OTA_SIGNING_KEY_ID "dotwatch-release-2026-01"
+#define DOTWATCH_OTA_SIGNING_PUBLIC_KEY_SHA256 "5cff6bc430db8a045a38d467fcf1bbca0ced44d999760605c4fba358905b2a2a"
 
-static constexpr const char *DOTWATCH_OTA_SIGNING_PUBLIC_KEY_PEM = "";
+static constexpr const char *DOTWATCH_OTA_SIGNING_PUBLIC_KEY_PEM = R"DOTWATCH_OTA_KEY(-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEELxKukVIQ+j9NZM18IrdzvwAMULz
+VTTd0ZrurrKtjxzrx8HhggDPUFWvGmHETrw18gQ8OOzooO3BcN/ntzrnng==
+-----END PUBLIC KEY-----
+)DOTWATCH_OTA_KEY";

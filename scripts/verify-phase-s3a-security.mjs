@@ -1,3 +1,4 @@
+import { createHash, createPublicKey } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -20,6 +21,9 @@ const keyGenerator = read('services/ota-server/scripts/generate-signing-key.mjs'
 const otaManager = read('esp32/dotwatch_esp32_product/src/ota/OtaManager.cpp')
 const otaHeader = read('esp32/dotwatch_esp32_product/src/ota/OtaManager.h')
 const signingHeader = read('esp32/dotwatch_esp32_product/include/OtaSigningKey.h')
+const signingMetadata = JSON.parse(
+  read('services/ota-server/keys/release-signing-key.json')
+)
 const firmwareVersion = read('esp32/dotwatch_esp32_product/include/FirmwareVersion.h')
 const envExample = read('services/ota-server/.env.example')
 const render = read('services/ota-server/render.yaml')
@@ -93,11 +97,57 @@ expect(
   'Firmware version/build regressed below Phase S3A'
 )
 
+const configuredMatch = signingHeader.match(
+  /#define\s+DOTWATCH_OTA_SIGNING_KEY_CONFIGURED\s+([01])/
+)
+const keyIdMatch = signingHeader.match(
+  /#define\s+DOTWATCH_OTA_SIGNING_KEY_ID\s+"([^"]+)"/
+)
+const fingerprintMatch = signingHeader.match(
+  /#define\s+DOTWATCH_OTA_SIGNING_PUBLIC_KEY_SHA256\s+"([0-9a-fA-F]+)"/
+)
+const publicKeyMatch = signingHeader.match(
+  /R"DOTWATCH_OTA_KEY\(([\s\S]*?)\)DOTWATCH_OTA_KEY"/
+)
+
+const isFailClosedDefault =
+  configuredMatch?.[1] === '0' &&
+  keyIdMatch?.[1] === 'UNCONFIGURED' &&
+  signingHeader.includes(
+    '#define DOTWATCH_OTA_SIGNING_PUBLIC_KEY_SHA256 "UNCONFIGURED"'
+  ) &&
+  signingHeader.includes(
+    'DOTWATCH_OTA_SIGNING_PUBLIC_KEY_PEM = "";'
+  )
+
+let embeddedPublicKeyFingerprint = ''
+try {
+  const embeddedPublicKey = createPublicKey(publicKeyMatch?.[1]?.trim() || '')
+  const embeddedPublicKeyDer = embeddedPublicKey.export({
+    type: 'spki',
+    format: 'der',
+  })
+  embeddedPublicKeyFingerprint = createHash('sha256')
+    .update(embeddedPublicKeyDer)
+    .digest('hex')
+} catch {
+  embeddedPublicKeyFingerprint = ''
+}
+
+const isProvisionedKeyValid =
+  configuredMatch?.[1] === '1' &&
+  keyIdMatch?.[1] === signingMetadata.keyId &&
+  fingerprintMatch?.[1]?.toLowerCase() ===
+    String(signingMetadata.publicKeySha256 || '').toLowerCase() &&
+  embeddedPublicKeyFingerprint ===
+    String(signingMetadata.publicKeySha256 || '').toLowerCase()
+
 expect(
-  signingHeader.includes('DOTWATCH_OTA_SIGNING_KEY_CONFIGURED 0') &&
-    signingHeader.includes('UNCONFIGURED'),
-  'Overlay defaults to fail-closed until the owner generates a unique signing key',
-  'Default OTA signing key state is not fail-closed'
+  isFailClosedDefault || isProvisionedKeyValid,
+  isFailClosedDefault
+    ? 'OTA signing overlay defaults to fail-closed before provisioning'
+    : 'Provisioned OTA signing key matches Key ID, fingerprint, and embedded public key',
+  'OTA signing key state is neither fail-closed nor validly provisioned'
 )
 
 expect(
