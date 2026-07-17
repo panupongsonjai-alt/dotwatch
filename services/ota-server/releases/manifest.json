@@ -3,6 +3,23 @@
   "releases": [
     {
       "modelKey": "esp32_dht3",
+      "channel": "beta",
+      "version": "esp32-product-1.4.4-signed-ota-pilot",
+      "buildNumber": 1404,
+      "file": "esp32_dht3-beta-build-1404.bin",
+      "size": 1364224,
+      "sha256": "2165403b117664b480f3842d00e2458becbfac09c84c8b0638bd17739bb599e9",
+      "mandatory": false,
+      "autoInstall": false,
+      "releaseNotes": "Signed Internet OTA beta pilot from trusted USB bootstrap build 1403.",
+      "publishedAt": "2026-07-17T17:36:51.734Z",
+      "signatureAlgorithm": "ecdsa-p256-sha256",
+      "signatureKeyId": "dotwatch-release-2026-01",
+      "releaseNotesSha256": "72fa8d6474383f345e501f447ec5af1c1955326c2b4257c9d78b3fbb07df3e1e",
+      "signature": "MEUCIQCZSEXtfVBzqMX4eey4RipodgC59VkFGzx4Bo2/cH9fkAIgKpOqreXaI5tYjVSXrqgth7ZxVyYzO8w16/h0Q5VfnWw="
+    },
+    {
+      "modelKey": "esp32_dht3",
       "channel": "stable",
       "version": "esp32-product-1.2.0-ota",
       "buildNumber": 1200,
