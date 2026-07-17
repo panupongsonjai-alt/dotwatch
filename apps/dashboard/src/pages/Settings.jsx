@@ -296,248 +296,244 @@ function Settings() {
         ))}
       </section>
 
-      <section className="settings-v3-layout">
-        <div className="settings-v3-main">
-          <section className="app-card settings-v3-card">
-            <SectionHeader
-              title="Interface Preferences"
-              description="เลือกสีหลักของระบบ dotWatch Dashboard โดยไม่กระทบปุ่ม Dark / Light Theme ด้านบน"
-            />
+      <section className="settings-v3-layout settings-v3-list">
+        <section className="app-card settings-v3-card">
+          <SectionHeader
+            title="Interface Preferences"
+            description="เลือกสีหลักของระบบ dotWatch Dashboard โดยไม่กระทบปุ่ม Dark / Light Theme ด้านบน"
+          />
 
-            <div className="settings-v3-accent-grid">
-              {ACCENT_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`settings-v3-accent settings-v3-accent-option ${
-                    accent === option.value ? 'active' : ''
-                  }`}
-                  onClick={() => setAccent(option.value)}
-                >
-                  <span
-                    className="settings-v3-accent-dot"
-                    style={{ background: option.color }}
-                  />
-                  <strong>{option.label}</strong>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="app-card settings-v3-card settings-recording-card">
-            <SectionHeader
-              title="Data Recording"
-              description="กำหนด Interval Record แยกตาม Device สำหรับบันทึกข้อมูลลง History Analytics"
-            />
-
-            <div className="settings-recording-fields">
-              <label className="settings-recording-field">
-                <span>Device</span>
-                <UnifiedSelect
-                  value={recordDeviceId}
-                  onChange={(event) => setRecordDeviceId(event.target.value)}
-                  disabled={
-                    recordLoading || recordSaving || !recordDevices.length
-                  }
-                >
-                  {!recordDevices.length && (
-                    <option value="">No device available</option>
-                  )}
-                  {recordDevices.map((device) => (
-                    <option key={device.id} value={device.id}>
-                      {device.name ||
-                        device.device_code ||
-                        `Device ${device.id}`}
-                    </option>
-                  ))}
-                </UnifiedSelect>
-              </label>
-
-              <label className="settings-recording-field settings-recording-interval-row">
-                <span>Interval Record</span>
-                <UnifiedSelect
-                  value={Number(recordIntervalSeconds)}
-                  onChange={(event) =>
-                    setRecordIntervalSeconds(Number(event.target.value))
-                  }
-                  disabled={recordLoading || recordSaving || !recordDeviceId}
-                >
-                  {RECORD_INTERVAL_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </UnifiedSelect>
-              </label>
-            </div>
-
-            <div className="settings-recording-footer">
-              <span
-                className={`settings-recording-message ${recordMessageTone}`}
-                role={recordMessageTone === 'error' ? 'alert' : 'status'}
-              >
-                {recordMessage ||
-                  'Interval นี้ควบคุมการบันทึกข้อมูลจริงลง Trend Graph และ History Table'}
-              </span>
+          <div className="settings-v3-accent-grid">
+            {ACCENT_OPTIONS.map((option) => (
               <button
+                key={option.value}
                 type="button"
-                className="primary-button"
-                onClick={handleSaveRecordInterval}
+                className={`settings-v3-accent settings-v3-accent-option ${
+                  accent === option.value ? 'active' : ''
+                }`}
+                onClick={() => setAccent(option.value)}
+              >
+                <span
+                  className="settings-v3-accent-dot"
+                  style={{ background: option.color }}
+                />
+                <strong>{option.label}</strong>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="app-card settings-v3-card">
+          <SectionHeader
+            title="Interface Density"
+            description="เลือกความแน่นของ UI ให้เหมาะกับหน้าจอ"
+          />
+
+          <div className="settings-v3-option-grid">
+            {DENSITY_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`settings-v3-density ${
+                  density === option.value ? 'active' : ''
+                }`}
+                onClick={() => setDensity(option.value)}
+              >
+                <strong>{option.label}</strong>
+                <small>{option.description}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="app-card settings-v3-card settings-recording-card">
+          <SectionHeader
+            title="Data Recording"
+            description="กำหนด Interval Record แยกตาม Device สำหรับบันทึกข้อมูลลง History Analytics"
+          />
+
+          <div className="settings-recording-fields">
+            <label className="settings-recording-field">
+              <span>Device</span>
+              <UnifiedSelect
+                value={recordDeviceId}
+                onChange={(event) => setRecordDeviceId(event.target.value)}
+                disabled={
+                  recordLoading || recordSaving || !recordDevices.length
+                }
+              >
+                {!recordDevices.length && (
+                  <option value="">No device available</option>
+                )}
+                {recordDevices.map((device) => (
+                  <option key={device.id} value={device.id}>
+                    {device.name ||
+                      device.device_code ||
+                      `Device ${device.id}`}
+                  </option>
+                ))}
+              </UnifiedSelect>
+            </label>
+
+            <label className="settings-recording-field settings-recording-interval-row">
+              <span>Interval Record</span>
+              <UnifiedSelect
+                value={Number(recordIntervalSeconds)}
+                onChange={(event) =>
+                  setRecordIntervalSeconds(Number(event.target.value))
+                }
                 disabled={recordLoading || recordSaving || !recordDeviceId}
               >
-                {recordSaving ? 'Saving...' : 'Save Interval'}
-              </button>
-            </div>
-          </section>
+                {RECORD_INTERVAL_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </UnifiedSelect>
+            </label>
+          </div>
 
-          <section className="app-card settings-v3-card">
-            <SectionHeader
-              title="Dashboard Display"
-              description="เลือกส่วนที่ต้องการให้แสดงบนหน้า Dashboard"
-            />
+          <div className="settings-recording-footer">
+            <span
+              className={`settings-recording-message ${recordMessageTone}`}
+              role={recordMessageTone === 'error' ? 'alert' : 'status'}
+            >
+              {recordMessage ||
+                'Interval นี้ควบคุมการบันทึกข้อมูลจริงลง Trend Graph และ History Table'}
+            </span>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={handleSaveRecordInterval}
+              disabled={recordLoading || recordSaving || !recordDeviceId}
+            >
+              {recordSaving ? 'Saving...' : 'Save Interval'}
+            </button>
+          </div>
+        </section>
 
-            <div className="settings-v3-toggle-list dashboard-display-toggle-list">
-              <label className="settings-v3-toggle-item">
-                <div>
-                  <strong>Data Overview</strong>
-                  <span>
-                    แสดงค่าล่าสุดของ Value ที่เปิด Visible ใน Dashboard
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={showDataOverview}
-                  onChange={(event) =>
-                    setShowDataOverview(event.target.checked)
-                  }
-                />
-              </label>
+        <section className="app-card settings-v3-card">
+          <SectionHeader
+            title="Product UX"
+            description="ตั้งค่าการใช้งานเพิ่มเติม"
+          />
 
-              <label className="settings-v3-toggle-item">
-                <div>
-                  <strong>Devices Overview</strong>
-                  <span>แสดงภาพรวมสถานะอุปกรณ์ทั้งหมดใน Dashboard</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={showDeviceOverview}
-                  onChange={(event) =>
-                    setShowDeviceOverview(event.target.checked)
-                  }
-                />
-              </label>
-
-              <label className="settings-v3-toggle-item">
-                <div>
-                  <strong>Device Map</strong>
-                  <span>แสดงตำแหน่ง Device และสถานะล่าสุดบนแผนที่</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={showDeviceMap}
-                  onChange={(event) => setShowDeviceMap(event.target.checked)}
-                />
-              </label>
-
-              <label className="settings-v3-toggle-item">
-                <div>
-                  <strong>Latest Active Alarms</strong>
-                  <span>แสดงรายการ Alarm ที่ยัง Active อยู่ล่าสุด</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={showLatestActiveAlarms}
-                  onChange={(event) =>
-                    setShowLatestActiveAlarms(event.target.checked)
-                  }
-                />
-              </label>
-            </div>
-          </section>
-        </div>
-
-        <aside className="settings-v3-side">
-          <section className="app-card settings-v3-card">
-            <SectionHeader
-              title="Interface Density"
-              description="เลือกความแน่นของ UI ให้เหมาะกับหน้าจอ"
-            />
-
-            <div className="settings-v3-option-grid">
-              {DENSITY_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`settings-v3-density ${
-                    density === option.value ? 'active' : ''
-                  }`}
-                  onClick={() => setDensity(option.value)}
-                >
-                  <strong>{option.label}</strong>
-                  <small>{option.description}</small>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="app-card settings-v3-card">
-            <SectionHeader
-              title="Product UX"
-              description="ตั้งค่าการใช้งานเพิ่มเติม"
-            />
-
-            <div className="settings-v3-toggle-list compact">
-              <label className="settings-v3-toggle-item">
-                <div>
-                  <strong>Compact Stat Cards</strong>
-                  <span>ลดความสูงของ StatCard ในหน้าหลัก</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={compactCards}
-                  onChange={(event) => setCompactCards(event.target.checked)}
-                />
-              </label>
-
-              <label className="settings-v3-toggle-item">
-                <div>
-                  <strong>Reduce Motion</strong>
-                  <span>
-                    ลด Animation สำหรับเครื่องที่ต้องการประหยัดทรัพยากร
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={reduceMotion}
-                  onChange={(event) => setReduceMotion(event.target.checked)}
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className="app-card settings-v3-card settings-v3-system-card">
-            <SectionHeader title="System" description="ข้อมูลระบบปัจจุบัน" />
-
-            <div className="settings-v3-system-list">
+          <div className="settings-v3-toggle-list compact">
+            <label className="settings-v3-toggle-item">
               <div>
-                <span>Platform</span>
-                <strong>dotWatch Dashboard</strong>
+                <strong>Compact Stat Cards</strong>
+                <span>ลดความสูงของ StatCard ในหน้าหลัก</span>
               </div>
+              <input
+                type="checkbox"
+                checked={compactCards}
+                onChange={(event) => setCompactCards(event.target.checked)}
+              />
+            </label>
+
+            <label className="settings-v3-toggle-item">
               <div>
-                <span>UI Version</span>
-                <strong>Phase 3 UX</strong>
+                <strong>Reduce Motion</strong>
+                <span>
+                  ลด Animation สำหรับเครื่องที่ต้องการประหยัดทรัพยากร
+                </span>
               </div>
+              <input
+                type="checkbox"
+                checked={reduceMotion}
+                onChange={(event) => setReduceMotion(event.target.checked)}
+              />
+            </label>
+          </div>
+        </section>
+
+        <section className="app-card settings-v3-card">
+          <SectionHeader
+            title="Dashboard Display"
+            description="เลือกส่วนที่ต้องการให้แสดงบนหน้า Dashboard"
+          />
+
+          <div className="settings-v3-toggle-list dashboard-display-toggle-list">
+            <label className="settings-v3-toggle-item">
               <div>
-                <span>Theme Control</span>
-                <strong>Top Header Toggle</strong>
+                <strong>Data Overview</strong>
+                <span>
+                  แสดงค่าล่าสุดของ Value ที่เปิด Visible ใน Dashboard
+                </span>
               </div>
+              <input
+                type="checkbox"
+                checked={showDataOverview}
+                onChange={(event) =>
+                  setShowDataOverview(event.target.checked)
+                }
+              />
+            </label>
+
+            <label className="settings-v3-toggle-item">
               <div>
-                <span>Storage</span>
-                <strong>Local Preferences</strong>
+                <strong>Devices Overview</strong>
+                <span>แสดงภาพรวมสถานะอุปกรณ์ทั้งหมดใน Dashboard</span>
               </div>
+              <input
+                type="checkbox"
+                checked={showDeviceOverview}
+                onChange={(event) =>
+                  setShowDeviceOverview(event.target.checked)
+                }
+              />
+            </label>
+
+            <label className="settings-v3-toggle-item">
+              <div>
+                <strong>Device Map</strong>
+                <span>แสดงตำแหน่ง Device และสถานะล่าสุดบนแผนที่</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={showDeviceMap}
+                onChange={(event) => setShowDeviceMap(event.target.checked)}
+              />
+            </label>
+
+            <label className="settings-v3-toggle-item">
+              <div>
+                <strong>Latest Active Alarms</strong>
+                <span>แสดงรายการ Alarm ที่ยัง Active อยู่ล่าสุด</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={showLatestActiveAlarms}
+                onChange={(event) =>
+                  setShowLatestActiveAlarms(event.target.checked)
+                }
+              />
+            </label>
+          </div>
+        </section>
+
+        <section className="app-card settings-v3-card settings-v3-system-card">
+          <SectionHeader title="System" description="ข้อมูลระบบปัจจุบัน" />
+
+          <div className="settings-v3-system-list">
+            <div>
+              <span>Platform</span>
+              <strong>dotWatch Dashboard</strong>
             </div>
-          </section>
-        </aside>
+            <div>
+              <span>UI Version</span>
+              <strong>Phase 3 UX</strong>
+            </div>
+            <div>
+              <span>Theme Control</span>
+              <strong>Top Header Toggle</strong>
+            </div>
+            <div>
+              <span>Storage</span>
+              <strong>Local Preferences</strong>
+            </div>
+          </div>
+        </section>
       </section>
     </div>
   )

@@ -91,6 +91,23 @@ function getDeviceRecordIntervalSeconds(device = {}) {
     : DEFAULT_RECORD_INTERVAL_SECONDS
 }
 
+function getOnlineHistoryWindowSeconds() {
+  const value = Number(env.deviceOfflineAfterSeconds)
+
+  return Number.isFinite(value) && value > 0 ? value : 120
+}
+
+function filterOnlineHistoryReadings(readings = []) {
+  const cutoffTime =
+    Date.now() - getOnlineHistoryWindowSeconds() * 1000
+
+  return readings.filter((reading) => {
+    const readingTime = new Date(reading.time).getTime()
+
+    return Number.isFinite(readingTime) && readingTime >= cutoffTime
+  })
+}
+
 function filterReadingsForHistory(device = {}, readings = []) {
   const intervalMs = getDeviceRecordIntervalSeconds(device) * 1000
   const sortedReadings = readings
@@ -377,7 +394,11 @@ async function persistReadings({
   localIp,
   wifiSsid,
 }) {
-  const historyReadings = filterReadingsForHistory(device, readings)
+  const onlineHistoryReadings = filterOnlineHistoryReadings(readings)
+  const historyReadings = filterReadingsForHistory(
+    device,
+    onlineHistoryReadings
+  )
   const historyMetricRows = flattenMetricRows(device.id, historyReadings)
   const latestMetricRows = flattenMetricRows(device.id, readings)
   const legacySensorRows = flattenLegacySensorRows(device.id, historyReadings)

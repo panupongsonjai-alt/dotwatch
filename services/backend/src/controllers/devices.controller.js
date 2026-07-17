@@ -330,18 +330,21 @@ async function queryLatestMetricHistory({
   const result = await pool.query(
     `
     SELECT
-      time,
-      time AS bucket_time,
-      metric_key,
-      value,
-      value AS avg_value,
-      value AS min_value,
-      value AS max_value,
+      metric_latest.time,
+      metric_latest.time AS bucket_time,
+      metric_latest.metric_key,
+      metric_latest.value,
+      metric_latest.value AS avg_value,
+      metric_latest.value AS min_value,
+      metric_latest.value AS max_value,
       1 AS sample_count
-    FROM device_metric_latest
-    WHERE device_id = $1
-      AND metric_key = $2
-      AND time BETWEEN $3 AND $4
+    FROM device_metric_latest metric_latest
+    JOIN devices d
+      ON d.id = metric_latest.device_id
+      AND d.status <> 'offline'
+    WHERE metric_latest.device_id = $1
+      AND metric_latest.metric_key = $2
+      AND metric_latest.time BETWEEN $3 AND $4
     LIMIT 1
     `,
     [deviceId, metricKey, fromDate, toDate]
@@ -446,12 +449,24 @@ export async function listDevices(req, res) {
       dm.model_name,
       dm.metric_count,
 
-      lr.temperature,
-      lr.humidity,
-      lr.rssi,
+      CASE
+        WHEN d.status = 'offline' THEN NULL
+        ELSE lr.temperature
+      END AS temperature,
+      CASE
+        WHEN d.status = 'offline' THEN NULL
+        ELSE lr.humidity
+      END AS humidity,
+      CASE
+        WHEN d.status = 'offline' THEN NULL
+        ELSE lr.rssi
+      END AS rssi,
 
       COALESCE(lm.latest_time, lr.time) AS latest_time,
-      COALESCE(lm.latest_metrics, '{}'::jsonb) AS latest_metrics,
+      CASE
+        WHEN d.status = 'offline' THEN '{}'::jsonb
+        ELSE COALESCE(lm.latest_metrics, '{}'::jsonb)
+      END AS latest_metrics,
       COALESCE(metric_config.metric_configs, '[]'::jsonb) AS metric_configs
 
     FROM devices d
@@ -786,12 +801,24 @@ export async function getDevice(req, res) {
       dm.model_name,
       dm.metric_count,
 
-      lr.temperature,
-      lr.humidity,
-      lr.rssi,
+      CASE
+        WHEN d.status = 'offline' THEN NULL
+        ELSE lr.temperature
+      END AS temperature,
+      CASE
+        WHEN d.status = 'offline' THEN NULL
+        ELSE lr.humidity
+      END AS humidity,
+      CASE
+        WHEN d.status = 'offline' THEN NULL
+        ELSE lr.rssi
+      END AS rssi,
 
       COALESCE(lm.latest_time, lr.time) AS latest_time,
-      COALESCE(lm.latest_metrics, '{}'::jsonb) AS latest_metrics,
+      CASE
+        WHEN d.status = 'offline' THEN '{}'::jsonb
+        ELSE COALESCE(lm.latest_metrics, '{}'::jsonb)
+      END AS latest_metrics,
       COALESCE(metric_config.metric_configs, '[]'::jsonb) AS metric_configs
 
     FROM devices d

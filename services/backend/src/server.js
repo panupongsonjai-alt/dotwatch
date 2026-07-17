@@ -767,7 +767,16 @@ const offlineDetectionInterval = setInterval(async () => {
     for (const device of result.rows) {
       broadcastToUser(device.firebase_uid, {
         type: 'device:update',
-        data: device,
+        data: {
+          ...device,
+          temperature: null,
+          humidity: null,
+          rssi: null,
+          latest_time:
+            device.last_ingest_at || device.last_seen_at || null,
+          latest_metrics: {},
+          metrics: {},
+        },
       })
 
       const activity = await createDeviceStatusActivity({

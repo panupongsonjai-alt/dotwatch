@@ -244,6 +244,12 @@ function getLatestMetricEntries(device = {}) {
 }
 
 function buildMetricCard(device, metricKey, value, metricConfig = null) {
+  const healthStatus = getHealthStatus(device)
+  const offline =
+    String(device.status || '')
+      .trim()
+      .toLowerCase() === 'offline' || healthStatus === 'offline'
+
   return {
     id: `${device.id}-${metricKey}`,
     deviceId: device.id,
@@ -255,14 +261,18 @@ function buildMetricCard(device, metricKey, value, metricConfig = null) {
       metricConfig?.name ||
       metricConfig?.label ||
       getFallbackMetricName(metricKey),
-    unit: metricConfig?.unit || getFallbackMetricUnit(metricKey),
+    unit: offline
+      ? ''
+      : metricConfig?.unit || getFallbackMetricUnit(metricKey),
     icon: getMetricIconName(metricConfig),
-    value: formatMetricValue(
-      value,
-      metricConfig?.decimal_places ?? metricConfig?.decimalPlaces ?? 2
-    ),
+    value: offline
+      ? '--'
+      : formatMetricValue(
+          value,
+          metricConfig?.decimal_places ?? metricConfig?.decimalPlaces ?? 2
+        ),
     latestTime: device.latest_time || device.last_ingest_at,
-    healthStatus: getHealthStatus(device),
+    healthStatus: offline ? 'offline' : healthStatus,
     initial: getMetricInitial(metricKey),
     sortOrder: Number(metricConfig?.sort_order ?? 9999),
   }
