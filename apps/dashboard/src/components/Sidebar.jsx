@@ -4,6 +4,7 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
+  GitCompareArrows,
   HeartPulse,
   History,
   LayoutDashboard,
@@ -21,6 +22,7 @@ const MENU_GROUPS = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'devices', label: 'Devices', icon: Radio },
       { id: 'history', label: 'History', icon: History },
+      { id: 'compare-graph', label: 'Compare Graph', icon: GitCompareArrows },
     ],
   },
   {

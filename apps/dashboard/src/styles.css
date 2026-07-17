@@ -8,6 +8,7 @@
 @import './styles/pages/devices.css';
 @import './styles/pages/device-detail.css';
 @import './styles/pages/history.css';
+@import './styles/compare-graph.css';
 @import './styles/pages/alarms.css';
 @import './styles/pages/notifications.css';
 @import './styles/pages/activity.css';

@@ -3,6 +3,7 @@ import {
   Activity,
   Bell,
   Gauge,
+  GitCompareArrows,
   HeartPulse,
   History as HistoryIcon,
   LayoutDashboard,
@@ -32,6 +33,7 @@ import {
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Devices = lazy(() => import('./pages/Devices'))
 const History = lazy(() => import('./pages/History.jsx'))
+const CompareGraph = lazy(() => import('./pages/CompareGraph.jsx'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Login = lazy(() => import('./pages/Login'))
 const Profile = lazy(() => import('./pages/Profile'))
@@ -60,6 +62,12 @@ const PAGE_META = {
     title: 'History',
     description: 'Review telemetry records, analytics, and export CSV data.',
     icon: HistoryIcon,
+  },
+  'compare-graph': {
+    section: 'Monitoring',
+    title: 'Compare Graph',
+    description: 'Compare the same values across multiple devices and time ranges.',
+    icon: GitCompareArrows,
   },
   alarms: {
     section: 'Events',
@@ -663,6 +671,8 @@ function App() {
             {page === 'devices' && <Devices />}
 
             {page === 'history' && <History />}
+
+            {page === 'compare-graph' && <CompareGraph />}
 
             {page === 'alarms' && <Alarms />}
 
