@@ -7225,3 +7225,160 @@
     width: 100% !important;
   }
 }
+/* =========================================================
+   Device Center Security - Full Width List Layout
+========================================================= */
+
+.devices-v3-security-list-panel {
+  min-width: 0;
+}
+
+.devices-v3-security-list {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel-2);
+}
+
+.devices-v3-security-list-item {
+  min-width: 0;
+  min-height: 74px;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.34fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding: 15px 18px;
+  background: transparent;
+}
+
+.devices-v3-security-list-item + .devices-v3-security-list-item {
+  border-top: 1px solid var(--border);
+}
+
+.devices-v3-security-list-copy,
+.devices-v3-security-list-value {
+  min-width: 0;
+}
+
+.devices-v3-security-list-copy > span,
+.devices-v3-security-list-copy > small {
+  display: block;
+}
+
+.devices-v3-security-list-copy > span {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 950;
+}
+
+.devices-v3-security-list-copy > small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 750;
+}
+
+.devices-v3-security-list-value {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  color: var(--text);
+  text-align: right;
+}
+
+.devices-v3-security-list-value p,
+.devices-v3-security-list-value strong,
+.devices-v3-security-list-value code {
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.devices-v3-security-list-value p {
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 800;
+}
+
+.devices-v3-security-list-value strong {
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.devices-v3-security-list-value code {
+  display: block;
+  padding: 9px 11px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 850;
+  word-break: break-all;
+  white-space: normal;
+}
+
+.devices-v3-security-list-item-control {
+  align-items: start;
+}
+
+.devices-v3-security-list-item-control .devices-v3-secret-viewer {
+  width: 100%;
+  max-width: 760px;
+  justify-self: end;
+}
+
+.devices-v3-security-list-item-control .devices-v3-secret-actions {
+  justify-content: flex-end;
+}
+
+.devices-v3-security-list-item-danger {
+  background: color-mix(in srgb, var(--danger) 4%, transparent);
+}
+
+.devices-v3-security-list-action {
+  align-self: center;
+}
+
+.devices-v3-security-list-action .devices-v3-reset-secret-btn {
+  width: fit-content;
+  min-width: 156px;
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .devices-v3-security-list-item {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: stretch;
+    padding: 14px;
+  }
+
+  .devices-v3-security-list-value {
+    justify-items: stretch;
+    text-align: left;
+  }
+
+  .devices-v3-security-list-item-control .devices-v3-secret-viewer {
+    max-width: none;
+    justify-self: stretch;
+  }
+
+  .devices-v3-security-list-item-control .devices-v3-secret-actions {
+    justify-content: flex-start;
+  }
+
+  .devices-v3-security-list-action .devices-v3-reset-secret-btn {
+    width: 100%;
+  }
+}

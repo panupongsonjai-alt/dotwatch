@@ -1114,7 +1114,7 @@ function SelectedDevicePanel({
       )}
 
       {activeTab === 'security' && (
-        <div className="devices-v3-tab-panel">
+        <div className="devices-v3-tab-panel devices-v3-security-list-panel">
           <DeviceTabHeader
             eyebrow="Device Access"
             title="Security"
@@ -1122,150 +1122,172 @@ function SelectedDevicePanel({
             meta="Protected"
           />
 
-          <section className="devices-v3-info-grid">
-            <div>
-              <label>Device Code</label>
-              <p>{selectedDevice.device_code}</p>
-            </div>
-            <div>
-              <label>Device Secret</label>
-              <p>
-                {revealedSecret
-                  ? secretVisible
-                    ? revealedSecret
-                    : maskSecret(revealedSecret)
-                  : 'ซ่อนเพื่อความปลอดภัย ต้องใส่ Password ก่อนดู'}
-              </p>
-            </div>
-            <div>
-              <label>Device ID</label>
-              <p>{selectedDevice.id}</p>
-            </div>
-            <div>
-              <label>Secret Status</label>
-              <p>Secret เดิมจะใช้งานไม่ได้ทันทีหลัง Reset</p>
-            </div>
-          </section>
-
-          <section className="devices-v3-security-reveal-card">
-            <div className="devices-v3-security-action-copy">
-              <span className="page-eyebrow">Secret Visibility</span>
-              <h4>View Device Secret</h4>
-              <p>
-                กรอก Password ของบัญชีนี้เพื่อยืนยันตัวตนก่อนดู Device Secret
-                สำหรับนำไปตั้งค่า Firmware / Gateway
-              </p>
+          <section className="devices-v3-security-list">
+            <div className="devices-v3-security-list-item">
+              <div className="devices-v3-security-list-copy">
+                <span>Device Code</span>
+                <small>รหัสประจำ Device สำหรับส่งไปกับทุกคำขอ Ingest</small>
+              </div>
+              <div className="devices-v3-security-list-value">
+                <code>{selectedDevice.device_code}</code>
+              </div>
             </div>
 
-            <div className="devices-v3-secret-viewer">
-              <label className="devices-v3-secret-password-field">
-                <span>Password</span>
-                <div>
-                  <Lock size={16} />
-                  <input
-                    type="password"
-                    value={secretPassword}
-                    placeholder="กรอก Password เพื่อดู Secret"
-                    autoComplete="current-password"
-                    disabled={secretLoading}
-                    onChange={(event) => {
-                      setSecretPassword(event.target.value)
-                      setSecretError('')
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        handleRevealSecret()
-                      }
-                    }}
-                  />
-                </div>
-              </label>
+            <div className="devices-v3-security-list-item">
+              <div className="devices-v3-security-list-copy">
+                <span>Device ID</span>
+                <small>รหัสภายในระบบ dotWatch</small>
+              </div>
+              <div className="devices-v3-security-list-value">
+                <strong>{selectedDevice.id}</strong>
+              </div>
+            </div>
 
-              <div className="devices-v3-secret-output">
-                <span>
-                  {revealedSecret ? 'Device Secret' : 'Hidden Secret'}
-                </span>
+            <div className="devices-v3-security-list-item">
+              <div className="devices-v3-security-list-copy">
+                <span>Secret Status</span>
+                <small>ผลกระทบเมื่อมีการหมุนเวียน Secret</small>
+              </div>
+              <div className="devices-v3-security-list-value">
+                <p>Secret เดิมจะใช้งานไม่ได้ทันทีหลัง Reset</p>
+              </div>
+            </div>
+
+            <div className="devices-v3-security-list-item">
+              <div className="devices-v3-security-list-copy">
+                <span>Device Secret</span>
+                <small>Credential สำหรับ Firmware / Gateway</small>
+              </div>
+              <div className="devices-v3-security-list-value">
                 <code>
                   {revealedSecret
                     ? secretVisible
                       ? revealedSecret
                       : maskSecret(revealedSecret)
-                    : '••••••••••••••••••••••••'}
+                    : 'ซ่อนเพื่อความปลอดภัย ต้องใส่ Password ก่อนดู'}
                 </code>
               </div>
+            </div>
 
-              {secretError && (
-                <p className="devices-v3-secret-message error">{secretError}</p>
-              )}
+            <div className="devices-v3-security-list-item devices-v3-security-list-item-control">
+              <div className="devices-v3-security-list-copy">
+                <span>View Device Secret</span>
+                <small>
+                  กรอก Password ของบัญชีนี้เพื่อยืนยันตัวตนก่อนดู Device Secret
+                </small>
+              </div>
 
-              {secretCopied && (
-                <p className="devices-v3-secret-message success">
-                  Copied Device Secret
-                </p>
-              )}
+              <div className="devices-v3-secret-viewer">
+                <label className="devices-v3-secret-password-field">
+                  <span>Password</span>
+                  <div>
+                    <Lock size={16} />
+                    <input
+                      type="password"
+                      value={secretPassword}
+                      placeholder="กรอก Password เพื่อดู Secret"
+                      autoComplete="current-password"
+                      disabled={secretLoading}
+                      onChange={(event) => {
+                        setSecretPassword(event.target.value)
+                        setSecretError('')
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          handleRevealSecret()
+                        }
+                      }}
+                    />
+                  </div>
+                </label>
 
-              <div className="devices-v3-secret-actions">
+                <div className="devices-v3-secret-output">
+                  <span>
+                    {revealedSecret ? 'Device Secret' : 'Hidden Secret'}
+                  </span>
+                  <code>
+                    {revealedSecret
+                      ? secretVisible
+                        ? revealedSecret
+                        : maskSecret(revealedSecret)
+                      : '••••••••••••••••••••••••'}
+                  </code>
+                </div>
+
+                {secretError && (
+                  <p className="devices-v3-secret-message error">{secretError}</p>
+                )}
+
+                {secretCopied && (
+                  <p className="devices-v3-secret-message success">
+                    Copied Device Secret
+                  </p>
+                )}
+
+                <div className="devices-v3-secret-actions">
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    disabled={secretLoading || !secretPassword}
+                    onClick={handleRevealSecret}
+                  >
+                    <Eye size={16} />
+                    {secretLoading ? 'Checking...' : 'View Secret'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    disabled={!revealedSecret}
+                    onClick={() => setSecretVisible((current) => !current)}
+                  >
+                    {secretVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {secretVisible ? 'Hide' : 'Show'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    disabled={!revealedSecret}
+                    onClick={handleCopySecret}
+                  >
+                    <Copy size={16} />
+                    Copy
+                  </button>
+
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    disabled={!revealedSecret}
+                    onClick={handleHideSecret}
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="devices-v3-security-list-item devices-v3-security-list-item-danger">
+              <div className="devices-v3-security-list-copy">
+                <span>Reset Device Secret</span>
+                <small>
+                  ออก Secret ใหม่เมื่อต้องเปลี่ยนอุปกรณ์หรือสงสัยว่า Secret
+                  เดิมไม่ปลอดภัย
+                </small>
+              </div>
+
+              <div className="devices-v3-security-list-value devices-v3-security-list-action">
                 <button
                   type="button"
-                  className="ghost-button"
-                  disabled={secretLoading || !secretPassword}
-                  onClick={handleRevealSecret}
+                  className="save-btn devices-v3-reset-secret-btn"
+                  disabled={saving}
+                  onClick={() => onResetSecret(selectedDevice)}
                 >
-                  <Eye size={16} />
-                  {secretLoading ? 'Checking...' : 'View Secret'}
-                </button>
-
-                <button
-                  type="button"
-                  className="ghost-button"
-                  disabled={!revealedSecret}
-                  onClick={() => setSecretVisible((current) => !current)}
-                >
-                  {secretVisible ? <EyeOff size={16} /> : <Eye size={16} />}
-                  {secretVisible ? 'Hide' : 'Show'}
-                </button>
-
-                <button
-                  type="button"
-                  className="ghost-button"
-                  disabled={!revealedSecret}
-                  onClick={handleCopySecret}
-                >
-                  <Copy size={16} />
-                  Copy
-                </button>
-
-                <button
-                  type="button"
-                  className="ghost-button"
-                  disabled={!revealedSecret}
-                  onClick={handleHideSecret}
-                >
-                  Clear
+                  <KeyRound size={16} />
+                  Reset Secret
                 </button>
               </div>
             </div>
-          </section>
-
-          <section className="devices-v3-security-action-card">
-            <div className="devices-v3-security-action-copy">
-              <span className="page-eyebrow">Secret Rotation</span>
-              <h4>Reset Device Secret</h4>
-              <p>
-                ใช้เมื่อต้องการออก Secret ใหม่ให้ Firmware / Gateway เช่น
-                เปลี่ยนอุปกรณ์ หรือสงสัยว่า Secret เดิมไม่ปลอดภัย
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="save-btn devices-v3-reset-secret-btn"
-              disabled={saving}
-              onClick={() => onResetSecret(selectedDevice)}
-            >
-              <KeyRound size={16} />
-              Reset Secret
-            </button>
           </section>
         </div>
       )}
