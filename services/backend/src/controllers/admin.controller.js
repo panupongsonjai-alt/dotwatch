@@ -285,6 +285,7 @@ export async function listAdminUsers(req, res) {
       pd.site_limit,
       pd.user_limit,
       pd.retention_days,
+      database_usage.user_id,
       database_usage.account_bytes,
       database_usage.device_bytes,
       database_usage.telemetry_bytes,
