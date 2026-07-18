@@ -1,33 +1,33 @@
-const REQUIRED_ENV_KEYS = [
-  'EXPO_PUBLIC_API_URL',
-  'EXPO_PUBLIC_WS_URL',
-  'EXPO_PUBLIC_FIREBASE_API_KEY',
-  'EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'EXPO_PUBLIC_FIREBASE_PROJECT_ID',
-  'EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'EXPO_PUBLIC_FIREBASE_APP_ID'
+import { env } from './env';
+
+const REQUIRED_ENV_VALUES = [
+  ['EXPO_PUBLIC_API_URL', env.apiUrl],
+  ['EXPO_PUBLIC_WS_URL', env.wsUrl],
+  ['EXPO_PUBLIC_FIREBASE_API_KEY', env.firebase.apiKey],
+  ['EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN', env.firebase.authDomain],
+  ['EXPO_PUBLIC_FIREBASE_PROJECT_ID', env.firebase.projectId],
+  ['EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET', env.firebase.storageBucket],
+  [
+    'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+    env.firebase.messagingSenderId
+  ],
+  ['EXPO_PUBLIC_FIREBASE_APP_ID', env.firebase.appId]
 ] as const;
 
-function readValue(key: (typeof REQUIRED_ENV_KEYS)[number]): string {
-  return process.env[key]?.trim() || '';
-}
-
 export function getPublicEnvironmentError(): string | null {
-  const missing = REQUIRED_ENV_KEYS.filter((key) => !readValue(key));
+  const missing = REQUIRED_ENV_VALUES.filter(([, value]) => !value).map(
+    ([name]) => name
+  );
 
   if (missing.length > 0) {
     return `Missing mobile environment variables: ${missing.join(', ')}`;
   }
 
-  const apiUrl = readValue('EXPO_PUBLIC_API_URL');
-  const wsUrl = readValue('EXPO_PUBLIC_WS_URL');
-
-  if (!/^https:\/\//i.test(apiUrl)) {
+  if (!/^https:\/\//i.test(env.apiUrl)) {
     return 'EXPO_PUBLIC_API_URL must use https://';
   }
 
-  if (!/^wss:\/\//i.test(wsUrl)) {
+  if (!/^wss:\/\//i.test(env.wsUrl)) {
     return 'EXPO_PUBLIC_WS_URL must use wss://';
   }
 
