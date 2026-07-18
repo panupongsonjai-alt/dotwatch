@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import LoadingState from '../components/common/LoadingState'
+import StatCard from '../components/common/StatCard'
 import StatusBadge from '../components/common/StatusBadge'
 import UsageBar from '../components/common/UsageBar'
 import UnifiedSelect from '../components/common/UnifiedSelect'
@@ -57,22 +58,28 @@ function AdminSubscriptions({
 
       {commercialSummary?.usage ? (
         <div className="admin-stat-grid compact">
-          <article className="stat-card">
-            <span>Assigned Devices</span>
-            <strong>{commercialSummary.usage.totalAssignedDevices || 0}</strong>
-          </article>
-          <article className="stat-card">
-            <span>Device Capacity</span>
-            <strong>{commercialSummary.usage.totalDeviceCapacity || 0}</strong>
-          </article>
-          <article className="stat-card">
-            <span>Near Limit</span>
-            <strong>{commercialSummary.usage.usersNearDeviceLimit || 0}</strong>
-          </article>
-          <article className="stat-card">
-            <span>At Limit</span>
-            <strong>{commercialSummary.usage.usersAtDeviceLimit || 0}</strong>
-          </article>
+          <StatCard
+            label="Assigned Devices"
+            value={commercialSummary.usage.totalAssignedDevices || 0}
+            hint="Currently assigned"
+          />
+          <StatCard
+            label="Device Capacity"
+            value={commercialSummary.usage.totalDeviceCapacity || 0}
+            hint="Available plan capacity"
+          />
+          <StatCard
+            label="Near Limit"
+            value={commercialSummary.usage.usersNearDeviceLimit || 0}
+            hint="Accounts approaching limit"
+            tone="warning"
+          />
+          <StatCard
+            label="At Limit"
+            value={commercialSummary.usage.usersAtDeviceLimit || 0}
+            hint="Accounts at capacity"
+            tone="danger"
+          />
         </div>
       ) : null}
 

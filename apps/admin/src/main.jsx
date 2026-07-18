@@ -9,6 +9,7 @@ import './styles/statcard-single-row.css'
 import './styles/dropdown-unify.css'
 import './styles/responsive-all-devices.css'
 import './styles/admin-sidebar-dashboard-indicator.css'
+import './styles/statcard-dashboard-parity.css'
 
 const rootElement = document.getElementById('root')
 

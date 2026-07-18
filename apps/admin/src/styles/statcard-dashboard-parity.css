@@ -1,0 +1,228 @@
+/* =========================================================
+   dotWatch Admin - Dashboard StatCard parity
+   Final visual/layout lock for every Admin StatCard group.
+   Mirrors Dashboard statcard-global-unify.css without changing data logic.
+========================================================= */
+
+:root {
+  --dw-stat-card-radius: 18px;
+  --dw-stat-card-min-height: 112px;
+  --dw-stat-card-padding-block: 18px;
+  --dw-stat-card-padding-inline: 20px;
+  --dw-stat-card-gap: 8px;
+  --dw-stat-card-accent-height: 4px;
+  --dw-stat-card-grid-min-width: 180px;
+  --dw-stat-card-surface: var(--panel, #ffffff);
+  --dw-stat-card-border: var(--border, rgba(148, 163, 184, 0.24));
+  --dw-stat-card-shadow: var(
+    --shadow-soft,
+    0 12px 28px rgba(15, 23, 42, 0.1)
+  );
+  --dw-stat-card-shadow-hover: var(
+    --shadow-lift,
+    0 18px 38px rgba(15, 23, 42, 0.16)
+  );
+  --dw-stat-card-accent: var(--primary, #2563eb);
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card) {
+  position: relative !important;
+  isolation: isolate !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(30px, auto) minmax(16px, auto) !important;
+  align-content: start !important;
+  align-items: start !important;
+  row-gap: var(--dw-stat-card-gap) !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  min-height: var(--dw-stat-card-min-height) !important;
+  height: 100% !important;
+  padding:
+    var(--dw-stat-card-padding-block)
+    var(--dw-stat-card-padding-inline) !important;
+  overflow: hidden !important;
+  border: 1px solid var(--dw-stat-card-border) !important;
+  border-radius: var(--dw-stat-card-radius) !important;
+  background: var(--dw-stat-card-surface) !important;
+  box-shadow: var(--dw-stat-card-shadow) !important;
+  transform: translateZ(0) !important;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease !important;
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card)::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 0 auto !important;
+  z-index: 1 !important;
+  display: block !important;
+  width: auto !important;
+  height: var(--dw-stat-card-accent-height) !important;
+  min-height: var(--dw-stat-card-accent-height) !important;
+  max-height: var(--dw-stat-card-accent-height) !important;
+  border: 0 !important;
+  border-radius:
+    var(--dw-stat-card-radius)
+    var(--dw-stat-card-radius)
+    0
+    0 !important;
+  background: var(--dw-stat-card-accent) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card)::after {
+  content: none !important;
+  display: none !important;
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card) > * {
+  position: relative !important;
+  z-index: 2 !important;
+  min-width: 0 !important;
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card):hover {
+  transform: translateY(-2px) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--primary, #2563eb) 34%,
+    var(--dw-stat-card-border)
+  ) !important;
+  box-shadow: var(--dw-stat-card-shadow-hover) !important;
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card)
+  :is(.stat-label, .summary-label, .card-label),
+:is(.dw-stat-card, .admin-stat-card, .stat-card)
+  > :is(span, h3, h4, label):first-child {
+  display: block !important;
+  margin: 0 !important;
+  color: var(--muted, #64748b) !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card)
+  :is(.stat-value, .summary-value, .card-value),
+:is(.dw-stat-card, .admin-stat-card, .stat-card) > strong {
+  display: block !important;
+  align-self: center !important;
+  margin: 0 !important;
+  color: var(--text, #0f172a) !important;
+  font-size: clamp(24px, 2.3vw, 30px) !important;
+  line-height: 1.05 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.045em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card)
+  :is(.stat-hint, .stat-detail, .summary-detail, .card-detail),
+:is(.dw-stat-card, .admin-stat-card, .stat-card) > :is(small, p):last-child {
+  display: block !important;
+  min-height: 16px !important;
+  margin: 0 !important;
+  color: var(--muted, #64748b) !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card).compact {
+  min-height: var(--dw-stat-card-min-height) !important;
+  padding:
+    var(--dw-stat-card-padding-block)
+    var(--dw-stat-card-padding-inline) !important;
+  grid-template-rows: auto minmax(30px, auto) minmax(16px, auto) !important;
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card).success
+  :is(strong, .stat-value, .summary-value, .card-value) {
+  color: var(--success, #22c55e) !important;
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card).warning
+  :is(strong, .stat-value, .summary-value, .card-value) {
+  color: var(--warning, #f59e0b) !important;
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card).danger
+  :is(strong, .stat-value, .summary-value, .card-value) {
+  color: var(--danger, #ef4444) !important;
+}
+
+:is(.dw-stat-card, .admin-stat-card, .stat-card).info
+  :is(strong, .stat-value, .summary-value, .card-value) {
+  color: var(--info, #0ea5e9) !important;
+}
+
+.admin-stat-grid,
+.admin-stat-grid.compact {
+  display: grid !important;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(var(--dw-stat-card-grid-min-width), 1fr)
+  ) !important;
+  grid-auto-flow: row !important;
+  grid-auto-columns: initial !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+  margin-block: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  overscroll-behavior: auto !important;
+  scrollbar-width: auto !important;
+}
+
+.admin-stat-grid > * {
+  min-width: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  scroll-snap-align: none !important;
+}
+
+@media (max-width: 1100px) {
+  .admin-stat-grid,
+  .admin-stat-grid.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --dw-stat-card-radius: 16px;
+    --dw-stat-card-min-height: 108px;
+    --dw-stat-card-padding-block: 16px;
+    --dw-stat-card-padding-inline: 17px;
+  }
+
+  .admin-stat-grid,
+  .admin-stat-grid.compact {
+    grid-template-columns: 1fr !important;
+  }
+
+  :is(.dw-stat-card, .admin-stat-card, .stat-card)
+    :is(.stat-value, .summary-value, .card-value),
+  :is(.dw-stat-card, .admin-stat-card, .stat-card) > strong {
+    font-size: 24px !important;
+  }
+}
