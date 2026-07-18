@@ -3,9 +3,23 @@ import StatCard from '../components/common/StatCard'
 import StatusBadge from '../components/common/StatusBadge'
 import { formatNumber } from '../utils/formatters'
 
+const OVERVIEW_LIST_LIMIT = 12
+
+function getValue(item, keys, fallback = '-') {
+  for (const key of keys) {
+    const value = item?.[key]
+
+    if (value !== undefined && value !== null && value !== '') {
+      return value
+    }
+  }
+
+  return fallback
+}
+
 function AdminOverview({ stats, users, devices, loading }) {
-  const recentUsers = users.slice(0, 5)
-  const latestDevices = devices.slice(0, 5)
+  const recentUsers = users.slice(0, OVERVIEW_LIST_LIMIT)
+  const latestDevices = devices.slice(0, OVERVIEW_LIST_LIMIT)
 
   return (
     <section className="admin-page">
@@ -57,44 +71,102 @@ function AdminOverview({ stats, users, devices, loading }) {
       {loading ? (
         <LoadingState title="Loading overview..." />
       ) : (
-        <div className="admin-two-column">
-          <article className="admin-panel">
-            <div className="panel-header">
-              <h3>Recent Users</h3>
-              <span>{recentUsers.length} accounts</span>
+        <div className="admin-overview-record-lists">
+          <article className="admin-panel admin-overview-record-panel">
+            <div className="panel-header admin-overview-record-header">
+              <div>
+                <h3>Recent Users</h3>
+                <p>Latest accounts added to the platform.</p>
+              </div>
+              <span>
+                Showing {recentUsers.length} of {formatNumber(users.length)}
+              </span>
             </div>
 
-            <div className="admin-list">
-              {recentUsers.map((user) => (
-                <div className="admin-list-row" key={user.id}>
-                  <div>
-                    <strong>{user.name}</strong>
-                    <span>{user.email}</span>
+            <div className="admin-overview-record-list" role="list">
+              <div className="admin-overview-record-columns" aria-hidden="true">
+                <span>User</span>
+                <span>Plan</span>
+                <span>Created</span>
+                <span>Status</span>
+              </div>
+
+              {recentUsers.length ? (
+                recentUsers.map((user) => (
+                  <div
+                    className="admin-overview-record-row admin-overview-user-row"
+                    key={user.id}
+                    role="listitem"
+                  >
+                    <div className="admin-overview-record-primary">
+                      <strong>{getValue(user, ['name'], 'Unnamed user')}</strong>
+                      <span>{getValue(user, ['email'])}</span>
+                    </div>
+                    <span className="admin-overview-record-value">
+                      {getValue(user, ['plan', 'planName', 'plan_name'])}
+                    </span>
+                    <span className="admin-overview-record-value">
+                      {getValue(user, ['createdAt', 'created_at'])}
+                    </span>
+                    <div className="admin-overview-record-status">
+                      <StatusBadge status={user.status} />
+                    </div>
                   </div>
-                  <StatusBadge status={user.status} />
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="admin-overview-record-empty">No users found.</div>
+              )}
             </div>
           </article>
 
-          <article className="admin-panel">
-            <div className="panel-header">
-              <h3>Latest Devices</h3>
-              <span>{latestDevices.length} devices</span>
+          <article className="admin-panel admin-overview-record-panel">
+            <div className="panel-header admin-overview-record-header">
+              <div>
+                <h3>Latest Devices</h3>
+                <p>Most recently available devices across all users.</p>
+              </div>
+              <span>
+                Showing {latestDevices.length} of {formatNumber(devices.length)}
+              </span>
             </div>
 
-            <div className="admin-list">
-              {latestDevices.map((device) => (
-                <div className="admin-list-row" key={device.id}>
-                  <div>
-                    <strong>{device.name}</strong>
-                    <span>
-                      {device.deviceCode} · {device.owner}
+            <div className="admin-overview-record-list" role="list">
+              <div className="admin-overview-record-columns admin-overview-device-columns" aria-hidden="true">
+                <span>Device</span>
+                <span>Owner</span>
+                <span>Model</span>
+                <span>Last Seen</span>
+                <span>Status</span>
+              </div>
+
+              {latestDevices.length ? (
+                latestDevices.map((device) => (
+                  <div
+                    className="admin-overview-record-row admin-overview-device-row"
+                    key={device.id}
+                    role="listitem"
+                  >
+                    <div className="admin-overview-record-primary">
+                      <strong>{getValue(device, ['name'], 'Unnamed device')}</strong>
+                      <span>{getValue(device, ['deviceCode', 'device_code'])}</span>
+                    </div>
+                    <span className="admin-overview-record-value">
+                      {getValue(device, ['owner', 'email', 'user_email'])}
                     </span>
+                    <span className="admin-overview-record-value">
+                      {getValue(device, ['model', 'modelName', 'model_name'])}
+                    </span>
+                    <span className="admin-overview-record-value">
+                      {getValue(device, ['lastSeenAt', 'last_seen_at'])}
+                    </span>
+                    <div className="admin-overview-record-status">
+                      <StatusBadge status={device.status} />
+                    </div>
                   </div>
-                  <StatusBadge status={device.status} />
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="admin-overview-record-empty">No devices found.</div>
+              )}
             </div>
           </article>
         </div>

@@ -10,6 +10,7 @@ import './styles/dropdown-unify.css'
 import './styles/responsive-all-devices.css'
 import './styles/admin-sidebar-dashboard-indicator.css'
 import './styles/statcard-dashboard-parity.css'
+import './styles/admin-overview-record-list.css'
 
 const rootElement = document.getElementById('root')
 

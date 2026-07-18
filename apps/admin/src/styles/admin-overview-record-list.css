@@ -1,0 +1,233 @@
+/* =========================================================
+   Admin Overview record lists
+   Scope: Recent Users and Latest Devices only.
+   Purpose: compact, scalable rows instead of card-per-record UI.
+========================================================= */
+
+.admin-overview-record-lists {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+
+.admin-overview-record-panel {
+  min-width: 0;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.admin-overview-record-header {
+  margin: 0;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-overview-record-header > div {
+  min-width: 0;
+}
+
+.admin-overview-record-header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+}
+
+.admin-overview-record-header p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-overview-record-header > span {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.admin-overview-record-list {
+  min-width: 0;
+  max-height: 480px;
+  overflow: auto;
+  background: var(--panel);
+}
+
+.admin-overview-record-columns,
+.admin-overview-record-row {
+  display: grid;
+  align-items: center;
+  gap: 14px;
+  min-width: 760px;
+}
+
+.admin-overview-record-columns,
+.admin-overview-user-row {
+  grid-template-columns:
+    minmax(240px, 1.7fr)
+    minmax(120px, 0.7fr)
+    minmax(150px, 0.9fr)
+    minmax(110px, 0.65fr);
+}
+
+.admin-overview-device-columns,
+.admin-overview-device-row {
+  grid-template-columns:
+    minmax(220px, 1.45fr)
+    minmax(180px, 1.1fr)
+    minmax(150px, 0.9fr)
+    minmax(160px, 0.95fr)
+    minmax(110px, 0.65fr);
+}
+
+.admin-overview-record-columns {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 11px 22px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--panel-2) 94%, transparent);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-overview-record-row {
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  transition:
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.admin-overview-record-row:last-child {
+  border-bottom: 0;
+}
+
+.admin-overview-record-row:hover {
+  background: color-mix(in srgb, var(--primary) 5%, var(--panel));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--primary) 75%, transparent);
+}
+
+.admin-overview-record-primary,
+.admin-overview-record-value,
+.admin-overview-record-status {
+  min-width: 0;
+}
+
+.admin-overview-record-primary strong,
+.admin-overview-record-primary span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-overview-record-primary strong {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.admin-overview-record-primary span,
+.admin-overview-record-value {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.admin-overview-record-primary span {
+  margin-top: 3px;
+}
+
+.admin-overview-record-value {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-overview-record-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.admin-overview-record-empty {
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .admin-overview-record-header {
+    align-items: flex-start;
+    padding: 18px;
+  }
+
+  .admin-overview-record-header > span {
+    align-self: flex-start;
+  }
+
+  .admin-overview-record-columns {
+    display: none;
+  }
+
+  .admin-overview-record-list {
+    max-height: 560px;
+  }
+
+  .admin-overview-record-row,
+  .admin-overview-user-row,
+  .admin-overview-device-row {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+    padding: 15px 18px;
+  }
+
+  .admin-overview-record-primary {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .admin-overview-record-status {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+  }
+
+  .admin-overview-record-value {
+    grid-column: 1 / -1;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-overview-record-value::before {
+    content: "•";
+    margin-right: 7px;
+    color: var(--primary);
+  }
+}
