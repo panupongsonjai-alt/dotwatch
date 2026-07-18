@@ -1439,6 +1439,7 @@ async function main() {
     await createIndexes()
     await seedDeviceModels()
     await runSqlFileIfExists('024_weather_api_virtual_devices.sql')
+    await runSqlFileIfExists('025_mobile_push_tokens.sql')
     await backfillDefaultOrganizations()
     await enableTimescaleIfAvailable()
     await createMetricContinuousAggregatesIfAvailable()

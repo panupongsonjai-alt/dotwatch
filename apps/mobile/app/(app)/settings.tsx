@@ -1,16 +1,45 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View
+} from 'react-native';
 
 import { Screen } from '@/components/Screen';
 import { useAuth } from '@/providers/AuthProvider';
+import { unregisterStoredPushToken } from '@/services/pushRegistration';
 import { theme } from '@/theme';
 
 export default function SettingsScreen() {
   const { user, signOutUser } = useAuth();
+  const queryClient = useQueryClient();
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState('');
 
   const handleSignOut = async () => {
-    await signOutUser();
-    router.replace('/login');
+    if (signingOut) return;
+
+    setSigningOut(true);
+    setSignOutError('');
+
+    try {
+      await unregisterStoredPushToken();
+      await signOutUser();
+      queryClient.clear();
+      router.replace('/login');
+    } catch (error) {
+      setSignOutError(
+        error instanceof Error
+          ? `ออกจากระบบไม่สำเร็จ: ${error.message}`
+          : 'ออกจากระบบไม่สำเร็จ กรุณาลองใหม่'
+      );
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   return (
@@ -23,21 +52,40 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Mobile Foundation</Text>
+        <Text style={styles.label}>Mobile Monitoring</Text>
         <Text style={styles.description}>
-          Firebase Authentication, Render REST API, Device list,
-          Temperature/Humidity และ WebSocket realtime
+          Firebase session persistence, dynamic Values, History,
+          Alarm monitoring, WebSocket realtime และ Push Notification
         </Text>
       </View>
 
+      <View style={styles.noticeCard}>
+        <Text style={styles.noticeTitle}>Safe logout</Text>
+        <Text style={styles.noticeText}>
+          แอปจะยกเลิก Push Token ของอุปกรณ์นี้ก่อนออกจากระบบ
+          เพื่อไม่ให้บัญชีเดิมได้รับ Alarm Notification หลัง Logout
+        </Text>
+      </View>
+
+      {signOutError ? <Text style={styles.error}>{signOutError}</Text> : null}
+
       <Pressable
+        disabled={signingOut}
         onPress={handleSignOut}
         style={({ pressed }) => [
           styles.logoutButton,
-          pressed && styles.pressed
+          pressed && styles.pressed,
+          signingOut && styles.disabled
         ]}
       >
-        <Text style={styles.logoutText}>ออกจากระบบ</Text>
+        {signingOut ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={theme.colors.danger} />
+            <Text style={styles.logoutText}>กำลังออกจากระบบ...</Text>
+          </View>
+        ) : (
+          <Text style={styles.logoutText}>ออกจากระบบ</Text>
+        )}
       </Pressable>
     </Screen>
   );
@@ -73,6 +121,23 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     lineHeight: 22
   },
+  noticeCard: {
+    padding: theme.spacing.md,
+    marginTop: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.warning,
+    backgroundColor: theme.colors.surface
+  },
+  noticeTitle: {
+    color: theme.colors.warning,
+    fontWeight: '800'
+  },
+  noticeText: {
+    marginTop: 6,
+    color: theme.colors.textMuted,
+    lineHeight: 21
+  },
   logoutButton: {
     minHeight: 50,
     alignItems: 'center',
@@ -82,11 +147,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.danger
   },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm
+  },
   pressed: {
     opacity: 0.75
+  },
+  disabled: {
+    opacity: 0.6
   },
   logoutText: {
     color: theme.colors.danger,
     fontWeight: '800'
+  },
+  error: {
+    marginTop: theme.spacing.md,
+    color: theme.colors.danger,
+    lineHeight: 20
   }
 });

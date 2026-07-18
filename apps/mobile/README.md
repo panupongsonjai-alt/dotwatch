@@ -1,27 +1,28 @@
-# dotWatch Mobile Foundation
+# dotWatch Mobile
 
-Mobile MVP foundation สำหรับ dotWatch โดยใช้ React Native, Expo Router,
-TypeScript, Firebase Authentication, Render REST API, TanStack Query
-และ WebSocket realtime เดิมของ Backend
+Mobile monitoring app สำหรับ dotWatch ใช้ React Native, Expo Router,
+TypeScript, Firebase Authentication, Render REST API, TanStack Query,
+WebSocket realtime และ Expo Push Notifications
 
-## ขอบเขตไฟล์ชุดนี้
+## ฟังก์ชันที่มีแล้ว
 
 - Login ด้วย Firebase Email/Password
-- Session ผ่าน Firebase Auth
-- Dashboard summary
-- Device list
-- Device detail
-- Temperature และ Humidity
-- WebSocket subscribe ด้วย Firebase ID Token
-- Pull to refresh
-- Settings และ Logout
-- Root npm scripts สำหรับ mobile
+- Firebase session persistence ผ่าน AsyncStorage บน Android/iOS
+- Dashboard summary และรายการ Device ล่าสุด
+- Device list และ Device detail
+- Dynamic Values ตามการตั้งค่าจริงของแต่ละ Device
+- Latest Value cards พร้อมชื่อ หน่วย และ decimal places
+- History chart แบบเลือก Value ได้ รองรับ 1h, 6h, 24h และ 7d
+- WebSocket realtime และ reconnect เมื่อกลับเข้า Foreground
+- Active Alarm, Alarm History และ Acknowledge
+- Expo Push Token register/unregister
+- Notification deep link ไปยัง Device Detail
+- Safe logout ที่ยกเลิก Push Token ของอุปกรณ์ก่อน Sign out
+- Environment validation ก่อนเปิด Firebase และ API
 
-ยังไม่รวม Alarm UI, History chart และ Push Notification ซึ่งควรทำใน phase ถัดไป
+## Environment
 
-## ติดตั้งบน Windows PowerShell
-
-จาก root ของ repository:
+คัดลอกไฟล์ตัวอย่างสำหรับการพัฒนาในเครื่อง:
 
 ```powershell
 Copy-Item `
@@ -29,33 +30,7 @@ Copy-Item `
   -Destination ".\apps\mobile\.env"
 ```
 
-แก้ไข `apps/mobile/.env` แล้วใส่ Firebase Web App configuration
-ชุดเดียวกับ Dashboard
-
-ติดตั้ง dependency:
-
-```powershell
-npm --prefix apps/mobile install
-```
-
-ตรวจ TypeScript:
-
-```powershell
-npm run check:mobile
-```
-
-เปิด Expo:
-
-```powershell
-npm run mobile:start
-```
-
-จากนั้น:
-
-- กด `a` เพื่อเปิด Android Emulator
-- หรือสแกน QR ด้วย Expo Go เมื่อคอมพิวเตอร์และมือถืออยู่เครือข่ายเดียวกัน
-
-## Environment
+กำหนดค่าให้ครบ:
 
 ```env
 EXPO_PUBLIC_API_URL=https://dotwatch-backend.onrender.com
@@ -69,42 +44,88 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 EXPO_PUBLIC_FIREBASE_APP_ID=
 ```
 
-ห้ามใส่ Firebase Admin private key, Render API key, Database URL
-หรือ Device Secret ลงใน Mobile App
+ห้ามใส่ Firebase Admin private key, Render API key, Database URL,
+Device Secret หรือ OTA private key ลงใน Mobile App
 
-## API ที่ใช้
+สำหรับ EAS Build ให้กำหนด `EXPO_PUBLIC_*` ชุดเดียวกันใน EAS Build Environment
+ไม่จำเป็นต้อง commit ไฟล์ `.env`
 
-```text
-GET /api/devices
-GET /api/devices/:id
+## ติดตั้งและตรวจสอบ
+
+```powershell
+Set-Location "D:\IoT Project\dotwatch"
+
+npm --prefix apps/mobile install
+npm --prefix apps/mobile run typecheck
+npm --prefix apps/mobile run check:release
 ```
 
-ทุก request ส่ง:
+`check:release` ตรวจ Environment จริงจาก `.env` หรือ Environment Variables
+และจะ FAIL เมื่อค่าที่จำเป็นไม่ครบ
+
+## เปิด Development App
+
+```powershell
+npm run mobile:start
+```
+
+Remote Push Notification ต้องทดสอบบน Development Build หรือ Preview APK
+บนอุปกรณ์จริง ไม่ใช่ Expo Go
+
+## Build ด้วย EAS
+
+ไม่ติดตั้ง `eas-cli` ไว้ใน project dependency ให้เรียกผ่าน `npx`:
+
+```powershell
+Set-Location "D:\IoT Project\dotwatch\apps\mobile"
+
+npx eas build --platform android --profile development
+npx eas build --platform android --profile preview
+npx eas build --platform android --profile production
+```
+
+## Backend migration สำหรับ Push Notification
+
+ตาราง `mobile_push_tokens` รวมอยู่ใน migration หลักแล้ว:
+
+```powershell
+npm --prefix services/backend run migrate
+```
+
+หรือรันเฉพาะ migration ของ Mobile Push:
+
+```powershell
+npm --prefix services/backend run mobile-push:migrate
+```
+
+Migration จะสร้างตารางและ index แบบ idempotent พร้อมป้องกัน Expo Push Token
+หนึ่งรายการถูกใช้งานโดยหลายบัญชีพร้อมกัน
+
+## API ที่ Mobile ใช้
+
+```text
+GET  /api/devices
+GET  /api/devices/:id
+GET  /api/devices/:id/metrics
+GET  /api/devices/:id/history
+GET  /api/alarm-states
+GET  /api/alarm-states/history
+POST /api/alarms/events/:id/acknowledge
+GET  /api/mobile-push/status
+POST /api/mobile-push/register
+POST /api/mobile-push/unregister
+```
+
+ทุก REST request ส่ง Firebase ID Token:
 
 ```http
 Authorization: Bearer <firebase-id-token>
 ```
 
-WebSocket ส่งหลังเชื่อมต่อ:
+## สิ่งที่ยังต้องยืนยันบนอุปกรณ์จริง
 
-```json
-{
-  "type": "subscribe",
-  "token": "<firebase-id-token>"
-}
-```
-
-## หมายเหตุเรื่อง Firebase persistence
-
-Firebase JS SDK บน React Native จะรักษาสถานะผู้ใช้ตามความสามารถของ runtime
-แต่ก่อน production release ควรเพิ่ม React Native AsyncStorage persistence
-และทดสอบ cold start บน Android release build โดยตรง
-
-## Phase ต่อไป
-
-1. Alarm list และ acknowledge
-2. History API และ chart
-3. Foreground/background AppState lifecycle สำหรับ WebSocket
-4. Expo Notifications/FCM push token
-5. EAS Android internal build
-6. Sentry และ production error handling
+- Cold start แล้วยัง Login อยู่
+- Foreground/background/killed-state Push Notification
+- แตะ Notification แล้วเปิด Device ที่ถูกต้อง
+- Logout แล้วบัญชีเดิมไม่รับ Push อีก
+- Preview APK และ Production AAB ติดตั้งและ Login ด้วย Firebase จริง

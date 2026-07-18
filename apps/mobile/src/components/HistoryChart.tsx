@@ -7,8 +7,9 @@ import type { HistoryPoint } from '@/types/history';
 
 interface HistoryChartProps {
   title: string;
-  unit: string;
+  unit?: string;
   points: HistoryPoint[];
+  decimalPlaces?: number;
 }
 
 const WIDTH = 320;
@@ -24,9 +25,16 @@ function toNumber(point: HistoryPoint): number | null {
 
 export function HistoryChart({
   title,
-  unit,
-  points
+  unit = '',
+  points,
+  decimalPlaces = 2
 }: HistoryChartProps) {
+  const normalizedDecimalPlaces = Math.min(
+    Math.max(Math.trunc(decimalPlaces), 0),
+    6
+  );
+  const unitSuffix = unit ? ` ${unit}` : '';
+
   const chart = useMemo(() => {
     const values = points
       .map(toNumber)
@@ -64,17 +72,19 @@ export function HistoryChart({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerText}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.muted}>
             {chart
-              ? `${chart.min.toFixed(1)}–${chart.max.toFixed(1)} ${unit}`
+              ? `${chart.min.toFixed(normalizedDecimalPlaces)}–${chart.max.toFixed(normalizedDecimalPlaces)}${unitSuffix}`
               : 'ยังไม่มีข้อมูล'}
           </Text>
         </View>
 
         <Text style={styles.latest}>
-          {chart ? `${chart.latest.toFixed(1)} ${unit}` : '--'}
+          {chart
+            ? `${chart.latest.toFixed(normalizedDecimalPlaces)}${unitSuffix}`
+            : '--'}
         </Text>
       </View>
 
@@ -132,6 +142,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: theme.spacing.sm
   },
+  headerText: {
+    flex: 1
+  },
   title: {
     color: theme.colors.text,
     fontSize: 16,
@@ -143,9 +156,11 @@ const styles = StyleSheet.create({
     fontSize: 12
   },
   latest: {
+    flexShrink: 1,
     color: theme.colors.primary,
-    fontSize: 18,
-    fontWeight: '800'
+    fontSize: 17,
+    fontWeight: '800',
+    textAlign: 'right'
   },
   empty: {
     height: HEIGHT,

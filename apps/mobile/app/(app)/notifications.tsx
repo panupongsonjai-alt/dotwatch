@@ -10,15 +10,11 @@ import {
 
 import {
   getPushStatus,
-  registerPushToken,
-  unregisterPushToken
+  registerPushToken
 } from '@/api/pushNotifications';
 import { Screen } from '@/components/Screen';
-import {
-  clearStoredExpoPushToken,
-  getStoredExpoPushToken,
-  requestExpoPushToken
-} from '@/services/notifications';
+import { requestExpoPushToken } from '@/services/notifications';
+import { unregisterStoredPushToken } from '@/services/pushRegistration';
 import { theme } from '@/theme';
 
 export default function NotificationsScreen() {
@@ -46,14 +42,11 @@ export default function NotificationsScreen() {
 
   const unregisterMutation = useMutation({
     mutationFn: async () => {
-      const token = await getStoredExpoPushToken();
+      const result = await unregisterStoredPushToken();
 
-      if (!token) {
+      if (!result.hadStoredToken) {
         throw new Error('ไม่พบ Push Token ที่บันทึกไว้ในอุปกรณ์นี้');
       }
-
-      await unregisterPushToken(token);
-      await clearStoredExpoPushToken();
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['push-status'] });

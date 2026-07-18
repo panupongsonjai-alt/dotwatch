@@ -1,9 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View
@@ -11,6 +13,7 @@ import {
 
 import { getDevice } from '@/api/devices';
 import { getMetricHistory } from '@/api/history';
+import { getDeviceMetrics } from '@/api/metrics';
 import { HistoryChart } from '@/components/HistoryChart';
 import { MetricCard } from '@/components/MetricCard';
 import { RangeSelector } from '@/components/RangeSelector';
@@ -22,9 +25,12 @@ import type { HistoryRange } from '@/types/history';
 import {
   formatDateTime,
   getDeviceName,
-  getLatestMetric,
   getStatusColor
 } from '@/utils/device';
+import {
+  deriveMetricsFromLatest,
+  getMetricLatestValue
+} from '@/utils/metric';
 
 export default function DeviceDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -33,6 +39,7 @@ export default function DeviceDetailScreen() {
   const queryClient = useQueryClient();
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [historyRange, setHistoryRange] = useState<HistoryRange>('24h');
+  const [selectedMetricKey, setSelectedMetricKey] = useState('');
 
   const deviceQuery = useQuery({
     queryKey: ['device', id],
@@ -40,26 +47,55 @@ export default function DeviceDetailScreen() {
     enabled: Boolean(id)
   });
 
-  const temperatureHistory = useQuery({
-    queryKey: ['history', id, 'temperature', historyRange],
-    queryFn: () =>
-      getMetricHistory({
-        deviceId: id || '',
-        metricKey: 'temperature',
-        range: historyRange
-      }),
+  const metricsQuery = useQuery({
+    queryKey: ['device-metrics', id],
+    queryFn: () => getDeviceMetrics(id || ''),
     enabled: Boolean(id)
   });
 
-  const humidityHistory = useQuery({
-    queryKey: ['history', id, 'humidity', historyRange],
+  const visibleMetrics = useMemo(() => {
+    const configured = (metricsQuery.data?.metrics || []).filter(
+      (metric) => metric.visible
+    );
+
+    if (configured.length > 0) return configured;
+    if (!deviceQuery.data) return [];
+
+    return deriveMetricsFromLatest(deviceQuery.data);
+  }, [deviceQuery.data, metricsQuery.data?.metrics]);
+
+  useEffect(() => {
+    if (visibleMetrics.length === 0) {
+      setSelectedMetricKey('');
+      return;
+    }
+
+    const selectedStillExists = visibleMetrics.some(
+      (metric) => metric.metric_key === selectedMetricKey
+    );
+
+    if (!selectedStillExists) {
+      setSelectedMetricKey(visibleMetrics[0]?.metric_key || '');
+    }
+  }, [selectedMetricKey, visibleMetrics]);
+
+  const selectedMetric = useMemo(
+    () =>
+      visibleMetrics.find(
+        (metric) => metric.metric_key === selectedMetricKey
+      ) || null,
+    [selectedMetricKey, visibleMetrics]
+  );
+
+  const historyQuery = useQuery({
+    queryKey: ['history', id, selectedMetric?.metric_key, historyRange],
     queryFn: () =>
       getMetricHistory({
         deviceId: id || '',
-        metricKey: 'humidity',
+        metricKey: selectedMetric?.metric_key || '',
         range: historyRange
       }),
-    enabled: Boolean(id)
+    enabled: Boolean(id && selectedMetric?.metric_key)
   });
 
   useEffect(() => {
@@ -94,17 +130,22 @@ export default function DeviceDetailScreen() {
   }, [id, queryClient, user]);
 
   const refreshAll = async () => {
-    await Promise.all([
+    const requests: Promise<unknown>[] = [
       deviceQuery.refetch(),
-      temperatureHistory.refetch(),
-      humidityHistory.refetch()
-    ]);
+      metricsQuery.refetch()
+    ];
+
+    if (selectedMetric) {
+      requests.push(historyQuery.refetch());
+    }
+
+    await Promise.all(requests);
   };
 
   const refreshing =
     deviceQuery.isRefetching ||
-    temperatureHistory.isRefetching ||
-    humidityHistory.isRefetching;
+    metricsQuery.isRefetching ||
+    historyQuery.isRefetching;
 
   if (deviceQuery.isLoading) {
     return (
@@ -125,16 +166,6 @@ export default function DeviceDetailScreen() {
   }
 
   const device = deviceQuery.data;
-  const temperature = getLatestMetric(device, [
-    'temperature',
-    'temp',
-    'metric_1'
-  ]);
-  const humidity = getLatestMetric(device, [
-    'humidity',
-    'hum',
-    'metric_2'
-  ]);
 
   return (
     <Screen
@@ -182,42 +213,96 @@ export default function DeviceDetailScreen() {
         </Text>
       </View>
 
-      <View style={styles.metricsRow}>
-        <MetricCard label="Temperature" value={temperature} unit="°C" />
-        <MetricCard label="Humidity" value={humidity} unit="%" />
-      </View>
+      {visibleMetrics.length > 0 ? (
+        <View style={styles.metricsRow}>
+          {visibleMetrics.map((metric) => (
+            <MetricCard
+              key={metric.metric_key}
+              decimalPlaces={metric.decimal_places}
+              label={metric.metric_name}
+              unit={metric.unit}
+              value={getMetricLatestValue(device, metric)}
+            />
+          ))}
+        </View>
+      ) : (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>ยังไม่มี Value สำหรับอุปกรณ์นี้</Text>
+        </View>
+      )}
+
+      {metricsQuery.isError ? (
+        <Text style={styles.warning}>
+          โหลดการตั้งค่า Value ไม่สำเร็จ จึงแสดง Value ล่าสุดที่อุปกรณ์ส่งมาแทน
+        </Text>
+      ) : null}
 
       <View style={styles.historyHeader}>
         <Text style={styles.sectionTitle}>History Trend</Text>
         <Text style={styles.sectionSubtitle}>
-          ข้อมูลย้อนหลังสูงสุด 300 จุดต่อ metric
+          เลือก Value เพื่อดูข้อมูลย้อนหลังสูงสุด 300 จุด
         </Text>
       </View>
+
+      {visibleMetrics.length > 0 ? (
+        <ScrollView
+          contentContainerStyle={styles.metricSelector}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        >
+          {visibleMetrics.map((metric) => {
+            const active = metric.metric_key === selectedMetricKey;
+
+            return (
+              <Pressable
+                key={metric.metric_key}
+                onPress={() => setSelectedMetricKey(metric.metric_key)}
+                style={({ pressed }) => [
+                  styles.metricSelectorButton,
+                  active && styles.metricSelectorButtonActive,
+                  pressed && styles.pressed
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.metricSelectorText,
+                    active && styles.metricSelectorTextActive
+                  ]}
+                >
+                  {metric.metric_name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : null}
 
       <RangeSelector value={historyRange} onChange={setHistoryRange} />
 
       <View style={styles.chartList}>
-        <HistoryChart
-          title="Temperature"
-          unit="°C"
-          points={temperatureHistory.data || []}
-        />
-        <HistoryChart
-          title="Humidity"
-          unit="%"
-          points={humidityHistory.data || []}
-        />
+        {historyQuery.isLoading && selectedMetric ? (
+          <View style={styles.chartLoading}>
+            <ActivityIndicator color={theme.colors.primary} />
+            <Text style={styles.connectionText}>กำลังโหลด History...</Text>
+          </View>
+        ) : selectedMetric ? (
+          <HistoryChart
+            decimalPlaces={selectedMetric.decimal_places}
+            points={historyQuery.data || []}
+            title={selectedMetric.metric_name}
+            unit={selectedMetric.unit}
+          />
+        ) : (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>เลือก Value เพื่อดู History</Text>
+          </View>
+        )}
       </View>
 
-      {temperatureHistory.isError ? (
+      {historyQuery.isError ? (
         <Text style={styles.error}>
-          Temperature history: {temperatureHistory.error.message}
-        </Text>
-      ) : null}
-
-      {humidityHistory.isError ? (
-        <Text style={styles.error}>
-          Humidity history: {humidityHistory.error.message}
+          {selectedMetric?.metric_name || 'Value'} history:{' '}
+          {historyQuery.error.message}
         </Text>
       ) : null}
 
@@ -237,6 +322,10 @@ export default function DeviceDetailScreen() {
         <InfoRow
           label="Firmware"
           value={device.firmware_version || '-'}
+        />
+        <InfoRow
+          label="Visible values"
+          value={String(visibleMetrics.length)}
         />
       </View>
     </Screen>
@@ -310,6 +399,23 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     marginTop: theme.spacing.md
   },
+  emptyCard: {
+    marginTop: theme.spacing.md,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface
+  },
+  emptyText: {
+    color: theme.colors.textMuted,
+    textAlign: 'center'
+  },
+  warning: {
+    marginTop: theme.spacing.sm,
+    color: theme.colors.warning,
+    lineHeight: 20
+  },
   historyHeader: {
     marginTop: theme.spacing.xl,
     marginBottom: theme.spacing.md
@@ -324,9 +430,46 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     fontSize: 12
   },
+  metricSelector: {
+    gap: theme.spacing.sm,
+    paddingBottom: theme.spacing.sm
+  },
+  metricSelectorButton: {
+    minHeight: 40,
+    justifyContent: 'center',
+    paddingHorizontal: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 999,
+    backgroundColor: theme.colors.surface
+  },
+  metricSelectorButtonActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceRaised
+  },
+  metricSelectorText: {
+    color: theme.colors.textMuted,
+    fontWeight: '700'
+  },
+  metricSelectorTextActive: {
+    color: theme.colors.primary
+  },
+  pressed: {
+    opacity: 0.78
+  },
   chartList: {
     gap: theme.spacing.sm,
     marginTop: theme.spacing.md
+  },
+  chartLoading: {
+    minHeight: 210,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface
   },
   infoCard: {
     marginTop: theme.spacing.lg,
