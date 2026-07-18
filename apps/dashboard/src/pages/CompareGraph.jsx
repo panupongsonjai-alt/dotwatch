@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import {
   PageHeader,
+  StatCard,
   TablePagination,
   UnifiedSelect,
 } from '../components/common'
@@ -473,16 +474,6 @@ function buildChartData(rows = []) {
 
   return Array.from(dataMap.values()).sort(
     (left, right) => new Date(left.time) - new Date(right.time)
-  )
-}
-
-function CompareStatCard({ label, value, hint }) {
-  return (
-    <article className="history-stat-card compare-stat-card">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <p>{hint}</p>
-    </article>
   )
 }
 
@@ -1101,23 +1092,23 @@ function CompareGraph() {
         description="เปรียบเทียบกราฟข้อมูลย้อนหลังของ Value เดียวกันข้ามหลาย Device ในช่วงเวลาเดียวกัน"
       />
 
-      <section className="history-stat-grid history-stat-grid-tight">
-        <CompareStatCard
+      <section className="dw-page-stat-grid compare-stat-grid">
+        <StatCard
           label="Records"
           value={loadingHistory ? '...' : rows.length.toLocaleString('th-TH')}
           hint="จำนวนจุดข้อมูลทั้งหมดจากทุก Device"
         />
-        <CompareStatCard
+        <StatCard
           label="Devices"
           value={selectedDevices.length}
           hint={`เลือกได้สูงสุด ${MAX_SELECTED_DEVICES} Device ต่อครั้ง`}
         />
-        <CompareStatCard
+        <StatCard
           label="Series"
           value={series.length}
           hint="จำนวนเส้นกราฟที่กำลังเปรียบเทียบ"
         />
-        <CompareStatCard
+        <StatCard
           label="Last Update"
           value={loadingHistory ? '...' : formatDateTime(latestTimestamp)}
           hint="เวลาข้อมูลล่าสุดในผลการเปรียบเทียบ"
