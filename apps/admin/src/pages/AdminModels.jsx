@@ -1,4 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import EmptyState from '../components/common/EmptyState'
+import LoadingState from '../components/common/LoadingState'
+import StatCard from '../components/common/StatCard'
+import StatusBadge from '../components/common/StatusBadge'
+import UnifiedSelect from '../components/common/UnifiedSelect'
 import {
   createAdminDeviceModel,
   deleteAdminDeviceModel,
@@ -11,7 +16,7 @@ const EMPTY_FORM = {
   id: null,
   modelKey: '',
   modelName: '',
-  metricCount: 3,
+  metricCount: 0,
   description: '',
   isActive: true,
   metrics: [],
@@ -43,6 +48,8 @@ const DEFAULT_ESP32_FORM = {
     },
   ],
 }
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50]
 
 function buildMetrics(metricCount, existingMetrics = []) {
   const count = Math.max(0, Number(metricCount || 0))
@@ -104,6 +111,9 @@ function AdminModels({ adminUser }) {
   const [models, setModels] = useState([])
   const [form, setForm] = useState(DEFAULT_ESP32_FORM)
   const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [pageSize, setPageSize] = useState(20)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
@@ -128,22 +138,48 @@ function AdminModels({ adminUser }) {
     })
   }
 
-  const filteredModels = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return models
+  const summary = useMemo(
+    () => ({
+      total: models.length,
+      active: models.filter((model) => model.isActive).length,
+      devices: models.reduce(
+        (total, model) => total + Number(model.deviceCount || 0),
+        0
+      ),
+      values: models.reduce(
+        (total, model) => total + Number(model.metricCount || 0),
+        0
+      ),
+    }),
+    [models]
+  )
 
-    return models.filter((model) =>
-      [
-        model.modelKey,
-        model.modelName,
-        model.description,
-        model.isActive ? 'active' : 'inactive',
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(q)
-    )
-  }, [models, query])
+  const filteredModels = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase()
+
+    return models.filter((model) => {
+      const matchesQuery = normalizedQuery
+        ? [model.modelKey, model.modelName, model.description]
+            .join(' ')
+            .toLowerCase()
+            .includes(normalizedQuery)
+        : true
+
+      const matchesStatus =
+        statusFilter === 'all'
+          ? true
+          : statusFilter === 'active'
+            ? model.isActive
+            : !model.isActive
+
+      return matchesQuery && matchesStatus
+    })
+  }, [models, query, statusFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredModels.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const pageStart = (currentPage - 1) * pageSize
+  const pagedModels = filteredModels.slice(pageStart, pageStart + pageSize)
 
   async function loadModels({ showLoading = true } = {}) {
     try {
@@ -165,8 +201,9 @@ function AdminModels({ adminUser }) {
 
     getAdminDeviceModels()
       .then((data) => {
-        if (active)
+        if (active) {
           setModels(Array.isArray(data) ? data.map(normalizeModel) : [])
+        }
       })
       .catch((error) => {
         if (!active) return
@@ -192,8 +229,17 @@ function AdminModels({ adminUser }) {
     })
   }
 
+  function openEditor(nextForm) {
+    resetForm(nextForm)
+    requestAnimationFrame(() => {
+      document
+        .getElementById('admin-model-editor')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
   function editModel(model) {
-    resetForm({
+    openEditor({
       ...model,
       metrics: buildMetrics(model.metricCount, model.metrics),
     })
@@ -239,11 +285,19 @@ function AdminModels({ adminUser }) {
       return
     }
 
+    const modelKey = form.modelKey.trim()
+    const modelName = form.modelName.trim()
+
+    if (!modelKey || !modelName) {
+      showModelNotice('Model Key and Model Name are required', 'error')
+      return
+    }
+
     try {
       setSaving(true)
       const payload = {
-        modelKey: form.modelKey.trim(),
-        modelName: form.modelName.trim(),
+        modelKey,
+        modelName,
         metricCount: Number(form.metricCount || 0),
         description: form.description.trim(),
         isActive: Boolean(form.isActive),
@@ -258,7 +312,7 @@ function AdminModels({ adminUser }) {
         showModelNotice('Model created', 'success')
       }
 
-      await loadModels()
+      await loadModels({ showLoading: false })
       resetForm(EMPTY_FORM)
     } catch (error) {
       console.error(error)
@@ -287,21 +341,10 @@ function AdminModels({ adminUser }) {
       setSaving(true)
       await deleteAdminDeviceModel(model.id)
       showModelNotice('Model deactivated', 'success')
-      showAdminToast({
-        type: 'success',
-        title: 'Success',
-        message: 'Model deactivated',
-      })
-      await loadModels()
+      await loadModels({ showLoading: false })
     } catch (error) {
       console.error(error)
-      const message = error.message || 'Failed to deactivate model'
-      showModelNotice(message, 'error')
-      showAdminToast({
-        type: 'error',
-        title: 'Unable to delete model',
-        message,
-      })
+      showModelNotice(error.message || 'Failed to deactivate model', 'error')
     } finally {
       setSaving(false)
     }
@@ -324,7 +367,7 @@ function AdminModels({ adminUser }) {
         metrics: buildMetrics(model.metricCount, model.metrics),
       })
       showModelNotice('Model restored', 'success')
-      await loadModels()
+      await loadModels({ showLoading: false })
     } catch (error) {
       console.error(error)
       showModelNotice(error.message || 'Failed to restore model', 'error')
@@ -334,18 +377,33 @@ function AdminModels({ adminUser }) {
   }
 
   return (
-    <section className="admin-page">
-      <div className="page-header">
+    <section className="admin-page admin-models-page">
+      <div className="page-header admin-models-page-header">
         <div>
           <p className="eyebrow">Device catalog</p>
-          <h1>Model List</h1>
+          <h1>Device Models</h1>
           <span>
-            เพิ่ม ลบ แก้ไข model ที่ใช้ในหน้า Create Device ของ Dashboard
+            จัดการรุ่นอุปกรณ์และค่าเริ่มต้นที่ใช้ในหน้า Create Device
           </span>
         </div>
-        <span className="page-chip">
-          {models.filter((model) => model.isActive).length} active
-        </span>
+
+        <div className="admin-models-header-actions">
+          <button
+            type="button"
+            onClick={() => loadModels()}
+            disabled={loading || saving}
+          >
+            Refresh
+          </button>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => openEditor(EMPTY_FORM)}
+            disabled={saving || !canWrite}
+          >
+            Create Model
+          </button>
+        </div>
       </div>
 
       {notice ? (
@@ -357,200 +415,131 @@ function AdminModels({ adminUser }) {
         </div>
       ) : null}
 
-      <div className="admin-two-column admin-models-layout">
-        <article className="admin-panel">
-          <div className="panel-header">
-            <div>
-              <h3>{form.id ? 'Edit Model' : 'Create Model'}</h3>
-              <span>Value rows will become defaults for new devices.</span>
-            </div>
-            <button
-              type="button"
-              className="primary-button"
-              onClick={() => resetForm(DEFAULT_ESP32_FORM)}
-              disabled={saving}
-            >
-              ESP32 template
-            </button>
+      <div className="admin-stat-grid admin-models-stat-grid">
+        <StatCard
+          label="Total Models"
+          value={summary.total}
+          helper="All registered device models"
+        />
+        <StatCard
+          label="Active Models"
+          value={summary.active}
+          helper="Available in Create Device"
+          tone="success"
+        />
+        <StatCard
+          label="Assigned Devices"
+          value={summary.devices}
+          helper="Devices using these models"
+          tone="info"
+        />
+        <StatCard
+          label="Default Values"
+          value={summary.values}
+          helper="Configured values across models"
+          tone="warning"
+        />
+      </div>
+
+      <article className="admin-panel admin-model-catalog-panel">
+        <div className="panel-header admin-model-catalog-header">
+          <div>
+            <h3>Model Catalog</h3>
+            <span>
+              {filteredModels.length} of {models.length} records
+            </span>
           </div>
+        </div>
 
-          <form className="admin-model-form" onSubmit={handleSubmit}>
-            <label>
-              Model Key
-              <input
-                value={form.modelKey}
-                onChange={(event) =>
-                  updateField('modelKey', event.target.value)
-                }
-                placeholder="esp32_dht3"
-                disabled={saving || !canWrite}
-              />
-            </label>
+        <div className="admin-toolbar admin-models-toolbar">
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setPage(1)
+            }}
+            placeholder="Search model name, key or description..."
+          />
 
-            <label>
-              Model Name
-              <input
-                value={form.modelName}
-                onChange={(event) =>
-                  updateField('modelName', event.target.value)
-                }
-                placeholder="ESP32-DHT3"
-                disabled={saving || !canWrite}
-              />
-            </label>
+          <UnifiedSelect
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(event.target.value)
+              setPage(1)
+            }}
+            aria-label="Filter model status"
+          >
+            <option value="all">All status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </UnifiedSelect>
 
-            <label>
-              Value Count
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={form.metricCount}
-                onChange={(event) =>
-                  updateField('metricCount', event.target.value)
-                }
-                disabled={saving || !canWrite}
-              />
-            </label>
+          <UnifiedSelect
+            value={String(pageSize)}
+            onChange={(event) => {
+              setPageSize(Number(event.target.value))
+              setPage(1)
+            }}
+            aria-label="Rows per page"
+          >
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <option key={size} value={String(size)}>
+                {size} rows
+              </option>
+            ))}
+          </UnifiedSelect>
+        </div>
 
-            <label className="admin-model-full">
-              Description
-              <input
-                value={form.description}
-                onChange={(event) =>
-                  updateField('description', event.target.value)
-                }
-                placeholder="Short model description"
-                disabled={saving || !canWrite}
-              />
-            </label>
-
-            <label className="admin-model-check">
-              <input
-                type="checkbox"
-                checked={Boolean(form.isActive)}
-                onChange={(event) =>
-                  updateField('isActive', event.target.checked)
-                }
-                disabled={saving || !canWrite}
-              />
-              Active in Dashboard Create Device
-            </label>
-
-            <div className="admin-model-metrics">
-              <div className="panel-header">
-                <h3>Default Values</h3>
-                <span>{form.metrics.length} rows</span>
-              </div>
-
-              {form.metrics.map((metric, index) => (
-                <div className="admin-model-metric-row" key={metric.metricKey}>
-                  <strong>{metric.metricKey}</strong>
-                  <input
-                    value={metric.defaultName}
-                    onChange={(event) =>
-                      updateMetric(index, 'defaultName', event.target.value)
-                    }
-                    placeholder="Display name"
-                    disabled={saving || !canWrite}
-                  />
-                  <input
-                    value={metric.defaultType}
-                    onChange={(event) =>
-                      updateMetric(index, 'defaultType', event.target.value)
-                    }
-                    placeholder="type"
-                    disabled={saving || !canWrite}
-                  />
-                  <input
-                    value={metric.defaultUnit}
-                    onChange={(event) =>
-                      updateMetric(index, 'defaultUnit', event.target.value)
-                    }
-                    placeholder="unit"
-                    disabled={saving || !canWrite}
-                  />
-                  <input
-                    value={metric.defaultIcon}
-                    onChange={(event) =>
-                      updateMetric(index, 'defaultIcon', event.target.value)
-                    }
-                    placeholder="icon"
-                    disabled={saving || !canWrite}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="table-actions">
-              <button
-                type="submit"
-                className="success"
-                disabled={saving || !canWrite}
-              >
-                {form.id ? 'Save Changes' : 'Create Model'}
-              </button>
-              <button
-                type="button"
-                onClick={() => resetForm(EMPTY_FORM)}
-                disabled={saving}
-              >
-                Clear
-              </button>
-            </div>
-          </form>
-        </article>
-
-        <article className="admin-panel">
-          <div className="panel-header">
-            <div>
-              <h3>Models</h3>
-              <span>{filteredModels.length} records</span>
-            </div>
-          </div>
-
-          <div className="admin-toolbar">
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search model key, name, status..."
-            />
-          </div>
-
-          <div className="table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Model</th>
-                  <th>Values</th>
-                  <th>Devices</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
+        {loading ? (
+          <LoadingState title="Loading device models..." rows={4} />
+        ) : filteredModels.length === 0 ? (
+          <EmptyState
+            title="No device models found"
+            description="Try changing the search text or status filter."
+          />
+        ) : (
+          <>
+            <div className="table-wrap admin-models-table-wrap">
+              <table className="admin-table admin-models-table">
+                <thead>
                   <tr>
-                    <td colSpan="5">Loading models...</td>
+                    <th>Model</th>
+                    <th>Model Key</th>
+                    <th>Values</th>
+                    <th>Devices</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                ) : filteredModels.length ? (
-                  filteredModels.map((model) => (
+                </thead>
+                <tbody>
+                  {pagedModels.map((model) => (
                     <tr key={model.id}>
                       <td>
                         <strong>{model.modelName}</strong>
-                        <span>{model.modelKey}</span>
-                      </td>
-                      <td>{model.metricCount}</td>
-                      <td>{model.deviceCount}</td>
-                      <td>
-                        <span
-                          className={`status-badge ${model.isActive ? 'active' : 'suspended'}`}
-                        >
-                          {model.isActive ? 'active' : 'inactive'}
-                        </span>
+                        <span>{model.description || 'No description'}</span>
                       </td>
                       <td>
-                        <div className="table-actions">
+                        <code className="admin-model-key">
+                          {model.modelKey}
+                        </code>
+                      </td>
+                      <td>
+                        <strong>{model.metricCount}</strong>
+                        <span>default values</span>
+                      </td>
+                      <td>
+                        <strong>{model.deviceCount}</strong>
+                        <span>assigned devices</span>
+                      </td>
+                      <td>
+                        <StatusBadge
+                          status={model.isActive ? 'active' : 'offline'}
+                          label={model.isActive ? 'Active' : 'Inactive'}
+                        />
+                      </td>
+                      <td>
+                        <div className="table-actions admin-model-row-actions">
                           <button
                             type="button"
                             onClick={() => editModel(model)}
@@ -580,17 +569,256 @@ function AdminModels({ adminUser }) {
                         </div>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5">No models found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="admin-models-pagination">
+              <span>
+                Showing {pageStart + 1}-
+                {Math.min(pageStart + pageSize, filteredModels.length)} of{' '}
+                {filteredModels.length}
+              </span>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={currentPage <= 1}
+                >
+                  Previous
+                </button>
+                <span>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPage((current) => Math.min(totalPages, current + 1))
+                  }
+                  disabled={currentPage >= totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </article>
+
+      <article
+        id="admin-model-editor"
+        className="admin-panel admin-model-editor-panel"
+      >
+        <div className="panel-header admin-model-editor-header">
+          <div>
+            <p className="eyebrow">Model editor</p>
+            <h3>{form.id ? `Edit ${form.modelName}` : 'Create Device Model'}</h3>
+            <span>
+              Default values will be copied to newly created devices.
+            </span>
           </div>
-        </article>
-      </div>
+
+          <div className="admin-model-editor-actions">
+            <button
+              type="button"
+              onClick={() => resetForm(DEFAULT_ESP32_FORM)}
+              disabled={saving || !canWrite}
+            >
+              ESP32 Template
+            </button>
+            <button
+              type="button"
+              onClick={() => resetForm(EMPTY_FORM)}
+              disabled={saving}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {!canWrite ? (
+          <div className="admin-model-readonly-note">
+            This account has read-only access. Super admin permission is required
+            to create, edit, restore or delete models.
+          </div>
+        ) : null}
+
+        <form className="admin-model-form" onSubmit={handleSubmit}>
+          <div className="admin-model-general-grid">
+            <label>
+              <span>Model Key</span>
+              <input
+                value={form.modelKey}
+                onChange={(event) =>
+                  updateField('modelKey', event.target.value)
+                }
+                placeholder="esp32_dht3"
+                disabled={saving || !canWrite}
+                required
+              />
+              <small>Unique key used by firmware and API.</small>
+            </label>
+
+            <label>
+              <span>Model Name</span>
+              <input
+                value={form.modelName}
+                onChange={(event) =>
+                  updateField('modelName', event.target.value)
+                }
+                placeholder="ESP32-DHT3"
+                disabled={saving || !canWrite}
+                required
+              />
+              <small>Name displayed in Admin and Dashboard.</small>
+            </label>
+
+            <label>
+              <span>Value Count</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={form.metricCount}
+                onChange={(event) =>
+                  updateField('metricCount', event.target.value)
+                }
+                disabled={saving || !canWrite}
+              />
+              <small>Creates the default value rows below.</small>
+            </label>
+
+            <label className="admin-model-active-field">
+              <span>Availability</span>
+              <span className="admin-model-check-control">
+                <input
+                  type="checkbox"
+                  checked={Boolean(form.isActive)}
+                  onChange={(event) =>
+                    updateField('isActive', event.target.checked)
+                  }
+                  disabled={saving || !canWrite}
+                />
+                <span>Active in Dashboard Create Device</span>
+              </span>
+              <small>Inactive models remain visible to Admin only.</small>
+            </label>
+
+            <label className="admin-model-description-field">
+              <span>Description</span>
+              <textarea
+                value={form.description}
+                onChange={(event) =>
+                  updateField('description', event.target.value)
+                }
+                placeholder="Describe hardware, sensors and intended usage"
+                rows="3"
+                disabled={saving || !canWrite}
+              />
+            </label>
+          </div>
+
+          <section className="admin-model-metrics-editor">
+            <div className="admin-model-metrics-heading">
+              <div>
+                <h3>Default Values</h3>
+                <span>{form.metrics.length} configured rows</span>
+              </div>
+              <span className="page-chip">{form.metricCount} Values</span>
+            </div>
+
+            {form.metrics.length === 0 ? (
+              <EmptyState
+                title="No default values"
+                description="Increase Value Count to configure model values."
+              />
+            ) : (
+              <div className="admin-model-metric-list">
+                <div className="admin-model-metric-head" aria-hidden="true">
+                  <span>Key</span>
+                  <span>Display Name</span>
+                  <span>Type</span>
+                  <span>Unit</span>
+                  <span>Icon</span>
+                </div>
+
+                {form.metrics.map((metric, index) => (
+                  <div
+                    className="admin-model-metric-row"
+                    key={metric.metricKey}
+                  >
+                    <code>{metric.metricKey}</code>
+                    <label>
+                      <span>Display Name</span>
+                      <input
+                        value={metric.defaultName}
+                        onChange={(event) =>
+                          updateMetric(index, 'defaultName', event.target.value)
+                        }
+                        placeholder="Display name"
+                        disabled={saving || !canWrite}
+                      />
+                    </label>
+                    <label>
+                      <span>Type</span>
+                      <input
+                        value={metric.defaultType}
+                        onChange={(event) =>
+                          updateMetric(index, 'defaultType', event.target.value)
+                        }
+                        placeholder="custom"
+                        disabled={saving || !canWrite}
+                      />
+                    </label>
+                    <label>
+                      <span>Unit</span>
+                      <input
+                        value={metric.defaultUnit}
+                        onChange={(event) =>
+                          updateMetric(index, 'defaultUnit', event.target.value)
+                        }
+                        placeholder="Unit"
+                        disabled={saving || !canWrite}
+                      />
+                    </label>
+                    <label>
+                      <span>Icon</span>
+                      <input
+                        value={metric.defaultIcon}
+                        onChange={(event) =>
+                          updateMetric(index, 'defaultIcon', event.target.value)
+                        }
+                        placeholder="Activity"
+                        disabled={saving || !canWrite}
+                      />
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <div className="admin-model-form-footer">
+            <span>
+              {form.id
+                ? 'Saving updates changes the defaults for future devices.'
+                : 'Create the model when all default values are ready.'}
+            </span>
+            <button
+              type="submit"
+              className="success"
+              disabled={saving || !canWrite}
+            >
+              {saving
+                ? 'Saving...'
+                : form.id
+                  ? 'Save Changes'
+                  : 'Create Model'}
+            </button>
+          </div>
+        </form>
+      </article>
     </section>
   )
 }

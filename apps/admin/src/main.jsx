@@ -13,6 +13,7 @@ import './styles/admin-sidebar-dashboard-indicator.css'
 import './styles/statcard-dashboard-parity.css'
 import './styles/admin-overview-record-list.css'
 import './styles/admin-settings-dashboard-parity.css'
+import './styles/admin-device-models-dashboard-parity.css'
 
 applyAdminUiPreferences()
 

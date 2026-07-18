@@ -1,0 +1,356 @@
+/* =========================================================
+   Admin Device Models — dashboard parity and scalable catalog
+========================================================= */
+
+.admin-models-page {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-models-page-header,
+.admin-model-catalog-header,
+.admin-model-editor-header,
+.admin-model-metrics-heading,
+.admin-model-form-footer,
+.admin-models-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-models-header-actions,
+.admin-model-editor-actions,
+.admin-model-row-actions,
+.admin-models-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-models-stat-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-model-catalog-panel,
+.admin-model-editor-panel {
+  min-width: 0;
+}
+
+.admin-models-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(150px, 190px) minmax(130px, 160px);
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.admin-models-toolbar > input,
+.admin-models-toolbar .unified-select {
+  min-width: 0;
+}
+
+.admin-models-table-wrap {
+  max-height: min(620px, 62vh);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.admin-models-table {
+  min-width: 920px;
+}
+
+.admin-models-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--panel);
+}
+
+.admin-models-table td:first-child {
+  min-width: 240px;
+  max-width: 360px;
+}
+
+.admin-models-table td:first-child > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-model-key,
+.admin-model-metric-row > code {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 9px;
+  color: var(--heading);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.admin-models-pagination {
+  padding-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-models-pagination > div > span {
+  min-width: 100px;
+  text-align: center;
+}
+
+.admin-model-editor-panel {
+  scroll-margin-top: 18px;
+}
+
+.admin-model-readonly-note {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel-2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-model-form {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.admin-model-general-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-model-general-grid > label,
+.admin-model-metric-row > label {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-model-general-grid > label > span:first-child {
+  color: var(--text);
+}
+
+.admin-model-general-grid small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.admin-model-description-field {
+  grid-column: 1 / -1;
+}
+
+.admin-model-form input,
+.admin-model-form textarea {
+  width: 100%;
+  min-width: 0;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-2);
+  outline: none;
+}
+
+.admin-model-form input {
+  min-height: 42px;
+  padding: 10px 12px;
+}
+
+.admin-model-form textarea {
+  min-height: 86px;
+  padding: 12px;
+  resize: vertical;
+}
+
+.admin-model-form input:focus,
+.admin-model-form textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.admin-model-check-control {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  gap: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-2);
+  font-size: 12px;
+}
+
+.admin-model-check-control input {
+  width: 18px;
+  min-height: 18px;
+  height: 18px;
+  padding: 0;
+}
+
+.admin-model-metrics-editor {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel-2);
+}
+
+.admin-model-metrics-heading h3 {
+  margin: 0;
+}
+
+.admin-model-metrics-heading span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-model-metric-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-model-metric-head,
+.admin-model-metric-row {
+  display: grid;
+  grid-template-columns: 100px minmax(180px, 1.25fr) minmax(130px, 0.8fr) minmax(100px, 0.55fr) minmax(130px, 0.75fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-model-metric-head {
+  padding: 0 12px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-model-metric-row {
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.admin-model-metric-row > label > span {
+  display: none;
+}
+
+.admin-model-form-footer {
+  padding-top: 4px;
+}
+
+.admin-model-form-footer > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-model-form-footer button {
+  min-width: 150px;
+}
+
+@media (max-width: 1180px) {
+  .admin-models-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-model-general-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-model-metric-head {
+    display: none;
+  }
+
+  .admin-model-metric-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-model-metric-row > code {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .admin-model-metric-row > label > span {
+    display: block;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-models-page-header,
+  .admin-model-catalog-header,
+  .admin-model-editor-header,
+  .admin-model-form-footer,
+  .admin-models-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-models-header-actions,
+  .admin-model-editor-actions,
+  .admin-models-pagination > div {
+    width: 100%;
+  }
+
+  .admin-models-header-actions > button,
+  .admin-model-editor-actions > button,
+  .admin-models-pagination > div > button {
+    flex: 1;
+  }
+
+  .admin-models-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-model-general-grid,
+  .admin-model-metric-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-model-description-field,
+  .admin-model-metric-row > code {
+    grid-column: auto;
+  }
+
+  .admin-model-form-footer button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .admin-models-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-models-pagination > div {
+    flex-wrap: wrap;
+  }
+
+  .admin-models-pagination > div > span {
+    order: -1;
+    width: 100%;
+  }
+}
