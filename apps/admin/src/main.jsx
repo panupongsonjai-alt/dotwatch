@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import UiFeedbackHost from './components/common/UiFeedbackHost.jsx'
+import { applyAdminUiPreferences } from './utils/adminUiPreferences.js'
 import './styles/admin.css'
 import './styles/phase11g-admin-dashboard-parity.css'
 import './styles/phase11i-admin-comfort-parity.css'
@@ -11,6 +12,9 @@ import './styles/responsive-all-devices.css'
 import './styles/admin-sidebar-dashboard-indicator.css'
 import './styles/statcard-dashboard-parity.css'
 import './styles/admin-overview-record-list.css'
+import './styles/admin-settings-dashboard-parity.css'
+
+applyAdminUiPreferences()
 
 const rootElement = document.getElementById('root')
 
