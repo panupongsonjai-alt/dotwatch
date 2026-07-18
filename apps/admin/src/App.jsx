@@ -118,7 +118,6 @@ function App() {
   const [plans, setPlans] = useState([])
   const [commercialSummary, setCommercialSummary] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [reloadKey, setReloadKey] = useState(0)
   const [notice, setNotice] = useState(null)
 
   useEffect(() => {
@@ -268,7 +267,7 @@ function App() {
     return () => {
       active = false
     }
-  }, [adminUser, reloadKey])
+  }, [adminUser])
 
   useEffect(() => {
     function handleApiEvent(event) {
@@ -291,10 +290,6 @@ function App() {
       window.removeEventListener('dotwatchAdminApiAuthError', handleApiEvent)
     }
   }, [])
-
-  function refreshAdminData() {
-    setReloadKey((current) => current + 1)
-  }
 
   function handleSidebarOpenChange(nextValue) {
     const resolvedValue =
@@ -429,16 +424,6 @@ function App() {
           />
         ) : null}
 
-        <div className="admin-page-toolbar">
-          <button
-            type="button"
-            className="ghost-button"
-            onClick={refreshAdminData}
-            disabled={loading}
-          >
-            {loading ? 'Refreshing...' : 'Refresh admin data'}
-          </button>
-        </div>
 
         <AppErrorBoundary
           key={activePage}
