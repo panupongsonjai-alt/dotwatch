@@ -3,6 +3,7 @@ import LoadingState from '../components/common/LoadingState'
 import StatusBadge from '../components/common/StatusBadge'
 import UsageBar from '../components/common/UsageBar'
 import UnifiedSelect from '../components/common/UnifiedSelect'
+import { formatDatabaseUsageGb } from '../utils/formatters'
 
 function AdminUsers({ users, loading, onUpdateUserStatus }) {
   const [query, setQuery] = useState('')
@@ -62,6 +63,7 @@ function AdminUsers({ users, loading, onUpdateUserStatus }) {
                   <th>Plan</th>
                   <th>Status</th>
                   <th>Devices</th>
+                  <th>Database Usage</th>
                   <th>Created</th>
                   <th>Last Login</th>
                   <th>Actions</th>
@@ -81,6 +83,18 @@ function AdminUsers({ users, loading, onUpdateUserStatus }) {
                     </td>
                     <td>
                       <UsageBar user={user} />
+                    </td>
+                    <td>
+                      <strong className="admin-database-usage-value">
+                        {user.databaseUsagePending
+                          ? 'Calculating...'
+                          : formatDatabaseUsageGb(user.databaseUsageBytes)}
+                      </strong>
+                      <span>
+                        {user.databaseUsagePending
+                          ? 'Snapshot pending'
+                          : `Updated ${user.databaseUsageCalculatedAt || '-'}`}
+                      </span>
                     </td>
                     <td>{user.createdAt}</td>
                     <td>{user.lastLoginAt}</td>

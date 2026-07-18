@@ -1,7 +1,7 @@
 import LoadingState from '../components/common/LoadingState'
 import StatCard from '../components/common/StatCard'
 import StatusBadge from '../components/common/StatusBadge'
-import { formatNumber } from '../utils/formatters'
+import { formatDatabaseUsageGb, formatNumber } from '../utils/formatters'
 
 const OVERVIEW_LIST_LIMIT = 12
 
@@ -87,6 +87,7 @@ function AdminOverview({ stats, users, devices, loading }) {
               <div className="admin-overview-record-columns" aria-hidden="true">
                 <span>User</span>
                 <span>Plan</span>
+                <span>Database Usage</span>
                 <span>Created</span>
                 <span>Status</span>
               </div>
@@ -104,6 +105,18 @@ function AdminOverview({ stats, users, devices, loading }) {
                     </div>
                     <span className="admin-overview-record-value">
                       {getValue(user, ['plan', 'planName', 'plan_name'])}
+                    </span>
+                    <span
+                      className="admin-overview-record-value admin-overview-record-storage"
+                      title={
+                        user.databaseUsagePending
+                          ? 'Database usage is being calculated'
+                          : `Calculated ${getValue(user, ['databaseUsageCalculatedAt'])}`
+                      }
+                    >
+                      {user.databaseUsagePending
+                        ? 'Calculating...'
+                        : formatDatabaseUsageGb(user.databaseUsageBytes)}
                     </span>
                     <span className="admin-overview-record-value">
                       {getValue(user, ['createdAt', 'created_at'])}

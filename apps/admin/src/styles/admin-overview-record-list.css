@@ -68,14 +68,15 @@
   display: grid;
   align-items: center;
   gap: 14px;
-  min-width: 760px;
+  min-width: 900px;
 }
 
 .admin-overview-record-columns,
 .admin-overview-user-row {
   grid-template-columns:
     minmax(240px, 1.7fr)
-    minmax(120px, 0.7fr)
+    minmax(110px, 0.65fr)
+    minmax(150px, 0.9fr)
     minmax(150px, 0.9fr)
     minmax(110px, 0.65fr);
 }
@@ -179,6 +180,15 @@
   color: var(--muted);
   font-size: 13px;
   font-weight: 800;
+}
+
+
+
+.admin-overview-record-storage,
+.admin-database-usage-value {
+  color: var(--text) !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900 !important;
 }
 
 @media (max-width: 760px) {

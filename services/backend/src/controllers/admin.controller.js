@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { pool } from '../db/pool.js'
 import { createAdminAuditLog } from '../services/adminAudit.service.js'
+import { ensureUserDatabaseUsageSnapshots } from '../services/adminDatabaseUsage.service.js'
+import { logger } from '../utils/logger.js'
 import {
   getPlanDefinition,
   getPlanDefinitions,
@@ -208,6 +210,18 @@ export async function listAdminPlans(req, res) {
 }
 
 export async function listAdminUsers(req, res) {
+  try {
+    await ensureUserDatabaseUsageSnapshots()
+  } catch (error) {
+    logger.warn(
+      {
+        event: 'admin_user_database_usage_snapshot_unavailable',
+        err: error,
+      },
+      'Serving Admin users with the latest available database usage snapshot'
+    )
+  }
+
   const result = await pool.query(`
     SELECT
       u.id,
@@ -224,6 +238,25 @@ export async function listAdminUsers(req, res) {
       COUNT(DISTINCT d.id)::int AS "deviceCount",
       COUNT(DISTINCT o.id)::int AS "organizationCount",
       COUNT(DISTINCT s.id)::int AS "siteCount",
+      COALESCE(database_usage.account_bytes, 0)::bigint AS "databaseAccountBytes",
+      COALESCE(database_usage.device_bytes, 0)::bigint AS "databaseDeviceBytes",
+      COALESCE(database_usage.telemetry_bytes, 0)::bigint AS "databaseTelemetryBytes",
+      COALESCE(database_usage.event_bytes, 0)::bigint AS "databaseEventBytes",
+      COALESCE(database_usage.organization_bytes, 0)::bigint AS "databaseOrganizationBytes",
+      COALESCE(database_usage.total_bytes, 0)::bigint AS "databaseUsageBytes",
+      ROUND(
+        COALESCE(database_usage.total_bytes, 0)::numeric / 1073741824,
+        6
+      ) AS "databaseUsageGb",
+      CASE
+        WHEN database_usage.calculated_at > TIMESTAMPTZ '2000-01-01 00:00:00+00'
+          THEN to_char(database_usage.calculated_at, 'YYYY-MM-DD HH24:MI')
+        ELSE '-'
+      END AS "databaseUsageCalculatedAt",
+      (
+        database_usage.user_id IS NULL
+        OR database_usage.calculated_at <= TIMESTAMPTZ '2000-01-01 00:00:00+00'
+      ) AS "databaseUsagePending",
       to_char(u.created_at, 'YYYY-MM-DD') AS "createdAt",
       COALESCE(to_char(u.last_login_at, 'YYYY-MM-DD HH24:MI'), '-') AS "lastLoginAt",
       COALESCE(to_char(us.current_period_end, 'YYYY-MM-DD'), to_char(u.renewal_at, 'YYYY-MM-DD'), '-') AS "renewalAt"
@@ -241,7 +274,24 @@ export async function listAdminUsers(req, res) {
     LEFT JOIN sites s
       ON s.organization_id = o.id
       AND s.is_active = true
-    GROUP BY u.id, us.plan_key, us.status, us.current_period_end, pd.device_limit, pd.site_limit, pd.user_limit, pd.retention_days
+    LEFT JOIN user_database_usage_snapshots database_usage
+      ON database_usage.user_id = u.id
+    GROUP BY
+      u.id,
+      us.plan_key,
+      us.status,
+      us.current_period_end,
+      pd.device_limit,
+      pd.site_limit,
+      pd.user_limit,
+      pd.retention_days,
+      database_usage.account_bytes,
+      database_usage.device_bytes,
+      database_usage.telemetry_bytes,
+      database_usage.event_bytes,
+      database_usage.organization_bytes,
+      database_usage.total_bytes,
+      database_usage.calculated_at
     ORDER BY u.created_at DESC
   `)
 
