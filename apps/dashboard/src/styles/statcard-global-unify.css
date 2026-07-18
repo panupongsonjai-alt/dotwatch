@@ -1,0 +1,502 @@
+/* =========================================================
+   dotWatch - Global StatCard Unify
+   Final visual/layout lock for every Monitoring and account page.
+========================================================= */
+
+:root {
+  --dw-stat-card-radius: 18px;
+  --dw-stat-card-min-height: 112px;
+  --dw-stat-card-padding-block: 18px;
+  --dw-stat-card-padding-inline: 20px;
+  --dw-stat-card-gap: 8px;
+  --dw-stat-card-accent-height: 4px;
+  --dw-stat-card-grid-min-width: 180px;
+  --dw-stat-card-surface: var(--panel, #ffffff);
+  --dw-stat-card-border: var(--border, rgba(148, 163, 184, 0.24));
+  --dw-stat-card-shadow: var(
+    --shadow-soft,
+    0 12px 28px rgba(15, 23, 42, 0.1)
+  );
+  --dw-stat-card-shadow-hover: var(
+    --shadow-lift,
+    0 18px 38px rgba(15, 23, 42, 0.16)
+  );
+  --dw-stat-card-accent: linear-gradient(
+    90deg,
+    #ff4f67 0%,
+    #8fa6c9 52%,
+    #1fd4ef 100%
+  );
+}
+
+:is(
+    .dw-stat-card,
+    .stat-card,
+    .summary-card,
+    .compact-summary-card,
+    .dashboard-stat-card,
+    .dashboard-summary-card,
+    .history-stat-card,
+    .profile-stat-card,
+    .settings-stat-card,
+    .system-health-stat-card,
+    .alarm-stat-card,
+    .notification-stat-card,
+    .activity-stat-card,
+    .compare-stat-card
+  ) {
+  position: relative !important;
+  isolation: isolate !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(30px, auto) minmax(16px, auto) !important;
+  align-content: start !important;
+  align-items: start !important;
+  row-gap: var(--dw-stat-card-gap) !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  min-height: var(--dw-stat-card-min-height) !important;
+  height: 100% !important;
+  padding:
+    var(--dw-stat-card-padding-block)
+    var(--dw-stat-card-padding-inline) !important;
+  overflow: hidden !important;
+  border: 1px solid var(--dw-stat-card-border) !important;
+  border-radius: var(--dw-stat-card-radius) !important;
+  background: var(--dw-stat-card-surface) !important;
+  box-shadow: var(--dw-stat-card-shadow) !important;
+  transform: translateZ(0) !important;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease !important;
+}
+
+:is(
+    .dw-stat-card,
+    .stat-card,
+    .summary-card,
+    .compact-summary-card,
+    .dashboard-stat-card,
+    .dashboard-summary-card,
+    .history-stat-card,
+    .profile-stat-card,
+    .settings-stat-card,
+    .system-health-stat-card,
+    .alarm-stat-card,
+    .notification-stat-card,
+    .activity-stat-card,
+    .compare-stat-card
+  )::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 0 auto !important;
+  z-index: 1 !important;
+  display: block !important;
+  width: auto !important;
+  height: var(--dw-stat-card-accent-height) !important;
+  min-height: var(--dw-stat-card-accent-height) !important;
+  max-height: var(--dw-stat-card-accent-height) !important;
+  border: 0 !important;
+  border-radius:
+    var(--dw-stat-card-radius)
+    var(--dw-stat-card-radius)
+    0
+    0 !important;
+  background: var(--dw-stat-card-accent) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+:is(
+    .dw-stat-card,
+    .stat-card,
+    .summary-card,
+    .compact-summary-card,
+    .dashboard-stat-card,
+    .dashboard-summary-card,
+    .history-stat-card,
+    .profile-stat-card,
+    .settings-stat-card,
+    .system-health-stat-card,
+    .alarm-stat-card,
+    .notification-stat-card,
+    .activity-stat-card,
+    .compare-stat-card
+  ) > * {
+  position: relative !important;
+  z-index: 2 !important;
+  min-width: 0 !important;
+}
+
+:is(
+    .dw-stat-card,
+    .stat-card,
+    .summary-card,
+    .compact-summary-card,
+    .dashboard-stat-card,
+    .dashboard-summary-card,
+    .history-stat-card,
+    .profile-stat-card,
+    .settings-stat-card,
+    .system-health-stat-card,
+    .alarm-stat-card,
+    .notification-stat-card,
+    .activity-stat-card,
+    .compare-stat-card
+  ):hover {
+  transform: translateY(-2px) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--primary, #2563eb) 34%,
+    var(--dw-stat-card-border)
+  ) !important;
+  box-shadow: var(--dw-stat-card-shadow-hover) !important;
+}
+
+:is(
+    .dw-stat-card,
+    .stat-card,
+    .summary-card,
+    .compact-summary-card,
+    .dashboard-stat-card,
+    .dashboard-summary-card,
+    .history-stat-card,
+    .profile-stat-card,
+    .settings-stat-card,
+    .system-health-stat-card,
+    .alarm-stat-card,
+    .notification-stat-card,
+    .activity-stat-card,
+    .compare-stat-card
+  )
+  :is(
+    .stat-label,
+    .summary-label,
+    .card-label
+  ),
+:is(
+    .dw-stat-card,
+    .stat-card,
+    .summary-card,
+    .compact-summary-card,
+    .dashboard-stat-card,
+    .dashboard-summary-card,
+    .history-stat-card,
+    .profile-stat-card,
+    .settings-stat-card,
+    .system-health-stat-card,
+    .alarm-stat-card,
+    .notification-stat-card,
+    .activity-stat-card,
+    .compare-stat-card
+  ) > :is(span, h3, h4, label):first-child {
+  display: block !important;
+  margin: 0 !important;
+  color: var(--muted, #64748b) !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+:is(
+    .dw-stat-card,
+    .stat-card,
+    .summary-card,
+    .compact-summary-card,
+    .dashboard-stat-card,
+    .dashboard-summary-card,
+    .history-stat-card,
+    .profile-stat-card,
+    .settings-stat-card,
+    .system-health-stat-card,
+    .alarm-stat-card,
+    .notification-stat-card,
+    .activity-stat-card,
+    .compare-stat-card
+  )
+  :is(
+    .stat-value,
+    .summary-value,
+    .card-value
+  ),
+:is(
+    .dw-stat-card,
+    .stat-card,
+    .summary-card,
+    .compact-summary-card,
+    .dashboard-stat-card,
+    .dashboard-summary-card,
+    .history-stat-card,
+    .profile-stat-card,
+    .settings-stat-card,
+    .system-health-stat-card,
+    .alarm-stat-card,
+    .notification-stat-card,
+    .activity-stat-card,
+    .compare-stat-card
+  ) > strong {
+  display: block !important;
+  align-self: center !important;
+  margin: 0 !important;
+  color: var(--text, #0f172a) !important;
+  font-size: clamp(24px, 2.3vw, 30px) !important;
+  line-height: 1.05 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.045em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+:is(
+    .dw-stat-card,
+    .stat-card,
+    .summary-card,
+    .compact-summary-card,
+    .dashboard-stat-card,
+    .dashboard-summary-card,
+    .history-stat-card,
+    .profile-stat-card,
+    .settings-stat-card,
+    .system-health-stat-card,
+    .alarm-stat-card,
+    .notification-stat-card,
+    .activity-stat-card,
+    .compare-stat-card
+  )
+  :is(
+    .stat-hint,
+    .stat-detail,
+    .summary-detail,
+    .card-detail
+  ),
+:is(
+    .dw-stat-card,
+    .stat-card,
+    .summary-card,
+    .compact-summary-card,
+    .dashboard-stat-card,
+    .dashboard-summary-card,
+    .history-stat-card,
+    .profile-stat-card,
+    .settings-stat-card,
+    .system-health-stat-card,
+    .alarm-stat-card,
+    .notification-stat-card,
+    .activity-stat-card,
+    .compare-stat-card
+  ) > :is(small, p):last-child {
+  display: block !important;
+  min-height: 16px !important;
+  margin: 0 !important;
+  color: var(--muted, #64748b) !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Compact mode keeps density preferences but no longer changes card geometry. */
+:is(.dw-stat-card.compact, .compact-summary-card) {
+  min-height: var(--dw-stat-card-min-height) !important;
+  padding:
+    var(--dw-stat-card-padding-block)
+    var(--dw-stat-card-padding-inline) !important;
+  grid-template-rows: auto minmax(30px, auto) minmax(16px, auto) !important;
+}
+
+/* Tone is consistent across every page and affects only the primary value. */
+:is(.dw-stat-card, .stat-card, .summary-card).success
+  :is(strong, .stat-value, .summary-value, .card-value) {
+  color: var(--success, #22c55e) !important;
+}
+
+:is(.dw-stat-card, .stat-card, .summary-card).warning
+  :is(strong, .stat-value, .summary-value, .card-value) {
+  color: var(--warning, #f59e0b) !important;
+}
+
+:is(.dw-stat-card, .stat-card, .summary-card).danger
+  :is(strong, .stat-value, .summary-value, .card-value) {
+  color: var(--danger, #ef4444) !important;
+}
+
+:is(.dw-stat-card, .stat-card, .summary-card).info
+  :is(strong, .stat-value, .summary-value, .card-value) {
+  color: var(--info, #0ea5e9) !important;
+}
+
+/* All StatCard groups use the same single-row, equal-width layout. */
+:is(
+    .dw-page-stat-grid,
+    .dashboard-kpi-grid,
+    .dashboard-health-kpi-grid,
+    .devices-ops-stat-grid,
+    .alarms-stat-grid,
+    .dashboard-style-stat-grid,
+    .history-stat-grid,
+    .history-stat-grid-tight,
+    .compare-stat-grid,
+    .settings-v3-stat-grid,
+    .profile-v3-stat-grid,
+    .device-detail-stat-grid,
+    .device-detail-state-grid,
+    .device-detail-stats-grid,
+    .device-detail-status-grid,
+    .device-detail-summary-grid,
+    .device-detail-kpi-grid,
+    .device-detail-health-grid,
+    .device-detail-overview-grid,
+    .notifications-stat-grid,
+    .activity-stat-grid,
+    .system-health-stat-grid,
+    [class*='stat-grid']
+  ) {
+  display: grid !important;
+  grid-template-columns: none !important;
+  grid-auto-flow: column !important;
+  grid-auto-columns: minmax(var(--dw-stat-card-grid-min-width), 1fr) !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+  margin-block: 0 !important;
+  padding-top: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  overscroll-behavior-inline: contain !important;
+  scrollbar-width: thin !important;
+}
+
+:is(
+    .dw-page-stat-grid,
+    .dashboard-kpi-grid,
+    .dashboard-health-kpi-grid,
+    .devices-ops-stat-grid,
+    .alarms-stat-grid,
+    .history-stat-grid,
+    .history-stat-grid-tight,
+    .compare-stat-grid,
+    .settings-v3-stat-grid,
+    .profile-v3-stat-grid,
+    .device-detail-stat-grid,
+    .notifications-stat-grid,
+    .activity-stat-grid,
+    .system-health-stat-grid,
+    [class*='stat-grid']
+  ) > * {
+  min-width: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.device-detail-firmware-stat,
+.device-detail-firmware-stat > :is(.dw-stat-card, .stat-card) {
+  min-width: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --dw-stat-card-grid-min-width: min(78vw, 250px);
+  }
+
+  :is(
+      .dw-page-stat-grid,
+      .dashboard-kpi-grid,
+      .dashboard-health-kpi-grid,
+      .devices-ops-stat-grid,
+      .alarms-stat-grid,
+      .history-stat-grid,
+      .history-stat-grid-tight,
+      .compare-stat-grid,
+      .settings-v3-stat-grid,
+      .profile-v3-stat-grid,
+      .device-detail-stat-grid,
+      .notifications-stat-grid,
+      .activity-stat-grid,
+      .system-health-stat-grid,
+      [class*='stat-grid']
+    ) {
+    grid-auto-columns: var(--dw-stat-card-grid-min-width) !important;
+    padding-bottom: 6px !important;
+    scroll-snap-type: inline proximity !important;
+  }
+
+  :is(
+      .dw-page-stat-grid,
+      .dashboard-kpi-grid,
+      .dashboard-health-kpi-grid,
+      .devices-ops-stat-grid,
+      .alarms-stat-grid,
+      .history-stat-grid,
+      .history-stat-grid-tight,
+      .compare-stat-grid,
+      .settings-v3-stat-grid,
+      .profile-v3-stat-grid,
+      .device-detail-stat-grid,
+      .notifications-stat-grid,
+      .activity-stat-grid,
+      .system-health-stat-grid,
+      [class*='stat-grid']
+    ) > * {
+    scroll-snap-align: start !important;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --dw-stat-card-radius: 16px;
+    --dw-stat-card-min-height: 108px;
+    --dw-stat-card-padding-block: 16px;
+    --dw-stat-card-padding-inline: 17px;
+    --dw-stat-card-grid-min-width: min(84vw, 240px);
+  }
+
+  :is(
+      .dw-stat-card,
+      .stat-card,
+      .summary-card,
+      .compact-summary-card,
+      .dashboard-stat-card,
+      .dashboard-summary-card,
+      .history-stat-card,
+      .profile-stat-card,
+      .settings-stat-card,
+      .system-health-stat-card,
+      .alarm-stat-card,
+      .notification-stat-card,
+      .activity-stat-card,
+      .compare-stat-card
+    )
+    :is(.stat-value, .summary-value, .card-value),
+  :is(
+      .dw-stat-card,
+      .stat-card,
+      .summary-card,
+      .compact-summary-card,
+      .dashboard-stat-card,
+      .dashboard-summary-card,
+      .history-stat-card,
+      .profile-stat-card,
+      .settings-stat-card,
+      .system-health-stat-card,
+      .alarm-stat-card,
+      .notification-stat-card,
+      .activity-stat-card,
+      .compare-stat-card
+    ) > strong {
+    font-size: 24px !important;
+  }
+}
