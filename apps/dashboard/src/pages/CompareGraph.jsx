@@ -16,6 +16,7 @@ import {
   Search,
 } from 'lucide-react'
 import {
+  FilterActionsMenu,
   PageHeader,
   StatCard,
   TablePagination,
@@ -389,6 +390,15 @@ function formatNumber(value, unit = '', decimalPlaces = 2) {
   )
 
   return `${formatted}${unit ? ` ${unit}` : ''}`
+}
+
+function escapeReportHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
 }
 
 function escapeCsvField(value) {
@@ -1044,6 +1054,387 @@ function CompareGraph() {
     showSuccessToast('ส่งออก Compare Graph CSV สำเร็จ')
   }
 
+  function exportPdf() {
+    if (!sortedRows.length) return
+
+    const reportWindow = window.open('', '_blank')
+
+    if (!reportWindow) {
+      const message =
+        'เบราว์เซอร์บล็อกหน้าต่าง PDF กรุณาอนุญาต Pop-up สำหรับเว็บไซต์นี้'
+      setError(message)
+      showErrorToast(message)
+      return
+    }
+
+    reportWindow.opener = null
+
+    const seriesTitle = selectedSeries
+      .map(
+        (item) =>
+          `${item.deviceName} • ${item.metricName}${
+            item.unit ? ` (${item.unit})` : ''
+          }`
+      )
+      .join(' | ')
+    const deviceTitle = selectedDevices.map(getDeviceName).join(' | ')
+    const chartSvg =
+      document.querySelector(
+        '.compare-chart-box .recharts-wrapper svg'
+      )?.outerHTML ||
+      '<div class="report-empty">No comparison graph data</div>'
+    const reportTitle = [
+      'dotWatch Compare Graph',
+      sanitizeFilename(`${selectedSeries.length}-series`),
+      startDate,
+      'to',
+      endDate,
+    ].join('-')
+    const tableBody = sortedRows
+      .map(
+        (row) => `
+          <tr>
+            <td>${escapeReportHtml(formatHistoryDate(row.time))}</td>
+            <td>${escapeReportHtml(formatHistoryTime(row.time))}</td>
+            <td>
+              <strong>${escapeReportHtml(row.deviceName)}</strong>
+              <small>${escapeReportHtml(row.deviceId)}</small>
+            </td>
+            <td>${escapeReportHtml(row.deviceStatus)}</td>
+            <td>
+              <strong>${escapeReportHtml(row.metricName)}</strong>
+              <small>${escapeReportHtml(row.metricKey)}</small>
+            </td>
+            <td>${escapeReportHtml(
+              Number(row.value).toFixed(
+                normalizeDecimalPlaces(row.decimalPlaces)
+              )
+            )}</td>
+            <td>${escapeReportHtml(row.unit || '—')}</td>
+          </tr>`
+      )
+      .join('')
+    const legendItems = series
+      .map(
+        (item) => `
+          <span class="report-legend-item">
+            <i style="background:${escapeReportHtml(item.color)}"></i>
+            <b>${escapeReportHtml(item.deviceName)}</b>
+            <em>${escapeReportHtml(item.metricName)}</em>
+            ${
+              item.unit
+                ? `<small>${escapeReportHtml(item.unit)}</small>`
+                : ''
+            }
+          </span>`
+      )
+      .join('')
+
+    const reportHtml = `<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeReportHtml(reportTitle)}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    @page { size: A4 portrait; margin: 10mm; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; min-height: 100%; }
+    body {
+      margin: 0;
+      color: #0f172a;
+      background: #fff;
+      font-family: 'Inter', 'Prompt', system-ui, -apple-system,
+        BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 9px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .report { display: grid; gap: 9px; width: 100%; }
+    .report-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 2px;
+    }
+    .report-title h1 { margin: 0; font-size: 20px; }
+    .report-title span { color: #64748b; font-size: 8px; font-weight: 700; }
+    .report-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 5px 18px;
+      padding: 3px 2px;
+    }
+    .report-meta div {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      min-width: 0;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .report-meta span {
+      min-width: 86px;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+    .report-meta strong {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .report-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 7px;
+    }
+    .report-stat {
+      padding: 8px 9px;
+      border: 1px solid #dbe3ef;
+      border-top: 3px solid #ef4444;
+      border-radius: 8px;
+      break-inside: avoid;
+    }
+    .report-stat span {
+      display: block;
+      color: #64748b;
+      font-size: 7px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .report-stat strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 17px;
+      overflow-wrap: anywhere;
+    }
+    .report-stat small { color: #64748b; font-weight: 700; }
+    .report-card {
+      padding: 9px;
+      border: 1px solid #dbe3ef;
+      border-radius: 9px;
+    }
+    .report-chart-card {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .report-table-card {
+      break-inside: auto;
+      page-break-inside: auto;
+    }
+    .report-card h2 { margin: 0 0 3px; font-size: 14px; }
+    .report-card p {
+      margin: 0 0 7px;
+      color: #64748b;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+    .report-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin: 0 0 7px;
+    }
+    .report-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 5px;
+      border: 1px solid #dbe3ef;
+      border-radius: 999px;
+      font-size: 7px;
+    }
+    .report-legend-item i {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+    }
+    .report-legend-item b { font-weight: 900; }
+    .report-legend-item em {
+      color: #475569;
+      font-style: normal;
+      font-weight: 700;
+    }
+    .report-legend-item small {
+      color: #64748b;
+      font-size: 6px;
+      font-weight: 800;
+    }
+    .report-chart {
+      width: 100%;
+      min-height: 205px;
+      padding: 6px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .report-chart svg {
+      width: 100% !important;
+      height: 205px !important;
+    }
+    .report-empty {
+      min-height: 205px;
+      display: grid;
+      place-items: center;
+      color: #64748b;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    thead { display: table-header-group; }
+    th, td {
+      padding: 5px 5px;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+      vertical-align: middle;
+      overflow-wrap: anywhere;
+    }
+    th {
+      color: #64748b;
+      background: #f8fafc;
+      font-size: 6.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    td { font-size: 7.5px; }
+    td strong, td small { display: block; }
+    td small { color: #64748b; font-size: 6.5px; }
+    tr { break-inside: avoid; page-break-inside: avoid; }
+    .report-footer {
+      color: #64748b;
+      font-size: 7px;
+      text-align: right;
+    }
+    @media print {
+      .report-card { box-shadow: none; }
+      .report-table-card { border: 0; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="report">
+    <header class="report-title">
+      <h1>Compare Graph</h1>
+      <span>dotWatch Monitoring Report</span>
+    </header>
+
+    <section class="report-meta">
+      <div><span>Devices :</span><strong>${escapeReportHtml(
+        deviceTitle
+      )}</strong></div>
+      <div><span>Series :</span><strong>${escapeReportHtml(
+        seriesTitle
+      )}</strong></div>
+      <div><span>Start Date :</span><strong>${escapeReportHtml(
+        formatDateOnly(startDate)
+      )}</strong></div>
+      <div><span>End Date :</span><strong>${escapeReportHtml(
+        formatDateOnly(endDate)
+      )}</strong></div>
+      <div><span>Interval :</span><strong>${escapeReportHtml(
+        selectedResolutionLabel
+      )}</strong></div>
+      <div><span>Generated :</span><strong>${escapeReportHtml(
+        new Date().toLocaleString('th-TH')
+      )}</strong></div>
+    </section>
+
+    <section class="report-stats">
+      <div class="report-stat">
+        <span>Records</span>
+        <strong>${escapeReportHtml(
+          sortedRows.length.toLocaleString('th-TH')
+        )}</strong>
+        <small>All selected readings</small>
+      </div>
+      <div class="report-stat">
+        <span>Devices</span>
+        <strong>${escapeReportHtml(activeSeriesDeviceCount)}</strong>
+        <small>Devices with selected series</small>
+      </div>
+      <div class="report-stat">
+        <span>Series</span>
+        <strong>${escapeReportHtml(series.length)}</strong>
+        <small>Compared values</small>
+      </div>
+      <div class="report-stat">
+        <span>Last Update</span>
+        <strong>${escapeReportHtml(
+          formatDateTime(latestTimestamp)
+        )}</strong>
+        <small>Latest reading in this report</small>
+      </div>
+    </section>
+
+    <section class="report-card report-chart-card">
+      <h2>Compare Graph</h2>
+      <p>${escapeReportHtml(seriesTitle)}</p>
+      ${
+        legendItems
+          ? `<div class="report-legend">${legendItems}</div>`
+          : ''
+      }
+      <div class="report-chart">${chartSvg}</div>
+    </section>
+
+    <section class="report-card report-table-card">
+      <h2>Compare History Table</h2>
+      <p>${escapeReportHtml(
+        formatDateOnly(startDate)
+      )} - ${escapeReportHtml(
+        formatDateOnly(endDate)
+      )} • ${escapeReportHtml(selectedResolutionLabel)}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Device</th>
+            <th>Status</th>
+            <th>Value</th>
+            <th>Reading</th>
+            <th>Unit</th>
+          </tr>
+        </thead>
+        <tbody>${tableBody}</tbody>
+      </table>
+    </section>
+
+    <footer class="report-footer">
+      Generated by dotWatch • ${escapeReportHtml(
+        new Date().toLocaleString('th-TH')
+      )}
+    </footer>
+  </main>
+  <script>
+    window.addEventListener('load', async () => {
+      try {
+        if (document.fonts && document.fonts.ready) {
+          await document.fonts.ready
+        }
+      } catch (error) {
+        console.warn('Unable to wait for report fonts', error)
+      }
+
+      setTimeout(() => window.print(), 250)
+    })
+  </script>
+</body>
+</html>`
+
+    reportWindow.document.open()
+    reportWindow.document.write(reportHtml)
+    reportWindow.document.close()
+
+    setNotice('เปิดหน้าต่าง Export PDF แล้ว')
+    showSuccessToast('เปิดหน้าต่าง Export PDF แล้ว')
+  }
+
   useEffect(() => {
     loadDevices()
   }, [])
@@ -1210,15 +1601,25 @@ function CompareGraph() {
               Refresh
             </button>
 
-            <button
-              type="button"
-              className="history-export-btn"
-              onClick={exportCsv}
-              disabled={!sortedRows.length || loadingHistory}
-            >
-              <Download size={16} aria-hidden="true" />
-              Export CSV
-            </button>
+            <FilterActionsMenu
+              label="Compare Graph export options"
+              items={[
+                {
+                  key: 'csv',
+                  label: 'Export CSV',
+                  icon: Download,
+                  disabled: !sortedRows.length || loadingHistory,
+                  onSelect: exportCsv,
+                },
+                {
+                  key: 'pdf',
+                  label: 'Export PDF',
+                  icon: Download,
+                  disabled: !sortedRows.length || loadingHistory,
+                  onSelect: exportPdf,
+                },
+              ]}
+            />
           </div>
         </div>
 
