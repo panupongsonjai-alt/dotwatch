@@ -34,6 +34,7 @@ import '../styles/history.css'
 const COMPARE_GRAPH_STATE_KEY = 'dotwatch.compare.graph.state'
 const DEFAULT_TABLE_PAGE_SIZE = 20
 const MAX_SELECTED_DEVICES = 8
+const MAX_SELECTED_SERIES = 16
 const DEFAULT_CHART_RESOLUTION = '5m'
 const TABLE_PAGE_SIZES = TABLE_PAGE_SIZE_OPTIONS
 
@@ -99,10 +100,11 @@ function getInitialState() {
     deviceIds: [],
     startDate: todayInputValue(),
     endDate: todayInputValue(),
-    metricKey: 'all',
+    seriesKeys: [],
     chartResolution: DEFAULT_CHART_RESOLUTION,
     sortOrder: 'desc',
     tablePageSize: DEFAULT_TABLE_PAGE_SIZE,
+    hasSavedSeriesSelection: false,
   }
 
   if (typeof window === 'undefined') return fallback
@@ -112,16 +114,24 @@ function getInitialState() {
       window.localStorage.getItem(COMPARE_GRAPH_STATE_KEY) || '{}'
     )
 
+    const hasSavedSeriesSelection = Object.prototype.hasOwnProperty.call(
+      saved,
+      'seriesKeys'
+    )
+
     return {
       deviceIds: Array.isArray(saved.deviceIds)
         ? saved.deviceIds.slice(0, MAX_SELECTED_DEVICES).map(String)
         : fallback.deviceIds,
       startDate: saved.startDate || fallback.startDate,
       endDate: saved.endDate || fallback.endDate,
-      metricKey: saved.metricKey || fallback.metricKey,
+      seriesKeys: Array.isArray(saved.seriesKeys)
+        ? saved.seriesKeys.slice(0, MAX_SELECTED_SERIES).map(String)
+        : fallback.seriesKeys,
       chartResolution: getSafeChartResolution(saved.chartResolution),
       sortOrder: getSafeSortOrder(saved.sortOrder),
       tablePageSize: getSafeTablePageSize(saved.tablePageSize),
+      hasSavedSeriesSelection,
     }
   } catch (error) {
     console.warn('Compare Graph state restore failed:', error)
@@ -421,24 +431,8 @@ function getDeviceName(device = {}) {
   return device.name || device.device_code || `Device ${device.id || ''}`
 }
 
-function buildCommonMetrics(selectedDevices, metricsByDevice) {
-  if (!selectedDevices.length) return []
-
-  const metricLists = selectedDevices.map(
-    (device) => metricsByDevice[String(device.id)] || []
-  )
-
-  if (metricLists.some((list) => list.length === 0)) return []
-
-  const commonKeys = metricLists.slice(1).reduce(
-    (keys, list) => {
-      const listKeys = new Set(list.map((metric) => metric.metricKey))
-      return new Set(Array.from(keys).filter((key) => listKeys.has(key)))
-    },
-    new Set(metricLists[0].map((metric) => metric.metricKey))
-  )
-
-  return metricLists[0].filter((metric) => commonKeys.has(metric.metricKey))
+function makeSeriesSelectionKey(deviceId, metricKey) {
+  return `${String(deviceId)}::${String(metricKey)}`
 }
 
 function makeSeriesKey(deviceId, metricKey) {
@@ -515,14 +509,17 @@ function CompareGraph() {
   const endDateInputRef = useRef(null)
   const metricsRequestRef = useRef(0)
   const historyRequestRef = useRef(0)
+  const autoInitializeSeriesRef = useRef(
+    !initialState.hasSavedSeriesSelection
+  )
 
   const [devices, setDevices] = useState([])
   const [selectedDeviceIds, setSelectedDeviceIds] = useState(
     initialState.deviceIds
   )
   const [metricsByDevice, setMetricsByDevice] = useState({})
-  const [selectedMetricKey, setSelectedMetricKey] = useState(
-    initialState.metricKey
+  const [selectedSeriesKeys, setSelectedSeriesKeys] = useState(
+    initialState.seriesKeys
   )
   const [startDate, setStartDate] = useState(initialState.startDate)
   const [endDate, setEndDate] = useState(initialState.endDate)
@@ -548,20 +545,41 @@ function CompareGraph() {
     return devices.filter((device) => selectedSet.has(String(device.id)))
   }, [devices, selectedDeviceIds])
 
-  const commonMetrics = useMemo(
-    () => buildCommonMetrics(selectedDevices, metricsByDevice),
-    [metricsByDevice, selectedDevices]
+  const selectedSeriesKeySet = useMemo(
+    () => new Set(selectedSeriesKeys),
+    [selectedSeriesKeys]
   )
 
-  const selectedMetric = useMemo(
-    () =>
-      selectedMetricKey === 'all'
-        ? null
-        : commonMetrics.find(
-            (metric) => metric.metricKey === selectedMetricKey
-          ) || null,
-    [commonMetrics, selectedMetricKey]
-  )
+  const selectedSeries = useMemo(() => {
+    const nextSeries = []
+
+    for (const device of selectedDevices) {
+      const deviceId = String(device.id)
+      const deviceMetrics = metricsByDevice[deviceId] || []
+
+      for (const metric of deviceMetrics) {
+        const selectionKey = makeSeriesSelectionKey(
+          deviceId,
+          metric.metricKey
+        )
+
+        if (!selectedSeriesKeySet.has(selectionKey)) continue
+
+        nextSeries.push({
+          selectionKey,
+          deviceId,
+          deviceName: getDeviceName(device),
+          deviceStatus: String(device.status || 'offline').toLowerCase(),
+          metricKey: metric.metricKey,
+          metricName: metric.metricName,
+          unit: metric.unit || '',
+          decimalPlaces: metric.decimalPlaces,
+        })
+      }
+    }
+
+    return nextSeries
+  }, [metricsByDevice, selectedDevices, selectedSeriesKeySet])
 
   const visibleDevices = useMemo(() => {
     const normalizedSearch = deviceSearch.trim().toLowerCase()
@@ -578,42 +596,27 @@ function CompareGraph() {
     })
   }, [deviceSearch, devices])
 
-  const series = useMemo(() => {
-    const nextSeries = []
-    let colorIndex = 0
-
-    for (const device of selectedDevices) {
-      const deviceMetrics = metricsByDevice[String(device.id)] || []
-      const metricsToRender =
-        selectedMetricKey === 'all'
-          ? commonMetrics
-          : deviceMetrics.filter(
-              (metric) => metric.metricKey === selectedMetricKey
-            )
-
-      metricsToRender.forEach((metric, metricIndex) => {
-        nextSeries.push({
-          dataKey: makeSeriesKey(device.id, metric.metricKey),
-          deviceId: String(device.id),
-          deviceName: getDeviceName(device),
-          deviceStatus: String(device.status || 'offline').toLowerCase(),
-          metricKey: metric.metricKey,
-          metricName: metric.metricName,
-          unit: metric.unit || '',
-          decimalPlaces: metric.decimalPlaces,
-          color: COMPARE_CHART_COLORS[colorIndex % COMPARE_CHART_COLORS.length],
-          strokeDasharray:
-            COMPARE_DASH_PATTERNS[metricIndex % COMPARE_DASH_PATTERNS.length],
-        })
-        colorIndex += 1
-      })
-    }
-
-    return nextSeries
-  }, [commonMetrics, metricsByDevice, selectedDevices, selectedMetricKey])
+  const series = useMemo(
+    () =>
+      selectedSeries.map((item, index) => ({
+        ...item,
+        dataKey: makeSeriesKey(item.deviceId, item.metricKey),
+        color: COMPARE_CHART_COLORS[
+          index % COMPARE_CHART_COLORS.length
+        ],
+        strokeDasharray:
+          COMPARE_DASH_PATTERNS[index % COMPARE_DASH_PATTERNS.length],
+      })),
+    [selectedSeries]
+  )
 
   const seriesMap = useMemo(
     () => new Map(series.map((item) => [item.dataKey, item])),
+    [series]
+  )
+
+  const activeSeriesDeviceCount = useMemo(
+    () => new Set(series.map((item) => item.deviceId)).size,
     [series]
   )
 
@@ -696,6 +699,64 @@ function CompareGraph() {
     })
   }
 
+  function toggleSeries(deviceId, metricKey) {
+    const selectionKey = makeSeriesSelectionKey(deviceId, metricKey)
+
+    setSelectedSeriesKeys((current) => {
+      if (current.includes(selectionKey)) {
+        return current.filter((key) => key !== selectionKey)
+      }
+
+      if (current.length >= MAX_SELECTED_SERIES) {
+        const message = `เลือก Compare ได้สูงสุด ${MAX_SELECTED_SERIES} Series ต่อครั้ง`
+        setError(message)
+        showWarningToast(message)
+        return current
+      }
+
+      setError('')
+      return [...current, selectionKey]
+    })
+  }
+
+  function selectAllDeviceValues(deviceId) {
+    const metrics = metricsByDevice[String(deviceId)] || []
+
+    setSelectedSeriesKeys((current) => {
+      const currentSet = new Set(current)
+      const candidates = metrics
+        .map((metric) =>
+          makeSeriesSelectionKey(deviceId, metric.metricKey)
+        )
+        .filter((key) => !currentSet.has(key))
+      const availableSlots = Math.max(
+        0,
+        MAX_SELECTED_SERIES - current.length
+      )
+      const accepted = candidates.slice(0, availableSlots)
+
+      if (accepted.length < candidates.length) {
+        const message = `เลือกเพิ่มได้ ${accepted.length} Series เพราะกำหนดสูงสุด ${MAX_SELECTED_SERIES} Series ต่อครั้ง`
+        setNotice(message)
+        showWarningToast(message)
+      }
+
+      return [...current, ...accepted]
+    })
+  }
+
+  function clearDeviceValues(deviceId) {
+    const deviceKeys = new Set(
+      (metricsByDevice[String(deviceId)] || []).map((metric) =>
+        makeSeriesSelectionKey(deviceId, metric.metricKey)
+      )
+    )
+
+    setSelectedSeriesKeys((current) =>
+      current.filter((key) => !deviceKeys.has(key))
+    )
+  }
+
   function selectVisibleDevices() {
     const nextIds = visibleDevices
       .slice(0, MAX_SELECTED_DEVICES)
@@ -746,6 +807,7 @@ function CompareGraph() {
 
     if (!selectedDevices.length) {
       setMetricsByDevice({})
+      setSelectedSeriesKeys([])
       setRows([])
       return
     }
@@ -794,6 +856,41 @@ function CompareGraph() {
       })
 
       setMetricsByDevice(nextMetricsByDevice)
+      setSelectedSeriesKeys((current) => {
+        const validKeys = new Set()
+
+        for (const device of selectedDevices) {
+          const deviceId = String(device.id)
+
+          for (const metric of nextMetricsByDevice[deviceId] || []) {
+            validKeys.add(
+              makeSeriesSelectionKey(deviceId, metric.metricKey)
+            )
+          }
+        }
+
+        const retained = current
+          .filter((key) => validKeys.has(key))
+          .slice(0, MAX_SELECTED_SERIES)
+
+        if (!autoInitializeSeriesRef.current) return retained
+
+        autoInitializeSeriesRef.current = false
+
+        if (retained.length) return retained
+
+        return selectedDevices
+          .map((device) => {
+            const deviceId = String(device.id)
+            const firstMetric = nextMetricsByDevice[deviceId]?.[0]
+
+            return firstMetric
+              ? makeSeriesSelectionKey(deviceId, firstMetric.metricKey)
+              : null
+          })
+          .filter(Boolean)
+          .slice(0, MAX_SELECTED_SERIES)
+      })
     } finally {
       if (requestId === metricsRequestRef.current) {
         setLoadingMetrics(false)
@@ -806,11 +903,9 @@ function CompareGraph() {
     historyRequestRef.current = requestId
 
     if (
-      selectedDevices.length < 2 ||
-      !selectedMetricKey ||
+      selectedSeries.length < 2 ||
       !startDate ||
-      !endDate ||
-      !commonMetrics.length
+      !endDate
     ) {
       setRows([])
       setLoadingHistory(false)
@@ -830,46 +925,31 @@ function CompareGraph() {
       if (!silent) setLoadingHistory(true)
       setError('')
 
-      const metricKeys =
-        selectedMetricKey === 'all'
-          ? commonMetrics.map((metric) => metric.metricKey)
-          : [selectedMetricKey]
+      const requests = selectedSeries.map(async (selection) => {
+        const result = await getHistory(
+          selection.deviceId,
+          startDate,
+          endDate,
+          selection.metricKey,
+          { resolution: chartResolution }
+        )
 
-      const requests = selectedDevices.flatMap((device) =>
-        metricKeys.map(async (metricKey) => {
-          const result = await getHistory(
-            device.id,
-            startDate,
-            endDate,
-            metricKey,
-            { resolution: chartResolution }
-          )
-
-          const deviceMetrics = metricsByDevice[String(device.id)] || []
-          const metric =
-            deviceMetrics.find((item) => item.metricKey === metricKey) ||
-            commonMetrics.find((item) => item.metricKey === metricKey) ||
-            {
-              metricKey,
-              metricName: getFallbackMetricName(metricKey),
-              unit: '',
-              decimalPlaces: 2,
-            }
-
-          return normalizeHistoryRows(result).map((row) => ({
-            ...row,
-            id: `${device.id}-${metricKey}-${row.id}`,
-            deviceId: String(device.id),
-            deviceName: getDeviceName(device),
-            deviceStatus: String(device.status || 'offline').toLowerCase(),
-            metricKey,
-            metricName: metric.metricName,
-            unit: metric.unit || '',
-            decimalPlaces: metric.decimalPlaces,
-            seriesKey: makeSeriesKey(device.id, metricKey),
-          }))
-        })
-      )
+        return normalizeHistoryRows(result).map((row) => ({
+          ...row,
+          id: `${selection.deviceId}-${selection.metricKey}-${row.id}`,
+          deviceId: selection.deviceId,
+          deviceName: selection.deviceName,
+          deviceStatus: selection.deviceStatus,
+          metricKey: selection.metricKey,
+          metricName: selection.metricName,
+          unit: selection.unit,
+          decimalPlaces: selection.decimalPlaces,
+          seriesKey: makeSeriesKey(
+            selection.deviceId,
+            selection.metricKey
+          ),
+        }))
+      })
 
       const results = await Promise.allSettled(requests)
 
@@ -921,14 +1001,13 @@ function CompareGraph() {
   function exportCsv() {
     if (!sortedRows.length) return
 
-    const metricTitle =
-      selectedMetricKey === 'all'
-        ? 'All Common Values'
-        : selectedMetric?.metricName || selectedMetricKey
+    const seriesTitle = selectedSeries
+      .map((item) => `${item.deviceName} • ${item.metricName}`)
+      .join(' | ')
     const csvRows = [
       ['dotWatch Compare Graph Report'],
       ['Devices', selectedDevices.map(getDeviceName).join(' | ')],
-      ['Value', metricTitle],
+      ['Selected Series', seriesTitle],
       ['Start Date', formatDateOnly(startDate)],
       ['End Date', formatDateOnly(endDate)],
       ['Display Interval', selectedResolutionLabel],
@@ -954,7 +1033,7 @@ function CompareGraph() {
 
     const filename = [
       'dotWatch-compare-graph',
-      sanitizeFilename(metricTitle),
+      sanitizeFilename(`${selectedSeries.length}-series`),
       startDate,
       'to',
       endDate,
@@ -974,28 +1053,15 @@ function CompareGraph() {
     loadSelectedDeviceMetrics()
   }, [selectedDevices])
 
-  useEffect(() => {
-    setSelectedMetricKey((current) => {
-      if (!commonMetrics.length) return ''
-      if (current === 'all') return 'all'
-
-      const stillAvailable = commonMetrics.some(
-        (metric) => metric.metricKey === current
-      )
-
-      return stillAvailable ? current : 'all'
-    })
-  }, [commonMetrics])
 
   useEffect(() => {
     loadCompareHistory()
   }, [
     selectedDeviceIds,
-    selectedMetricKey,
+    selectedSeriesKeys,
     startDate,
     endDate,
     chartResolution,
-    commonMetrics,
     metricsByDevice,
   ])
 
@@ -1029,10 +1095,9 @@ function CompareGraph() {
     endDate,
     selectedDevices,
     selectedDeviceIds,
-    selectedMetricKey,
+    selectedSeriesKeys,
     startDate,
     chartResolution,
-    commonMetrics,
     metricsByDevice,
   ])
 
@@ -1041,7 +1106,7 @@ function CompareGraph() {
     setNotice('')
   }, [
     selectedDeviceIds,
-    selectedMetricKey,
+    selectedSeriesKeys,
     startDate,
     endDate,
     chartResolution,
@@ -1060,7 +1125,7 @@ function CompareGraph() {
       deviceIds: selectedDeviceIds,
       startDate,
       endDate,
-      metricKey: selectedMetricKey,
+      seriesKeys: selectedSeriesKeys,
       chartResolution,
       sortOrder,
       tablePageSize,
@@ -1078,7 +1143,7 @@ function CompareGraph() {
     selectedDeviceIds,
     startDate,
     endDate,
-    selectedMetricKey,
+    selectedSeriesKeys,
     chartResolution,
     sortOrder,
     tablePageSize,
@@ -1089,7 +1154,7 @@ function CompareGraph() {
       <PageHeader
         eyebrow="Data Center"
         title="Compare Graph"
-        description="เปรียบเทียบกราฟข้อมูลย้อนหลังของ Value เดียวกันข้ามหลาย Device ในช่วงเวลาเดียวกัน"
+        description="เลือก Value ใดก็ได้จากแต่ละ Device เพื่อเปรียบเทียบกราฟย้อนหลังในช่วงเวลาเดียวกัน"
       />
 
       <section className="dw-page-stat-grid compare-stat-grid">
@@ -1106,7 +1171,7 @@ function CompareGraph() {
         <StatCard
           label="Series"
           value={series.length}
-          hint="จำนวนเส้นกราฟที่กำลังเปรียบเทียบ"
+          hint="จำนวน Value ที่เลือกจากทุก Device"
         />
         <StatCard
           label="Last Update"
@@ -1120,7 +1185,7 @@ function CompareGraph() {
           <div>
             <h2>Filter</h2>
             <p>
-              เลือกหลาย Device, ช่วงวันที่, Value ร่วม และช่วงเวลาที่ต้องการเปรียบเทียบ
+              เลือก Device และ Value ของแต่ละ Device ได้อย่างอิสระ ไม่จำเป็นต้องใช้ชื่อหรือหน่วยเดียวกัน
             </p>
           </div>
 
@@ -1235,6 +1300,125 @@ function CompareGraph() {
           </div>
         </div>
 
+        <div className="compare-value-selector">
+          <div className="compare-value-selector-header">
+            <label>
+              <span>Values by Device</span>
+              <small>
+                {selectedSeriesKeys.length}/{MAX_SELECTED_SERIES} series selected
+              </small>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setSelectedSeriesKeys([])}
+              disabled={!selectedSeriesKeys.length}
+            >
+              Clear all values
+            </button>
+          </div>
+
+          {selectedDevices.length === 0 ? (
+            <div className="compare-device-empty">
+              เลือก Device ก่อนกำหนด Value ที่ต้องการเปรียบเทียบ
+            </div>
+          ) : loadingMetrics ? (
+            <div className="compare-device-empty">
+              กำลังโหลด Value ของ Device ที่เลือก...
+            </div>
+          ) : (
+            <div className="compare-value-device-grid">
+              {selectedDevices.map((device) => {
+                const deviceId = String(device.id)
+                const deviceMetrics = metricsByDevice[deviceId] || []
+                const selectedCount = deviceMetrics.filter((metric) =>
+                  selectedSeriesKeySet.has(
+                    makeSeriesSelectionKey(deviceId, metric.metricKey)
+                  )
+                ).length
+
+                return (
+                  <article key={deviceId} className="compare-value-device-card">
+                    <div className="compare-value-device-header">
+                      <div className="compare-value-device-copy">
+                        <strong>{getDeviceName(device)}</strong>
+                        <small>
+                          {selectedCount}/{deviceMetrics.length} Value selected
+                        </small>
+                      </div>
+
+                      <div className="compare-value-device-actions">
+                        <button
+                          type="button"
+                          onClick={() => selectAllDeviceValues(deviceId)}
+                          disabled={!deviceMetrics.length}
+                        >
+                          Select all
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => clearDeviceValues(deviceId)}
+                          disabled={!selectedCount}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="compare-value-options">
+                      {deviceMetrics.length === 0 ? (
+                        <div className="compare-value-empty">
+                          ไม่พบ Value ที่เปิดใช้งานสำหรับ Device นี้
+                        </div>
+                      ) : (
+                        deviceMetrics.map((metric) => {
+                          const selectionKey = makeSeriesSelectionKey(
+                            deviceId,
+                            metric.metricKey
+                          )
+                          const checked = selectedSeriesKeySet.has(selectionKey)
+                          const atLimit =
+                            !checked &&
+                            selectedSeriesKeys.length >= MAX_SELECTED_SERIES
+
+                          return (
+                            <button
+                              key={selectionKey}
+                              type="button"
+                              className={`compare-value-option ${checked ? 'selected' : ''}`}
+                              onClick={() =>
+                                toggleSeries(deviceId, metric.metricKey)
+                              }
+                              disabled={atLimit}
+                              aria-pressed={checked}
+                            >
+                              <span className="compare-value-checkbox">
+                                {checked && <Check size={13} aria-hidden="true" />}
+                              </span>
+                              <span className="compare-value-copy">
+                                <strong>{metric.metricName}</strong>
+                                <small>
+                                  {metric.metricKey}
+                                  {metric.unit ? ` • ${metric.unit}` : ''}
+                                </small>
+                              </span>
+                            </button>
+                          )
+                        })
+                      )}
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          )}
+
+          <p className="compare-value-scale-note">
+            กราฟใช้ค่าจริงของแต่ละ Series ดังนั้น Value ที่มีหน่วยหรือช่วงค่า
+            ต่างกันอาจแสดงคนละสเกลบนแกนเดียวกัน
+          </p>
+        </div>
+
         <div className="history-filter-grid compare-history-filter-grid">
           <div className="history-filter-field">
             <label htmlFor="compare-start-date-input">Start Date</label>
@@ -1295,28 +1479,6 @@ function CompareGraph() {
             </div>
           </div>
 
-          <label>
-            <span>Value</span>
-            <UnifiedSelect
-              value={selectedMetricKey}
-              onChange={(event) => setSelectedMetricKey(event.target.value)}
-              disabled={loadingMetrics || !commonMetrics.length}
-            >
-              {commonMetrics.length === 0 ? (
-                <option value="">No common value</option>
-              ) : (
-                <>
-                  <option value="all">All Common Values</option>
-                  {commonMetrics.map((metric) => (
-                    <option key={metric.metricKey} value={metric.metricKey}>
-                      {metric.metricName}
-                      {metric.unit ? ` (${metric.unit})` : ''}
-                    </option>
-                  ))}
-                </>
-              )}
-            </UnifiedSelect>
-          </label>
 
           <label className="history-interval-filter">
             <span>Display Interval</span>
@@ -1347,10 +1509,8 @@ function CompareGraph() {
           <div>
             <h2>Compare Trend Graph</h2>
             <p>
-              {selectedMetricKey === 'all'
-                ? 'All Common Values'
-                : selectedMetric?.metricName || 'Value'}{' '}
-              • {selectedDevices.length} Device • {formatDateOnly(startDate)} -{' '}
+              {series.length} selected Series • {activeSeriesDeviceCount}{' '}
+              Device • {formatDateOnly(startDate)} -{' '}
               {formatDateOnly(endDate)} • {selectedResolutionLabel}
             </p>
           </div>
@@ -1373,18 +1533,18 @@ function CompareGraph() {
 
         {loadingHistory || loadingMetrics ? (
           <div className="history-empty-box">กำลังโหลดข้อมูลกราฟ...</div>
-        ) : selectedDevices.length < 2 ? (
+        ) : selectedDevices.length === 0 ? (
           <div className="history-empty-box">
             <span />
-            <strong>เลือกอย่างน้อย 2 Device</strong>
-            <p>เลือก Device ที่ต้องการเปรียบเทียบจาก Filter ด้านบน</p>
+            <strong>ยังไม่ได้เลือก Device</strong>
+            <p>เลือก Device ที่ต้องการจาก Filter ด้านบน</p>
           </div>
-        ) : !commonMetrics.length ? (
+        ) : series.length < 2 ? (
           <div className="history-empty-box">
             <span />
-            <strong>ไม่พบ Value ที่ใช้ร่วมกัน</strong>
+            <strong>เลือกอย่างน้อย 2 Series</strong>
             <p>
-              Device ที่เลือกต้องมี Value key เดียวกันอย่างน้อยหนึ่งรายการ
+              เลือก Value ใดก็ได้จาก Device เดียวกันหรือต่าง Device
             </p>
           </div>
         ) : chartData.length === 0 ? (
@@ -1461,7 +1621,7 @@ function CompareGraph() {
         <div className="history-section-title">
           <div>
             <h2>Compare History Table</h2>
-            <p>ข้อมูลของทุก Device ที่ใช้สร้างกราฟ เรียงตามเวลาที่เลือก</p>
+            <p>ข้อมูลของทุก Series ที่เลือก ใช้สร้างกราฟและเรียงตามเวลา</p>
           </div>
 
           <div className="history-table-actions">
