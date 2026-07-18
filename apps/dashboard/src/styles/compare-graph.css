@@ -6,10 +6,8 @@
   gap: 20px;
 }
 
-.compare-stat-card strong {
-  font-size: clamp(20px, 2.4vw, 28px);
-  overflow-wrap: anywhere;
-}
+/* StatCard typography is controlled by statcard-global-unify.css.
+   Do not override the value font size on Compare Graph. */
 
 .compare-filter-card {
   display: grid;
