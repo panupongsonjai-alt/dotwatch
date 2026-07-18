@@ -623,10 +623,12 @@ function CompareGraph() {
 
   const chartData = useMemo(() => buildChartData(rows), [rows])
 
-  const sortedRows = useMemo(() => {
+  const historyTableRows = chartData
+
+  const sortedHistoryTableRows = useMemo(() => {
     const direction = sortOrder === 'asc' ? 1 : -1
 
-    return [...rows].sort((left, right) => {
+    return [...historyTableRows].sort((left, right) => {
       const leftTime = new Date(left.time).getTime()
       const rightTime = new Date(right.time).getTime()
 
@@ -636,19 +638,31 @@ function CompareGraph() {
 
       return (leftTime - rightTime) * direction
     })
-  }, [rows, sortOrder])
+  }, [historyTableRows, sortOrder])
 
   const totalTablePages = useMemo(
-    () => Math.max(1, Math.ceil(sortedRows.length / tablePageSize)),
-    [sortedRows.length, tablePageSize]
+    () =>
+      Math.max(
+        1,
+        Math.ceil(sortedHistoryTableRows.length / tablePageSize)
+      ),
+    [sortedHistoryTableRows.length, tablePageSize]
   )
 
-  const paginatedRows = useMemo(() => {
+  const paginatedHistoryTableRows = useMemo(() => {
     const safePage = Math.min(Math.max(1, tablePage), totalTablePages)
     const startIndex = (safePage - 1) * tablePageSize
 
-    return sortedRows.slice(startIndex, startIndex + tablePageSize)
-  }, [sortedRows, tablePage, tablePageSize, totalTablePages])
+    return sortedHistoryTableRows.slice(
+      startIndex,
+      startIndex + tablePageSize
+    )
+  }, [
+    sortedHistoryTableRows,
+    tablePage,
+    tablePageSize,
+    totalTablePages,
+  ])
 
   const latestTimestamp = useMemo(() => {
     if (!rows.length) return null
@@ -999,7 +1013,7 @@ function CompareGraph() {
   }
 
   function exportCsv() {
-    if (!sortedRows.length) return
+    if (!sortedHistoryTableRows.length) return
 
     const seriesTitle = selectedSeries
       .map((item) => `${item.deviceName} • ${item.metricName}`)
@@ -1013,21 +1027,31 @@ function CompareGraph() {
       ['Display Interval', selectedResolutionLabel],
       ['Generated At', new Date().toLocaleString('th-TH')],
       [],
-      ['Date', 'Time', 'Device', 'Device Status', 'Value Key', 'Value Name', 'Value', 'Unit'],
+      [
+        'Date',
+        'Time',
+        ...series.map(
+          (item) =>
+            `${item.deviceName} • ${item.metricName}${
+              item.unit ? ` (${item.unit})` : ''
+            }`
+        ),
+      ],
     ]
 
-    for (const row of sortedRows) {
+    for (const row of sortedHistoryTableRows) {
       csvRows.push([
         formatHistoryDate(row.time),
         formatHistoryTime(row.time),
-        row.deviceName,
-        row.deviceStatus,
-        row.metricKey,
-        row.metricName,
-        Number(row.value).toFixed(
-          normalizeDecimalPlaces(row.decimalPlaces)
-        ),
-        row.unit || '',
+        ...series.map((item) => {
+          const value = row[item.dataKey]
+
+          return value == null
+            ? ''
+            : Number(value).toFixed(
+                normalizeDecimalPlaces(item.decimalPlaces)
+              )
+        }),
       ])
     }
 
@@ -1045,7 +1069,7 @@ function CompareGraph() {
   }
 
   function exportPdf() {
-    if (!sortedRows.length) return
+    if (!sortedHistoryTableRows.length) return
 
     const reportWindow = window.open('', '_blank')
 
@@ -1080,27 +1104,36 @@ function CompareGraph() {
       'to',
       endDate,
     ].join('-')
-    const tableBody = sortedRows
+    const tableHeader = series
+      .map(
+        (item) => `
+          <th>
+            <strong>${escapeReportHtml(item.metricName)}</strong>
+            <small>${escapeReportHtml(item.deviceName)}</small>
+          </th>`
+      )
+      .join('')
+    const tableBody = sortedHistoryTableRows
       .map(
         (row) => `
           <tr>
             <td>${escapeReportHtml(formatHistoryDate(row.time))}</td>
             <td>${escapeReportHtml(formatHistoryTime(row.time))}</td>
-            <td>
-              <strong>${escapeReportHtml(row.deviceName)}</strong>
-              <small>${escapeReportHtml(row.deviceId)}</small>
-            </td>
-            <td>${escapeReportHtml(row.deviceStatus)}</td>
-            <td>
-              <strong>${escapeReportHtml(row.metricName)}</strong>
-              <small>${escapeReportHtml(row.metricKey)}</small>
-            </td>
-            <td>${escapeReportHtml(
-              Number(row.value).toFixed(
-                normalizeDecimalPlaces(row.decimalPlaces)
-              )
-            )}</td>
-            <td>${escapeReportHtml(row.unit || '—')}</td>
+            ${series
+              .map((item) => {
+                const value = row[item.dataKey]
+
+                return `<td>${escapeReportHtml(
+                  value == null
+                    ? '--'
+                    : formatNumber(
+                        value,
+                        item.unit,
+                        item.decimalPlaces
+                      )
+                )}</td>`
+              })
+              .join('')}
           </tr>`
       )
       .join('')
@@ -1338,7 +1371,7 @@ function CompareGraph() {
       <div class="report-stat">
         <span>Records</span>
         <strong>${escapeReportHtml(
-          sortedRows.length.toLocaleString('th-TH')
+          rows.length.toLocaleString('th-TH')
         )}</strong>
         <small>All selected readings</small>
       </div>
@@ -1384,11 +1417,7 @@ function CompareGraph() {
           <tr>
             <th>Date</th>
             <th>Time</th>
-            <th>Device</th>
-            <th>Status</th>
-            <th>Value</th>
-            <th>Reading</th>
-            <th>Unit</th>
+            ${tableHeader}
           </tr>
         </thead>
         <tbody>${tableBody}</tbody>
@@ -1598,14 +1627,14 @@ function CompareGraph() {
                   key: 'csv',
                   label: 'Export CSV',
                   icon: Download,
-                  disabled: !sortedRows.length || loadingHistory,
+                  disabled: !sortedHistoryTableRows.length || loadingHistory,
                   onSelect: exportCsv,
                 },
                 {
                   key: 'pdf',
                   label: 'Export PDF',
                   icon: Download,
-                  disabled: !sortedRows.length || loadingHistory,
+                  disabled: !sortedHistoryTableRows.length || loadingHistory,
                   onSelect: exportPdf,
                 },
               ]}
@@ -2049,23 +2078,28 @@ function CompareGraph() {
         <div className="history-section-title">
           <div>
             <h2>Compare History Table</h2>
-            <p>ข้อมูลของทุก Series ที่เลือก ใช้สร้างกราฟและเรียงตามเวลา</p>
+            <p>
+              ข้อมูลทุก {selectedResolutionLabel} โดยแสดงหนึ่งแถวต่อช่วงเวลา
+              และหนึ่งคอลัมน์ต่อ Series
+            </p>
           </div>
 
           <div className="history-table-actions">
             <label>
-              <span>Rows</span>
+              <span>Show</span>
               <UnifiedSelect
-                value={String(tablePageSize)}
-                onChange={(event) =>
+                value={tablePageSize}
+                onChange={(event) => {
                   setTablePageSize(
                     getSafeTablePageSize(event.target.value)
                   )
-                }
+                  setTablePage(1)
+                }}
+                aria-label="จำนวนแถวต่อหน้า Compare History"
               >
                 {TABLE_PAGE_SIZES.map((pageSize) => (
                   <option key={pageSize} value={pageSize}>
-                    {pageSize}
+                    {pageSize} rows
                   </option>
                 ))}
               </UnifiedSelect>
@@ -2075,69 +2109,82 @@ function CompareGraph() {
               <span>Sort</span>
               <UnifiedSelect
                 value={sortOrder}
-                onChange={(event) =>
+                onChange={(event) => {
                   setSortOrder(getSafeSortOrder(event.target.value))
-                }
+                  setTablePage(1)
+                }}
+                aria-label="เรียงลำดับ Compare History"
               >
-                <option value="desc">Latest first</option>
-                <option value="asc">Oldest first</option>
+                <option value="desc">ล่าสุด</option>
+                <option value="asc">เก่าสุด</option>
               </UnifiedSelect>
             </label>
           </div>
         </div>
 
         <div className="history-table-wrap">
-          <table className="history-table compare-history-table">
+          <table
+            className="history-table history-table-all-metrics compare-history-table"
+            style={{
+              minWidth: `${Math.max(760, (series.length + 2) * 180)}px`,
+            }}
+          >
+            <colgroup>
+              {Array.from({ length: series.length + 2 }).map((_, index) => (
+                <col
+                  key={`compare-history-column-${index}`}
+                  style={{ width: `${100 / (series.length + 2)}%` }}
+                />
+              ))}
+            </colgroup>
+
             <thead>
               <tr>
                 <th>Date</th>
                 <th>Time</th>
-                <th>Device</th>
-                <th>Status</th>
-                <th>Value</th>
-                <th>Reading</th>
-                <th>Unit</th>
+                {series.map((item) => (
+                  <th key={item.dataKey}>
+                    <span className="compare-history-column-title">
+                      <strong>{item.metricName}</strong>
+                      <small>{item.deviceName}</small>
+                    </span>
+                  </th>
+                ))}
               </tr>
             </thead>
+
             <tbody>
-              {paginatedRows.length === 0 ? (
+              {historyTableRows.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="history-table-empty">
-                    ยังไม่มีข้อมูล Compare Graph
+                  <td
+                    colSpan={series.length + 2}
+                    className="history-table-empty"
+                  >
+                    ยังไม่มีข้อมูลย้อนหลังสำหรับตัวกรองนี้
                   </td>
                 </tr>
               ) : (
-                paginatedRows.map((row) => (
+                paginatedHistoryTableRows.map((row) => (
                   <tr key={row.id}>
                     <td>{formatHistoryDate(row.time)}</td>
                     <td>{formatHistoryTime(row.time)}</td>
-                    <td>
-                      <div className="compare-table-device">
-                        <strong>{row.deviceName}</strong>
-                        <small>{row.deviceId}</small>
-                      </div>
-                    </td>
-                    <td>
-                      <span
-                        className={`history-device-status ${row.deviceStatus}`}
-                      >
-                        {row.deviceStatus}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="compare-table-value-name">
-                        <strong>{row.metricName}</strong>
-                        <small>{row.metricKey}</small>
-                      </div>
-                    </td>
-                    <td className="compare-table-reading">
-                      {formatNumber(
-                        row.value,
-                        '',
-                        row.decimalPlaces
-                      )}
-                    </td>
-                    <td>{row.unit || '—'}</td>
+                    {series.map((item) => {
+                      const value = row[item.dataKey]
+
+                      return (
+                        <td key={item.dataKey}>
+                          <span className="compare-history-value">
+                            {value == null
+                              ? '--'
+                              : formatNumber(
+                                  value,
+                                  item.unit,
+                                  item.decimalPlaces
+                                )}
+                          </span>
+                        </td>
+                      )
+                    })}
                   </tr>
                 ))
               )}
@@ -2146,9 +2193,9 @@ function CompareGraph() {
         </div>
 
         <TablePagination
-          page={tablePage}
+          page={Math.min(tablePage, totalTablePages)}
           pageSize={tablePageSize}
-          total={sortedRows.length}
+          total={sortedHistoryTableRows.length}
           onPageChange={setTablePage}
         />
       </section>

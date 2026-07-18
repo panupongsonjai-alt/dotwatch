@@ -532,3 +532,47 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   Compare History Table
+   Match the History Table layout: one row per timestamp and
+   one equal-width column per selected Device/Value series.
+========================================================= */
+.compare-history-table {
+  min-width: 760px;
+}
+
+.compare-history-column-title {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+
+.compare-history-column-title strong {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compare-history-column-title small {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.compare-history-value {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 950;
+  white-space: nowrap;
+}
