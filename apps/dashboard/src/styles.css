@@ -49,3 +49,5 @@
 @import './styles/responsive-all-devices.css';
 
 @import './styles/statcard-global-unify.css';
+
+@import './styles/statcard-compare-layout-lock.css';

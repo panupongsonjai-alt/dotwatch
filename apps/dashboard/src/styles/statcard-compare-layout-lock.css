@@ -1,0 +1,147 @@
+/* =========================================================
+   dotWatch - StatCard Compare Graph Layout Lock
+   Keep every StatCard group fluid like Compare Graph:
+   - no horizontal carousel
+   - no clipped card at the right edge
+   - cards wrap by the real content width, not only viewport width
+========================================================= */
+
+:root {
+  --dw-stat-grid-card-min: 140px;
+  --dw-stat-grid-gap: 12px;
+}
+
+:is(
+    .dw-page-stat-grid,
+    .dashboard-kpi-grid,
+    .dashboard-health-kpi-grid,
+    .devices-ops-stat-grid,
+    .alarms-stat-grid,
+    .dashboard-style-stat-grid,
+    .history-stat-grid,
+    .history-stat-grid-tight,
+    .compare-stat-grid,
+    .settings-v3-stat-grid,
+    .profile-v3-stat-grid,
+    .device-detail-stat-grid,
+    .device-detail-state-grid,
+    .device-detail-stats-grid,
+    .device-detail-status-grid,
+    .device-detail-summary-grid,
+    .device-detail-kpi-grid,
+    .device-detail-health-grid,
+    .device-detail-overview-grid,
+    .notifications-stat-grid,
+    .activity-stat-grid,
+    .system-health-stat-grid
+  ),
+:is([class*='stat-grid'], [class*='summary-grid']):has(
+    > :is(
+        .dw-stat-card,
+        .stat-card,
+        .summary-card,
+        .compact-summary-card,
+        .history-stat-card,
+        .compare-stat-card
+      )
+  ) {
+  display: grid !important;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--dw-stat-grid-card-min)), 1fr)
+  ) !important;
+  grid-auto-flow: row !important;
+  grid-auto-columns: initial !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  gap: var(--dw-stat-grid-gap) !important;
+  margin-inline: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+  overscroll-behavior: auto !important;
+  scroll-snap-type: none !important;
+  scrollbar-width: auto !important;
+}
+
+:is(
+    .dw-page-stat-grid,
+    .dashboard-kpi-grid,
+    .dashboard-health-kpi-grid,
+    .devices-ops-stat-grid,
+    .alarms-stat-grid,
+    .dashboard-style-stat-grid,
+    .history-stat-grid,
+    .history-stat-grid-tight,
+    .compare-stat-grid,
+    .settings-v3-stat-grid,
+    .profile-v3-stat-grid,
+    .device-detail-stat-grid,
+    .device-detail-state-grid,
+    .device-detail-stats-grid,
+    .device-detail-status-grid,
+    .device-detail-summary-grid,
+    .device-detail-kpi-grid,
+    .device-detail-health-grid,
+    .device-detail-overview-grid,
+    .notifications-stat-grid,
+    .activity-stat-grid,
+    .system-health-stat-grid
+  )
+  > *,
+:is([class*='stat-grid'], [class*='summary-grid']):has(
+    > :is(
+        .dw-stat-card,
+        .stat-card,
+        .summary-card,
+        .compact-summary-card,
+        .history-stat-card,
+        .compare-stat-card
+      )
+  )
+  > * {
+  grid-column: auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 100% !important;
+  scroll-snap-align: none !important;
+}
+
+/* Remove scrollbar rules left by the legacy single-row carousel. */
+:is(
+    .dw-page-stat-grid,
+    .dashboard-kpi-grid,
+    .dashboard-health-kpi-grid,
+    .devices-ops-stat-grid,
+    .alarms-stat-grid,
+    .dashboard-style-stat-grid,
+    .history-stat-grid,
+    .history-stat-grid-tight,
+    .settings-v3-stat-grid,
+    .profile-v3-stat-grid,
+    .device-detail-stat-grid,
+    .notifications-stat-grid,
+    .activity-stat-grid,
+    .system-health-stat-grid
+  )::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+/* At phone width, keep the same fluid behavior with a smaller card floor. */
+@media (max-width: 560px) {
+  :root {
+    --dw-stat-grid-card-min: 132px;
+    --dw-stat-grid-gap: 10px;
+  }
+}
+
+@media (max-width: 320px) {
+  :root {
+    --dw-stat-grid-card-min: 100%;
+  }
+}
