@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import PageHeader from '../components/common/PageHeader'
 import UnifiedSelect from '../components/common/UnifiedSelect'
 
 function getValue(item, keys, fallback = '-') {
@@ -40,13 +41,11 @@ function AdminDevices({ devices, loading }) {
 
   return (
     <section className="admin-page">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Fleet control</p>
-          <h1>Devices</h1>
-          <span>Monitor all devices across users from one admin view.</span>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Fleet Control"
+        title="Devices"
+        description="Monitor all devices across users from one admin view."
+      />
 
       <div className="toolbar-card">
         <label className="search-box">

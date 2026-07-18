@@ -1,0 +1,19 @@
+dotWatch Admin StatCard Dashboard Parity
+
+วางโฟลเดอร์ apps ทับที่:
+D:\IoT Project\dotwatch
+
+ไฟล์ที่แก้:
+- apps\admin\src\main.jsx
+- apps\admin\src\pages\AdminSubscriptions.jsx
+- apps\admin\src\styles\statcard-dashboard-parity.css
+
+ตรวจสอบ:
+Set-Location "D:\IoT Project\dotwatch"
+npm --prefix apps/admin ci
+npm run admin:build
+
+Git:
+git add apps/admin/src/main.jsx apps/admin/src/pages/AdminSubscriptions.jsx apps/admin/src/styles/statcard-dashboard-parity.css
+git commit -m "style(admin): unify stat cards with dashboard"
+git push origin main

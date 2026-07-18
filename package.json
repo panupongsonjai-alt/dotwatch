@@ -103,7 +103,9 @@
     "esp32:security:verify-device": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/esp32-security-verify-device.ps1",
     "test:phase-s3:software": "npm run test:phase-s3a && npm run test:phase-s3b",
     "backend:weather:poll": "npm --prefix services/backend run weather:poll",
-    "test:weather": "npm --prefix services/backend run test:weather"
+    "test:weather": "npm --prefix services/backend run test:weather",
+    "mobile:release:check": "npm --prefix apps/mobile run check:release",
+    "backend:mobile-push:migrate": "npm --prefix services/backend run mobile-push:migrate"
   },
   "engines": {
     "node": ">=20"

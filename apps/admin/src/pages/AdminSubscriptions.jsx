@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import LoadingState from '../components/common/LoadingState'
+import PageHeader from '../components/common/PageHeader'
 import StatCard from '../components/common/StatCard'
 import StatusBadge from '../components/common/StatusBadge'
 import UsageBar from '../components/common/UsageBar'
@@ -48,13 +49,11 @@ function AdminSubscriptions({
 
   return (
     <section className="admin-page">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Billing control</p>
-          <h2>Subscriptions</h2>
-          <span>Manage commercial plans, limits, and customer capacity.</span>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Billing Control"
+        title="Subscriptions"
+        description="Manage commercial plans, limits, and customer capacity."
+      />
 
       {commercialSummary?.usage ? (
         <div className="admin-stat-grid compact">

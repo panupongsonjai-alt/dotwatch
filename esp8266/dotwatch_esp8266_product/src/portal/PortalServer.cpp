@@ -117,8 +117,7 @@ bool PortalServer::shouldAutoCloseWhenReady() const {
 void PortalServer::registerRoutes() {
   if (routesRegistered_) return;
 
-  const char *headerKeys[] = {"Cookie"};
-  server_.collectHeaders(headerKeys, 1);
+  server_.collectHeaders("Cookie");
 
   server_.on("/", HTTP_GET, [this]() { handleRoot(); });
   server_.on("/login", HTTP_POST, [this]() { handleLogin(); });
@@ -589,12 +588,18 @@ String PortalServer::effectiveAdminPin() const {
 }
 
 String PortalServer::generateSessionToken() const {
-  static constexpr char HEX[] = "0123456789abcdef";
+  static constexpr char HEX_CHARS[] = "0123456789abcdef";
+
   String token;
   token.reserve(40);
+
   for (uint8_t index = 0; index < 40; index++) {
-    token += HEX[random(0, 16)];
+    const uint8_t randomIndex =
+        static_cast<uint8_t>(random(0, 16));
+
+    token += HEX_CHARS[randomIndex];
   }
+
   return token;
 }
 

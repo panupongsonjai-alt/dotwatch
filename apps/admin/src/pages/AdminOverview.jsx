@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import LoadingState from '../components/common/LoadingState'
+import PageHeader from '../components/common/PageHeader'
 import StatCard from '../components/common/StatCard'
 import StatusBadge from '../components/common/StatusBadge'
 import {
@@ -57,13 +58,12 @@ function AdminOverview({ stats, users, devices, loading }) {
 
   return (
     <section className="admin-page">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">System overview</p>
-          <h2>Platform health</h2>
-        </div>
-        <span className="page-chip">API service layer ready</span>
-      </div>
+      <PageHeader
+        eyebrow="System Overview"
+        title="Platform Health"
+        description="Monitor users, devices, and platform activity from one operational view."
+        actions={<span className="page-chip">API service layer ready</span>}
+      />
 
       {displayPreferences.showSummaryCards && (
         <div className="admin-stat-grid">

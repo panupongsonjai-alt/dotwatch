@@ -37,7 +37,7 @@ static constexpr int RESET_BUTTON_PIN = 0;  // FLASH button
 static constexpr unsigned long RESET_HOLD_MS = 6000UL;
 
 // DHT data on GPIO4 (D2) by default.
-static constexpr int DEFAULT_DHT_PIN = 4;
+static constexpr int DEFAULT_DHT_PIN = 14;
 static constexpr int DEFAULT_DHT_TYPE = 11;
 static constexpr unsigned long DEFAULT_SEND_INTERVAL_MS = 20000UL;
 static constexpr unsigned long MIN_SEND_INTERVAL_MS = 10000UL;

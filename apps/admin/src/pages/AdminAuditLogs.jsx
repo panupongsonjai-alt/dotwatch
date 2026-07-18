@@ -1,13 +1,13 @@
+import PageHeader from '../components/common/PageHeader'
+
 function AdminAuditLogs({ auditLogs, loading }) {
   return (
     <section className="admin-page">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Security record</p>
-          <h1>Audit Logs</h1>
-          <span>Track admin actions and important system changes.</span>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Security Record"
+        title="Audit Logs"
+        description="Track admin actions and important system changes."
+      />
 
       <article className="panel-card">
         <div className="panel-header">

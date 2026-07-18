@@ -104,13 +104,12 @@ function getAlarmTitle(alarm) {
 
 function buildAlarmNotification(alarm, metricInfo = {}) {
   const id = `alarm-${alarm.id}-${alarm.status || 'active'}`
-  const metric =
-    alarm.metric_name || metricInfo.name || alarm.metric || 'Value'
+  const metric = alarm.metric_name || metricInfo.name || alarm.metric || 'Value'
   const metricKey = alarm.metric || alarm.metric_key || metric
   const unit = alarm.unit || metricInfo.unit || ''
-  const decimalPlaces = getMetricDecimalPlaces(
-    { decimal_places: alarm.decimal_places ?? metricInfo.decimalPlaces }
-  )
+  const decimalPlaces = getMetricDecimalPlaces({
+    decimal_places: alarm.decimal_places ?? metricInfo.decimalPlaces,
+  })
   const valueText =
     alarm.value != null
       ? formatMetricValue(alarm.value, unit, decimalPlaces)
@@ -650,8 +649,24 @@ function NotificationCenter() {
             <FilterActionsMenu
               label="Notification filter actions"
               items={[
-                { key: 'csv', label: 'Export CSV', icon: Download, disabled: filteredNotifications.length === 0, onSelect: handleExportNotifications },
-                { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: loading || clearingNotifications || filteredNotifications.length === 0, onSelect: openClearNotificationDialog },
+                {
+                  key: 'csv',
+                  label: 'Export CSV',
+                  icon: Download,
+                  disabled: filteredNotifications.length === 0,
+                  onSelect: handleExportNotifications,
+                },
+                {
+                  key: 'clear',
+                  label: 'Clear Data',
+                  icon: Trash2,
+                  tone: 'danger',
+                  disabled:
+                    loading ||
+                    clearingNotifications ||
+                    filteredNotifications.length === 0,
+                  onSelect: openClearNotificationDialog,
+                },
               ]}
             />
           </div>

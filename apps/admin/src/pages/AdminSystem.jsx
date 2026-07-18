@@ -1,14 +1,14 @@
+import PageHeader from '../components/common/PageHeader'
 import StatCard from '../components/common/StatCard'
 
 function AdminSystem() {
   return (
     <section className="admin-page">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Infrastructure</p>
-          <h2>System</h2>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Infrastructure"
+        title="System"
+        description="Review backend, database, realtime, and ingest service readiness."
+      />
 
       <div className="admin-stat-grid">
         <StatCard label="Backend API" value="Online" helper="http://localhost:4000" tone="success" />

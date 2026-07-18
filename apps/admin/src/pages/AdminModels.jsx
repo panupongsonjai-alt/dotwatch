@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import EmptyState from '../components/common/EmptyState'
 import LoadingState from '../components/common/LoadingState'
+import PageHeader from '../components/common/PageHeader'
 import StatCard from '../components/common/StatCard'
 import StatusBadge from '../components/common/StatusBadge'
 import UnifiedSelect from '../components/common/UnifiedSelect'
@@ -378,33 +379,30 @@ function AdminModels({ adminUser }) {
 
   return (
     <section className="admin-page admin-models-page">
-      <div className="page-header admin-models-page-header">
-        <div>
-          <p className="eyebrow">Device catalog</p>
-          <h1>Device Models</h1>
-          <span>
-            จัดการรุ่นอุปกรณ์และค่าเริ่มต้นที่ใช้ในหน้า Create Device
-          </span>
-        </div>
-
-        <div className="admin-models-header-actions">
-          <button
-            type="button"
-            onClick={() => loadModels()}
-            disabled={loading || saving}
-          >
-            Refresh
-          </button>
-          <button
-            type="button"
-            className="primary-button"
-            onClick={() => openEditor(EMPTY_FORM)}
-            disabled={saving || !canWrite}
-          >
-            Create Model
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Device Catalog"
+        title="Device Models"
+        description="จัดการรุ่นอุปกรณ์และค่าเริ่มต้นที่ใช้ในหน้า Create Device"
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => loadModels()}
+              disabled={loading || saving}
+            >
+              Refresh
+            </button>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => openEditor(EMPTY_FORM)}
+              disabled={saving || !canWrite}
+            >
+              Create Model
+            </button>
+          </>
+        }
+      />
 
       {notice ? (
         <div className="admin-notice">

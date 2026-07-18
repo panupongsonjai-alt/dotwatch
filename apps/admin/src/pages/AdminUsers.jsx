@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import LoadingState from '../components/common/LoadingState'
+import PageHeader from '../components/common/PageHeader'
 import StatusBadge from '../components/common/StatusBadge'
 import UsageBar from '../components/common/UsageBar'
 import UnifiedSelect from '../components/common/UnifiedSelect'
@@ -25,12 +26,11 @@ function AdminUsers({ users, loading, onUpdateUserStatus }) {
 
   return (
     <section className="admin-page">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">Account control</p>
-          <h2>Users</h2>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Account Control"
+        title="Users"
+        description="Manage account status, subscription plans, device capacity, and database usage."
+      />
 
       <div className="admin-toolbar">
         <input

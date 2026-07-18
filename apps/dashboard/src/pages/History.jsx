@@ -1833,9 +1833,31 @@ function History() {
             <FilterActionsMenu
               label="History filter actions"
               items={[
-                { key: 'csv', label: 'Export CSV', icon: Download, disabled: !filteredRows.length || loadingHistory, onSelect: () => handleExport('csv') },
-                { key: 'pdf', label: 'Export PDF', icon: Download, disabled: !filteredRows.length || loadingHistory, onSelect: () => handleExport('pdf') },
-                { key: 'clear', label: 'Clear Data', icon: Trash2, tone: 'danger', disabled: !historyTableRows.length || loadingHistory || clearingHistory, onSelect: openClearDialog },
+                {
+                  key: 'csv',
+                  label: 'Export CSV',
+                  icon: Download,
+                  disabled: !filteredRows.length || loadingHistory,
+                  onSelect: () => handleExport('csv'),
+                },
+                {
+                  key: 'pdf',
+                  label: 'Export PDF',
+                  icon: Download,
+                  disabled: !filteredRows.length || loadingHistory,
+                  onSelect: () => handleExport('pdf'),
+                },
+                {
+                  key: 'clear',
+                  label: 'Clear Data',
+                  icon: Trash2,
+                  tone: 'danger',
+                  disabled:
+                    !historyTableRows.length ||
+                    loadingHistory ||
+                    clearingHistory,
+                  onSelect: openClearDialog,
+                },
               ]}
             />
           </div>
