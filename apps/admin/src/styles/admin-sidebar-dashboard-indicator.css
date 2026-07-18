@@ -1,0 +1,30 @@
+/* =========================================================
+   Admin sidebar active indicator parity with Dashboard
+   Scope: active navigation pill and its color bar only.
+========================================================= */
+
+.admin-sidebar .admin-nav-item.menu-item:hover,
+.admin-sidebar .admin-nav-item.menu-item.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  transform: none;
+}
+
+.admin-sidebar .admin-nav-item.menu-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 11px;
+  bottom: 11px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
+}
+
+.admin-sidebar.collapsed .admin-nav-item.menu-item.active::before,
+.admin-layout.sidebar-collapsed
+  .admin-sidebar
+  .admin-nav-item.menu-item.active::before {
+  left: 5px;
+}

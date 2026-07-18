@@ -8,6 +8,7 @@ import './styles/phase11i-admin-comfort-parity.css'
 import './styles/statcard-single-row.css'
 import './styles/dropdown-unify.css'
 import './styles/responsive-all-devices.css'
+import './styles/admin-sidebar-dashboard-indicator.css'
 
 const rootElement = document.getElementById('root')
 
