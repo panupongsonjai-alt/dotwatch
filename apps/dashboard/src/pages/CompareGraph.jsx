@@ -10,10 +10,9 @@ import {
 } from 'recharts'
 import {
   CalendarDays,
-  Check,
   Download,
   RefreshCw,
-  Search,
+  X,
 } from 'lucide-react'
 import {
   FilterActionsMenu,
@@ -541,7 +540,6 @@ function CompareGraph() {
     initialState.tablePageSize
   )
   const [tablePage, setTablePage] = useState(1)
-  const [deviceSearch, setDeviceSearch] = useState('')
   const [rows, setRows] = useState([])
   const [loadingDevices, setLoadingDevices] = useState(true)
   const [loadingMetrics, setLoadingMetrics] = useState(false)
@@ -591,20 +589,13 @@ function CompareGraph() {
     return nextSeries
   }, [metricsByDevice, selectedDevices, selectedSeriesKeySet])
 
-  const visibleDevices = useMemo(() => {
-    const normalizedSearch = deviceSearch.trim().toLowerCase()
+  const availableDevices = useMemo(() => {
+    const selectedSet = new Set(selectedDeviceIds.map(String))
 
-    if (!normalizedSearch) return devices
-
-    return devices.filter((device) => {
-      const text = [device.name, device.device_code, device.status, device.id]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-
-      return text.includes(normalizedSearch)
-    })
-  }, [deviceSearch, devices])
+    return devices.filter(
+      (device) => !selectedSet.has(String(device.id))
+    )
+  }, [devices, selectedDeviceIds])
 
   const series = useMemo(
     () =>
@@ -689,13 +680,13 @@ function CompareGraph() {
     input.click()
   }
 
-  function toggleDevice(deviceId) {
-    const normalizedId = String(deviceId)
+  function addDevice(deviceId) {
+    const normalizedId = String(deviceId || '')
+
+    if (!normalizedId) return
 
     setSelectedDeviceIds((current) => {
-      if (current.includes(normalizedId)) {
-        return current.filter((id) => id !== normalizedId)
-      }
+      if (current.includes(normalizedId)) return current
 
       if (current.length >= MAX_SELECTED_DEVICES) {
         const message = `เลือก Compare ได้สูงสุด ${MAX_SELECTED_DEVICES} Device ต่อครั้ง`
@@ -707,6 +698,19 @@ function CompareGraph() {
       setError('')
       return [...current, normalizedId]
     })
+  }
+
+  function removeDevice(deviceId) {
+    const normalizedId = String(deviceId)
+
+    setSelectedDeviceIds((current) =>
+      current.filter((id) => id !== normalizedId)
+    )
+    setSelectedSeriesKeys((current) =>
+      current.filter(
+        (selectionKey) => !selectionKey.startsWith(`${normalizedId}::`)
+      )
+    )
   }
 
   function toggleSeries(deviceId, metricKey) {
@@ -765,20 +769,6 @@ function CompareGraph() {
     setSelectedSeriesKeys((current) =>
       current.filter((key) => !deviceKeys.has(key))
     )
-  }
-
-  function selectVisibleDevices() {
-    const nextIds = visibleDevices
-      .slice(0, MAX_SELECTED_DEVICES)
-      .map((device) => String(device.id))
-
-    setSelectedDeviceIds(nextIds)
-
-    if (visibleDevices.length > MAX_SELECTED_DEVICES) {
-      const message = `เลือก ${MAX_SELECTED_DEVICES} Device แรกจากผลการค้นหา เพื่อควบคุมความชัดเจนและจำนวน API requests`
-      setNotice(message)
-      showWarningToast(message)
-    }
   }
 
   async function loadDevices() {
@@ -1576,7 +1566,7 @@ function CompareGraph() {
           <div>
             <h2>Filter</h2>
             <p>
-              เลือก Device และ Value ของแต่ละ Device ได้อย่างอิสระ ไม่จำเป็นต้องใช้ชื่อหรือหน่วยเดียวกัน
+              เลือกคู่ Device และ Value ได้อย่างอิสระ แล้วเปรียบเทียบในช่วงเวลาเดียวกัน
             </p>
           </div>
 
@@ -1623,200 +1613,237 @@ function CompareGraph() {
           </div>
         </div>
 
-        <div className="compare-device-selector">
-          <div className="compare-device-selector-header">
-            <label htmlFor="compare-device-search">
-              <span>Devices</span>
-              <small>
-                {selectedDevices.length}/{MAX_SELECTED_DEVICES} selected
-              </small>
-            </label>
+        <div className="compare-series-selector">
+          <div className="compare-series-selector-header">
+            <div>
+              <h3>Compare Series</h3>
+              <p>เพิ่ม Device แล้วเลือก Value ที่ต้องการเปรียบเทียบ</p>
+            </div>
 
-            <div className="compare-device-selector-actions">
-              <button type="button" onClick={selectVisibleDevices}>
-                Select visible
-              </button>
+            <div className="compare-series-selector-summary">
+              <span>
+                {selectedDevices.length}/{MAX_SELECTED_DEVICES} Devices
+              </span>
+              <span>
+                {selectedSeriesKeys.length}/{MAX_SELECTED_SERIES} Series
+              </span>
               <button
                 type="button"
-                onClick={() => setSelectedDeviceIds([])}
-                disabled={!selectedDeviceIds.length}
+                onClick={() => {
+                  setSelectedDeviceIds([])
+                  setSelectedSeriesKeys([])
+                }}
+                disabled={
+                  !selectedDeviceIds.length && !selectedSeriesKeys.length
+                }
               >
-                Clear
+                Clear all
               </button>
             </div>
           </div>
 
-          <div className="compare-device-search">
-            <Search size={17} aria-hidden="true" />
-            <input
-              id="compare-device-search"
-              value={deviceSearch}
-              placeholder="Search device name, code, status..."
-              onChange={(event) => setDeviceSearch(event.target.value)}
-            />
-          </div>
+          <div className="compare-device-picker-row">
+            <label className="compare-compact-field">
+              <span>Add Device</span>
+              <UnifiedSelect
+                value=""
+                onChange={(event) => addDevice(event.target.value)}
+                disabled={
+                  loadingDevices ||
+                  selectedDeviceIds.length >= MAX_SELECTED_DEVICES ||
+                  availableDevices.length === 0
+                }
+                aria-label="เพิ่ม Device สำหรับ Compare Graph"
+              >
+                <option value="">
+                  {loadingDevices
+                    ? 'Loading Devices...'
+                    : selectedDeviceIds.length >= MAX_SELECTED_DEVICES
+                      ? 'Device limit reached'
+                      : availableDevices.length
+                        ? 'Select Device'
+                        : 'All Devices selected'}
+                </option>
+                {availableDevices.map((device) => (
+                  <option key={device.id} value={String(device.id)}>
+                    {getDeviceName(device)}
+                    {device.device_code ? ` • ${device.device_code}` : ''}
+                  </option>
+                ))}
+              </UnifiedSelect>
+            </label>
 
-          <div
-            className="compare-device-options"
-            aria-label="Select devices for graph comparison"
-          >
-            {loadingDevices ? (
-              <div className="compare-device-empty">กำลังโหลด Device...</div>
-            ) : visibleDevices.length === 0 ? (
-              <div className="compare-device-empty">ไม่พบ Device</div>
-            ) : (
-              visibleDevices.map((device) => {
-                const deviceId = String(device.id)
-                const checked = selectedDeviceIds.includes(deviceId)
-                const atLimit =
-                  !checked && selectedDeviceIds.length >= MAX_SELECTED_DEVICES
-
-                return (
+            <div
+              className="compare-selected-device-chips"
+              aria-label="Device ที่เลือก"
+            >
+              {selectedDevices.length === 0 ? (
+                <span className="compare-selection-placeholder">
+                  ยังไม่ได้เลือก Device
+                </span>
+              ) : (
+                selectedDevices.map((device) => (
                   <button
                     key={device.id}
                     type="button"
-                    className={`compare-device-option ${checked ? 'selected' : ''}`}
-                    onClick={() => toggleDevice(deviceId)}
-                    disabled={atLimit}
-                    aria-pressed={checked}
+                    className="compare-selection-chip compare-device-chip"
+                    onClick={() => removeDevice(device.id)}
+                    aria-label={`ลบ ${getDeviceName(device)} ออกจากการเปรียบเทียบ`}
+                    title="Remove Device"
                   >
-                    <span className="compare-device-checkbox">
-                      {checked && <Check size={14} aria-hidden="true" />}
-                    </span>
-                    <span className="compare-device-copy">
-                      <strong>{getDeviceName(device)}</strong>
-                      <small>{device.device_code || `ID ${device.id}`}</small>
-                    </span>
-                    <span
-                      className={`history-device-status ${String(
+                    <i
+                      className={`compare-status-dot ${String(
                         device.status || 'offline'
                       ).toLowerCase()}`}
-                    >
-                      {device.status || 'offline'}
-                    </span>
+                      aria-hidden="true"
+                    />
+                    <span>{getDeviceName(device)}</span>
+                    <X size={13} aria-hidden="true" />
                   </button>
-                )
-              })
-            )}
-          </div>
-        </div>
-
-        <div className="compare-value-selector">
-          <div className="compare-value-selector-header">
-            <label>
-              <span>Values by Device</span>
-              <small>
-                {selectedSeriesKeys.length}/{MAX_SELECTED_SERIES} series selected
-              </small>
-            </label>
-
-            <button
-              type="button"
-              onClick={() => setSelectedSeriesKeys([])}
-              disabled={!selectedSeriesKeys.length}
-            >
-              Clear all values
-            </button>
+                ))
+              )}
+            </div>
           </div>
 
           {selectedDevices.length === 0 ? (
-            <div className="compare-device-empty">
-              เลือก Device ก่อนกำหนด Value ที่ต้องการเปรียบเทียบ
+            <div className="compare-selector-empty">
+              เลือก Device เพื่อเพิ่ม Value ที่ต้องการเปรียบเทียบ
             </div>
           ) : loadingMetrics ? (
-            <div className="compare-device-empty">
+            <div className="compare-selector-empty">
               กำลังโหลด Value ของ Device ที่เลือก...
             </div>
           ) : (
-            <div className="compare-value-device-grid">
+            <div className="compare-value-rows">
               {selectedDevices.map((device) => {
                 const deviceId = String(device.id)
                 const deviceMetrics = metricsByDevice[deviceId] || []
-                const selectedCount = deviceMetrics.filter((metric) =>
+                const selectedMetrics = deviceMetrics.filter((metric) =>
                   selectedSeriesKeySet.has(
                     makeSeriesSelectionKey(deviceId, metric.metricKey)
                   )
-                ).length
+                )
+                const availableMetrics = deviceMetrics.filter(
+                  (metric) =>
+                    !selectedSeriesKeySet.has(
+                      makeSeriesSelectionKey(deviceId, metric.metricKey)
+                    )
+                )
+                const atSeriesLimit =
+                  selectedSeriesKeys.length >= MAX_SELECTED_SERIES
 
                 return (
-                  <article key={deviceId} className="compare-value-device-card">
-                    <div className="compare-value-device-header">
-                      <div className="compare-value-device-copy">
-                        <strong>{getDeviceName(device)}</strong>
-                        <small>
-                          {selectedCount}/{deviceMetrics.length} Value selected
-                        </small>
-                      </div>
-
-                      <div className="compare-value-device-actions">
-                        <button
-                          type="button"
-                          onClick={() => selectAllDeviceValues(deviceId)}
-                          disabled={!deviceMetrics.length}
-                        >
-                          Select all
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => clearDeviceValues(deviceId)}
-                          disabled={!selectedCount}
-                        >
-                          Clear
-                        </button>
-                      </div>
+                  <div key={deviceId} className="compare-value-row">
+                    <div className="compare-value-row-device">
+                      <strong>{getDeviceName(device)}</strong>
+                      <small>
+                        {selectedMetrics.length}/{deviceMetrics.length} Values
+                      </small>
                     </div>
 
-                    <div className="compare-value-options">
-                      {deviceMetrics.length === 0 ? (
-                        <div className="compare-value-empty">
-                          ไม่พบ Value ที่เปิดใช้งานสำหรับ Device นี้
-                        </div>
+                    <UnifiedSelect
+                      className="compare-value-add-select"
+                      value=""
+                      onChange={(event) => {
+                        const metricKey = event.target.value
+
+                        if (metricKey) {
+                          toggleSeries(deviceId, metricKey)
+                        }
+                      }}
+                      disabled={
+                        !availableMetrics.length || atSeriesLimit
+                      }
+                      aria-label={`เพิ่ม Value ของ ${getDeviceName(device)}`}
+                    >
+                      <option value="">
+                        {!deviceMetrics.length
+                          ? 'No Values'
+                          : atSeriesLimit
+                            ? 'Series limit reached'
+                            : availableMetrics.length
+                              ? 'Add Value'
+                              : 'All Values selected'}
+                      </option>
+                      {availableMetrics.map((metric) => (
+                        <option
+                          key={metric.metricKey}
+                          value={metric.metricKey}
+                        >
+                          {metric.metricName}
+                          {metric.unit ? ` • ${metric.unit}` : ''}
+                        </option>
+                      ))}
+                    </UnifiedSelect>
+
+                    <div
+                      className="compare-selected-value-chips"
+                      aria-label={`Value ที่เลือกจาก ${getDeviceName(device)}`}
+                    >
+                      {selectedMetrics.length === 0 ? (
+                        <span className="compare-selection-placeholder">
+                          ยังไม่ได้เลือก Value
+                        </span>
                       ) : (
-                        deviceMetrics.map((metric) => {
+                        selectedMetrics.map((metric) => {
                           const selectionKey = makeSeriesSelectionKey(
                             deviceId,
                             metric.metricKey
                           )
-                          const checked = selectedSeriesKeySet.has(selectionKey)
-                          const atLimit =
-                            !checked &&
-                            selectedSeriesKeys.length >= MAX_SELECTED_SERIES
 
                           return (
                             <button
                               key={selectionKey}
                               type="button"
-                              className={`compare-value-option ${checked ? 'selected' : ''}`}
+                              className="compare-selection-chip compare-value-chip"
                               onClick={() =>
                                 toggleSeries(deviceId, metric.metricKey)
                               }
-                              disabled={atLimit}
-                              aria-pressed={checked}
+                              aria-label={`ลบ ${metric.metricName} ของ ${getDeviceName(
+                                device
+                              )}`}
+                              title="Remove Value"
                             >
-                              <span className="compare-value-checkbox">
-                                {checked && <Check size={13} aria-hidden="true" />}
+                              <span>
+                                {metric.metricName}
+                                {metric.unit ? ` (${metric.unit})` : ''}
                               </span>
-                              <span className="compare-value-copy">
-                                <strong>{metric.metricName}</strong>
-                                <small>
-                                  {metric.metricKey}
-                                  {metric.unit ? ` • ${metric.unit}` : ''}
-                                </small>
-                              </span>
+                              <X size={12} aria-hidden="true" />
                             </button>
                           )
                         })
                       )}
                     </div>
-                  </article>
+
+                    <div className="compare-value-row-actions">
+                      <button
+                        type="button"
+                        onClick={() => selectAllDeviceValues(deviceId)}
+                        disabled={
+                          !availableMetrics.length || atSeriesLimit
+                        }
+                        title="เลือก Value ทั้งหมดของ Device นี้"
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => clearDeviceValues(deviceId)}
+                        disabled={!selectedMetrics.length}
+                        title="ล้าง Value ของ Device นี้"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
                 )
               })}
             </div>
           )}
 
           <p className="compare-value-scale-note">
-            กราฟใช้ค่าจริงของแต่ละ Series ดังนั้น Value ที่มีหน่วยหรือช่วงค่า
-            ต่างกันอาจแสดงคนละสเกลบนแกนเดียวกัน
+            แต่ละ Series ใช้ค่าจริงบนแกนเดียวกัน Value ที่มีหน่วยหรือช่วงค่า
+            ต่างกันอาจมองเห็นสเกลไม่เท่ากัน
           </p>
         </div>
 
