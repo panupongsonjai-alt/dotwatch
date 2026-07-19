@@ -1036,77 +1036,85 @@ function AdminModels({ adminUser }) {
                       className="admin-model-value-row"
                       key={`${metric.metricKey}-${index}`}
                     >
-                      <div className="admin-model-value-index">
-                        <strong>{index + 1}</strong>
-                        <code>{metric.metricKey}</code>
+                      <div className="admin-model-value-row-header">
+                        <div className="admin-model-value-index">
+                          <strong>{index + 1}</strong>
+                          <div>
+                            <span>Default Value {index + 1}</span>
+                            <code>{metric.metricKey}</code>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="admin-model-remove-value"
+                          onClick={() => removeMetric(index)}
+                          disabled={saving || !canWrite}
+                          aria-label={`Remove ${metric.defaultName || `Value ${index + 1}`}`}
+                          title="Remove value"
+                        >
+                          <Trash2 size={16} aria-hidden="true" />
+                          <span>Remove</span>
+                        </button>
                       </div>
 
-                      <label>
-                        <span>Display Name</span>
-                        <input
-                          value={metric.defaultName}
-                          onChange={(event) =>
-                            updateMetric(index, 'defaultName', event.target.value)
-                          }
-                          placeholder="Temperature"
-                          maxLength={80}
-                          disabled={saving || !canWrite}
-                          required
-                        />
-                      </label>
+                      <div className="admin-model-value-fields">
+                        <label>
+                          <span>Display Name</span>
+                          <input
+                            value={metric.defaultName}
+                            onChange={(event) =>
+                              updateMetric(index, 'defaultName', event.target.value)
+                            }
+                            placeholder="Temperature"
+                            maxLength={80}
+                            disabled={saving || !canWrite}
+                            required
+                          />
+                        </label>
 
-                      <label>
-                        <span>Type</span>
-                        <input
-                          list="admin-model-type-suggestions"
-                          value={metric.defaultType}
-                          onChange={(event) =>
-                            updateMetric(index, 'defaultType', event.target.value)
-                          }
-                          placeholder="custom"
-                          maxLength={40}
-                          disabled={saving || !canWrite}
-                          required
-                        />
-                      </label>
+                        <label>
+                          <span>Type</span>
+                          <input
+                            list="admin-model-type-suggestions"
+                            value={metric.defaultType}
+                            onChange={(event) =>
+                              updateMetric(index, 'defaultType', event.target.value)
+                            }
+                            placeholder="custom"
+                            maxLength={40}
+                            disabled={saving || !canWrite}
+                            required
+                          />
+                        </label>
 
-                      <label>
-                        <span>Unit</span>
-                        <input
-                          value={metric.defaultUnit}
-                          onChange={(event) =>
-                            updateMetric(index, 'defaultUnit', event.target.value)
-                          }
-                          placeholder="°C"
-                          maxLength={24}
-                          disabled={saving || !canWrite}
-                        />
-                      </label>
+                        <label>
+                          <span>Unit</span>
+                          <input
+                            value={metric.defaultUnit}
+                            onChange={(event) =>
+                              updateMetric(index, 'defaultUnit', event.target.value)
+                            }
+                            placeholder="°C"
+                            maxLength={24}
+                            disabled={saving || !canWrite}
+                          />
+                        </label>
 
-                      <label>
-                        <span>Icon</span>
-                        <input
-                          list="admin-model-icon-suggestions"
-                          value={metric.defaultIcon}
-                          onChange={(event) =>
-                            updateMetric(index, 'defaultIcon', event.target.value)
-                          }
-                          placeholder="Activity"
-                          maxLength={40}
-                          disabled={saving || !canWrite}
-                        />
-                      </label>
-
-                      <button
-                        type="button"
-                        className="admin-model-remove-value"
-                        onClick={() => removeMetric(index)}
-                        disabled={saving || !canWrite}
-                        aria-label={`Remove ${metric.defaultName || `Value ${index + 1}`}`}
-                        title="Remove value"
-                      >
-                        <Trash2 size={16} aria-hidden="true" />
-                      </button>
+                        <label>
+                          <span>Icon</span>
+                          <input
+                            list="admin-model-icon-suggestions"
+                            value={metric.defaultIcon}
+                            onChange={(event) =>
+                              updateMetric(index, 'defaultIcon', event.target.value)
+                            }
+                            placeholder="Activity"
+                            maxLength={40}
+                            disabled={saving || !canWrite}
+                          />
+                        </label>
+                      </div>
                     </article>
                   ))}
                 </div>
