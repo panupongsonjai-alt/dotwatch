@@ -15,6 +15,7 @@ import './styles/admin-overview-record-list.css'
 import './styles/admin-settings-dashboard-parity.css'
 import './styles/admin-device-models-dashboard-parity.css'
 import './styles/admin-pageheader-dashboard-parity.css'
+import './styles/admin-users-dashboard-parity.css'
 
 applyAdminUiPreferences()
 
