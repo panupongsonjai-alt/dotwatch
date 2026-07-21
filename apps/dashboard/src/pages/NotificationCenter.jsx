@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bell,
   CalendarDays,
-  CheckCheck,
   Download,
   RefreshCw,
   Trash2,
@@ -408,15 +407,6 @@ function NotificationCenter() {
     })
   }
 
-  function markAllAsRead() {
-    setReadIds((prev) => {
-      const next = new Set(prev)
-      notifications.forEach((item) => next.add(item.id))
-      storeReadIds(next)
-      return next
-    })
-  }
-
   useEffect(() => {
     loadData()
 
@@ -588,17 +578,6 @@ function NotificationCenter() {
         eyebrow="Notification Center"
         title="Notifications"
         description="รวมเหตุการณ์สำคัญของระบบ เช่น Alarm, Device Offline และ Warning เพื่อให้ติดตามได้ในหน้าเดียว"
-        actions={
-          <button
-            type="button"
-            className="primary-button"
-            onClick={markAllAsRead}
-            disabled={notifications.length === 0 || unreadCount === 0}
-          >
-            <CheckCheck size={16} />
-            Mark all read
-          </button>
-        }
       />
 
       <section className="notifications-stat-grid">

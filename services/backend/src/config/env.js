@@ -190,6 +190,15 @@ export const env = {
   firebaseClientEmail: cleanEnvString(process.env.FIREBASE_CLIENT_EMAIL),
   firebasePrivateKey: normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY),
 
+  lineChannelAccessToken: cleanEnvString(process.env.LINE_CHANNEL_ACCESS_TOKEN),
+  resendApiKey: cleanEnvString(process.env.RESEND_API_KEY),
+  emailFrom: cleanEnvString(process.env.EMAIL_FROM),
+  notificationTimeoutMs: parsePositiveInteger(
+    process.env.NOTIFICATION_TIMEOUT_MS,
+    10_000,
+    { min: 1000, max: 60_000 }
+  ),
+
   deviceSecretEncryptionKey: cleanEnvString(
     process.env.DEVICE_SECRET_ENCRYPTION_KEY
   ),

@@ -1440,6 +1440,7 @@ async function main() {
     await seedDeviceModels()
     await runSqlFileIfExists('024_weather_api_virtual_devices.sql')
     await runSqlFileIfExists('025_user_database_usage_snapshots.sql')
+    await runSqlFileIfExists('026_notification_channels.sql')
     await backfillDefaultOrganizations()
     await enableTimescaleIfAvailable()
     await createMetricContinuousAggregatesIfAvailable()

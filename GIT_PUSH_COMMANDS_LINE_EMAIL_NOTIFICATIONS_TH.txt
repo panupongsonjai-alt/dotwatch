@@ -1,0 +1,7 @@
+cd "D:\IoT Project\dotwatch"
+git status
+git add apps/dashboard/src/pages/Settings.jsx apps/dashboard/src/services/api.js apps/dashboard/src/styles/pages/settings.css services/backend/.env.example services/backend/.env.production.example services/backend/package.json services/backend/package-lock.json services/backend/migrations/026_notification_channels.sql services/backend/migrations/run.js services/backend/src/config/env.js services/backend/src/controllers/notificationPreferences.controller.js services/backend/src/routes/notificationPreferences.routes.js services/backend/src/server.js services/backend/src/services/alarm.service.js services/backend/src/services/alarmNotification.service.js README_LINE_EMAIL_NOTIFICATIONS_TH.md GIT_PUSH_COMMANDS_LINE_EMAIL_NOTIFICATIONS_TH.txt
+git diff --cached --check
+git commit -m "feat: add LINE and email alarm notifications"
+git pull --rebase origin main
+git push origin HEAD:main

@@ -22,6 +22,7 @@ function collectOptions(children) {
     return [{
       value: String(child.props.value ?? child.props.children ?? ''),
       label: child.props.children,
+      swatch: child.props['data-swatch'] || '',
       disabled: Boolean(child.props.disabled),
     }]
   })
@@ -159,7 +160,10 @@ function UnifiedSelect({
         onClick={() => setOpen((current) => !current)}
         onKeyDown={handleKeyDown}
       >
-        <span className="unified-select-value">{selectedOption?.label ?? ''}</span>
+        <span className="unified-select-value">
+          {selectedOption?.swatch && <span className="unified-select-swatch" style={{ backgroundColor: selectedOption.swatch }} aria-hidden="true" />}
+          <span className="unified-select-label">{selectedOption?.label ?? ''}</span>
+        </span>
         <ChevronDown className="unified-select-chevron" size={16} aria-hidden="true" />
       </button>
 
@@ -183,7 +187,10 @@ function UnifiedSelect({
               onPointerMove={() => setActiveIndex(index)}
               onClick={() => chooseOption(option)}
             >
-              <span>{option.label}</span>
+              <span className="unified-select-option-content">
+                {option.swatch && <span className="unified-select-swatch" style={{ backgroundColor: option.swatch }} aria-hidden="true" />}
+                <span className="unified-select-label">{option.label}</span>
+              </span>
               {index === selectedIndex && <Check size={16} aria-hidden="true" />}
             </button>
           ))}

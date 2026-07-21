@@ -149,6 +149,51 @@ if (appJson) {
     failures.push('Missing expo.android.package in app.json');
   }
 
+  const googleServicesFile = expo.android?.googleServicesFile;
+
+  if (!googleServicesFile) {
+    failures.push('Missing expo.android.googleServicesFile in app.json');
+  } else {
+    const normalizedGoogleServicesPath = googleServicesFile.replace(/^\.\//, '');
+    const googleServicesPath = path.join(projectRoot, normalizedGoogleServicesPath);
+
+    if (!fs.existsSync(googleServicesPath)) {
+      failures.push(`Missing Firebase Android config: ${normalizedGoogleServicesPath}`);
+    } else {
+      try {
+        const googleServices = JSON.parse(readTextWithoutBom(googleServicesPath));
+        const configuredPackages = (googleServices.client || [])
+          .map((client) => client?.client_info?.android_client_info?.package_name)
+          .filter(Boolean);
+
+        if (!configuredPackages.includes(expo.android.package)) {
+          failures.push(
+            `google-services.json does not contain Android package ${expo.android.package}`
+          );
+        }
+
+        const configuredProjectId = String(
+          googleServices?.project_info?.project_id || ''
+        ).trim();
+        const expectedProjectId = String(
+          resolvedEnvironment.EXPO_PUBLIC_FIREBASE_PROJECT_ID || ''
+        ).trim();
+
+        if (
+          configuredProjectId &&
+          expectedProjectId &&
+          configuredProjectId !== expectedProjectId
+        ) {
+          failures.push(
+            `Firebase project mismatch: google-services.json=${configuredProjectId}, EXPO_PUBLIC_FIREBASE_PROJECT_ID=${expectedProjectId}`
+          );
+        }
+      } catch (error) {
+        failures.push(`Invalid Firebase Android config: ${normalizedGoogleServicesPath} (${error.message})`);
+      }
+    }
+  }
+
   if (!expo.scheme) {
     failures.push('Missing expo.scheme in app.json');
   }

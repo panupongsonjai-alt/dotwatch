@@ -33,6 +33,7 @@ import { tenantRouter } from './routes/tenant.routes.js'
 import { weatherVirtualDeviceRouter } from './routes/weatherVirtualDevice.routes.js'
 import { startWeatherVirtualDeviceScheduler } from './services/weatherVirtualDevice.service.js'
 import { createHttpLogger, logger, logStartupSummary, startOpsHeartbeat } from './utils/logger.js'
+import { notificationPreferencesRouter } from './routes/notificationPreferences.routes.js'
 
 const app = express()
 const server = http.createServer(app)
@@ -700,6 +701,7 @@ app.use('/api/alarm-states', apiLimiter, alarmStateRouter)
 app.use('/api/admin', apiLimiter, adminRouter)
 app.use('/api/billing', apiLimiter, billingRouter)
 app.use('/api/mobile-push', apiLimiter, mobilePushRouter)
+app.use('/api/notification-preferences', apiLimiter, notificationPreferencesRouter)
 app.use('/api/tenant', apiLimiter, tenantRouter)
 app.use('/api/organizations', apiLimiter, organizationsRouter)
 app.use('/api/sites', apiLimiter, sitesRouter)

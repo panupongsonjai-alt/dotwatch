@@ -576,6 +576,24 @@ export function getAlarmSummary() {
   return apiFetch('/api/alarms/summary')
 }
 
+export function getNotificationPreferences() {
+  return apiFetch('/api/notification-preferences')
+}
+
+export function updateNotificationPreferences(preferences) {
+  return apiFetch('/api/notification-preferences', {
+    method: 'PUT',
+    body: JSON.stringify(preferences),
+  })
+}
+
+export function testNotificationChannel(channel) {
+  return apiFetch('/api/notification-preferences/test', {
+    method: 'POST',
+    body: JSON.stringify({ channel }),
+  })
+}
+
 export function getAlarmRules(deviceId = null) {
   const params = new URLSearchParams()
 

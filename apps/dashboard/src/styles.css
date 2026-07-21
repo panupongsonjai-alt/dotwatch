@@ -51,3 +51,12 @@
 @import './styles/statcard-global-unify.css';
 
 @import './styles/statcard-compare-layout-lock.css';
+
+/* Keep compact popup feedback for actions such as Save. Full-width success
+   banners remain disabled, while confirmations and actionable errors stay
+   available. */
+.auth-success,
+.history-message.success,
+.dw-notice-banner.success {
+  display: none !important;
+}

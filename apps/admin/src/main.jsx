@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import UiFeedbackHost from './components/common/UiFeedbackHost.jsx'
 import { applyAdminUiPreferences } from './utils/adminUiPreferences.js'
+import { applyLanguage, readLanguage } from './utils/languagePreferences.js'
 import './styles/admin.css'
 import './styles/phase11g-admin-dashboard-parity.css'
 import './styles/phase11i-admin-comfort-parity.css'
@@ -18,6 +19,7 @@ import './styles/admin-pageheader-dashboard-parity.css'
 import './styles/admin-users-dashboard-parity.css'
 
 applyAdminUiPreferences()
+applyLanguage(readLanguage())
 
 const rootElement = document.getElementById('root')
 

@@ -11,7 +11,8 @@
       "package": "com.dotwatch.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#0b1220"
-      }
+      },
+      "googleServicesFile": "./google-services.json"
     },
     "ios": {
       "bundleIdentifier": "com.dotwatch.mobile",

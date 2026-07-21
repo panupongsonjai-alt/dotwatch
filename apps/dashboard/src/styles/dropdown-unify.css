@@ -74,9 +74,35 @@
 
 .unified-select-value {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.unified-select-option-content {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.unified-select-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unified-select-swatch {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dropdown-menu-bg) 72%, transparent);
 }
 
 .unified-select-chevron {

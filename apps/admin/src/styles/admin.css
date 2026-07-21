@@ -50,6 +50,14 @@
   --admin-topbar-height: 84px;
 }
 
+/* Keep compact popup feedback for actions such as Save. Full-width success
+   banners remain disabled, while confirmations and actionable errors stay
+   available. */
+.admin-notice.success,
+.dw-notice-banner.success {
+  display: none !important;
+}
+
 * {
   box-sizing: border-box;
 }

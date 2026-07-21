@@ -4,6 +4,59 @@ const PROFILE_KEYS = {
   language: 'language',
   notifications: 'notifications',
   activities: 'profileActivities',
+  customer: 'customerProfile',
+}
+
+const CUSTOMER_PROFILE_DEFAULTS = {
+  fullName: '',
+  phone: '',
+  lineId: '',
+  customerType: 'individual',
+  organization: '',
+  houseNumber: '',
+  buildingVillage: '',
+  moo: '',
+  soi: '',
+  road: '',
+  district: '',
+  subdistrict: '',
+  province: '',
+  postalCode: '',
+  adminSyncStatus: 'local-draft',
+  updatedAt: null,
+}
+
+export function getCustomerProfile() {
+  try {
+    const saved = localStorage.getItem(PROFILE_KEYS.customer)
+    const savedProfile = saved ? JSON.parse(saved) : {}
+    delete savedProfile.taxId
+    delete savedProfile.preferredContact
+    delete savedProfile.contactConsent
+    delete savedProfile.address
+    return saved
+      ? { ...CUSTOMER_PROFILE_DEFAULTS, ...savedProfile }
+      : { ...CUSTOMER_PROFILE_DEFAULTS }
+  } catch {
+    return { ...CUSTOMER_PROFILE_DEFAULTS }
+  }
+}
+
+export function saveCustomerProfile(profile) {
+  const safeProfile = { ...profile }
+  delete safeProfile.taxId
+  delete safeProfile.preferredContact
+  delete safeProfile.contactConsent
+  delete safeProfile.address
+  const next = {
+    ...CUSTOMER_PROFILE_DEFAULTS,
+    ...safeProfile,
+    adminSyncStatus: 'local-draft',
+    updatedAt: new Date().toISOString(),
+  }
+
+  localStorage.setItem(PROFILE_KEYS.customer, JSON.stringify(next))
+  return next
 }
 
 export function getProfileRole() {

@@ -4,6 +4,7 @@ import {
   SectionHeader,
   StatCard,
 } from '../components/common'
+import UnifiedSelect from '../components/common/UnifiedSelect'
 import {
   ACCENT_OPTIONS,
   ADMIN_SETTINGS_EVENT,
@@ -18,6 +19,12 @@ import {
   writeAdminUiPreferences,
 } from '../utils/adminUiPreferences'
 import { showAdminToast } from '../utils/uiFeedback'
+import {
+  LANGUAGE_OPTIONS,
+  languageText,
+  readLanguage,
+  writeLanguage,
+} from '../utils/languagePreferences'
 
 const ADMIN_API_URL =
   import.meta.env.VITE_API_URL || 'Not configured'
@@ -35,6 +42,7 @@ function AdminSettings({ adminUser }) {
   const [compactCards, setCompactCards] = useState(
     initialPreferences.ui.compactCards
   )
+  const [language, setLanguage] = useState(() => readLanguage())
   const [showSummaryCards, setShowSummaryCards] = useState(
     initialPreferences.overview.showSummaryCards
   )
@@ -101,6 +109,7 @@ function AdminSettings({ adminUser }) {
     })
 
     applyAdminUiPreferences(savedUi)
+    writeLanguage(language)
     broadcastAdminSettingsChanged({
       ui: savedUi,
       overview: savedOverview,
@@ -108,8 +117,12 @@ function AdminSettings({ adminUser }) {
 
     showAdminToast({
       type: 'success',
-      title: 'Admin settings saved',
-      message: 'บันทึกการตั้งค่า Admin Console เรียบร้อย',
+      title: languageText(language, 'บันทึกการตั้งค่าแล้ว', 'Admin settings saved'),
+      message: languageText(
+        language,
+        'บันทึกการตั้งค่า Admin Console เรียบร้อย',
+        'Admin Console settings were saved successfully.'
+      ),
     })
   }
 
@@ -139,31 +152,58 @@ function AdminSettings({ adminUser }) {
       </section>
 
       <section className="admin-settings-list">
-        <article className="admin-panel admin-settings-card">
+        <article className="admin-panel admin-settings-card admin-interface-preferences-card">
           <SectionHeader
             title="Interface Preferences"
             description="เลือกสีหลักของ Admin Console โดยไม่กระทบปุ่ม Dark / Light Theme บน Top Header"
           />
 
-          <div className="admin-settings-accent-grid">
-            {ACCENT_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`admin-settings-accent-option ${
-                  accent === option.value ? 'active' : ''
-                }`}
-                onClick={() => setAccent(option.value)}
-                aria-pressed={accent === option.value}
-              >
-                <span
-                  className="admin-settings-accent-dot"
-                  style={{ background: option.color }}
-                  aria-hidden="true"
-                />
-                <strong>{option.label}</strong>
-              </button>
-            ))}
+          <div className="admin-settings-interface-field">
+            <label htmlFor="admin-accent">
+              <strong>Accent Color</strong>
+              <span>เลือกสีหลักที่ใช้กับปุ่ม กราฟ และสถานะสำคัญของ Admin Console</span>
+            </label>
+            <UnifiedSelect
+              id="admin-accent"
+              value={accent}
+              aria-label="Admin accent color"
+              onChange={(event) => setAccent(event.target.value)}
+            >
+              {ACCENT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value} data-swatch={option.color}>
+                  {option.label}
+                </option>
+              ))}
+            </UnifiedSelect>
+          </div>
+
+          <div className="admin-settings-interface-field">
+            <label htmlFor="admin-language">
+              <strong>{languageText(language, 'ภาษา', 'Language')}</strong>
+              <span>
+                {languageText(
+                  language,
+                  'เลือกภาษาที่ใช้ใน Admin Console ระบบจะจำค่าไว้ใน Browser นี้',
+                  'Choose the Admin Console language. This browser will remember your selection.'
+                )}
+              </span>
+            </label>
+            <UnifiedSelect
+              id="admin-language"
+              value={language}
+              aria-label={languageText(language, 'ภาษา Admin', 'Admin language')}
+              onChange={(event) => {
+                const nextLanguage = event.target.value
+                setLanguage(nextLanguage)
+                writeLanguage(nextLanguage)
+              }}
+            >
+              {LANGUAGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </UnifiedSelect>
           </div>
         </article>
 

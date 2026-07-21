@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PageHeader, SectionHeader, StatCard, UnifiedSelect } from '../components/common'
-import { getDevices } from '../services/api'
+import {
+  getDevices,
+  getNotificationPreferences,
+  testNotificationChannel,
+  updateNotificationPreferences,
+} from '../services/api'
 import {
   getDeviceRecordSettings,
   updateDeviceRecordSettings,
@@ -16,6 +21,12 @@ import {
   writeUiPreferences,
 } from '../utils/uiPreferences'
 import { showErrorToast, showSuccessToast } from '../utils/uiFeedback'
+import {
+  LANGUAGE_OPTIONS,
+  languageText,
+  readLanguage,
+  writeLanguage,
+} from '../utils/languagePreferences'
 
 const RECORD_INTERVAL_OPTIONS = [
   { value: 10, label: '10 seconds' },
@@ -43,6 +54,7 @@ function Settings() {
   const [density, setDensity] = useState('comfortable')
   const [reduceMotion, setReduceMotion] = useState(false)
   const [compactCards, setCompactCards] = useState(false)
+  const [language, setLanguage] = useState(() => readLanguage())
   const [preferencesLoaded, setPreferencesLoaded] = useState(false)
   const [recordDevices, setRecordDevices] = useState([])
   const [recordDeviceId, setRecordDeviceId] = useState('')
@@ -51,6 +63,19 @@ function Settings() {
   const [recordSaving, setRecordSaving] = useState(false)
   const [recordMessage, setRecordMessage] = useState('')
   const [recordMessageTone, setRecordMessageTone] = useState('info')
+  const [notificationSettings, setNotificationSettings] = useState({
+    lineEnabled: false,
+    lineTargetId: '',
+    emailEnabled: false,
+    emailAddress: '',
+    accountEmail: '',
+    notifyOnTrigger: true,
+    notifyOnRecovery: true,
+    providers: { lineConfigured: false, emailConfigured: false },
+  })
+  const [notificationLoading, setNotificationLoading] = useState(true)
+  const [notificationSaving, setNotificationSaving] = useState(false)
+  const [notificationTesting, setNotificationTesting] = useState('')
 
   useEffect(() => {
     const nextPreferences = readUiPreferences()
@@ -70,6 +95,23 @@ function Settings() {
 
     applyUiPreferences(nextPreferences)
     setPreferencesLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    getNotificationPreferences()
+      .then((result) => {
+        if (!cancelled) setNotificationSettings((current) => ({ ...current, ...result }))
+      })
+      .catch((error) => {
+        if (!cancelled) showErrorToast(error.message || 'โหลดการตั้งค่าแจ้งเตือนไม่สำเร็จ')
+      })
+      .finally(() => {
+        if (!cancelled) setNotificationLoading(false)
+      })
+
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
@@ -220,11 +262,14 @@ function Settings() {
     })
 
     applyUiPreferences(savedPreferences)
+    writeLanguage(language)
 
     window.dispatchEvent(new Event('dashboardSettingsChanged'))
     broadcastUiPreferencesChanged(savedPreferences)
 
-    showSuccessToast('บันทึกการตั้งค่าเรียบร้อย')
+    showSuccessToast(
+      languageText(language, 'บันทึกการตั้งค่าเรียบร้อย', 'Settings saved successfully')
+    )
   }
 
   async function handleSaveRecordInterval() {
@@ -270,6 +315,47 @@ function Settings() {
     }
   }
 
+  function updateNotificationField(field, value) {
+    setNotificationSettings((current) => ({ ...current, [field]: value }))
+  }
+
+  async function handleSaveNotifications() {
+    if (notificationSaving) return
+    try {
+      setNotificationSaving(true)
+      await updateNotificationPreferences({
+        lineEnabled: notificationSettings.lineEnabled,
+        lineTargetId: notificationSettings.lineTargetId.trim(),
+        emailEnabled: notificationSettings.emailEnabled,
+        emailAddress: notificationSettings.emailAddress.trim(),
+        notifyOnTrigger: notificationSettings.notifyOnTrigger,
+        notifyOnRecovery: notificationSettings.notifyOnRecovery,
+      })
+      showSuccessToast('บันทึกช่องทางแจ้งเตือนเรียบร้อย')
+      return true
+    } catch (error) {
+      showErrorToast(error.message || 'บันทึกช่องทางแจ้งเตือนไม่สำเร็จ')
+      return false
+    } finally {
+      setNotificationSaving(false)
+    }
+  }
+
+  async function handleTestNotification(channel) {
+    if (notificationTesting) return
+    try {
+      setNotificationTesting(channel)
+      const saved = await handleSaveNotifications()
+      if (!saved) return
+      await testNotificationChannel(channel)
+      showSuccessToast(`ส่งข้อความทดสอบทาง ${channel === 'line' ? 'LINE' : 'Email'} แล้ว`)
+    } catch (error) {
+      showErrorToast(error.message || 'ส่งข้อความทดสอบไม่สำเร็จ')
+    } finally {
+      setNotificationTesting('')
+    }
+  }
+
   return (
     <div className="page app-page settings-page settings-v3-page">
       <PageHeader
@@ -303,23 +389,52 @@ function Settings() {
             description="เลือกสีหลักของระบบ dotWatch Dashboard โดยไม่กระทบปุ่ม Dark / Light Theme ด้านบน"
           />
 
-          <div className="settings-v3-accent-grid">
-            {ACCENT_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`settings-v3-accent settings-v3-accent-option ${
-                  accent === option.value ? 'active' : ''
-                }`}
-                onClick={() => setAccent(option.value)}
-              >
-                <span
-                  className="settings-v3-accent-dot"
-                  style={{ background: option.color }}
-                />
-                <strong>{option.label}</strong>
-              </button>
-            ))}
+          <div className="settings-interface-field">
+            <label htmlFor="dashboard-accent">
+              <strong>Accent Color</strong>
+              <span>เลือกสีหลักที่ใช้กับปุ่ม กราฟ และสถานะสำคัญของ Dashboard</span>
+            </label>
+            <UnifiedSelect
+              id="dashboard-accent"
+              value={accent}
+              aria-label="Dashboard accent color"
+              onChange={(event) => setAccent(event.target.value)}
+            >
+              {ACCENT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value} data-swatch={option.color}>
+                  {option.label}
+                </option>
+              ))}
+            </UnifiedSelect>
+          </div>
+
+          <div className="settings-interface-field">
+            <label htmlFor="dashboard-language">
+              <strong>{languageText(language, 'ภาษา', 'Language')}</strong>
+              <span>
+                {languageText(
+                  language,
+                  'เลือกภาษาที่ใช้ใน Dashboard ระบบจะจำค่าไว้ใน Browser นี้',
+                  'Choose the Dashboard language. This browser will remember your selection.'
+                )}
+              </span>
+            </label>
+            <UnifiedSelect
+              id="dashboard-language"
+              value={language}
+              aria-label={languageText(language, 'ภาษา Dashboard', 'Dashboard language')}
+              onChange={(event) => {
+                const nextLanguage = event.target.value
+                setLanguage(nextLanguage)
+                writeLanguage(nextLanguage)
+              }}
+            >
+              {LANGUAGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </UnifiedSelect>
           </div>
         </section>
 
@@ -410,6 +525,86 @@ function Settings() {
               {recordSaving ? 'Saving...' : 'Save Interval'}
             </button>
           </div>
+        </section>
+
+        <section className="app-card settings-v3-card notification-settings-card">
+          <SectionHeader
+            title="Alarm Notifications"
+            description="ส่ง Alarm ผ่าน LINE Messaging API และอีเมล เมื่อ Alarm เริ่มทำงานหรือกลับสู่ภาวะปกติ"
+          />
+
+          <div className="notification-provider-list">
+            <div className="notification-provider-item">
+              <label className="settings-v3-toggle-item">
+                <div>
+                  <strong>LINE</strong>
+                  <span>{notificationSettings.providers.lineConfigured ? 'Backend พร้อมใช้งาน' : 'ต้องตั้ง LINE_CHANNEL_ACCESS_TOKEN บน Render'}</span>
+                </div>
+                <input type="checkbox" checked={notificationSettings.lineEnabled}
+                  onChange={(event) => updateNotificationField('lineEnabled', event.target.checked)}
+                  disabled={notificationLoading} />
+              </label>
+              <label className="notification-destination-field">
+                <span>LINE User / Group / Room ID</span>
+                <input type="text" value={notificationSettings.lineTargetId}
+                  onChange={(event) => updateNotificationField('lineTargetId', event.target.value)}
+                  placeholder="Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" maxLength={128}
+                  disabled={notificationLoading || !notificationSettings.lineEnabled} />
+              </label>
+              <button type="button" className="secondary-button"
+                onClick={() => handleTestNotification('line')}
+                disabled={notificationLoading || notificationTesting || !notificationSettings.lineEnabled}>
+                {notificationTesting === 'line' ? 'Sending...' : 'Test LINE'}
+              </button>
+            </div>
+
+            <div className="notification-provider-item">
+              <label className="settings-v3-toggle-item">
+                <div>
+                  <strong>Email</strong>
+                  <span>{notificationSettings.providers.emailConfigured ? 'Email API พร้อมใช้งาน' : 'ต้องตั้ง RESEND_API_KEY บน Render'}</span>
+                </div>
+                <input type="checkbox" checked={notificationSettings.emailEnabled}
+                  onChange={(event) => updateNotificationField('emailEnabled', event.target.checked)}
+                  disabled={notificationLoading} />
+              </label>
+              <label className="notification-destination-field">
+                <span>Destination email</span>
+                <input type="email" value={notificationSettings.emailAddress}
+                  onChange={(event) => updateNotificationField('emailAddress', event.target.value)}
+                  placeholder={notificationSettings.accountEmail || 'name@example.com'} maxLength={320}
+                  disabled={notificationLoading || !notificationSettings.emailEnabled} />
+                <small>เว้นว่างเพื่อใช้อีเมลของบัญชี</small>
+              </label>
+              <button type="button" className="secondary-button"
+                onClick={() => handleTestNotification('email')}
+                disabled={notificationLoading || notificationTesting || !notificationSettings.emailEnabled}>
+                {notificationTesting === 'email' ? 'Sending...' : 'Test Email'}
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-v3-toggle-list compact">
+            <label className="settings-v3-toggle-item">
+              <div><strong>Alarm triggered</strong><span>แจ้งเมื่อค่าเริ่มเข้าเงื่อนไข Alarm</span></div>
+              <input type="checkbox" checked={notificationSettings.notifyOnTrigger}
+                onChange={(event) => updateNotificationField('notifyOnTrigger', event.target.checked)} />
+            </label>
+            <label className="settings-v3-toggle-item">
+              <div><strong>Alarm recovered</strong><span>แจ้งเมื่อค่ากลับสู่ภาวะปกติ</span></div>
+              <input type="checkbox" checked={notificationSettings.notifyOnRecovery}
+                onChange={(event) => updateNotificationField('notifyOnRecovery', event.target.checked)} />
+            </label>
+          </div>
+
+          <div className="settings-recording-footer">
+            <span className="settings-recording-message">LINE token และ Email API key เก็บใน Render เท่านั้น</span>
+            <button type="button" className="primary-button" onClick={handleSaveNotifications}
+              disabled={notificationLoading || notificationSaving}>
+              {notificationSaving ? 'Saving...' : 'Save Notifications'}
+            </button>
+          </div>
+
         </section>
 
         <section className="app-card settings-v3-card">

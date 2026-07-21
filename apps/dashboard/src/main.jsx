@@ -4,8 +4,11 @@ import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { AlarmProvider } from './context/AlarmContext.jsx'
 import UiFeedbackHost from './components/common/UiFeedbackHost.jsx'
+import { applyLanguage, readLanguage } from './utils/languagePreferences.js'
 import './styles.css'
 import 'leaflet/dist/leaflet.css'
+
+applyLanguage(readLanguage())
 
 const app = (
   <>

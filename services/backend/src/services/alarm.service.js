@@ -1,6 +1,7 @@
 ﻿import { pool } from '../db/pool.js'
 
 import { sendAlarmTriggeredPush } from './mobilePush.service.js'
+import { sendAlarmChannelNotifications } from './alarmNotification.service.js'
 const STATE_RANK = {
   normal: 0,
   warning: 1,
@@ -269,11 +270,28 @@ export async function checkAlarms({ userId, deviceId, reading }) {
         time: reading.time,
       })
 
-    alerts.push({
+      const recoveryPayload = {
         ...event,
         metric_name: recoveryRule?.metric_name || metric,
         unit: recoveryRule?.unit || '',
         decimal_places: recoveryRule?.decimal_places ?? 2,
+      }
+
+      void sendAlarmChannelNotifications({
+        userId,
+        deviceId,
+        alarmEvent: recoveryPayload,
+      }).catch((error) => {
+        console.error('Alarm recovery channel notification failed:', {
+          userId,
+          deviceId,
+          alarmEventId: event.id,
+          message: error.message,
+        })
+      })
+
+    alerts.push({
+        ...recoveryPayload,
         state_transition: `${previousStateName}->normal`,
       })
 
@@ -302,6 +320,24 @@ export async function checkAlarms({ userId, deviceId, reading }) {
       },
     }).catch((error) => {
       console.error('Alarm push notification failed:', {
+        userId,
+        deviceId,
+        alarmEventId: event.id,
+        message: error.message,
+      })
+    })
+
+    void sendAlarmChannelNotifications({
+      userId,
+      deviceId,
+      alarmEvent: {
+        ...event,
+        metric_name: triggeredRule.metric_name || metric,
+        unit: triggeredRule.unit || '',
+        decimal_places: triggeredRule.decimal_places ?? 2,
+      },
+    }).catch((error) => {
+      console.error('Alarm channel notification failed:', {
         userId,
         deviceId,
         alarmEventId: event.id,
