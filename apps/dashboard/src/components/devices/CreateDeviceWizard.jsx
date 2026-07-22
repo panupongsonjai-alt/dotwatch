@@ -268,7 +268,7 @@ function CreateDeviceWizard({
                     <div>
                       <h4>
                         {isWeatherModel
-                          ? 'Location is required for Weather API Demo'
+                          ? 'Location is required for dot-WT-W1'
                           : 'Location is optional'}
                       </h4>
                       <p>

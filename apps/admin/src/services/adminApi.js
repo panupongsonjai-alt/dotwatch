@@ -372,15 +372,27 @@ export async function getAdminDeviceModels() {
       {
         id: 5,
         modelKey: 'esp32_dht3',
-        modelName: 'ESP32-DHT3',
-        metricCount: 3,
-        description: 'ESP32 Wi-Fi model with DHT temperature/humidity and Wi-Fi RSSI',
+        modelName: 'dot-TH-W1',
+        metricCount: 2,
+        description: 'ESP32 Wi-Fi model with fixed Temperature and Humidity values',
         isActive: true,
         deviceCount: 0,
         metrics: [
           { metricKey: 'metric_1', defaultName: 'Temperature', defaultType: 'temperature', defaultUnit: '°C', defaultIcon: 'Thermometer', sortOrder: 0 },
-          { metricKey: 'metric_2', defaultName: 'Humidity', defaultType: 'humidity', defaultUnit: '%', defaultIcon: 'Droplets', sortOrder: 1 },
-          { metricKey: 'metric_3', defaultName: 'WiFi RSSI', defaultType: 'signal', defaultUnit: 'dBm', defaultIcon: 'Wifi', sortOrder: 2 },
+          { metricKey: 'metric_2', defaultName: 'Humidity', defaultType: 'humidity', defaultUnit: '%RH', defaultIcon: 'Droplets', sortOrder: 1 },
+        ],
+      },
+      {
+        id: 6,
+        modelKey: 'weather_api_demo',
+        modelName: 'dot-WT-W1',
+        metricCount: 2,
+        description: 'Backend virtual weather device with fixed Temperature and Humidity values',
+        isActive: true,
+        deviceCount: 0,
+        metrics: [
+          { metricKey: 'temperature', defaultName: 'Temperature', defaultType: 'temperature', defaultUnit: '°C', defaultIcon: 'Thermometer', sortOrder: 0 },
+          { metricKey: 'humidity', defaultName: 'Humidity', defaultType: 'humidity', defaultUnit: '%RH', defaultIcon: 'Droplets', sortOrder: 1 },
         ],
       },
     ]

@@ -271,8 +271,8 @@
   place-items: center;
   border-radius: 14px;
   color: var(--primary);
-  background: rgba(37, 99, 235, 0.12);
-  border: 1px solid rgba(37, 99, 235, 0.2);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
 }
 
 .dw-metric-card small {

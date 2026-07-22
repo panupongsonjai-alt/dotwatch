@@ -323,6 +323,35 @@
   }
 }
 
+.settings-preference-group {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.settings-preference-group-header {
+  margin-bottom: 14px;
+}
+
+.settings-preference-group-header > strong,
+.settings-preference-group-header > span {
+  display: block;
+}
+
+.settings-preference-group-header > strong {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.settings-preference-group-header > span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
 /* Alarm notification channels */
 .notification-settings-card,
 .notification-provider-list,

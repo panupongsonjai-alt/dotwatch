@@ -1,5 +1,9 @@
 import { pool } from '../db/pool.js'
 import { ensureDeviceMetricSettingsSchema } from '../services/schemaCompatibility.service.js'
+import {
+  enforceLockedDeviceMetrics,
+  getLockedDeviceModelPolicy,
+} from '../services/deviceModelPolicy.service.js'
 
 const MAX_DEVICE_METRICS = 64
 const METRIC_NAME_MAX_LENGTH = 80
@@ -130,8 +134,8 @@ async function ensureDeviceOwner(deviceId, userId) {
   return result.rowCount > 0
 }
 
-async function getDeviceModel(deviceId) {
-  const result = await pool.query(
+async function getDeviceModel(deviceId, client = pool) {
+  const result = await client.query(
     `
     SELECT
       d.id AS device_id,
@@ -153,7 +157,7 @@ async function getDeviceModel(deviceId) {
 }
 
 async function insertModelMetrics(client, deviceId) {
-  const model = await getDeviceModel(deviceId)
+  const model = await getDeviceModel(deviceId, client)
 
   if (model?.model_id) {
     const result = await client.query(
@@ -233,6 +237,91 @@ async function insertModelMetrics(client, deviceId) {
   }
 }
 
+async function syncLockedDeviceMetrics(client, deviceId, model) {
+  const policy = getLockedDeviceModelPolicy(model?.model_key)
+  if (!policy) return false
+
+  const existingResult = await client.query(
+    `
+    SELECT
+      id,
+      device_id,
+      metric_key,
+      source_key,
+      metric_name,
+      metric_type,
+      unit,
+      icon,
+      visible,
+      sort_order,
+      decimal_places
+    FROM device_metrics
+    WHERE device_id = $1
+    ORDER BY sort_order ASC, id ASC
+    `,
+    [deviceId]
+  )
+
+  const canonicalMetrics = enforceLockedDeviceMetrics(
+    model.model_key,
+    existingResult.rows
+  )
+
+  for (const metric of canonicalMetrics) {
+    await client.query(
+      `
+      INSERT INTO device_metrics (
+        device_id,
+        metric_key,
+        source_key,
+        metric_name,
+        metric_type,
+        unit,
+        icon,
+        visible,
+        sort_order,
+        decimal_places
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ON CONFLICT (device_id, metric_key)
+      DO UPDATE SET
+        source_key = EXCLUDED.source_key,
+        metric_name = EXCLUDED.metric_name,
+        metric_type = EXCLUDED.metric_type,
+        unit = EXCLUDED.unit,
+        icon = EXCLUDED.icon,
+        visible = EXCLUDED.visible,
+        sort_order = EXCLUDED.sort_order,
+        decimal_places = EXCLUDED.decimal_places,
+        updated_at = NOW()
+      `,
+      [
+        deviceId,
+        metric.metric_key,
+        metric.source_key,
+        metric.metric_name,
+        metric.metric_type,
+        metric.unit,
+        metric.icon,
+        metric.visible,
+        metric.sort_order,
+        metric.decimal_places,
+      ]
+    )
+  }
+
+  await client.query(
+    `
+    DELETE FROM device_metrics
+    WHERE device_id = $1
+      AND metric_key <> ALL($2::text[])
+    `,
+    [deviceId, policy.metrics.map((metric) => metric.metricKey)]
+  )
+
+  return true
+}
+
 async function getMetrics(deviceId) {
   const result = await pool.query(
     `
@@ -257,14 +346,14 @@ async function getMetrics(deviceId) {
       ON dm.id = d.model_id
     WHERE dm_cfg.device_id = $1
       AND NOT (
-        COALESCE(dm.model_key, '') = 'esp32_dht3'
-        AND (
-          dm_cfg.metric_key = 'metric_3'
-          OR lower(COALESCE(dm_cfg.metric_name, '')) LIKE '%rssi%'
-          OR (
-            lower(COALESCE(dm_cfg.metric_type, '')) = 'signal'
-            AND lower(COALESCE(dm_cfg.unit, '')) = 'dbm'
-          )
+        (
+          COALESCE(dm.model_key, '') = 'esp32_dht3'
+          AND dm_cfg.metric_key NOT IN ('metric_1', 'metric_2')
+        )
+        OR
+        (
+          COALESCE(dm.model_key, '') = 'weather_api_demo'
+          AND dm_cfg.metric_key NOT IN ('temperature', 'humidity')
         )
       )
     ORDER BY dm_cfg.sort_order ASC, dm_cfg.id ASC
@@ -443,9 +532,15 @@ export async function listDeviceMetrics(req, res) {
       })
     }
 
+    const model = await getDeviceModel(deviceId, client)
     let metrics = await getMetrics(deviceId)
 
-    if (metrics.length === 0) {
+    if (getLockedDeviceModelPolicy(model?.model_key)) {
+      await client.query('BEGIN')
+      await syncLockedDeviceMetrics(client, deviceId, model)
+      await client.query('COMMIT')
+      metrics = await getMetrics(deviceId)
+    } else if (metrics.length === 0) {
       await client.query('BEGIN')
       await insertModelMetrics(client, deviceId)
       await client.query('COMMIT')
@@ -515,10 +610,8 @@ export async function saveDeviceMetrics(req, res) {
     try {
       cleaned = metrics.map(cleanMetric).filter(Boolean)
 
-      if (isEsp32Dht3Model(model)) {
-        cleaned = cleaned.filter(
-          (metric) => metric.metric_key !== 'metric_3' && !isWifiRssiMetric(metric)
-        )
+      if (getLockedDeviceModelPolicy(model?.model_key)) {
+        cleaned = enforceLockedDeviceMetrics(model.model_key, cleaned)
       }
     } catch {
       return res.status(400).json({
@@ -563,11 +656,12 @@ export async function saveDeviceMetrics(req, res) {
           sort_order,
           decimal_places
         )
-        VALUES ($1, $2, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         `,
         [
           deviceId,
           metric.metric_key,
+          metric.source_key || metric.metric_key,
           metric.metric_name,
           metric.metric_type,
           metric.unit,
@@ -633,6 +727,8 @@ export async function resetDeviceMetrics(req, res) {
 
     await client.query('BEGIN')
 
+    const model = await getDeviceModel(deviceId, client)
+
     await client.query(
       `
       DELETE FROM device_metrics
@@ -641,7 +737,11 @@ export async function resetDeviceMetrics(req, res) {
       [deviceId]
     )
 
-    await insertModelMetrics(client, deviceId)
+    if (getLockedDeviceModelPolicy(model?.model_key)) {
+      await syncLockedDeviceMetrics(client, deviceId, model)
+    } else {
+      await insertModelMetrics(client, deviceId)
+    }
 
     await client.query('COMMIT')
 
@@ -678,6 +778,14 @@ export async function deleteDeviceMetric(req, res) {
     if (!allowed) {
       return res.status(404).json({
         message: 'Device not found',
+      })
+    }
+
+    const model = await getDeviceModel(deviceId)
+
+    if (getLockedDeviceModelPolicy(model?.model_key)) {
+      return res.status(409).json({
+        message: `${model.model_name || 'This device model'} has two fixed values that cannot be deleted`,
       })
     }
 

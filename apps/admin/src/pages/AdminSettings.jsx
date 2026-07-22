@@ -205,62 +205,62 @@ function AdminSettings({ adminUser }) {
               ))}
             </UnifiedSelect>
           </div>
-        </article>
 
-        <article className="admin-panel admin-settings-card">
-          <SectionHeader
-            title="Interface Density"
-            description="เลือกความหนาแน่นของ UI ให้เหมาะกับขนาดหน้าจอและจำนวนข้อมูล"
-          />
+          <div className="admin-settings-preference-group">
+            <div className="admin-settings-preference-group-header">
+              <strong>Interface Density</strong>
+              <span>เลือกความหนาแน่นของ UI ให้เหมาะกับขนาดหน้าจอและจำนวนข้อมูล</span>
+            </div>
 
-          <div className="admin-settings-option-grid">
-            {DENSITY_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`admin-settings-density-option ${
-                  density === option.value ? 'active' : ''
-                }`}
-                onClick={() => setDensity(option.value)}
-                aria-pressed={density === option.value}
-              >
-                <strong>{option.label}</strong>
-                <small>{option.description}</small>
-              </button>
-            ))}
+            <div className="admin-settings-option-grid">
+              {DENSITY_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`admin-settings-density-option ${
+                    density === option.value ? 'active' : ''
+                  }`}
+                  onClick={() => setDensity(option.value)}
+                  aria-pressed={density === option.value}
+                >
+                  <strong>{option.label}</strong>
+                  <small>{option.description}</small>
+                </button>
+              ))}
+            </div>
           </div>
-        </article>
 
-        <article className="admin-panel admin-settings-card">
-          <SectionHeader
-            title="Product UX"
-            description="ตั้งค่าพฤติกรรมของ Admin Console สำหรับเครื่องที่ใช้งานอยู่"
-          />
+          <div className="admin-settings-preference-group">
+            <div className="admin-settings-preference-group-header">
+              <strong>Product UX</strong>
+              <span>ตั้งค่าพฤติกรรมของ Admin Console สำหรับเครื่องที่ใช้งานอยู่</span>
+            </div>
 
-          <div className="admin-settings-toggle-list">
-            <label className="admin-settings-toggle-item">
-              <div>
-                <strong>Compact Stat Cards</strong>
-                <span>ลดความสูงของ StatCard เพื่อแสดงข้อมูลได้มากขึ้น</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={compactCards}
-                onChange={(event) => setCompactCards(event.target.checked)}
-              />
-            </label>
+            <div className="admin-settings-toggle-list">
+              <label className="admin-settings-toggle-item">
+                <div>
+                  <strong>Compact Stat Cards</strong>
+                  <span>ลดความสูงของ StatCard เพื่อแสดงข้อมูลได้มากขึ้น</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={compactCards}
+                  onChange={(event) => setCompactCards(event.target.checked)}
+                />
+              </label>
 
-            <label className="admin-settings-toggle-item">
-              <div>
-                <strong>Reduce Motion</strong>
-                <span>ลด Animation และ Transition เพื่อประหยัดทรัพยากร</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={reduceMotion}
-                onChange={(event) => setReduceMotion(event.target.checked)}
-              />
-            </label>
+              <label className="admin-settings-toggle-item">
+                <div>
+                  <strong>Reduce Motion</strong>
+                  <span>ลด Animation และ Transition เพื่อประหยัดทรัพยากร</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={reduceMotion}
+                  onChange={(event) => setReduceMotion(event.target.checked)}
+                />
+              </label>
+            </div>
           </div>
         </article>
 

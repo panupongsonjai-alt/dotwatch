@@ -1,0 +1,57 @@
+# ทำจาก D:\IoT Project\dotwatch
+# แนะนำให้สลับ main และ pull ก่อนวางไฟล์ Patch
+
+cd "D:\IoT Project\dotwatch"
+git switch main
+git pull --rebase origin main
+
+# วางไฟล์จาก Patch ZIP ทับโปรเจกต์ แล้วตรวจสอบ
+git status
+node .\scripts\verify-locked-device-models.mjs
+
+# ตรวจ Build
+npm --prefix apps/dashboard ci
+npm --prefix apps/dashboard run build
+npm --prefix apps/admin ci
+npm --prefix apps/admin run build
+
+# ไม่ต้อง add node_modules หรือ dist
+git add -- `
+  apps/admin/src/pages/AdminModels.jsx `
+  apps/admin/src/services/adminApi.js `
+  apps/dashboard/src/components/MetricConfigPanel.jsx `
+  apps/dashboard/src/components/devices/CreateDeviceWizard.jsx `
+  apps/dashboard/src/components/devices/SelectedDevicePanel.jsx `
+  apps/dashboard/src/components/devices/deviceUtils.jsx `
+  apps/dashboard/src/pages/Devices.jsx `
+  apps/dashboard/src/utils/esp32Dht3Utils.js `
+  esp32/dotwatch_esp32_product/README.md `
+  esp32/dotwatch_esp32_product/include/FirmwareVersion.h `
+  esp32/dotwatch_esp32_product/portal-preview/index.html `
+  esp32/dotwatch_esp32_product/portal-preview/src/components/Footer.html `
+  esp32/scripts/test-esp32-dht3-ingest.cjs `
+  services/backend/.env.example `
+  services/backend/.env.production.example `
+  services/backend/migrations/018_esp32_dht3_model.sql `
+  services/backend/migrations/027_locked_temperature_humidity_models.sql `
+  services/backend/migrations/028_lock_temperature_humidity_icons.sql `
+  services/backend/migrations/run.js `
+  services/backend/src/controllers/admin.controller.js `
+  services/backend/src/controllers/deviceMetricsController.js `
+  services/backend/src/controllers/deviceModelsController.js `
+  services/backend/src/controllers/devices.controller.js `
+  services/backend/src/db/migrations/20260708_add_esp32_dht3_model_add_only.sql `
+  services/backend/src/services/deviceModelPolicy.service.js `
+  scripts/verify-locked-device-models.mjs `
+  README_DEVICE_MODEL_FIXED_VALUES_TH.md `
+  VALIDATION_DEVICE_MODEL_FIXED_VALUES_TH.md `
+  GIT_PUSH_COMMANDS_DEVICE_MODEL_FIXED_VALUES_TH.txt
+
+git diff --cached --check
+git status
+git commit -m "feat: lock device model values and icons"
+git push origin main
+
+# หลัง Render Backend deploy สำเร็จ
+# Render Dashboard > Backend Service > Shell
+npm run migrate

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth'
 import {
   Activity,
@@ -9,7 +10,6 @@ import {
   Edit3,
   Copy,
   Eye,
-  EyeOff,
   KeyRound,
   Lock,
   MapPin,
@@ -430,11 +430,144 @@ async function reauthenticateCurrentUser(password) {
   await user.getIdToken(true)
 }
 
-function maskSecret(secret = '') {
-  if (!secret) return '••••••••••••••••••••••••'
-  if (secret.length <= 8) return '••••••••'
+function SecretPasswordDialog({
+  open,
+  mode,
+  deviceName,
+  password,
+  loading,
+  error,
+  onPasswordChange,
+  onClose,
+  onSubmit,
+}) {
+  useEffect(() => {
+    if (!open || typeof document === 'undefined') return undefined
 
-  return `${secret.slice(0, 4)}••••••••••••${secret.slice(-4)}`
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape' && !loading) {
+        onClose()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [loading, onClose, open])
+
+  if (!open || typeof document === 'undefined') return null
+
+  const isReset = mode === 'reset'
+  const title = isReset
+    ? 'ยืนยันรหัสผ่านก่อน Reset Secret'
+    : 'ยืนยันรหัสผ่านเพื่อดู Device Secret'
+  const description = isReset
+    ? 'กรอกรหัสผ่านของบัญชีปัจจุบันก่อน จากนั้นระบบจะแสดงหน้าต่างยืนยัน Reset Secret อีกครั้ง'
+    : 'Device Secret เป็นข้อมูลสำคัญ กรุณากรอกรหัสผ่านของบัญชีปัจจุบันเพื่อเปิดเผยค่า'
+
+  return createPortal(
+    <div
+      className="dw-confirm-backdrop devices-v3-password-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !loading) onClose()
+      }}
+    >
+      <section
+        className="dw-confirm-dialog devices-v3-password-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="devices-secret-password-title"
+        aria-describedby="devices-secret-password-description"
+      >
+        <div className="dw-confirm-header">
+          <span className={`dw-confirm-icon ${isReset ? 'danger' : ''}`}>
+            {isReset ? <KeyRound size={22} /> : <Lock size={22} />}
+          </span>
+          <div>
+            <span>{isReset ? 'Sensitive action' : 'Protected credential'}</span>
+            <h2 id="devices-secret-password-title">{title}</h2>
+          </div>
+          <button
+            type="button"
+            className="dw-confirm-close"
+            aria-label="ปิดหน้าต่างยืนยันรหัสผ่าน"
+            disabled={loading}
+            onClick={onClose}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {deviceName && (
+          <div className="dw-confirm-target">
+            <span>Device</span>
+            <strong>{deviceName}</strong>
+          </div>
+        )}
+
+        <p
+          id="devices-secret-password-description"
+          className="dw-confirm-description"
+        >
+          {description}
+        </p>
+
+        <label className="devices-v3-password-modal-field">
+          <span>Password</span>
+          <div>
+            <Lock size={17} />
+            <input
+              autoFocus
+              type="password"
+              value={password}
+              placeholder="กรอกรหัสผ่านบัญชีปัจจุบัน"
+              autoComplete="current-password"
+              disabled={loading}
+              onChange={(event) => onPasswordChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && password && !loading) {
+                  onSubmit()
+                }
+              }}
+            />
+          </div>
+        </label>
+
+        {error && (
+          <p className="devices-v3-password-modal-error" role="alert">
+            {error}
+          </p>
+        )}
+
+        <div className="dw-confirm-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={loading}
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={isReset ? 'danger-button' : 'primary-button'}
+            disabled={loading || !password}
+            onClick={onSubmit}
+          >
+            {loading ? 'กำลังตรวจสอบ...' : 'ยืนยันรหัสผ่าน'}
+          </button>
+        </div>
+      </section>
+    </div>,
+    document.body
+  )
 }
 
 function getSignalTone(metricPills = [], device = {}) {
@@ -723,7 +856,7 @@ function DeviceOperationsPanel({ device, status, alarmRules = [] }) {
         <div className="devices-v5-action-card">
           <span className="page-eyebrow">Field notes</span>
           <strong>
-            {isEsp32 ? 'ESP32-DHT3 production device' : getModelLabel(device)}
+            {isEsp32 ? 'dot-TH-W1 production device' : getModelLabel(device)}
           </strong>
           <p>
             {isEsp32
@@ -762,63 +895,111 @@ function SelectedDevicePanel({
   onDeleteAlarmRule,
 }) {
   const [activeTab, setActiveTab] = useState('overview')
-  const [secretPassword, setSecretPassword] = useState('')
   const [revealedSecret, setRevealedSecret] = useState('')
-  const [secretVisible, setSecretVisible] = useState(false)
-  const [secretLoading, setSecretLoading] = useState(false)
   const [secretError, setSecretError] = useState('')
   const [secretCopied, setSecretCopied] = useState(false)
+  const [passwordDialogMode, setPasswordDialogMode] = useState(null)
+  const [passwordDialogPassword, setPasswordDialogPassword] = useState('')
+  const [passwordDialogLoading, setPasswordDialogLoading] = useState(false)
+  const [passwordDialogError, setPasswordDialogError] = useState('')
 
   useEffect(() => {
-    setSecretPassword('')
     setRevealedSecret('')
-    setSecretVisible(false)
     setSecretError('')
     setSecretCopied(false)
+    setPasswordDialogMode(null)
+    setPasswordDialogPassword('')
+    setPasswordDialogLoading(false)
+    setPasswordDialogError('')
   }, [selectedDevice?.id])
 
-  async function handleRevealSecret() {
-    if (!selectedDevice?.id || secretLoading) return
+  useEffect(() => {
+    if (activeTab === 'security') return
 
+    setRevealedSecret('')
+    setSecretCopied(false)
+    setPasswordDialogMode(null)
+    setPasswordDialogPassword('')
+    setPasswordDialogError('')
+  }, [activeTab])
+
+  function openPasswordDialog(mode) {
+    if (!selectedDevice?.id || passwordDialogLoading) return
+
+    setPasswordDialogMode(mode)
+    setPasswordDialogPassword('')
+    setPasswordDialogError('')
+    setSecretCopied(false)
+  }
+
+  function closePasswordDialog() {
+    setPasswordDialogMode(null)
+    setPasswordDialogPassword('')
+    setPasswordDialogError('')
+  }
+
+  async function handlePasswordDialogSubmit() {
+    if (
+      !selectedDevice?.id ||
+      !passwordDialogMode ||
+      passwordDialogLoading
+    ) {
+      return
+    }
+
+    if (!passwordDialogPassword) {
+      setPasswordDialogError('กรุณากรอก Password ก่อนดำเนินการ')
+      return
+    }
+
+    const mode = passwordDialogMode
+    setPasswordDialogError('')
     setSecretError('')
     setSecretCopied(false)
 
     try {
-      setSecretLoading(true)
-      await reauthenticateCurrentUser(secretPassword)
+      setPasswordDialogLoading(true)
+      await reauthenticateCurrentUser(passwordDialogPassword)
 
-      const result = await getDeviceSecret(selectedDevice.id)
-      const nextSecret = result?.deviceSecret || ''
+      if (mode === 'reveal') {
+        const result = await getDeviceSecret(selectedDevice.id)
+        const nextSecret = result?.deviceSecret || ''
 
-      if (!nextSecret) {
-        throw new Error('ไม่พบ Device Secret ใน response จาก backend')
+        if (!nextSecret) {
+          throw new Error('ไม่พบ Device Secret ใน response จาก backend')
+        }
+
+        setRevealedSecret(nextSecret)
+        closePasswordDialog()
+        return
       }
 
-      setRevealedSecret(nextSecret)
-      setSecretVisible(true)
-      setSecretPassword('')
+      closePasswordDialog()
+      await onResetSecret(selectedDevice)
     } catch (error) {
-      const message = error?.message || 'ไม่สามารถดู Device Secret ได้'
-
-      if (
-        message.includes('SECRET_NOT_RECOVERABLE') ||
-        message.includes('not recoverable') ||
-        message.includes('ไม่สามารถถอดรหัส')
-      ) {
-        setSecretError(
-          'Device นี้ยังไม่มี Secret แบบเข้ารหัสให้ดูย้อนหลังได้ กรุณา Reset Secret ใหม่ 1 ครั้ง แล้วนำ Secret ใหม่ไปใส่ใน Firmware / Gateway'
-        )
-      } else if (
+      const message = error?.message || 'ไม่สามารถยืนยันรหัสผ่านได้'
+      const isInvalidPassword =
         message.includes('auth/wrong-password') ||
         message.includes('auth/invalid-credential') ||
         message.includes('auth/invalid-login-credentials')
-      ) {
-        setSecretError('Password ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง')
+      const isSecretNotRecoverable =
+        message.includes('SECRET_NOT_RECOVERABLE') ||
+        message.includes('not recoverable') ||
+        message.includes('ไม่สามารถถอดรหัส') ||
+        message.includes('เก็บเป็น hash')
+
+      if (isInvalidPassword) {
+        setPasswordDialogError('Password ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง')
+      } else if (mode === 'reveal' && isSecretNotRecoverable) {
+        closePasswordDialog()
+        setSecretError(
+          'Device นี้ยังไม่มี Secret แบบเข้ารหัสให้ดูย้อนหลังได้ กรุณา Reset Secret ใหม่ 1 ครั้ง แล้วนำ Secret ใหม่ไปใส่ใน Firmware / Gateway'
+        )
       } else {
-        setSecretError(message)
+        setPasswordDialogError(message)
       }
     } finally {
-      setSecretLoading(false)
+      setPasswordDialogLoading(false)
     }
   }
 
@@ -834,7 +1015,6 @@ function SelectedDevicePanel({
   }
 
   function handleHideSecret() {
-    setSecretVisible(false)
     setRevealedSecret('')
     setSecretCopied(false)
   }
@@ -1062,13 +1242,15 @@ function SelectedDevicePanel({
           <DeviceTabHeader
             eyebrow="Value & Alarm Configuration"
             title="Values & Alarms"
-            description="ตั้งชื่อ Value, หน่วย, Icon, การแสดงผล และกำหนด Warning / Critical Threshold ได้จากหน้าเดียว"
+            description="จัดการการแสดงผลและ Warning / Critical Threshold โดยโมเดลแบบ Fixed จะล็อกชื่อและหน่วยของ Value"
             meta={`${selectedDevice.metric_count || 0} Channels`}
           />
 
           <MetricConfigPanel
             key={`metrics-alarms-${selectedDevice.id}`}
             deviceId={selectedDevice.id}
+            modelKey={selectedDevice.model_key || selectedDevice.modelKey}
+            modelName={selectedDevice.model_name || selectedDevice.modelName}
             alarmRules={Array.isArray(selectedRules) ? selectedRules : []}
             alarmSaving={saving}
             onSaveMetricAlarms={onSaveMetricAlarms}
@@ -1129,90 +1311,57 @@ function SelectedDevicePanel({
                 <small>รหัสประจำ Device สำหรับส่งไปกับทุกคำขอ Ingest</small>
               </div>
               <div className="devices-v3-security-list-value">
-                <code>{selectedDevice.device_code}</code>
-              </div>
-            </div>
-
-            <div className="devices-v3-security-list-item">
-              <div className="devices-v3-security-list-copy">
-                <span>Device ID</span>
-                <small>รหัสภายในระบบ dotWatch</small>
-              </div>
-              <div className="devices-v3-security-list-value">
-                <strong>{selectedDevice.id}</strong>
-              </div>
-            </div>
-
-            <div className="devices-v3-security-list-item">
-              <div className="devices-v3-security-list-copy">
-                <span>Secret Status</span>
-                <small>ผลกระทบเมื่อมีการหมุนเวียน Secret</small>
-              </div>
-              <div className="devices-v3-security-list-value">
-                <p>Secret เดิมจะใช้งานไม่ได้ทันทีหลัง Reset</p>
+                <code className="devices-v3-device-code-plain">
+                  {selectedDevice.device_code}
+                </code>
               </div>
             </div>
 
             <div className="devices-v3-security-list-item">
               <div className="devices-v3-security-list-copy">
                 <span>Device Secret</span>
-                <small>Credential สำหรับ Firmware / Gateway</small>
-              </div>
-              <div className="devices-v3-security-list-value">
-                <code>
-                  {revealedSecret
-                    ? secretVisible
-                      ? revealedSecret
-                      : maskSecret(revealedSecret)
-                    : 'ซ่อนเพื่อความปลอดภัย ต้องใส่ Password ก่อนดู'}
-                </code>
-              </div>
-            </div>
-
-            <div className="devices-v3-security-list-item devices-v3-security-list-item-control">
-              <div className="devices-v3-security-list-copy">
-                <span>View Device Secret</span>
                 <small>
-                  กรอก Password ของบัญชีนี้เพื่อยืนยันตัวตนก่อนดู Device Secret
+                  Credential สำหรับ Firmware / Gateway · ต้องยืนยัน Password
+                  ก่อนเปิดเผย
                 </small>
               </div>
 
-              <div className="devices-v3-secret-viewer">
-                <label className="devices-v3-secret-password-field">
-                  <span>Password</span>
-                  <div>
-                    <Lock size={16} />
-                    <input
-                      type="password"
-                      value={secretPassword}
-                      placeholder="กรอก Password เพื่อดู Secret"
-                      autoComplete="current-password"
-                      disabled={secretLoading}
-                      onChange={(event) => {
-                        setSecretPassword(event.target.value)
-                        setSecretError('')
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          handleRevealSecret()
-                        }
-                      }}
-                    />
-                  </div>
-                </label>
-
-                <div className="devices-v3-secret-output">
-                  <span>
-                    {revealedSecret ? 'Device Secret' : 'Hidden Secret'}
-                  </span>
-                  <code>
-                    {revealedSecret
-                      ? secretVisible
-                        ? revealedSecret
-                        : maskSecret(revealedSecret)
-                      : '••••••••••••••••••••••••'}
-                  </code>
-                </div>
+              <div className="devices-v3-security-list-value devices-v3-secret-inline-value">
+                {revealedSecret ? (
+                  <>
+                    <code className="devices-v3-revealed-secret">
+                      {revealedSecret}
+                    </code>
+                    <div className="devices-v3-secret-inline-actions">
+                      <button
+                        type="button"
+                        className="ghost-button"
+                        onClick={handleCopySecret}
+                      >
+                        <Copy size={16} />
+                        Copy
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost-button"
+                        onClick={handleHideSecret}
+                      >
+                        <Eye size={16} />
+                        Hide
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="devices-v3-secret-trigger"
+                    aria-label="ยืนยันรหัสผ่านเพื่อดู Device Secret"
+                    onClick={() => openPasswordDialog('reveal')}
+                  >
+                    <code>••••••••••••••••••••••••</code>
+                    <small>คลิกที่ Secret เพื่อกรอก Password</small>
+                  </button>
+                )}
 
                 {secretError && (
                   <p className="devices-v3-secret-message error">{secretError}</p>
@@ -1223,47 +1372,6 @@ function SelectedDevicePanel({
                     Copied Device Secret
                   </p>
                 )}
-
-                <div className="devices-v3-secret-actions">
-                  <button
-                    type="button"
-                    className="ghost-button"
-                    disabled={secretLoading || !secretPassword}
-                    onClick={handleRevealSecret}
-                  >
-                    <Eye size={16} />
-                    {secretLoading ? 'Checking...' : 'View Secret'}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="ghost-button"
-                    disabled={!revealedSecret}
-                    onClick={() => setSecretVisible((current) => !current)}
-                  >
-                    {secretVisible ? <EyeOff size={16} /> : <Eye size={16} />}
-                    {secretVisible ? 'Hide' : 'Show'}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="ghost-button"
-                    disabled={!revealedSecret}
-                    onClick={handleCopySecret}
-                  >
-                    <Copy size={16} />
-                    Copy
-                  </button>
-
-                  <button
-                    type="button"
-                    className="ghost-button"
-                    disabled={!revealedSecret}
-                    onClick={handleHideSecret}
-                  >
-                    Clear
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -1271,8 +1379,7 @@ function SelectedDevicePanel({
               <div className="devices-v3-security-list-copy">
                 <span>Reset Device Secret</span>
                 <small>
-                  ออก Secret ใหม่เมื่อต้องเปลี่ยนอุปกรณ์หรือสงสัยว่า Secret
-                  เดิมไม่ปลอดภัย
+                  ต้องยืนยัน Password ก่อน และยืนยันคำสั่ง Reset Secret อีกครั้ง
                 </small>
               </div>
 
@@ -1280,8 +1387,8 @@ function SelectedDevicePanel({
                 <button
                   type="button"
                   className="save-btn devices-v3-reset-secret-btn"
-                  disabled={saving}
-                  onClick={() => onResetSecret(selectedDevice)}
+                  disabled={saving || passwordDialogLoading}
+                  onClick={() => openPasswordDialog('reset')}
                 >
                   <KeyRound size={16} />
                   Reset Secret
@@ -1291,6 +1398,21 @@ function SelectedDevicePanel({
           </section>
         </div>
       )}
+
+      <SecretPasswordDialog
+        open={Boolean(passwordDialogMode)}
+        mode={passwordDialogMode}
+        deviceName={getDeviceDisplayName(selectedDevice)}
+        password={passwordDialogPassword}
+        loading={passwordDialogLoading}
+        error={passwordDialogError}
+        onPasswordChange={(value) => {
+          setPasswordDialogPassword(value)
+          setPasswordDialogError('')
+        }}
+        onClose={closePasswordDialog}
+        onSubmit={handlePasswordDialogSubmit}
+      />
     </section>
   )
 }

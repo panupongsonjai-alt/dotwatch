@@ -4028,7 +4028,7 @@
 .metric-icon-dropdown-option svg {
   display: block !important;
   flex: 0 0 auto !important;
-  color: var(--danger) !important;
+  color: var(--primary) !important;
   visibility: visible !important;
   opacity: 1 !important;
 }
@@ -4054,8 +4054,8 @@
 
 .metric-icon-dropdown-option:hover:not(:disabled),
 .metric-icon-dropdown-option.active {
-  color: var(--danger) !important;
-  background: rgba(239, 68, 68, 0.12) !important;
+  color: var(--primary) !important;
+  background: color-mix(in srgb, var(--primary) 12%, transparent) !important;
 }
 
 /* Fallback สำหรับ browser ที่ไม่รองรับ :has() */
@@ -7380,5 +7380,164 @@
 
   .devices-v3-security-list-action .devices-v3-reset-secret-btn {
     width: 100%;
+  }
+}
+/* =========================================================
+   Selected Device Security - Password Protected Secret
+========================================================= */
+
+.devices-v3-security-list-value .devices-v3-device-code-plain {
+  display: inline;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 900;
+  word-break: break-all;
+}
+
+.devices-v3-secret-inline-value {
+  align-content: center;
+}
+
+.devices-v3-secret-trigger {
+  min-width: 0;
+  max-width: 100%;
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  text-align: right;
+  cursor: pointer;
+}
+
+.devices-v3-secret-trigger code {
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.devices-v3-secret-trigger small {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.4;
+  font-weight: 750;
+}
+
+.devices-v3-secret-trigger:hover code,
+.devices-v3-secret-trigger:focus-visible code {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--panel));
+  transform: translateY(-1px);
+}
+
+.devices-v3-secret-trigger:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 42%, transparent);
+  outline-offset: 5px;
+  border-radius: 12px;
+}
+
+.devices-v3-revealed-secret {
+  user-select: all;
+}
+
+.devices-v3-secret-inline-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.devices-v3-secret-inline-actions .ghost-button {
+  min-height: 34px;
+  padding: 7px 10px;
+}
+
+.devices-v3-password-dialog {
+  width: min(520px, 100%);
+}
+
+.devices-v3-password-dialog .dw-confirm-icon:not(.danger) {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 11%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 24%, transparent);
+}
+
+.devices-v3-password-dialog .dw-confirm-header > div > span {
+  color: var(--primary);
+}
+
+.devices-v3-password-modal-field {
+  display: grid;
+  gap: 8px;
+  margin-top: 17px;
+}
+
+.devices-v3-password-modal-field > span {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.devices-v3-password-modal-field > div {
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 0 13px;
+  border-radius: 13px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+}
+
+.devices-v3-password-modal-field > div:focus-within {
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 58%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 11%, transparent);
+}
+
+.devices-v3-password-modal-field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.devices-v3-password-modal-error {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 20%, transparent);
+  font-size: 12px;
+  line-height: 1.55;
+  font-weight: 750;
+}
+
+@media (max-width: 760px) {
+  .devices-v3-secret-trigger {
+    justify-items: stretch;
+    text-align: left;
+  }
+
+  .devices-v3-secret-inline-actions {
+    justify-content: flex-start;
   }
 }

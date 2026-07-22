@@ -1,4 +1,8 @@
 import { pool } from '../db/pool.js'
+import {
+  enforceLockedAdminModelPayload,
+  getLockedDeviceModelPolicy,
+} from '../services/deviceModelPolicy.service.js'
 
 export async function listDeviceModels(req, res) {
   try {
@@ -38,7 +42,29 @@ export async function listDeviceModels(req, res) {
       ORDER BY dm.id ASC
     `)
 
-    res.json(result.rows)
+    res.json(
+      result.rows.map((model) => {
+        const policy = getLockedDeviceModelPolicy(model.model_key)
+        if (!policy) return model
+
+        const canonical = enforceLockedAdminModelPayload(model.model_key, {
+          ...model,
+          modelKey: model.model_key,
+          modelName: model.model_name,
+          metricCount: model.metric_count,
+        })
+
+        return {
+          ...model,
+          model_name: canonical.modelName,
+          name: canonical.modelName,
+          modelName: canonical.modelName,
+          metric_count: canonical.metricCount,
+          metricCount: canonical.metricCount,
+          metrics: canonical.metrics,
+        }
+      })
+    )
   } catch (error) {
     console.error('listDeviceModels error:', error)
     res.status(500).json({

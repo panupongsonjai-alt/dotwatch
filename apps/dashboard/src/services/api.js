@@ -194,6 +194,7 @@ async function parseResponseBody(response) {
 }
 
 async function performApiRequest(path, options = {}) {
+  const { forceAuthRefresh = false, ...requestOptions } = options
   const controller = new AbortController()
   const timeout = Number.isFinite(REQUEST_TIMEOUT_MS)
     ? REQUEST_TIMEOUT_MS
@@ -202,10 +203,12 @@ async function performApiRequest(path, options = {}) {
   const timeoutId = setTimeout(() => controller.abort(), timeout)
 
   async function sendRequest({ forceRefresh = false } = {}) {
-    const token = await getToken({ forceRefresh })
-    const headers = new Headers(options.headers || {})
+    const token = await getToken({
+      forceRefresh: forceAuthRefresh || forceRefresh,
+    })
+    const headers = new Headers(requestOptions.headers || {})
 
-    if (!headers.has('Content-Type') && options.body) {
+    if (!headers.has('Content-Type') && requestOptions.body) {
       headers.set('Content-Type', 'application/json')
     }
 
@@ -215,7 +218,7 @@ async function performApiRequest(path, options = {}) {
     headers.set('X-Request-ID', createRequestId())
 
     return fetch(`${API_URL}${path}`, {
-      ...options,
+      ...requestOptions,
       credentials: 'omit',
       cache: 'no-store',
       headers,
@@ -394,11 +397,14 @@ export function deleteDevice(id) {
 export function resetDeviceSecret(id) {
   return apiFetch(`/api/devices/${encodeURIComponent(id)}/reset-secret`, {
     method: 'POST',
+    forceAuthRefresh: true,
   })
 }
 
 export function getDeviceSecret(id) {
-  return apiFetch(`/api/devices/${encodeURIComponent(id)}/secret`)
+  return apiFetch(`/api/devices/${encodeURIComponent(id)}/secret`, {
+    forceAuthRefresh: true,
+  })
 }
 
 export function updateDeviceLocation(id, data) {

@@ -295,6 +295,35 @@
   line-height: 1.55;
 }
 
+.admin-settings-preference-group {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.admin-settings-preference-group-header {
+  margin-bottom: 14px;
+}
+
+.admin-settings-preference-group-header > strong,
+.admin-settings-preference-group-header > span {
+  display: block;
+}
+
+.admin-settings-preference-group-header > strong {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.admin-settings-preference-group-header > span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
 .admin-settings-accent-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));

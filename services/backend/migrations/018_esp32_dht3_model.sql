@@ -1,5 +1,5 @@
--- dotWatch Phase 4A - ESP32-DHT3 additional model
--- This migration adds ESP32-DHT3 without replacing Raspberry Pi / DW20CH.
+-- dotWatch Phase 4A - dot-TH-W1 additional model
+-- This migration adds dot-TH-W1 without replacing Raspberry Pi / DW20CH.
 
 BEGIN;
 
@@ -15,7 +15,7 @@ INSERT INTO device_models (
 VALUES (
   5,
   'esp32_dht3',
-  'ESP32-DHT3',
+  'dot-TH-W1',
   2,
   'ESP32 Wi-Fi model with DHT temperature and humidity',
   true,
@@ -61,7 +61,7 @@ FROM model
 CROSS JOIN (
   VALUES
     ('metric_1', 'Temperature', 'temperature', '°C', 'Thermometer', 0),
-    ('metric_2', 'Humidity', 'humidity', '%', 'Droplets', 1)
+    ('metric_2', 'Humidity', 'humidity', '%RH', 'Droplets', 1)
 ) AS data(metric_key, default_name, default_type, default_unit, default_icon, sort_order)
 ON CONFLICT (model_id, metric_key)
 DO UPDATE SET

@@ -1035,14 +1035,14 @@ async function seedDeviceModels() {
     {
       id: 5,
       modelKey: 'esp32_dht3',
-      modelName: 'ESP32-DHT3',
+      modelName: 'dot-TH-W1',
       metricCount: 2,
       description: 'ESP32 Wi-Fi model with DHT temperature and humidity',
     },
     {
       id: 6,
       modelKey: 'weather_api_demo',
-      modelName: 'Weather API Demo',
+      modelName: 'dot-WT-W1',
       metricCount: 2,
       description: 'Backend virtual device using Open-Meteo temperature and humidity',
     },
@@ -1115,7 +1115,7 @@ async function seedDeviceModels() {
       metric_2: {
         defaultName: 'Humidity',
         defaultType: 'humidity',
-        defaultUnit: '%',
+        defaultUnit: '%RH',
         defaultIcon: 'Droplets',
       },
     }),
@@ -1180,7 +1180,7 @@ async function seedDeviceModels() {
   }
 
   // RSSI remains available as operational connectivity metadata, but it is
-  // no longer a configurable/display metric for ESP32-DHT3 devices.
+  // no longer a configurable/display metric for dot-TH-W1 devices.
   await run(`
     DELETE FROM alarm_rules ar
     USING devices d, device_models dm
@@ -1441,6 +1441,8 @@ async function main() {
     await runSqlFileIfExists('024_weather_api_virtual_devices.sql')
     await runSqlFileIfExists('025_user_database_usage_snapshots.sql')
     await runSqlFileIfExists('026_notification_channels.sql')
+    await runSqlFileIfExists('027_locked_temperature_humidity_models.sql')
+    await runSqlFileIfExists('028_lock_temperature_humidity_icons.sql')
     await backfillDefaultOrganizations()
     await enableTimescaleIfAvailable()
     await createMetricContinuousAggregatesIfAvailable()

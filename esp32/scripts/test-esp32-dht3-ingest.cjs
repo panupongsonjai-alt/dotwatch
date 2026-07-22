@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* ESP32-DHT3 ingest simulator.
+/* dot-TH-W1 ingest simulator.
  * Uses a new ESP32 device code/secret, not the Raspberry Pi device.
  */
 

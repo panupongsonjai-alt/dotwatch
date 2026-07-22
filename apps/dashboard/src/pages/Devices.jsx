@@ -47,14 +47,27 @@ const FALLBACK_DEVICE_MODEL_OPTIONS = [
 ]
 
 function normalizeDeviceModel(model) {
+  const modelKey = model.modelKey || model.model_key
+  const lockedName =
+    modelKey === 'esp32_dht3'
+      ? 'dot-TH-W1'
+      : modelKey === 'weather_api_demo'
+        ? 'dot-WT-W1'
+        : null
+
   return {
     id: model.id,
-    modelKey: model.modelKey || model.model_key,
-    name: model.name || model.modelName || model.model_name || 'Device Model',
+    modelKey,
+    name:
+      lockedName ||
+      model.name ||
+      model.modelName ||
+      model.model_name ||
+      'Device Model',
     description:
       model.description ||
       `${model.metricCount || model.metric_count || 0} values`,
-    metricCount: model.metricCount || model.metric_count || 0,
+    metricCount: lockedName ? 2 : model.metricCount || model.metric_count || 0,
   }
 }
 
@@ -106,7 +119,7 @@ function getWeatherPollNotice(weatherPoll, successMessage) {
   ) {
     return {
       type: 'warning',
-      message: 'Weather API Demo ต้องกำหนด Latitude และ Longitude ก่อนจึงจะแสดงค่า',
+      message: 'dot-WT-W1 ต้องกำหนด Latitude และ Longitude ก่อนจึงจะแสดงค่า',
     }
   }
 

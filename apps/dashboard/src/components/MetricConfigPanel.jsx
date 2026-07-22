@@ -12,6 +12,86 @@ const ALARM_SEVERITIES = ['warning', 'critical']
 
 const DECIMAL_PLACE_OPTIONS = [0, 1, 2, 3, 4, 5, 6]
 
+const LOCKED_VALUE_MODEL_DEFINITIONS = Object.freeze({
+  esp32_dht3: Object.freeze({
+    modelName: 'dot-TH-W1',
+    metrics: Object.freeze([
+      Object.freeze({
+        metric_key: 'metric_1',
+        metric_name: 'Temperature',
+        metric_type: 'temperature',
+        unit: '°C',
+        icon: 'Thermometer',
+        sort_order: 0,
+      }),
+      Object.freeze({
+        metric_key: 'metric_2',
+        metric_name: 'Humidity',
+        metric_type: 'humidity',
+        unit: '%RH',
+        icon: 'Droplets',
+        sort_order: 1,
+      }),
+    ]),
+  }),
+  weather_api_demo: Object.freeze({
+    modelName: 'dot-WT-W1',
+    metrics: Object.freeze([
+      Object.freeze({
+        metric_key: 'temperature',
+        metric_name: 'Temperature',
+        metric_type: 'temperature',
+        unit: '°C',
+        icon: 'Thermometer',
+        sort_order: 0,
+      }),
+      Object.freeze({
+        metric_key: 'humidity',
+        metric_name: 'Humidity',
+        metric_type: 'humidity',
+        unit: '%RH',
+        icon: 'Droplets',
+        sort_order: 1,
+      }),
+    ]),
+  }),
+})
+
+function getLockedValueModelDefinition(modelKey = '') {
+  return (
+    LOCKED_VALUE_MODEL_DEFINITIONS[
+      String(modelKey || '').trim().toLowerCase()
+    ] || null
+  )
+}
+
+function enforceLockedValueMetrics(modelKey, metrics = []) {
+  const definition = getLockedValueModelDefinition(modelKey)
+  if (!definition) return reindexMetrics(metrics)
+
+  const incomingMetrics = Array.isArray(metrics) ? metrics : []
+
+  return definition.metrics.map((canonicalMetric, index) => {
+    const incoming =
+      incomingMetrics.find(
+        (metric) =>
+          String(metric.metric_key || metric.metricKey || '').trim() ===
+          canonicalMetric.metric_key
+      ) || incomingMetrics[index] || {}
+
+    return {
+      ...incoming,
+      ...canonicalMetric,
+      source_key: canonicalMetric.metric_key,
+      icon: canonicalMetric.icon,
+      visible: incoming.visible !== false,
+      decimal_places: Number.isInteger(Number(incoming.decimal_places))
+        ? Number(incoming.decimal_places)
+        : 2,
+    }
+  })
+}
+
 function isThresholdEmpty(value) {
   return value === '' || value == null
 }
@@ -233,6 +313,8 @@ function MetricIconPicker({ value, disabled, isOpen, onOpenChange, onChange }) {
 
 export default function MetricConfigPanel({
   deviceId,
+  modelKey = '',
+  modelName = '',
   alarmRules = [],
   alarmSaving = false,
   onSaveMetricAlarms,
@@ -255,6 +337,9 @@ export default function MetricConfigPanel({
     saveDraftMetrics,
     resetMetrics,
   } = useDeviceMetrics(deviceId)
+
+  const lockedDefinition = getLockedValueModelDefinition(modelKey)
+  const lockedModelName = lockedDefinition?.modelName || modelName || 'This model'
 
   const rulesByMetricAndSeverity = useMemo(
     () => buildRulesByMetricAndSeverity(alarmRules),
@@ -315,6 +400,8 @@ export default function MetricConfigPanel({
   }
 
   function addMetric() {
+    if (lockedDefinition) return
+
     setOpenIconPickerKey(null)
     clearAlarmFeedback()
     setDraftMetrics((currentMetrics = []) => {
@@ -328,6 +415,8 @@ export default function MetricConfigPanel({
   }
 
   async function removeMetric(indexToRemove) {
+    if (lockedDefinition) return
+
     const metric = draftMetrics[indexToRemove]
     const ok = await confirmDeleteAction({
       title: 'Confirm Delete Value',
@@ -351,6 +440,8 @@ export default function MetricConfigPanel({
   }
 
   function updateMetric(index, key, value) {
+    if (lockedDefinition && ['metric_name', 'unit', 'icon'].includes(key)) return
+
     clearAlarmFeedback()
     setDraftMetrics((currentMetrics = []) =>
       updateMetricList(currentMetrics, index, key, value)
@@ -463,7 +554,7 @@ export default function MetricConfigPanel({
     setOpenIconPickerKey(null)
     clearAlarmFeedback()
 
-    const normalizedMetrics = reindexMetrics(draftMetrics)
+    const normalizedMetrics = enforceLockedValueMetrics(modelKey, draftMetrics)
     let operations = []
 
     try {
@@ -581,7 +672,9 @@ export default function MetricConfigPanel({
             <span className="page-eyebrow">Value Configuration</span>
             <h3>Display Fields & Alarm Rules</h3>
             <p className="metric-config-helper">
-              กำหนดข้อมูลที่แสดงผล และตั้ง Warning หรือ Critical Threshold ของแต่ละ Value
+              {lockedDefinition
+                ? `${lockedModelName} กำหนดไว้ 2 Value: Temperature (°C, Thermometer) และ Humidity (%RH, Droplets)`
+                : 'กำหนดข้อมูลที่แสดงผล และตั้ง Warning หรือ Critical Threshold ของแต่ละ Value'}
             </p>
           </div>
 
@@ -601,15 +694,19 @@ export default function MetricConfigPanel({
           </div>
         </div>
 
-        <button
-          type="button"
-          className="ghost-button metric-config-add-btn"
-          onClick={addMetric}
-          disabled={busy}
-        >
-          <Plus size={16} />
-          Add Value
-        </button>
+        {lockedDefinition ? (
+          <span className="page-chip">Fixed 2 Values</span>
+        ) : (
+          <button
+            type="button"
+            className="ghost-button metric-config-add-btn"
+            onClick={addMetric}
+            disabled={busy}
+          >
+            <Plus size={16} />
+            Add Value
+          </button>
+        )}
       </div>
 
       {panelMessage && (
@@ -670,7 +767,7 @@ export default function MetricConfigPanel({
                         onChange={(event) =>
                           updateMetric(index, 'metric_name', event.target.value)
                         }
-                        disabled={busy}
+                        disabled={busy || Boolean(lockedDefinition)}
                       />
                     </label>
 
@@ -682,7 +779,7 @@ export default function MetricConfigPanel({
                         onChange={(event) =>
                           updateMetric(index, 'unit', event.target.value)
                         }
-                        disabled={busy}
+                        disabled={busy || Boolean(lockedDefinition)}
                       />
                     </label>
 
@@ -712,7 +809,7 @@ export default function MetricConfigPanel({
                       <span>Icon</span>
                       <MetricIconPicker
                         value={metric.icon}
-                        disabled={busy}
+                        disabled={busy || Boolean(lockedDefinition)}
                         isOpen={openIconPickerKey === pickerKey}
                         onOpenChange={(nextOpen) =>
                           setOpenIconPickerKey(nextOpen ? pickerKey : null)
@@ -873,19 +970,21 @@ export default function MetricConfigPanel({
                     })}
                   </div>
 
-                  <div className="metric-alarm-config-action">
-                    <button
-                      type="button"
-                      className="delete-btn metric-config-delete-btn"
-                      onClick={() => removeMetric(index)}
-                      disabled={busy}
-                      title={`Delete ${metricLabel}`}
-                      aria-label={`Delete ${metricLabel}`}
-                    >
-                      <Trash2 size={15} />
-                      <span>Delete Value</span>
-                    </button>
-                  </div>
+                  {!lockedDefinition ? (
+                    <div className="metric-alarm-config-action">
+                      <button
+                        type="button"
+                        className="delete-btn metric-config-delete-btn"
+                        onClick={() => removeMetric(index)}
+                        disabled={busy}
+                        title={`Delete ${metricLabel}`}
+                        aria-label={`Delete ${metricLabel}`}
+                      >
+                        <Trash2 size={15} />
+                        <span>Delete Value</span>
+                      </button>
+                    </div>
+                  ) : null}
                 </article>
               )
             })}

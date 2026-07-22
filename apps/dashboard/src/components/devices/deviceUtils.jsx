@@ -35,5 +35,12 @@ export function getDeviceDisplayName(device) {
 }
 
 export function getModelLabel(device) {
-  return device?.model_name || device?.model_key || 'Unknown Model'
+  const modelKey = String(device?.model_key || device?.modelKey || '')
+    .trim()
+    .toLowerCase()
+
+  if (modelKey === 'esp32_dht3') return 'dot-TH-W1'
+  if (modelKey === 'weather_api_demo') return 'dot-WT-W1'
+
+  return device?.model_name || device?.modelName || device?.model_key || 'Unknown Model'
 }

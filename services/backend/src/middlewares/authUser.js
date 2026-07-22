@@ -2,10 +2,14 @@ import { env } from '../config/env.js'
 import { admin, firebaseReady } from '../config/firebaseAdmin.js'
 
 function attachDevUser(req) {
+  const nowSeconds = Math.floor(Date.now() / 1000)
+
   req.firebaseUser = {
     uid: env.devAuthUid,
     email: env.devAuthEmail,
     name: 'Local Development User',
+    auth_time: nowSeconds,
+    iat: nowSeconds,
   }
 
   req.user = req.firebaseUser

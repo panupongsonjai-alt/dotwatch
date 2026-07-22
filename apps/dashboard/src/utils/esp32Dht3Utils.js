@@ -17,7 +17,7 @@ export const ESP32_DHT3_METRICS = [
     metric_name: 'Humidity',
     short_label: 'Hum',
     metric_type: 'humidity',
-    unit: '%',
+    unit: '%RH',
     icon: 'Droplets',
     visible: true,
     sort_order: 1,
@@ -36,7 +36,11 @@ export function isEsp32Dht3Device(device = {}) {
 
   const modelName = String(device.model_name || device.modelName || '').toLowerCase()
 
-  return modelKey === ESP32_DHT3_MODEL_KEY || modelName.includes('esp32-dht3')
+  return (
+    modelKey === ESP32_DHT3_MODEL_KEY ||
+    modelName.includes('esp32-dht3') ||
+    modelName.includes('dot-th-w1')
+  )
 }
 
 export function getEsp32DefaultPinHint(device = {}) {
@@ -108,16 +112,14 @@ export function getVisibleMetricsForDevice(device = {}, metrics = []) {
     return {
       ...fallbackMetric,
       ...(existing || {}),
-      metric_name:
-        existing?.metric_name ||
-        existing?.name ||
-        fallbackMetric.metric_name,
-      metric_type:
-        existing?.metric_type ||
-        existing?.type ||
-        fallbackMetric.metric_type,
-      unit: existing?.unit ?? fallbackMetric.unit,
-      icon: existing?.icon || fallbackMetric.icon,
+      metric_key: fallbackMetric.metric_key,
+      source_key: fallbackMetric.metric_key,
+      metric_name: fallbackMetric.metric_name,
+      short_label: fallbackMetric.short_label,
+      metric_type: fallbackMetric.metric_type,
+      unit: fallbackMetric.unit,
+      icon: fallbackMetric.icon,
+      sort_order: fallbackMetric.sort_order,
       visible: existing?.visible !== false,
     }
   }).filter((metric) => metric.visible !== false)
@@ -131,7 +133,17 @@ export function getDeviceMetricPills(device = {}, limit = 3) {
       const configuredMetric = configuredMetrics.find(
         (item) => (item.metric_key || item.metricKey) === metric.metric_key
       )
-      const displayMetric = { ...metric, ...(configuredMetric || {}) }
+      const displayMetric = {
+        ...metric,
+        ...(configuredMetric || {}),
+        metric_key: metric.metric_key,
+        metric_name: metric.metric_name,
+        short_label: metric.short_label,
+        metric_type: metric.metric_type,
+        unit: metric.unit,
+        icon: metric.icon,
+        sort_order: metric.sort_order,
+      }
       const value = getMetricValueFromAnyShape(device, metric.metric_key)
 
       return {

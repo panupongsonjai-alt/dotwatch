@@ -436,28 +436,63 @@ function Settings() {
               ))}
             </UnifiedSelect>
           </div>
-        </section>
 
-        <section className="app-card settings-v3-card">
-          <SectionHeader
-            title="Interface Density"
-            description="เลือกความแน่นของ UI ให้เหมาะกับหน้าจอ"
-          />
+          <div className="settings-preference-group">
+            <div className="settings-preference-group-header">
+              <strong>Interface Density</strong>
+              <span>เลือกความแน่นของ UI ให้เหมาะกับหน้าจอ</span>
+            </div>
 
-          <div className="settings-v3-option-grid">
-            {DENSITY_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`settings-v3-density ${
-                  density === option.value ? 'active' : ''
-                }`}
-                onClick={() => setDensity(option.value)}
-              >
-                <strong>{option.label}</strong>
-                <small>{option.description}</small>
-              </button>
-            ))}
+            <div className="settings-v3-option-grid">
+              {DENSITY_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`settings-v3-density ${
+                    density === option.value ? 'active' : ''
+                  }`}
+                  onClick={() => setDensity(option.value)}
+                >
+                  <strong>{option.label}</strong>
+                  <small>{option.description}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="settings-preference-group">
+            <div className="settings-preference-group-header">
+              <strong>Product UX</strong>
+              <span>ตั้งค่าการใช้งานเพิ่มเติม</span>
+            </div>
+
+            <div className="settings-v3-toggle-list compact">
+              <label className="settings-v3-toggle-item">
+                <div>
+                  <strong>Compact Stat Cards</strong>
+                  <span>ลดความสูงของ StatCard ในหน้าหลัก</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={compactCards}
+                  onChange={(event) => setCompactCards(event.target.checked)}
+                />
+              </label>
+
+              <label className="settings-v3-toggle-item">
+                <div>
+                  <strong>Reduce Motion</strong>
+                  <span>
+                    ลด Animation สำหรับเครื่องที่ต้องการประหยัดทรัพยากร
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={reduceMotion}
+                  onChange={(event) => setReduceMotion(event.target.checked)}
+                />
+              </label>
+            </div>
           </div>
         </section>
 
@@ -605,41 +640,6 @@ function Settings() {
             </button>
           </div>
 
-        </section>
-
-        <section className="app-card settings-v3-card">
-          <SectionHeader
-            title="Product UX"
-            description="ตั้งค่าการใช้งานเพิ่มเติม"
-          />
-
-          <div className="settings-v3-toggle-list compact">
-            <label className="settings-v3-toggle-item">
-              <div>
-                <strong>Compact Stat Cards</strong>
-                <span>ลดความสูงของ StatCard ในหน้าหลัก</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={compactCards}
-                onChange={(event) => setCompactCards(event.target.checked)}
-              />
-            </label>
-
-            <label className="settings-v3-toggle-item">
-              <div>
-                <strong>Reduce Motion</strong>
-                <span>
-                  ลด Animation สำหรับเครื่องที่ต้องการประหยัดทรัพยากร
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={reduceMotion}
-                onChange={(event) => setReduceMotion(event.target.checked)}
-              />
-            </label>
-          </div>
         </section>
 
         <section className="app-card settings-v3-card">

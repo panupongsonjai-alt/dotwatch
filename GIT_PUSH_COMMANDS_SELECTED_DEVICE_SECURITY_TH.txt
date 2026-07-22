@@ -1,0 +1,58 @@
+# dotWatch — Git Push: Selected Device Security
+# เปิด PowerShell แล้วรันตามลำดับ
+
+cd "D:\IoT Project\dotwatch"
+
+# 1) ตรวจสอบไฟล์ก่อน Commit
+git status
+git diff --check
+
+# 2) รันตัวตรวจของงานนี้
+node .\scripts\verify-selected-device-security.mjs
+
+# 3) ตรวจ Build และ Backend syntax
+npm --prefix apps/dashboard ci
+npm --prefix apps/dashboard run build:production
+npm --prefix services/backend run check:syntax
+node --check .\services\backend\src\middlewares\requireRecentAuthentication.js
+node --check .\services\backend\src\middlewares\authUser.js
+node --check .\services\backend\src\routes\devices.routes.js
+
+# 4) Add เฉพาะไฟล์ของงานนี้
+git add -- `
+  apps/dashboard/src/components/devices/SelectedDevicePanel.jsx `
+  apps/dashboard/src/services/api.js `
+  apps/dashboard/src/styles/devices.css `
+  services/backend/src/middlewares/authUser.js `
+  services/backend/src/middlewares/requireRecentAuthentication.js `
+  services/backend/src/routes/devices.routes.js `
+  scripts/verify-selected-device-security.mjs `
+  README_SELECTED_DEVICE_SECURITY_TH.md `
+  VALIDATION_SELECTED_DEVICE_SECURITY_TH.md `
+  GIT_PUSH_COMMANDS_SELECTED_DEVICE_SECURITY_TH.txt
+
+# 5) ตรวจ staged files
+git diff --cached --check
+git diff --cached --stat
+
+# 6) Commit
+git commit -m "feat: require password reauthentication for device secrets"
+
+# 7) Rebase กับ main ล่าสุดก่อน Push
+git fetch origin
+git rebase origin/main
+
+# หาก rebase มี conflict ให้แก้ไฟล์ แล้วรัน:
+# git add <ชื่อไฟล์ที่แก้>
+# git rebase --continue
+
+# 8) Push current branch เข้า main
+git push origin HEAD:main
+
+# 9) ตรวจ commit ที่ Push
+git log -1 --oneline
+
+# Render:
+# - Deploy Backend
+# - Deploy Dashboard
+# - ไม่ต้องรัน npm run migrate

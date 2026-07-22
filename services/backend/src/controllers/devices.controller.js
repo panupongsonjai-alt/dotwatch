@@ -48,7 +48,7 @@ async function pollWeatherDeviceImmediately({
         {
           deviceId: Number(deviceId),
           status: 'skipped_missing_location',
-          error: 'Weather API Demo requires latitude and longitude',
+          error: 'dot-WT-W1 requires latitude and longitude',
         },
       ],
     }

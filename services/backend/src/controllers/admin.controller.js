@@ -2,6 +2,10 @@ import { z } from 'zod'
 import { pool } from '../db/pool.js'
 import { createAdminAuditLog } from '../services/adminAudit.service.js'
 import { ensureUserDatabaseUsageSnapshots } from '../services/adminDatabaseUsage.service.js'
+import {
+  enforceLockedAdminModelPayload,
+  getLockedDeviceModelPolicy,
+} from '../services/deviceModelPolicy.service.js'
 import { logger } from '../utils/logger.js'
 import {
   getPlanDefinition,
@@ -703,11 +707,18 @@ export async function listAdminDeviceModels(req, res) {
     [includeInactive]
   )
 
-  res.json(result.rows)
+  res.json(
+    result.rows.map((model) =>
+      enforceLockedAdminModelPayload(model.modelKey, model)
+    )
+  )
 }
 
 export async function createAdminDeviceModel(req, res) {
-  const parsed = createDeviceModelSchema.parse(normalizeDeviceModelPayload(req.body))
+  const normalized = normalizeDeviceModelPayload(req.body)
+  const parsed = createDeviceModelSchema.parse(
+    enforceLockedAdminModelPayload(normalized.modelKey, normalized)
+  )
   const client = await pool.connect()
 
   try {
@@ -780,7 +791,7 @@ export async function updateAdminDeviceModel(req, res) {
   }
 
   const current = currentResult.rows[0]
-  const normalized = normalizeDeviceModelPayload({
+  let normalized = normalizeDeviceModelPayload({
     modelKey: current.model_key,
     modelName: current.model_name,
     metricCount: current.metric_count,
@@ -788,6 +799,12 @@ export async function updateAdminDeviceModel(req, res) {
     isActive: current.is_active,
     ...req.body,
   })
+
+  const lockedPolicy = getLockedDeviceModelPolicy(current.model_key)
+  if (lockedPolicy) {
+    normalized = enforceLockedAdminModelPayload(current.model_key, normalized)
+  }
+
   const parsed = updateDeviceModelSchema.parse(normalized)
   const client = await pool.connect()
 

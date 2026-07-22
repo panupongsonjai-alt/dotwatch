@@ -35,7 +35,7 @@ const EMPTY_FORM = {
 const DEFAULT_ESP32_FORM = {
   id: null,
   modelKey: 'esp32_dht3',
-  modelName: 'ESP32-DHT3',
+  modelName: 'dot-TH-W1',
   description: 'ESP32 Wi-Fi model with DHT temperature and humidity',
   isActive: true,
   metrics: [
@@ -51,11 +51,80 @@ const DEFAULT_ESP32_FORM = {
       metricKey: 'metric_2',
       defaultName: 'Humidity',
       defaultType: 'humidity',
-      defaultUnit: '%',
+      defaultUnit: '%RH',
       defaultIcon: 'Droplets',
       sortOrder: 1,
     },
   ],
+}
+
+const LOCKED_MODEL_DEFINITIONS = Object.freeze({
+  esp32_dht3: Object.freeze({
+    modelKey: 'esp32_dht3',
+    modelName: 'dot-TH-W1',
+    metrics: Object.freeze([
+      Object.freeze({
+        metricKey: 'metric_1',
+        defaultName: 'Temperature',
+        defaultType: 'temperature',
+        defaultUnit: '°C',
+        defaultIcon: 'Thermometer',
+        sortOrder: 0,
+      }),
+      Object.freeze({
+        metricKey: 'metric_2',
+        defaultName: 'Humidity',
+        defaultType: 'humidity',
+        defaultUnit: '%RH',
+        defaultIcon: 'Droplets',
+        sortOrder: 1,
+      }),
+    ]),
+  }),
+  weather_api_demo: Object.freeze({
+    modelKey: 'weather_api_demo',
+    modelName: 'dot-WT-W1',
+    metrics: Object.freeze([
+      Object.freeze({
+        metricKey: 'temperature',
+        defaultName: 'Temperature',
+        defaultType: 'temperature',
+        defaultUnit: '°C',
+        defaultIcon: 'Thermometer',
+        sortOrder: 0,
+      }),
+      Object.freeze({
+        metricKey: 'humidity',
+        defaultName: 'Humidity',
+        defaultType: 'humidity',
+        defaultUnit: '%RH',
+        defaultIcon: 'Droplets',
+        sortOrder: 1,
+      }),
+    ]),
+  }),
+})
+
+function getLockedModelDefinition(modelKey = '') {
+  return LOCKED_MODEL_DEFINITIONS[String(modelKey || '').trim().toLowerCase()] || null
+}
+
+function applyLockedModelDefinition(value = {}) {
+  const definition = getLockedModelDefinition(value.modelKey || value.model_key)
+  if (!definition) return value
+
+  return {
+    ...value,
+    modelKey: definition.modelKey,
+    modelName: definition.modelName,
+    metricCount: definition.metrics.length,
+    metrics: definition.metrics.map((metric) => {
+      return {
+        ...metric,
+        defaultIcon: metric.defaultIcon,
+      }
+    }),
+  }
 }
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50]
@@ -143,7 +212,7 @@ function normalizeModel(model) {
       }))
     : []
 
-  return {
+  return applyLockedModelDefinition({
     id: model.id,
     modelKey: model.modelKey || model.model_key,
     modelName: model.modelName || model.model_name || model.name,
@@ -152,20 +221,20 @@ function normalizeModel(model) {
     isActive: model.isActive ?? model.is_active ?? true,
     deviceCount: Number(model.deviceCount || model.device_count || 0),
     metrics: buildMetrics(metricCount, metrics),
-  }
+  })
 }
 
 function modelToForm(model) {
   if (!model) return cloneForm(EMPTY_FORM)
 
-  return {
+  return applyLockedModelDefinition({
     id: model.id ?? null,
     modelKey: model.modelKey || '',
     modelName: model.modelName || '',
     description: model.description || '',
     isActive: model.isActive ?? true,
     metrics: buildMetrics(model.metricCount ?? model.metrics?.length, model.metrics),
-  }
+  })
 }
 
 function formFingerprint(form) {
@@ -360,6 +429,7 @@ function AdminModels({ adminUser }) {
   const selectedModel = models.find(
     (model) => String(model.id) === String(selectedModelId)
   )
+  const lockedDefinition = getLockedModelDefinition(form.modelKey)
 
   function guardUnsavedChanges() {
     if (!isDirty) return false
@@ -430,6 +500,8 @@ function AdminModels({ adminUser }) {
   }
 
   function updateField(name, value) {
+    if (lockedDefinition && ['modelKey', 'modelName'].includes(name)) return
+
     setForm((current) => ({
       ...current,
       [name]: value,
@@ -437,6 +509,13 @@ function AdminModels({ adminUser }) {
   }
 
   function updateMetric(index, name, value) {
+    if (
+      lockedDefinition &&
+      ['defaultName', 'defaultType', 'defaultUnit', 'defaultIcon'].includes(name)
+    ) {
+      return
+    }
+
     setForm((current) => ({
       ...current,
       metrics: current.metrics.map((metric, metricIndex) =>
@@ -446,6 +525,8 @@ function AdminModels({ adminUser }) {
   }
 
   function addMetric() {
+    if (lockedDefinition) return
+
     setForm((current) => {
       if (current.metrics.length >= 100) {
         showModelNotice('A model can contain up to 100 values.', 'error')
@@ -471,6 +552,8 @@ function AdminModels({ adminUser }) {
   }
 
   function removeMetric(index) {
+    if (lockedDefinition) return
+
     setForm((current) => ({
       ...current,
       metrics: reindexMetrics(
@@ -516,7 +599,8 @@ function AdminModels({ adminUser }) {
 
     try {
       setSaving(true)
-      const metrics = reindexMetrics(form.metrics).map((metric) => ({
+      const effectiveForm = applyLockedModelDefinition(form)
+      const metrics = reindexMetrics(effectiveForm.metrics).map((metric) => ({
         ...metric,
         defaultName: metric.defaultName.trim(),
         defaultType: metric.defaultType.trim(),
@@ -524,8 +608,8 @@ function AdminModels({ adminUser }) {
         defaultIcon: metric.defaultIcon.trim() || 'Activity',
       }))
       const payload = {
-        modelKey,
-        modelName,
+        modelKey: effectiveForm.modelKey.trim(),
+        modelName: effectiveForm.modelName.trim(),
         metricCount: metrics.length,
         description: form.description.trim(),
         isActive: Boolean(form.isActive),
@@ -922,8 +1006,8 @@ function AdminModels({ adminUser }) {
                     onChange={(event) =>
                       updateField('modelName', event.target.value)
                     }
-                    placeholder="ESP32-DHT3"
-                    disabled={saving || !canWrite}
+                    placeholder="dot-TH-W1"
+                    disabled={saving || !canWrite || Boolean(lockedDefinition)}
                     maxLength={80}
                     required
                   />
@@ -939,7 +1023,7 @@ function AdminModels({ adminUser }) {
                         updateField('modelKey', makeModelKey(event.target.value))
                       }
                       placeholder="esp32_dht3"
-                      disabled={saving || !canWrite}
+                      disabled={saving || !canWrite || Boolean(lockedDefinition)}
                       maxLength={60}
                       required
                     />
@@ -948,7 +1032,7 @@ function AdminModels({ adminUser }) {
                       onClick={() =>
                         updateField('modelKey', makeModelKey(form.modelName))
                       }
-                      disabled={saving || !canWrite || !form.modelName.trim()}
+                      disabled={saving || !canWrite || Boolean(lockedDefinition) || !form.modelName.trim()}
                     >
                       Generate
                     </button>
@@ -998,19 +1082,24 @@ function AdminModels({ adminUser }) {
                 <div>
                   <h4>Default Values</h4>
                   <span>
-                    These values are copied to every new device created from this
-                    model.
+                    {lockedDefinition
+                      ? `${lockedDefinition.modelName} is fixed to Temperature (°C, Thermometer) and Humidity (%RH, Droplets).`
+                      : 'These values are copied to every new device created from this model.'}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={addMetric}
-                  disabled={saving || !canWrite || form.metrics.length >= 100}
-                >
-                  <Plus size={16} aria-hidden="true" />
-                  Add Value
-                </button>
+                {lockedDefinition ? (
+                  <span className="page-chip">Fixed 2 Values</span>
+                ) : (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={addMetric}
+                    disabled={saving || !canWrite || form.metrics.length >= 100}
+                  >
+                    <Plus size={16} aria-hidden="true" />
+                    Add Value
+                  </button>
+                )}
               </div>
 
               {form.metrics.length === 0 ? (
@@ -1045,17 +1134,19 @@ function AdminModels({ adminUser }) {
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          className="admin-model-remove-value"
-                          onClick={() => removeMetric(index)}
-                          disabled={saving || !canWrite}
-                          aria-label={`Remove ${metric.defaultName || `Value ${index + 1}`}`}
-                          title="Remove value"
-                        >
-                          <Trash2 size={16} aria-hidden="true" />
-                          <span>Remove</span>
-                        </button>
+                        {!lockedDefinition ? (
+                          <button
+                            type="button"
+                            className="admin-model-remove-value"
+                            onClick={() => removeMetric(index)}
+                            disabled={saving || !canWrite}
+                            aria-label={`Remove ${metric.defaultName || `Value ${index + 1}`}`}
+                            title="Remove value"
+                          >
+                            <Trash2 size={16} aria-hidden="true" />
+                            <span>Remove</span>
+                          </button>
+                        ) : null}
                       </div>
 
                       <div className="admin-model-value-fields">
@@ -1068,7 +1159,7 @@ function AdminModels({ adminUser }) {
                             }
                             placeholder="Temperature"
                             maxLength={80}
-                            disabled={saving || !canWrite}
+                            disabled={saving || !canWrite || Boolean(lockedDefinition)}
                             required
                           />
                         </label>
@@ -1083,7 +1174,7 @@ function AdminModels({ adminUser }) {
                             }
                             placeholder="custom"
                             maxLength={40}
-                            disabled={saving || !canWrite}
+                            disabled={saving || !canWrite || Boolean(lockedDefinition)}
                             required
                           />
                         </label>
@@ -1097,7 +1188,7 @@ function AdminModels({ adminUser }) {
                             }
                             placeholder="°C"
                             maxLength={24}
-                            disabled={saving || !canWrite}
+                            disabled={saving || !canWrite || Boolean(lockedDefinition)}
                           />
                         </label>
 
@@ -1111,7 +1202,7 @@ function AdminModels({ adminUser }) {
                             }
                             placeholder="Activity"
                             maxLength={40}
-                            disabled={saving || !canWrite}
+                            disabled={saving || !canWrite || Boolean(lockedDefinition)}
                           />
                         </label>
                       </div>
