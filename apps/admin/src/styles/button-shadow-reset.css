@@ -1,0 +1,73 @@
+/*
+ * dotWatch Admin button shadow reset
+ *
+ * Imported last so all Admin buttons remain flat in every interaction state.
+ * Shadow-based focus rings are replaced with a visible outline for keyboard
+ * accessibility.
+ */
+
+#root :is(
+  button,
+  input[type='button'],
+  input[type='submit'],
+  input[type='reset'],
+  [role='button'],
+  summary,
+  a.primary-button,
+  a.secondary-button,
+  a.ghost-button,
+  a.text-button,
+  a.logout-button
+) {
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+#root :is(
+  button,
+  input[type='button'],
+  input[type='submit'],
+  input[type='reset'],
+  [role='button'],
+  summary,
+  a.primary-button,
+  a.secondary-button,
+  a.ghost-button,
+  a.text-button,
+  a.logout-button
+)::before,
+#root :is(
+  button,
+  input[type='button'],
+  input[type='submit'],
+  input[type='reset'],
+  [role='button'],
+  summary,
+  a.primary-button,
+  a.secondary-button,
+  a.ghost-button,
+  a.text-button,
+  a.logout-button
+)::after {
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+#root :is(
+  button,
+  input[type='button'],
+  input[type='submit'],
+  input[type='reset'],
+  [role='button'],
+  summary,
+  a.primary-button,
+  a.secondary-button,
+  a.ghost-button,
+  a.text-button,
+  a.logout-button
+):focus-visible {
+  outline: 2px solid var(--primary, #ef4444) !important;
+  outline-offset: 2px !important;
+}

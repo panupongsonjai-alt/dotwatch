@@ -1,0 +1,94 @@
+/*
+ * dotWatch button shadow reset
+ *
+ * This stylesheet is imported after all Dashboard and Leaflet styles so every
+ * interactive button surface stays flat across default, hover, active, open,
+ * disabled, and focus states. A visible outline replaces shadow-based focus
+ * rings to preserve keyboard accessibility.
+ */
+
+#root :is(
+  button,
+  input[type='button'],
+  input[type='submit'],
+  input[type='reset'],
+  [role='button'],
+  summary.metric-icon-dropdown-summary,
+  a.primary-button,
+  a.secondary-button,
+  a.ghost-button,
+  a.text-button,
+  a.export-btn,
+  a.csv-export-btn,
+  a.dw-export-button,
+  a.logout-button,
+  .leaflet-bar > a,
+  .leaflet-control-zoom > a
+) {
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+#root :is(
+  button,
+  input[type='button'],
+  input[type='submit'],
+  input[type='reset'],
+  [role='button'],
+  summary.metric-icon-dropdown-summary,
+  a.primary-button,
+  a.secondary-button,
+  a.ghost-button,
+  a.text-button,
+  a.export-btn,
+  a.csv-export-btn,
+  a.dw-export-button,
+  a.logout-button,
+  .leaflet-bar > a,
+  .leaflet-control-zoom > a
+)::before,
+#root :is(
+  button,
+  input[type='button'],
+  input[type='submit'],
+  input[type='reset'],
+  [role='button'],
+  summary.metric-icon-dropdown-summary,
+  a.primary-button,
+  a.secondary-button,
+  a.ghost-button,
+  a.text-button,
+  a.export-btn,
+  a.csv-export-btn,
+  a.dw-export-button,
+  a.logout-button,
+  .leaflet-bar > a,
+  .leaflet-control-zoom > a
+)::after {
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+#root :is(
+  button,
+  input[type='button'],
+  input[type='submit'],
+  input[type='reset'],
+  [role='button'],
+  summary.metric-icon-dropdown-summary,
+  a.primary-button,
+  a.secondary-button,
+  a.ghost-button,
+  a.text-button,
+  a.export-btn,
+  a.csv-export-btn,
+  a.dw-export-button,
+  a.logout-button,
+  .leaflet-bar > a,
+  .leaflet-control-zoom > a
+):focus-visible {
+  outline: 2px solid var(--primary, #ef4444) !important;
+  outline-offset: 2px !important;
+}

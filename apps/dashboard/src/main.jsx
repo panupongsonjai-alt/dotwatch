@@ -7,6 +7,7 @@ import UiFeedbackHost from './components/common/UiFeedbackHost.jsx'
 import { applyLanguage, readLanguage } from './utils/languagePreferences.js'
 import './styles.css'
 import 'leaflet/dist/leaflet.css'
+import './styles/button-shadow-reset.css'
 
 applyLanguage(readLanguage())
 
