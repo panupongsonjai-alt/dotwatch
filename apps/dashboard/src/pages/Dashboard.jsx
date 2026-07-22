@@ -1,6 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { MetricIcon, normalizeMetricIconName } from '../utils/metricIcons.jsx'
 import { isWifiRssiMetricConfig } from '../utils/metricDisplayConfig'
+import {
+  getCompactDataOverviewDefinition,
+  isCompactDataOverviewModel,
+  mergeCompactDataOverviewMetrics,
+} from '../utils/dataOverviewModelUtils.js'
 import { auth } from '../services/firebase'
 import AlarmPanel from '../components/AlarmPanel.jsx'
 import LatestActiveAlarms from '../components/LatestActiveAlarms.jsx'
@@ -14,6 +19,7 @@ import { connectRealtime } from '../services/realtime'
 import { useAlarm } from '../context/AlarmContext'
 import { EmptyState, PageHeader, StatCard } from '../components/common'
 import '../styles/dashboard.css'
+import '../styles/data-overview-combined-card.css'
 const DeviceMap = lazy(() => import('../components/DeviceMap'))
 
 function getMetricIconName(metricConfig = {}) {
@@ -143,9 +149,13 @@ function getConfiguredMetrics(device = {}) {
     device.metricsConfig,
   ].filter(Array.isArray)
 
-  if (!metricLists.length) return []
+  const configuredMetrics = metricLists[0] || []
+  const modelDefinition = getCompactDataOverviewDefinition(device)
+  const normalizedMetrics = modelDefinition
+    ? mergeCompactDataOverviewMetrics(device, configuredMetrics)
+    : configuredMetrics
 
-  return metricLists[0]
+  return normalizedMetrics
     .filter((metric) => !isWifiRssiMetricConfig(metric))
     .filter((metric) => metric.visible !== false)
     .sort((a, b) => {
@@ -278,8 +288,24 @@ function buildMetricCard(device, metricKey, value, metricConfig = null) {
   }
 }
 
-function getDeviceMetricCards(device = {}) {
+function getMetricReadingValue(device = {}, metricKey = '') {
   const latestMetrics = device.latest_metrics || device.metrics || {}
+
+  if (latestMetrics[metricKey] != null) return latestMetrics[metricKey]
+  if (device[metricKey] != null) return device[metricKey]
+
+  if (metricKey === 'metric_1') {
+    return latestMetrics.temperature ?? device.temperature
+  }
+
+  if (metricKey === 'metric_2') {
+    return latestMetrics.humidity ?? device.humidity
+  }
+
+  return undefined
+}
+
+function getDeviceMetricCards(device = {}) {
   const configuredMetrics = getConfiguredMetrics(device)
 
   if (!configuredMetrics.length) return []
@@ -294,7 +320,7 @@ function getDeviceMetricCards(device = {}) {
       return buildMetricCard(
         device,
         metricKey,
-        latestMetrics[metricKey],
+        getMetricReadingValue(device, metricKey),
         metricConfig
       )
     })
@@ -318,8 +344,10 @@ function getDeviceMetricGroups(devices = []) {
         deviceId: device.id,
         deviceName: device.name || device.device_code || 'Unnamed Device',
         deviceCode: device.device_code || '',
-        modelName: device.model_name || device.model_key || '',
+        modelName:
+          device.model_name || device.modelName || device.model_key || '',
         healthStatus: getHealthStatus(device),
+        compactOverview: isCompactDataOverviewModel(device),
         metrics,
       }
     })
@@ -601,11 +629,15 @@ function Dashboard({ onOpenDevice }) {
             description="ตรวจสอบ Value Display ว่าเปิด Visible แล้ว และ Backend ส่ง metric_configs มาครบ"
           />
         ) : (
-          <div className="live-metrics-device-groups">
+          <div className="live-metrics-device-groups live-metrics-device-groups--compact-models">
             {dataOverviewGroups.map((group) => (
               <section
                 key={group.id}
-                className={`live-metric-device-group ${group.healthStatus}`}
+                className={`live-metric-device-group ${group.healthStatus} ${
+                  group.compactOverview
+                    ? 'live-metric-device-group--compact-model'
+                    : 'live-metric-device-group--full-width'
+                }`}
               >
                 <header className="live-metric-device-header">
                   <div className="live-metric-device-identity">

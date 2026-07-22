@@ -1,0 +1,98 @@
+/*
+ * Data Overview compact model layout
+ *
+ * The legacy file name is retained for patch compatibility. Only dot-TH-W1
+ * and dot-WT-W1 device groups use the compact two-column layout. Other models
+ * continue to occupy a full row and keep the existing card dimensions.
+ */
+
+.live-metrics-device-groups--compact-models {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.live-metrics-device-groups--compact-models
+  > .live-metric-device-group--full-width {
+  grid-column: 1 / -1;
+}
+
+.live-metric-device-group--compact-model {
+  grid-column: auto;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+}
+
+.live-metric-device-group--compact-model .live-metric-device-header {
+  gap: 10px;
+  padding-bottom: 10px;
+}
+
+.live-metric-device-group--compact-model .live-metric-device-identity {
+  gap: 9px;
+}
+
+.live-metric-device-group--compact-model .live-metric-device-identity h3 {
+  font-size: 15px;
+}
+
+.live-metric-device-group--compact-model .live-metric-device-count {
+  min-height: 27px;
+  padding-inline: 9px;
+  font-size: 10px;
+}
+
+.live-metric-device-group--compact-model .live-metrics-overview-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px;
+}
+
+.live-metric-device-group--compact-model .live-metric-overview-card {
+  min-height: 126px;
+  gap: 8px;
+  padding: 14px 15px 16px;
+  border-radius: 16px;
+}
+
+.live-metric-device-group--compact-model .live-metric-overview-title strong {
+  font-size: 14px;
+}
+
+.live-metric-device-group--compact-model .live-metric-overview-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 11px;
+}
+
+.live-metric-device-group--compact-model .live-metric-overview-value strong {
+  font-size: clamp(30px, 3.2vw, 39px);
+}
+
+.live-metric-device-group--compact-model .live-metric-overview-value span {
+  font-size: 12px;
+}
+
+.live-metric-device-group--compact-model .live-metric-bg-shape {
+  right: -34px;
+  bottom: -38px;
+  width: 96px;
+  height: 96px;
+}
+
+@media (max-width: 860px) {
+  .live-metrics-device-groups--compact-models {
+    grid-template-columns: 1fr;
+  }
+
+  .live-metrics-device-groups--compact-models
+    > .live-metric-device-group--full-width,
+  .live-metric-device-group--compact-model {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 520px) {
+  .live-metric-device-group--compact-model .live-metrics-overview-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
