@@ -1,0 +1,29 @@
+﻿cd "D:\IoT Project\dotwatch"
+
+git status --short
+
+node .\scripts\verify-data-overview-compact-model-pair.mjs
+
+npm --prefix apps/dashboard run build
+
+git diff --check
+
+git add `
+  apps/dashboard/src/pages/Dashboard.jsx `
+  apps/dashboard/src/utils/dataOverviewModelUtils.js `
+  apps/dashboard/src/styles/data-overview-combined-card.css `
+  scripts/verify-data-overview-compact-model-pair.mjs `
+  scripts/verify-data-overview-combined-model-cards.mjs
+
+git diff --cached --check
+git diff --cached --stat
+
+git commit -m "style: compact paired overview for fixed sensor models"
+
+git pull --rebase origin main
+
+git push origin HEAD:main
+
+git fetch origin main
+git rev-parse HEAD
+git rev-parse origin/main

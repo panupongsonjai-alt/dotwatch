@@ -89,7 +89,7 @@
 }
 
 .devices-v3-item-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--dw-font-mono);
   letter-spacing: -0.02em;
 }
 

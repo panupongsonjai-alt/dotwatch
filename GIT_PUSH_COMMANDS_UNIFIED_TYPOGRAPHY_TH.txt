@@ -1,0 +1,46 @@
+﻿cd "D:\IoT Project\dotwatch"
+
+git status -sb
+
+node .\scripts\verify-unified-typography.mjs
+python -m py_compile .\pi\agent\pi_config_web.py
+
+npm --prefix apps/dashboard run build
+npm --prefix apps/admin run build
+
+git diff --check
+
+git add -- `
+  apps/admin/src/main.jsx `
+  apps/admin/src/styles/admin-device-models-dashboard-parity.css `
+  apps/admin/src/styles/admin.css `
+  apps/admin/src/styles/phase11g-admin-dashboard-parity.css `
+  apps/admin/src/styles/typography-system.css `
+  apps/dashboard/src/main.jsx `
+  apps/dashboard/src/pages/CompareGraph.jsx `
+  apps/dashboard/src/pages/History.jsx `
+  apps/dashboard/src/styles/base.css `
+  apps/dashboard/src/styles/dashboard.css `
+  apps/dashboard/src/styles/devices.css `
+  apps/dashboard/src/styles/pages/alarms.css `
+  apps/dashboard/src/styles/pages/notifications.css `
+  apps/dashboard/src/styles/phase10c-device-ux.css `
+  apps/dashboard/src/styles/phase10e-dashboard-auth-env.css `
+  apps/dashboard/src/styles/shared-ui.css `
+  apps/dashboard/src/styles/typography-system.css `
+  apps/dashboard/src/utils/tableExport.js `
+  pi/agent/pi_config_web.py `
+  scripts/verify-unified-typography.mjs
+
+git diff --cached --check
+git diff --cached --stat
+
+git commit -m "style: unify typography across web interfaces"
+
+git pull --rebase --autostash origin main
+
+git push origin HEAD:main
+
+git fetch origin main
+git rev-parse HEAD
+git rev-parse origin/main

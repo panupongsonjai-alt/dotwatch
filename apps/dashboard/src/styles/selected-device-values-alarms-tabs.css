@@ -1,0 +1,1154 @@
+/* Device Center: split Values and Alarms into separate tabs while keeping
+   both views sourced from the same device metric configuration. */
+
+.metric-config-panel--values .metric-alarm-config-group,
+.metric-config-panel--values .metric-alarm-config-group + .metric-alarm-config-group,
+.metric-config-panel--values .metric-alarm-config-group:last-child {
+  grid-template-areas:
+    "metric"
+    "action" !important;
+}
+
+.metric-config-panel--alarms .metric-alarm-config-group,
+.metric-config-panel--alarms .metric-alarm-config-group + .metric-alarm-config-group,
+.metric-config-panel--alarms .metric-alarm-config-group:last-child {
+  grid-template-areas:
+    "metric"
+    "rules" !important;
+}
+
+.metric-config-panel--values .metric-alarm-config-metric-row {
+  padding-bottom: 0 !important;
+}
+
+.metric-config-panel--values .metric-alarm-config-action {
+  padding-top: 10px !important;
+}
+
+.metric-alarm-source-note {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel-2) 82%, transparent);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 800;
+}
+
+.metric-alarm-value-reference {
+  grid-area: metric;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin: 0 6px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--panel-2) 82%, transparent);
+}
+
+.metric-alarm-value-reference-icon {
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--panel);
+  color: var(--primary);
+}
+
+.metric-alarm-value-reference-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.metric-alarm-value-reference-copy strong,
+.metric-alarm-value-reference-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-alarm-value-reference-copy strong {
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.metric-alarm-value-reference-copy small {
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 750;
+}
+
+.metric-alarm-value-reference-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.metric-alarm-value-reference-status.visible {
+  color: var(--text);
+}
+
+.metric-config-panel--alarms .metric-alarm-config-rules {
+  padding-top: 0 !important;
+}
+
+.metric-config-panel--alarms .metric-config-footer-actions,
+.metric-config-panel--values .metric-config-footer-actions {
+  grid-template-columns: repeat(2, minmax(0, auto));
+}
+
+@container (max-width: 820px) {
+  .metric-alarm-value-reference {
+    margin: 0 0 12px;
+  }
+
+  .metric-config-panel--values .metric-alarm-config-metric-row {
+    padding-bottom: 0 !important;
+    border-bottom: 0 !important;
+  }
+}
+
+@container (max-width: 560px) {
+  .metric-alarm-value-reference {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .metric-alarm-value-reference-status {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+  }
+
+  .metric-config-panel--alarms .metric-config-footer-actions,
+  .metric-config-panel--values .metric-config-footer-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.devices-v3-values-panel,
+.devices-v3-alarms-panel {
+  display: grid;
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .devices-v3-values-panel,
+  .devices-v3-alarms-panel {
+    gap: 16px;
+  }
+}
+
+/* =========================================================
+   Device Center - Values tab overview-style presentation
+   Present each editable Value with the same card, row, spacing,
+   typography, and divider rhythm used by the Overview tab.
+========================================================= */
+.metric-config-panel--values .metric-values-overview-table {
+  width: 100%;
+  min-width: 0;
+}
+
+.metric-config-panel--values .metric-values-overview-table > .metric-alarm-config-body {
+  display: grid !important;
+  gap: 16px !important;
+}
+
+.metric-config-panel--values .metric-values-overview-card,
+.metric-config-panel--values .metric-values-overview-card + .metric-values-overview-card,
+.metric-config-panel--values .metric-values-overview-card:last-child {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  background: var(--panel-2) !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+.metric-values-overview-card-header {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+}
+
+.metric-values-overview-card-icon {
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--panel);
+  color: var(--primary);
+}
+
+.metric-values-overview-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.metric-values-overview-card-copy strong,
+.metric-values-overview-card-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-values-overview-card-copy strong {
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.metric-values-overview-card-copy small {
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 750;
+}
+
+.metric-values-overview-list {
+  min-width: 0;
+  border-top: 1px solid var(--border);
+}
+
+.metric-values-overview-list-item {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.35fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding: 14px 18px;
+}
+
+.metric-values-overview-list-item + .metric-values-overview-list-item {
+  border-top: 1px solid var(--border);
+}
+
+.metric-values-overview-list-copy {
+  min-width: 0;
+}
+
+.metric-values-overview-list-copy > span,
+.metric-values-overview-list-copy > small {
+  display: block;
+}
+
+.metric-values-overview-list-copy > span {
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 950;
+}
+
+.metric-values-overview-list-copy > small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 750;
+}
+
+.metric-values-overview-list-control {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  justify-items: end;
+}
+
+.metric-values-overview-list-control > input,
+.metric-values-overview-list-control > .unified-select,
+.metric-values-overview-list-control > .metric-icon-dropdown,
+.metric-values-overview-list-control > .metric-visible-toggle {
+  width: min(100%, 440px) !important;
+  min-width: 0 !important;
+  max-width: 440px !important;
+}
+
+.metric-values-overview-list-control > input,
+.metric-values-overview-list-control .unified-select-trigger,
+.metric-values-overview-list-control .metric-icon-dropdown-summary,
+.metric-values-overview-list-control .metric-visible-toggle {
+  box-sizing: border-box !important;
+  min-height: 42px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 13px !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+  font-weight: 850 !important;
+}
+
+.metric-values-overview-list-control > input {
+  padding: 0 13px !important;
+  outline: none !important;
+  text-align: right;
+}
+
+.metric-values-overview-list-control > input:focus {
+  border-color: color-mix(in srgb, var(--primary) 58%, var(--border)) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 11%, transparent) !important;
+}
+
+.metric-values-overview-list-control > input:disabled,
+.metric-values-overview-list-control .unified-select-trigger:disabled,
+.metric-values-overview-list-control .metric-icon-dropdown-summary[aria-disabled='true'] {
+  opacity: 0.72;
+}
+
+.metric-values-overview-list-control .unified-select-value,
+.metric-values-overview-list-control .metric-icon-dropdown-current {
+  justify-content: flex-end;
+}
+
+.metric-values-overview-list-control .metric-visible-toggle {
+  justify-content: center !important;
+}
+
+.metric-values-overview-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 18px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.metric-values-overview-card-footer .metric-config-delete-btn {
+  min-width: 144px;
+  margin: 0;
+}
+
+@container (max-width: 820px) {
+  .metric-values-overview-list-item {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .metric-values-overview-list-control {
+    justify-items: stretch;
+  }
+
+  .metric-values-overview-list-control > input,
+  .metric-values-overview-list-control > .unified-select,
+  .metric-values-overview-list-control > .metric-icon-dropdown,
+  .metric-values-overview-list-control > .metric-visible-toggle {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .metric-values-overview-list-control > input {
+    text-align: left;
+  }
+}
+
+@container (max-width: 470px) {
+  .metric-values-overview-card-header,
+  .metric-values-overview-list-item {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .metric-values-overview-card-footer {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .metric-values-overview-card-footer .metric-config-delete-btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   Device Center - Values paired field rows
+   Keep Value Name with Unit and Decimals with Icon on desktop.
+========================================================= */
+.metric-config-panel--values .metric-values-overview-list-item--paired {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 18px;
+}
+
+.metric-values-overview-paired-field {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 9px;
+}
+
+.metric-values-overview-paired-field + .metric-values-overview-paired-field {
+  padding-left: 18px;
+  border-left: 1px solid var(--border);
+}
+
+.metric-values-overview-paired-field .metric-values-overview-list-control {
+  justify-items: stretch;
+}
+
+.metric-values-overview-paired-field .metric-values-overview-list-control > input,
+.metric-values-overview-paired-field .metric-values-overview-list-control > .unified-select,
+.metric-values-overview-paired-field .metric-values-overview-list-control > .metric-icon-dropdown {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.metric-values-overview-paired-field .metric-values-overview-list-control > input {
+  text-align: left;
+}
+
+@container (max-width: 700px) {
+  .metric-config-panel--values .metric-values-overview-list-item--paired {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .metric-values-overview-paired-field + .metric-values-overview-paired-field {
+    padding-top: 14px;
+    padding-left: 0;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+}
+
+
+
+/* =========================================================
+   Device Center - Value visibility in card header
+   Keep Visible / Hidden beside the Value name and remove the
+   redundant Display row from the editable Value content.
+========================================================= */
+.metric-config-panel--values .metric-values-overview-card-header {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+}
+
+.metric-config-panel--values .metric-values-overview-header-toggle,
+.metric-alarm-reference-layout .metric-values-overview-header-toggle {
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 106px !important;
+  max-width: none !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  justify-self: end !important;
+  display: grid !important;
+  grid-template-columns: 22px auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 13px !important;
+  background: var(--panel) !important;
+  color: var(--muted) !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.metric-config-panel--values .metric-values-overview-header-toggle.active {
+  color: var(--success) !important;
+}
+
+.metric-config-panel--values .metric-values-overview-header-toggle input {
+  flex: 0 0 22px !important;
+  inline-size: 22px !important;
+  block-size: 22px !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
+  margin: 0 !important;
+}
+
+.metric-config-panel--values .metric-values-overview-header-toggle > span {
+  color: currentColor !important;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 900 !important;
+  white-space: nowrap;
+}
+
+.metric-config-panel--values
+  .metric-values-overview-header-toggle:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+@container (max-width: 470px) {
+  .metric-config-panel--values .metric-values-overview-card-header {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .metric-config-panel--values .metric-values-overview-header-toggle,
+  .metric-alarm-reference-layout .metric-values-overview-header-toggle {
+    min-width: 94px !important;
+    padding-inline: 9px !important;
+  }
+}
+
+
+/* =========================================================
+   Device Center - Alarms tab overview-style presentation
+   Use the same Value cards, typography, row rhythm, controls,
+   and responsive behavior as the Values tab.
+========================================================= */
+.metric-config-panel--alarms .metric-alarms-config-table {
+  width: 100%;
+  min-width: 0;
+}
+
+.metric-config-panel--alarms
+  .metric-alarms-config-table
+  > .metric-alarm-config-body {
+  display: grid !important;
+  gap: 16px !important;
+}
+
+.metric-config-panel--alarms .metric-alarms-overview-card,
+.metric-config-panel--alarms
+  .metric-alarms-overview-card
+  + .metric-alarms-overview-card,
+.metric-config-panel--alarms .metric-alarms-overview-card:last-child {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  background: var(--panel-2) !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+.metric-config-panel--alarms .metric-alarms-overview-card-header {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+}
+
+.metric-alarm-overview-visibility {
+  box-sizing: border-box;
+  min-width: 94px;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--panel);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.metric-alarm-overview-visibility.visible {
+  color: var(--success);
+}
+
+.metric-alarms-overview-list {
+  border-top: 1px solid var(--border);
+}
+
+.metric-alarm-overview-rule + .metric-alarm-overview-rule {
+  border-top: 1px solid var(--border);
+}
+
+.metric-alarm-overview-rule-header {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 18px;
+  background: color-mix(in srgb, var(--panel) 58%, transparent);
+}
+
+.metric-alarm-overview-rule-header .status {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.metric-alarm-overview-rule-header .status.warning {
+  color: var(--warning);
+}
+
+.metric-alarm-overview-rule-header .status.critical {
+  color: var(--danger);
+}
+
+.metric-alarm-overview-active-toggle {
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 106px !important;
+  max-width: none !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  display: grid !important;
+  grid-template-columns: 22px auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 13px !important;
+  background: var(--panel) !important;
+  color: var(--muted) !important;
+  box-shadow: none !important;
+}
+
+.metric-alarm-overview-active-toggle.active {
+  color: var(--success) !important;
+}
+
+.metric-alarm-overview-active-toggle input {
+  flex: 0 0 22px !important;
+  inline-size: 22px !important;
+  block-size: 22px !important;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
+  margin: 0 !important;
+}
+
+.metric-alarm-overview-active-toggle > span {
+  color: currentColor !important;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 900 !important;
+  white-space: nowrap;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-paired-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-message-row {
+  border-top: 1px solid var(--border);
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-message-row
+  .metric-values-overview-list-control
+  > input {
+  width: 100% !important;
+  max-width: none !important;
+  text-align: left !important;
+}
+
+@container (max-width: 700px) {
+  .metric-config-panel--alarms
+    .metric-alarm-overview-paired-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .metric-config-panel--alarms
+    .metric-alarm-overview-paired-row
+    .metric-values-overview-paired-field
+    + .metric-values-overview-paired-field {
+    padding-top: 14px;
+    padding-left: 0;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+}
+
+@container (max-width: 470px) {
+  .metric-config-panel--alarms .metric-alarms-overview-card-header {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .metric-alarm-overview-visibility {
+    min-width: 82px;
+    padding-inline: 9px;
+  }
+
+  .metric-alarm-overview-rule-header {
+    padding-inline: 14px;
+  }
+
+  .metric-alarm-overview-active-toggle {
+    min-width: 94px !important;
+    padding-inline: 9px !important;
+  }
+}
+
+
+/* =========================================================
+   Device Center - compact Alarm header controls
+   Warning/Critical activation replaces Value visibility.
+   Condition, Threshold and Notification Message share one row.
+========================================================= */
+.metric-config-panel--alarms .metric-alarms-overview-card-header {
+  grid-template-columns: 40px minmax(160px, 1fr) auto;
+  align-items: center;
+}
+
+.metric-config-panel--alarms .metric-alarm-overview-header-controls {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(188px, auto));
+  align-items: center;
+  justify-content: end;
+  gap: 10px;
+}
+
+.metric-config-panel--alarms .metric-alarm-overview-header-control {
+  min-width: 0;
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-content: end;
+  gap: 8px;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-header-control
+  > .status {
+  min-width: 68px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-header-control
+  > .status.warning {
+  color: var(--warning);
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-header-control
+  > .status.critical {
+  color: var(--danger);
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-header-control
+  .metric-alarm-overview-active-toggle {
+  min-width: 102px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  padding-inline: 10px !important;
+}
+
+.metric-config-panel--alarms .metric-alarm-overview-rule {
+  min-width: 0;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-rule
+  + .metric-alarm-overview-rule {
+  border-top: 1px solid var(--border);
+}
+
+.metric-config-panel--alarms .metric-alarm-overview-fields-row {
+  grid-template-columns:
+    minmax(120px, 0.72fr)
+    minmax(150px, 0.9fr)
+    minmax(260px, 2fr);
+  align-items: stretch;
+  gap: 0;
+  border-top: 0;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-fields-row
+  .metric-values-overview-paired-field {
+  min-width: 0;
+  padding: 16px 18px;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-fields-row
+  .metric-values-overview-paired-field
+  + .metric-values-overview-paired-field {
+  border-left: 1px solid var(--border);
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-fields-row
+  .metric-values-overview-list-control
+  > input,
+.metric-config-panel--alarms
+  .metric-alarm-overview-fields-row
+  .metric-values-overview-list-control
+  > .unified-select {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-notification-field
+  .metric-values-overview-list-control
+  > input {
+  text-align: left !important;
+}
+
+@container (max-width: 1040px) {
+  .metric-config-panel--alarms .metric-alarms-overview-card-header {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .metric-config-panel--alarms .metric-alarm-overview-header-controls {
+    grid-column: 1 / -1;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+  }
+
+  .metric-config-panel--alarms .metric-alarm-overview-header-control {
+    justify-content: stretch;
+    grid-template-columns: minmax(68px, auto) minmax(102px, 1fr);
+  }
+}
+
+@container (max-width: 760px) {
+  .metric-config-panel--alarms .metric-alarm-overview-fields-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-config-panel--alarms
+    .metric-alarm-overview-notification-field {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--border);
+    border-left: 0 !important;
+  }
+}
+
+@container (max-width: 560px) {
+  .metric-config-panel--alarms .metric-alarm-overview-header-controls,
+  .metric-config-panel--alarms .metric-alarm-overview-fields-row {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-config-panel--alarms
+    .metric-alarm-overview-header-control {
+    grid-template-columns: minmax(76px, auto) minmax(102px, 1fr);
+  }
+
+  .metric-config-panel--alarms
+    .metric-alarm-overview-fields-row
+    .metric-values-overview-paired-field {
+    grid-column: 1;
+    padding: 14px;
+  }
+
+  .metric-config-panel--alarms
+    .metric-alarm-overview-fields-row
+    .metric-values-overview-paired-field
+    + .metric-values-overview-paired-field {
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+}
+
+
+/* =========================================================
+   Device Center - Alarm single-row layout
+   Warning/Critical | Condition | Threshold | Message | State
+========================================================= */
+.metric-config-panel--alarms .metric-alarms-overview-card-header {
+  grid-template-columns: 40px minmax(0, 1fr);
+}
+
+.metric-config-panel--alarms .metric-alarm-overview-single-row {
+  box-sizing: border-box;
+  min-width: 0;
+  display: grid;
+  grid-template-columns:
+    minmax(92px, 0.58fr)
+    minmax(110px, 0.72fr)
+    minmax(150px, 0.92fr)
+    minmax(260px, 2fr)
+    minmax(106px, 0.68fr);
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  border-top: 0;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-single-row
+  > * {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-single-row
+  > *
+  + * {
+  border-left: 1px solid var(--border);
+}
+
+.metric-config-panel--alarms .metric-alarm-overview-severity-cell,
+.metric-config-panel--alarms .metric-alarm-overview-active-cell {
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-severity-cell
+  .status {
+  min-width: 72px;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-severity-cell
+  .status.warning {
+  color: var(--warning);
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-severity-cell
+  .status.critical {
+  color: var(--danger);
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-single-row
+  .metric-values-overview-paired-field {
+  min-height: 96px;
+  padding: 15px 16px;
+  border-left: 0;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-single-row
+  .metric-values-overview-list-copy {
+  min-height: 18px;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-single-row
+  .metric-values-overview-list-control
+  > input,
+.metric-config-panel--alarms
+  .metric-alarm-overview-single-row
+  .metric-values-overview-list-control
+  > .unified-select {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-single-row
+  .metric-alarm-overview-notification-field
+  input {
+  text-align: left !important;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-active-cell
+  .metric-alarm-overview-active-toggle {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 116px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding-inline: 10px !important;
+}
+
+.metric-config-panel--alarms
+  .metric-alarm-overview-rule
+  + .metric-alarm-overview-rule {
+  border-top: 1px solid var(--border);
+}
+
+/* The former header controls are no longer rendered. */
+.metric-config-panel--alarms .metric-alarm-overview-header-controls {
+  display: none !important;
+}
+
+@container (max-width: 900px) {
+  .metric-config-panel--alarms .metric-alarm-overview-single-row {
+    grid-template-columns:
+      minmax(92px, 0.58fr)
+      minmax(110px, 0.72fr)
+      minmax(150px, 0.92fr)
+      minmax(106px, 0.68fr);
+  }
+
+  .metric-config-panel--alarms
+    .metric-alarm-overview-notification-field {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-height: auto;
+    border-top: 1px solid var(--border);
+    border-left: 0 !important;
+  }
+}
+
+@container (max-width: 620px) {
+  .metric-config-panel--alarms .metric-alarm-overview-single-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .metric-config-panel--alarms .metric-alarm-overview-severity-cell,
+  .metric-config-panel--alarms .metric-alarm-overview-active-cell,
+  .metric-config-panel--alarms
+    .metric-alarm-overview-single-row
+    .metric-values-overview-paired-field {
+    min-height: auto;
+  }
+
+  .metric-config-panel--alarms .metric-alarm-overview-severity-cell {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .metric-config-panel--alarms .metric-alarm-overview-active-cell {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .metric-config-panel--alarms
+    .metric-alarm-overview-condition-field {
+    grid-column: 1;
+    grid-row: 2;
+    border-top: 1px solid var(--border);
+    border-left: 0 !important;
+  }
+
+  .metric-config-panel--alarms
+    .metric-alarm-overview-threshold-field {
+    grid-column: 2;
+    grid-row: 2;
+    border-top: 1px solid var(--border);
+  }
+
+  .metric-config-panel--alarms
+    .metric-alarm-overview-notification-field {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+}
+
+@container (max-width: 430px) {
+  .metric-config-panel--alarms .metric-alarm-overview-single-row {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-config-panel--alarms
+    .metric-alarm-overview-single-row
+    > * {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+    border-left: 0 !important;
+  }
+
+  .metric-config-panel--alarms
+    .metric-alarm-overview-single-row
+    > *
+    + * {
+    border-top: 1px solid var(--border);
+  }
+}

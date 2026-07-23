@@ -1,0 +1,25 @@
+﻿cd "D:\IoT Project\dotwatch"
+
+git status --short
+
+node .\scripts\verify-selected-device-alarm-single-row.mjs
+npm --prefix apps/dashboard run build
+
+git diff --check
+
+git add `
+  apps/dashboard/src/components/MetricConfigPanel.jsx `
+  apps/dashboard/src/styles/selected-device-values-alarms-tabs.css `
+  scripts/verify-selected-device-alarm-single-row.mjs
+
+git diff --cached --check
+git diff --cached --stat
+
+git commit -m "style: arrange selected device alarms in single rows"
+
+git pull --rebase --autostash origin main
+git push origin HEAD:main
+
+git fetch origin main
+git rev-parse HEAD
+git rev-parse origin/main

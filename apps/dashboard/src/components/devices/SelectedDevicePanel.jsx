@@ -46,7 +46,8 @@ import {
 
 const DETAIL_TABS = [
   { key: 'overview', label: 'Overview' },
-  { key: 'metrics', label: 'Values & Alarms' },
+  { key: 'values', label: 'Values' },
+  { key: 'alarms', label: 'Alarms' },
   { key: 'location', label: 'Location' },
   { key: 'security', label: 'Security' },
 ]
@@ -1237,20 +1238,38 @@ function SelectedDevicePanel({
         </div>
       )}
 
-      {activeTab === 'metrics' && (
-        <div className="devices-v3-tab-panel devices-v3-metrics-alarms-panel">
+      {activeTab === 'values' && (
+        <div className="devices-v3-tab-panel devices-v3-values-panel">
           <DeviceTabHeader
-            eyebrow="Value & Alarm Configuration"
-            title="Values & Alarms"
-            description="จัดการการแสดงผลและ Warning / Critical Threshold โดยโมเดลแบบ Fixed จะล็อกชื่อและหน่วยของ Value"
-            meta={`${selectedDevice.metric_count || 0} Channels`}
+            eyebrow="Value Configuration"
+            title="Values"
+            description="แสดงและจัดการข้อมูล Value ในรูปแบบเดียวกับ Overview โดยโมเดลแบบ Fixed จะล็อกชื่อ หน่วย และ Icon ตาม Device Model"
+            meta={`${selectedDevice.metric_count || 0} Values`}
           />
 
           <MetricConfigPanel
-            key={`metrics-alarms-${selectedDevice.id}`}
+            key={`values-${selectedDevice.id}`}
+            mode="values"
             deviceId={selectedDevice.id}
             modelKey={selectedDevice.model_key || selectedDevice.modelKey}
-            modelName={selectedDevice.model_name || selectedDevice.modelName}
+          />
+        </div>
+      )}
+
+      {activeTab === 'alarms' && (
+        <div className="devices-v3-tab-panel devices-v3-alarms-panel">
+          <DeviceTabHeader
+            eyebrow="Alarm Configuration"
+            title="Alarms"
+            description="แสดงทุก Value จากแท็บ Values และตั้งค่า Warning / Critical Threshold แยกตาม Value"
+            meta={`${selectedDevice.metric_count || 0} Values`}
+          />
+
+          <MetricConfigPanel
+            key={`alarms-${selectedDevice.id}`}
+            mode="alarms"
+            deviceId={selectedDevice.id}
+            modelKey={selectedDevice.model_key || selectedDevice.modelKey}
             alarmRules={Array.isArray(selectedRules) ? selectedRules : []}
             alarmSaving={saving}
             onSaveMetricAlarms={onSaveMetricAlarms}

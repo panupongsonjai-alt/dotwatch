@@ -242,7 +242,7 @@
   max-width: 100%;
   overflow: hidden;
   color: var(--muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--dw-font-mono);
   font-size: 11px;
   font-weight: 800;
   text-overflow: ellipsis;
@@ -608,7 +608,7 @@
 
 .admin-model-value-index code {
   color: var(--muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--dw-font-mono);
   font-size: 10px;
   font-weight: 800;
   white-space: nowrap;

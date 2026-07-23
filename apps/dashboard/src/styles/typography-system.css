@@ -1,0 +1,81 @@
+/*
+ * dotWatch unified typography system
+ *
+ * The normal UI uses the same Inter -> Prompt -> system fallback chain in
+ * Dashboard and Admin. Technical identifiers and source/code surfaces retain
+ * a dedicated monospace stack for readability.
+ */
+
+:root {
+  --dw-font-sans: "Inter", "Prompt", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --dw-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --dw-font-size-body: 14px;
+  --dw-line-height-body: 1.5;
+  --dw-line-height-heading: 1.2;
+
+  font-family: var(--dw-font-sans);
+  font-kerning: normal;
+  font-synthesis: none;
+  font-variant-ligatures: common-ligatures contextual;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  font-family: var(--dw-font-sans) !important;
+}
+
+body {
+  font-size: var(--dw-font-size-body);
+  line-height: var(--dw-line-height-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root :where(
+  button,
+  input,
+  select,
+  textarea,
+  option,
+  optgroup,
+  table,
+  th,
+  td,
+  label,
+  legend,
+  summary,
+  dialog,
+  [role='button'],
+  [role='tab'],
+  [role='menuitem'],
+  [role='option'],
+  [role='combobox'],
+  [role='listbox']
+) {
+  font-family: var(--dw-font-sans) !important;
+}
+
+#root :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--dw-font-sans) !important;
+  line-height: var(--dw-line-height-heading);
+}
+
+#root svg text,
+.leaflet-container,
+.leaflet-control,
+.leaflet-popup-content,
+.leaflet-tooltip {
+  font-family: var(--dw-font-sans) !important;
+}
+
+code,
+pre,
+kbd,
+samp,
+.font-mono,
+.monospace,
+[data-font='mono'] {
+  font-family: var(--dw-font-mono) !important;
+}

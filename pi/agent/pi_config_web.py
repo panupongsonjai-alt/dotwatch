@@ -505,7 +505,8 @@ STYLE = r"""
 }
 *{box-sizing:border-box}
 html{min-width:320px;min-height:100%;background:var(--bg);scroll-behavior:smooth}
-body{margin:0;min-width:320px;min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Prompt,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{margin:0;min-width:320px;min-height:100vh;background:var(--bg);color:var(--text);font-family:"Inter","Prompt",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+button,input,select,textarea{font:inherit}
 body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 82% -10%,rgba(37,99,235,.22),transparent 30rem),radial-gradient(circle at -8% 24%,rgba(239,68,68,.12),transparent 26rem);opacity:.9}
 a{color:inherit;text-decoration:none}
 button,input,select,textarea{font:inherit}

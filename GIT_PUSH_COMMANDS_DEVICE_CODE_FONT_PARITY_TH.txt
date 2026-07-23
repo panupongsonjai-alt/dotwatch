@@ -1,0 +1,24 @@
+﻿cd "D:\IoT Project\dotwatch"
+
+git status --short
+
+node .\scripts\verify-device-code-font-parity.mjs
+npm --prefix apps/dashboard run build
+
+git diff --check
+
+git add `
+  apps/dashboard/src/styles/devices.css `
+  scripts/verify-device-code-font-parity.mjs
+
+git diff --cached --check
+git diff --cached --stat
+
+git commit -m "style: align device code font with model"
+
+git pull --rebase --autostash origin main
+git push origin HEAD:main
+
+git fetch origin main
+git rev-parse HEAD
+git rev-parse origin/main

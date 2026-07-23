@@ -18,6 +18,7 @@ import './styles/admin-device-models-dashboard-parity.css'
 import './styles/admin-pageheader-dashboard-parity.css'
 import './styles/admin-users-dashboard-parity.css'
 import './styles/button-shadow-reset.css'
+import './styles/typography-system.css'
 
 applyAdminUiPreferences()
 applyLanguage(readLanguage())

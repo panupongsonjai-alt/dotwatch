@@ -1,0 +1,37 @@
+﻿cd "D:\IoT Project\dotwatch"
+
+git status -sb
+git fetch origin
+
+git switch main
+git pull --ff-only origin main
+
+# วาง Patch ZIP ทับโปรเจกต์ก่อนรันคำสั่งด้านล่าง
+node .\scripts\verify-selected-device-values-alarms-tabs.mjs
+
+npm --prefix apps/dashboard run build
+
+# กรณี vite: not found
+# npm --prefix apps/dashboard ci
+# npm --prefix apps/dashboard run build
+
+git diff --check
+
+git add -- `
+  apps/dashboard/src/components/MetricConfigPanel.jsx `
+  apps/dashboard/src/components/devices/SelectedDevicePanel.jsx `
+  apps/dashboard/src/main.jsx `
+  apps/dashboard/src/styles/selected-device-values-alarms-tabs.css `
+  scripts/verify-selected-device-values-alarms-tabs.mjs
+
+git diff --cached --check
+git diff --cached --stat
+
+git commit -m "feat: split selected device values and alarms tabs"
+
+git pull --rebase --autostash origin main
+git push origin HEAD:main
+
+git fetch origin main
+git rev-parse HEAD
+git rev-parse origin/main

@@ -1,0 +1,28 @@
+﻿cd "D:\IoT Project\dotwatch"
+
+git status --short
+
+node .\scripts\verify-selected-device-values-overview-style.mjs
+
+npm --prefix apps/dashboard run build
+
+git diff --check
+
+git add `
+  apps/dashboard/src/components/MetricConfigPanel.jsx `
+  apps/dashboard/src/components/devices/SelectedDevicePanel.jsx `
+  apps/dashboard/src/styles/selected-device-values-alarms-tabs.css `
+  scripts/verify-selected-device-values-overview-style.mjs
+
+git diff --cached --check
+git diff --cached --stat
+
+git commit -m "style: align selected device values with overview"
+
+git pull --rebase --autostash origin main
+
+git push origin HEAD:main
+
+git fetch origin main
+git rev-parse HEAD
+git rev-parse origin/main

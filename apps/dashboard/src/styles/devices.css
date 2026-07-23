@@ -3892,8 +3892,7 @@
   background: var(--panel);
   border: 1px dashed var(--border);
   font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
+    var(--dw-font-mono);
   font-size: 12px;
   line-height: 1.45;
   font-weight: 850;
@@ -7319,8 +7318,7 @@
   border-radius: 12px;
   background: var(--panel);
   font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
+    var(--dw-font-mono);
   font-size: 12px;
   line-height: 1.45;
   font-weight: 850;
@@ -7539,5 +7537,216 @@
 
   .devices-v3-secret-inline-actions {
     justify-content: flex-start;
+  }
+}
+
+/* =========================================================
+   Device Center - Selected Device final alignment
+   1) Scroll Display Fields & Alarm Rules only when more than 3 Values exist.
+   2) Match Security rows and typography to the Overview list.
+========================================================= */
+
+.metric-alarm-reference-layout
+  .metric-alarm-config-body--scrollable:not(.metric-alarm-config-body--icon-picker-open) {
+  box-sizing: border-box;
+  max-height: var(--metric-config-scroll-max-height, 1120px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 8px;
+}
+
+.metric-alarm-reference-layout
+  .metric-alarm-config-body--scrollable.metric-alarm-config-body--icon-picker-open {
+  max-height: none !important;
+  overflow: visible !important;
+  padding-right: 0;
+}
+
+.metric-alarm-reference-layout
+  .metric-alarm-config-body--scrollable:not(.metric-alarm-config-body--icon-picker-open)::-webkit-scrollbar {
+  width: 8px;
+}
+
+.metric-alarm-reference-layout
+  .metric-alarm-config-body--scrollable:not(.metric-alarm-config-body--icon-picker-open)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.metric-alarm-reference-layout
+  .metric-alarm-config-body--scrollable:not(.metric-alarm-config-body--icon-picker-open)::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 34%, transparent);
+  background-clip: padding-box;
+}
+
+.metric-alarm-reference-layout
+  .metric-alarm-config-body--scrollable:not(.metric-alarm-config-body--icon-picker-open)::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted) 52%, transparent);
+  background-clip: padding-box;
+}
+
+.devices-v3-security-list {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel-2);
+}
+
+.devices-v3-security-list .devices-v3-security-list-item {
+  min-width: 0;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.35fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding: 14px 18px;
+  background: transparent;
+}
+
+.devices-v3-security-list .devices-v3-security-list-item +
+.devices-v3-security-list-item {
+  border-top: 1px solid var(--border);
+}
+
+.devices-v3-security-list .devices-v3-security-list-copy,
+.devices-v3-security-list .devices-v3-security-list-value {
+  min-width: 0;
+  margin: 0;
+}
+
+.devices-v3-security-list .devices-v3-security-list-copy > span,
+.devices-v3-security-list .devices-v3-security-list-copy > small {
+  display: block;
+}
+
+.devices-v3-security-list .devices-v3-security-list-copy > span {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 950;
+}
+
+.devices-v3-security-list .devices-v3-security-list-copy > small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 750;
+}
+
+.devices-v3-security-list .devices-v3-security-list-value {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 900;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.devices-v3-security-list .devices-v3-device-code-plain,
+.devices-v3-security-list .devices-v3-secret-trigger code {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+/* Device Code is a primary UI value, so it follows the same typography as Model. */
+.devices-v3-security-list .devices-v3-device-code-plain {
+  font-family: var(--dw-font-sans) !important;
+  font-variant-numeric: normal;
+  letter-spacing: normal;
+}
+
+.devices-v3-security-list .devices-v3-revealed-secret {
+  max-width: min(100%, 620px);
+  padding: 9px 11px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 850;
+}
+
+.devices-v3-security-list .devices-v3-secret-trigger {
+  justify-items: end;
+  color: var(--text);
+  font-size: inherit;
+  font-weight: inherit;
+  text-align: right;
+}
+
+.devices-v3-security-list .devices-v3-secret-trigger small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 750;
+}
+
+.devices-v3-security-list .devices-v3-security-list-item-danger {
+  background: color-mix(in srgb, var(--danger) 4%, transparent);
+}
+
+@media (max-width: 760px) {
+  .devices-v3-security-list .devices-v3-security-list-item {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: stretch;
+    padding: 14px;
+  }
+
+  .devices-v3-security-list .devices-v3-security-list-value {
+    justify-items: stretch;
+    text-align: left;
+  }
+
+  .devices-v3-security-list .devices-v3-secret-trigger {
+    justify-items: stretch;
+    text-align: left;
+  }
+}
+
+/* =========================================================
+   Device Center - Values & Alarms simplified content
+   Remove the duplicated Value Configuration summary card while
+   preserving Add Value for editable models and all alarm controls.
+========================================================= */
+.metric-alarm-reference-layout .metric-config-compact-actions {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin: 0 0 14px;
+}
+
+.metric-alarm-reference-layout .metric-config-compact-actions .metric-config-add-btn {
+  min-height: 40px;
+  margin: 0;
+}
+
+@container (max-width: 470px) {
+  .metric-alarm-reference-layout .metric-config-compact-actions {
+    justify-content: stretch;
+  }
+
+  .metric-alarm-reference-layout .metric-config-compact-actions .metric-config-add-btn {
+    width: 100%;
   }
 }

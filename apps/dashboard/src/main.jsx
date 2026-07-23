@@ -8,6 +8,8 @@ import { applyLanguage, readLanguage } from './utils/languagePreferences.js'
 import './styles.css'
 import 'leaflet/dist/leaflet.css'
 import './styles/button-shadow-reset.css'
+import './styles/typography-system.css'
+import './styles/selected-device-values-alarms-tabs.css'
 
 applyLanguage(readLanguage())
 
