@@ -2,6 +2,15 @@ import { ZodError } from 'zod'
 import { env } from '../config/env.js'
 import { logger } from '../utils/logger.js'
 
+// Common Postgres errors caused by client input. They used to surface as
+// HTTP 500 (logged with a stack trace), e.g. a duplicate device code or a
+// non-numeric id in the URL.
+const POSTGRES_CLIENT_ERRORS = {
+  '23505': { status: 409, message: 'Resource already exists' },
+  '23503': { status: 409, message: 'Related resource not found or still in use' },
+  '22P02': { status: 400, message: 'Invalid input' },
+}
+
 function getSafeErrorMessage(error, status) {
   const isServerError = status >= 500
 
@@ -21,7 +30,11 @@ export function notFoundHandler(req, res) {
 
 export function errorHandler(error, req, res, next) {
   const isValidationError = error instanceof ZodError
-  const status = isValidationError ? 400 : error.status || error.statusCode || 500
+  const postgresClientError =
+    !error.status && !error.statusCode ? POSTGRES_CLIENT_ERRORS[error.code] : null
+  const status = isValidationError
+    ? 400
+    : error.status || error.statusCode || postgresClientError?.status || 500
   const isServerError = status >= 500
 
   const logPayload = {
@@ -43,7 +56,7 @@ export function errorHandler(error, req, res, next) {
   }
 
   const responsePayload = {
-    message: getSafeErrorMessage(error, status),
+    message: postgresClientError?.message || getSafeErrorMessage(error, status),
     requestId: req.requestId,
   }
 

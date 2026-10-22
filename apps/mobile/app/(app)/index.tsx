@@ -15,7 +15,13 @@ import { Screen } from '@/components/Screen';
 import { useAuth } from '@/providers/AuthProvider';
 import { connectRealtime } from '@/services/realtime';
 import { theme } from '@/theme';
-import { getDeviceName, getStatusColor } from '@/utils/device';
+import {
+  getDeviceName,
+  getRealtimeDeviceId,
+  getStatusColor,
+  mergeRealtimeDevice
+} from '@/utils/device';
+import type { Device } from '@/types/device';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
@@ -33,8 +39,32 @@ export default function DashboardScreen() {
     return connectRealtime(
       user,
       (message) => {
-        if (message.type === 'device:update' || message.type === 'sensor:update') {
-          void queryClient.invalidateQueries({ queryKey: ['devices'] });
+        // The backend emits `reading` on every ingest and `device:update` when
+        // a device goes offline. Patch the cached list in place instead of
+        // refetching /api/devices for every message.
+        if (
+          message.type === 'reading' ||
+          message.type === 'device:update' ||
+          message.type === 'sensor:update'
+        ) {
+          const changedId = getRealtimeDeviceId(message.data);
+          if (!changedId) return;
+
+          queryClient.setQueryData<Device[]>(['devices'], (devices) => {
+            if (!devices) return devices;
+            const index = devices.findIndex(
+              (device) => String(device.id) === changedId
+            );
+            const current = index >= 0 ? devices[index] : undefined;
+            if (!current) {
+              // Unknown device (e.g. created elsewhere): refresh once.
+              void queryClient.invalidateQueries({ queryKey: ['devices'] });
+              return devices;
+            }
+            const next = devices.slice();
+            next[index] = mergeRealtimeDevice(current, message.data);
+            return next;
+          });
         }
       },
       setRealtimeConnected

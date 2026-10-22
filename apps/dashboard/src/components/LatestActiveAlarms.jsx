@@ -53,7 +53,10 @@ function LatestActiveAlarms({ limit = 6 }) {
   useEffect(() => {
     loadActiveAlarms()
 
-    const timer = window.setInterval(loadActiveAlarms, 30000)
+    const timer = window.setInterval(() => {
+      if (document.hidden) return
+      loadActiveAlarms()
+    }, 30000)
 
     return () => window.clearInterval(timer)
   }, [limit])

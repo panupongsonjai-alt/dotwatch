@@ -10,7 +10,7 @@ This folder stores the Raspberry Pi agent files synced from a known-good Pi.
 - Config UI URL over LAN: http:///
 - Queue pacing:
   - SEND_INTERVAL_SECONDS=20
-  - QUEUE_FLUSH_LIMIT=1
+  - QUEUE_FLUSH_LIMIT=50 (queued readings per batch request)
 
 ## Services that should remain active
 

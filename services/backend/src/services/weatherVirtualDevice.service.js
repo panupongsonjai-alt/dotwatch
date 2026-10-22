@@ -180,31 +180,34 @@ async function countUnconfiguredWeatherDevices() {
   return Number(result.rows[0]?.count || 0)
 }
 
-async function acquireDeviceLock(client, deviceId) {
-  const result = await client.query(
-    `SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS locked`,
-    [`dotwatch:weather:${deviceId}`]
-  )
+// Atomically claims a device for one poll by moving last_attempt_at forward.
+// Replaces a session advisory lock that kept a pooled connection checked out
+// for the whole Open-Meteo request (up to WEATHER_FETCH_TIMEOUT_MS) while the
+// ingest inside it needed a second connection. Only one caller (also across
+// backend instances) can win the claim for a device in a given window.
+const FORCED_POLL_CLAIM_SECONDS = 5
 
-  return Boolean(result.rows[0]?.locked)
-}
-
-async function releaseDeviceLock(client, deviceId) {
-  await client.query(
-    `SELECT pg_advisory_unlock(hashtextextended($1, 0))`,
-    [`dotwatch:weather:${deviceId}`]
-  )
-}
-
-async function markAttempt(deviceId) {
-  await pool.query(
+async function claimWeatherPoll(deviceId, { force = false } = {}) {
+  const result = await pool.query(
     `
     UPDATE weather_virtual_devices
     SET last_attempt_at = NOW(), updated_at = NOW()
     WHERE device_id = $1
+      AND (
+        last_attempt_at IS NULL
+        OR last_attempt_at <= NOW() - (
+          CASE
+            WHEN $2::boolean THEN $3::int
+            ELSE poll_interval_seconds
+          END * INTERVAL '1 second'
+        )
+      )
+    RETURNING device_id
     `,
-    [deviceId]
+    [deviceId, Boolean(force), FORCED_POLL_CLAIM_SECONDS]
   )
+
+  return result.rowCount > 0
 }
 
 async function markSuccess(deviceId, observedAt) {
@@ -248,7 +251,7 @@ async function markFailure(deviceId, error) {
   return Number(result.rows[0]?.consecutive_failures || 0)
 }
 
-async function pollSingleWeatherDevice({ app, device }) {
+async function pollSingleWeatherDevice({ app, device, force = false }) {
   if (device.latitude == null || device.longitude == null) {
     return {
       deviceId: device.id,
@@ -257,21 +260,16 @@ async function pollSingleWeatherDevice({ app, device }) {
     }
   }
 
-  const lockClient = await pool.connect()
-  let locked = false
-
   try {
-    locked = await acquireDeviceLock(lockClient, device.id)
+    const claimed = await claimWeatherPoll(device.id, { force })
 
-    if (!locked) {
+    if (!claimed) {
       return {
         deviceId: device.id,
         deviceCode: device.device_code,
         status: 'skipped_locked',
       }
     }
-
-    await markAttempt(device.id)
 
     const reading = await fetchOpenMeteoCurrentWeather(device)
 
@@ -309,19 +307,6 @@ async function pollSingleWeatherDevice({ app, device }) {
       error: String(error?.message || error),
       consecutiveFailures,
     }
-  } finally {
-    if (locked) {
-      try {
-        await releaseDeviceLock(lockClient, device.id)
-      } catch (error) {
-        console.warn('Weather device advisory lock release failed:', {
-          deviceId: device.id,
-          message: error.message,
-        })
-      }
-    }
-
-    lockClient.release()
   }
 }
 
@@ -378,7 +363,7 @@ export async function pollWeatherVirtualDevices({
   const results = await runWithConcurrency(
     candidates,
     env.weatherPollConcurrency,
-    (device) => pollSingleWeatherDevice({ app, device })
+    (device) => pollSingleWeatherDevice({ app, device, force })
   )
 
   const count = (status) =>

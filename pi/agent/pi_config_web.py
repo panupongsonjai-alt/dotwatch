@@ -43,7 +43,7 @@ DEFAULTS = {
     "OFFLINE_QUEUE_ENABLED": "true",
     "OFFLINE_QUEUE_PATH": str(PROJECT_DIR / "data" / "offline_queue.jsonl"),
     "OFFLINE_QUEUE_MAX_ITEMS": "1000",
-    "QUEUE_FLUSH_LIMIT": "1",
+    "QUEUE_FLUSH_LIMIT": "50",
     "MAX_BACKOFF_SECONDS": "60",
     "LOG_METRICS": "true",
     "CONFIG_UI_USERNAME": "admin",
@@ -630,7 +630,7 @@ def setup_page(message="", message_type="info"):
                   <div class="field"><label>Firmware Version</label><input name="FIRMWARE_VERSION" value="{esc(cfg.get('FIRMWARE_VERSION'))}"></div>
                   <div class="field"><label>Offline Queue</label><select name="OFFLINE_QUEUE_ENABLED"><option value="true" {selected(cfg.get('OFFLINE_QUEUE_ENABLED'), 'true')}>Enabled</option><option value="false" {selected(cfg.get('OFFLINE_QUEUE_ENABLED'), 'false')}>Disabled</option></select></div>
                   <div class="field"><label>Queue Max Items</label><input name="OFFLINE_QUEUE_MAX_ITEMS" value="{esc(cfg.get('OFFLINE_QUEUE_MAX_ITEMS'))}" placeholder="1000"></div>
-                  <div class="field"><label>Flush Per Cycle</label><input name="QUEUE_FLUSH_LIMIT" value="{esc(cfg.get('QUEUE_FLUSH_LIMIT'))}" placeholder="1"></div>
+                  <div class="field"><label>Flush Per Cycle</label><input name="QUEUE_FLUSH_LIMIT" value="{esc(cfg.get('QUEUE_FLUSH_LIMIT'))}" placeholder="50"></div>
                   <div class="field"><label>Max Backoff</label><input name="MAX_BACKOFF_SECONDS" value="{esc(cfg.get('MAX_BACKOFF_SECONDS'))}" placeholder="60"></div>
                 </div>
               </div>

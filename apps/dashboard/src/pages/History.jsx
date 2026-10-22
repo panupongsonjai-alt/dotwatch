@@ -1668,6 +1668,8 @@ function History() {
     const refreshMs = Math.min(60_000, Math.max(10_000, recordIntervalMs))
 
     const timerId = window.setInterval(() => {
+      // A hidden tab does not need a fresh copy of the whole day every tick.
+      if (document.hidden) return
       loadHistory({ silent: true })
     }, refreshMs)
 

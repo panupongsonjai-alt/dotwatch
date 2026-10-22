@@ -515,20 +515,23 @@ export function broadcastToUser(userId, payload) {
     }
   }
 
+  // These fire for every reading of every device. Keep them at debug level so
+  // production logs (LOG_LEVEL=info) are not flooded.
   if (sentCount > 0) {
-    console.log('WS broadcast sent:', {
-      userId: targetUserId,
-      type: payload?.type,
-      sentCount,
-    })
-  }
-
-  if (matchedCount === 0 && payload?.type !== 'device:update') {
-    console.warn('WS broadcast skipped: no matching subscriber', {
-      userId: targetUserId,
-      type: payload?.type,
-      connectedClients: clients.size,
-    })
+    logger.debug(
+      { event: 'ws_broadcast_sent', userId: targetUserId, type: payload?.type, sentCount },
+      'WS broadcast sent'
+    )
+  } else if (matchedCount === 0) {
+    logger.debug(
+      {
+        event: 'ws_broadcast_no_subscriber',
+        userId: targetUserId,
+        type: payload?.type,
+        connectedClients: clients.size,
+      },
+      'WS broadcast skipped: no matching subscriber'
+    )
   }
 
   return sentCount
@@ -561,12 +564,25 @@ const opsHeartbeatInterval = startOpsHeartbeat(() => ({
   shuttingDown: isShuttingDown,
 }))
 
-const apiLimiter = rateLimit({
+const apiRateLimiter = rateLimit({
   windowMs: 60_000,
   limit: env.apiRateLimitPerMinute,
   standardHeaders: true,
   legacyHeaders: false,
 })
+
+// Several routers are mounted on overlapping prefixes ('/api/devices' and
+// '/api'), so a request such as GET /api/devices/:id/metrics passed through
+// the limiter twice and used two units of the per-minute budget.
+function apiLimiter(req, res, next) {
+  if (req.dotwatchApiRateLimited) {
+    next()
+    return
+  }
+
+  req.dotwatchApiRateLimited = true
+  apiRateLimiter(req, res, next)
+}
 
 const ingestLimiter = rateLimit({
   windowMs: 60_000,
@@ -731,7 +747,13 @@ const heartbeatInterval = setInterval(() => {
 }, 30_000)
 heartbeatInterval.unref?.()
 
+let offlineDetectionRunning = false
+
 const offlineDetectionInterval = setInterval(async () => {
+  // Skip a tick instead of stacking runs when the database is slow.
+  if (offlineDetectionRunning) return
+  offlineDetectionRunning = true
+
   try {
     const statusChanges = await markOfflineDevices()
     const offlineDeviceIds = statusChanges.offline.map((device) => device.id)
@@ -797,6 +819,8 @@ const offlineDetectionInterval = setInterval(async () => {
     }
   } catch (error) {
     console.error('Offline detection failed:', error.message)
+  } finally {
+    offlineDetectionRunning = false
   }
 }, env.deviceStatusCheckSeconds * 1000)
 offlineDetectionInterval.unref?.()

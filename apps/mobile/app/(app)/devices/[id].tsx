@@ -21,11 +21,13 @@ import { Screen } from '@/components/Screen';
 import { useAuth } from '@/providers/AuthProvider';
 import { connectRealtime } from '@/services/realtime';
 import { theme } from '@/theme';
+import type { Device } from '@/types/device';
 import type { HistoryRange } from '@/types/history';
 import {
   formatDateTime,
   getDeviceName,
-  getStatusColor
+  getStatusColor,
+  mergeRealtimeDevice
 } from '@/utils/device';
 import {
   deriveMetricsFromLatest,
@@ -111,10 +113,16 @@ export default function DeviceDetailScreen() {
         const changedId = data?.id ?? data?.device_id ?? data?.deviceId;
 
         if (
+          message.type === 'reading' ||
           message.type === 'device:update' ||
           message.type === 'sensor:update'
         ) {
-          if (!changedId || String(changedId) === String(id)) {
+          if (changedId && String(changedId) === String(id)) {
+            // Apply the pushed values directly; no refetch per reading.
+            queryClient.setQueryData<Device>(['device', id], (device) =>
+              device ? mergeRealtimeDevice(device, data) : device
+            );
+          } else if (!changedId && message.type !== 'reading') {
             void queryClient.invalidateQueries({
               queryKey: ['device', id]
             });

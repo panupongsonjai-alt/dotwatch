@@ -12,6 +12,10 @@ export class ApiError extends Error {
   }
 }
 
+// Without a timeout a request on a bad mobile network can hang until the OS
+// gives up (minutes), leaving screens stuck in a loading state.
+const REQUEST_TIMEOUT_MS = 20_000;
+
 async function getToken(): Promise<string> {
   const user = firebaseAuth.currentUser;
 
@@ -27,15 +31,29 @@ export async function apiRequest<T>(
   init: RequestInit = {}
 ): Promise<T> {
   const token = await getToken();
-  const response = await fetch(`${env.apiUrl}${path}`, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...init.headers
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response: Response;
+
+  try {
+    response = await fetch(`${env.apiUrl}${path}`, {
+      ...init,
+      signal: init.signal ?? controller.signal,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...init.headers
+      }
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new ApiError('Backend ตอบช้าเกินไป กรุณาลองใหม่', 0);
     }
-  });
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const contentType = response.headers.get('content-type') || '';
   const payload = contentType.includes('application/json')

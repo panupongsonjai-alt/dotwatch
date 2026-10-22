@@ -17,6 +17,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 const MAX_RECONNECT_DELAY = 15_000
 const MAX_RECONNECT_ATTEMPTS = 8
 const HEARTBEAT_INTERVAL = 25_000
+// Status listeners (banners, System Health) only need to see lastMessageAt
+// move occasionally; notifying them on every reading re-renders those
+// components once per device message.
+const MESSAGE_STATUS_THROTTLE_MS = 2_000
+let messageStatusTimer = null
 
 async function getRealtimeToken() {
   const user = auth.currentUser
@@ -122,6 +127,15 @@ function startHeartbeat() {
       time: new Date().toISOString(),
     })
   }, HEARTBEAT_INTERVAL)
+}
+
+function scheduleMessageStatusNotify() {
+  if (messageStatusTimer) return
+
+  messageStatusTimer = setTimeout(() => {
+    messageStatusTimer = null
+    notifyStatusListeners()
+  }, MESSAGE_STATUS_THROTTLE_MS)
 }
 
 function notifyListeners(payload) {
@@ -246,7 +260,7 @@ function openSocket(userId) {
     try {
       const payload = JSON.parse(event.data)
       lastMessageAt = new Date().toISOString()
-      notifyStatusListeners()
+      scheduleMessageStatusNotify()
       notifyListeners(payload)
     } catch (error) {
       lastError = error.message || 'Realtime parse error'

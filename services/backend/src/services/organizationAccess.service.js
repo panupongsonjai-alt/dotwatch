@@ -151,21 +151,32 @@ export async function requireDeviceAccess({
   return access
 }
 
+// Devices a user may see: devices they own plus devices of organizations
+// they are an active member of. The previous form
+//   LEFT JOIN organization_members ... WHERE d.user_id = $1 OR tenant_access.user_id IS NOT NULL
+// cannot use an index (OR across a join), so every device list scanned the
+// whole devices table (~50 ms at 20k devices). The UNION below is resolved
+// from idx_devices_user / the organization indexes and costs <1 ms.
 export function buildTenantDeviceAccessJoin(userIdPlaceholder = '$1') {
   return `
-    LEFT JOIN organization_members tenant_access
-      ON tenant_access.organization_id = d.organization_id
-      AND tenant_access.user_id = ${userIdPlaceholder}
-      AND tenant_access.is_active = true
+    JOIN (
+      SELECT owned_device.id
+      FROM devices owned_device
+      WHERE owned_device.user_id = ${userIdPlaceholder}
+      UNION
+      SELECT shared_device.id
+      FROM devices shared_device
+      JOIN organization_members tenant_access
+        ON tenant_access.organization_id = shared_device.organization_id
+      WHERE tenant_access.user_id = ${userIdPlaceholder}
+        AND tenant_access.is_active = true
+    ) tenant_scope
+      ON tenant_scope.id = d.id
   `
 }
 
-export function buildTenantDeviceAccessWhere(userIdPlaceholder = '$1') {
+export function buildTenantDeviceAccessWhere() {
   return `
     d.is_active = true
-    AND (
-      d.user_id = ${userIdPlaceholder}
-      OR tenant_access.user_id IS NOT NULL
-    )
   `
 }

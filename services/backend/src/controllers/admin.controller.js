@@ -7,6 +7,7 @@ import {
   getLockedDeviceModelPolicy,
 } from '../services/deviceModelPolicy.service.js'
 import { logger } from '../utils/logger.js'
+import { invalidateUserContext } from '../services/user.service.js'
 import {
   getPlanDefinition,
   getPlanDefinitions,
@@ -363,6 +364,7 @@ export async function updateAdminUserStatus(req, res) {
     request: req,
   })
 
+  invalidateUserContext({ userId })
   res.json(result.rows[0])
 }
 
@@ -477,6 +479,7 @@ export async function updateAdminUserPlan(req, res) {
 
     await client.query('COMMIT')
 
+    invalidateUserContext({ userId })
     res.json(result.rows[0])
   } catch (error) {
     await client.query('ROLLBACK')
@@ -526,6 +529,7 @@ export async function updateAdminUserRole(req, res) {
     request: req,
   })
 
+  invalidateUserContext({ userId })
   res.json(result.rows[0])
 }
 

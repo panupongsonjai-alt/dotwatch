@@ -59,27 +59,92 @@ function buildUsageQuery(existingRelations) {
      JOIN devices d ON d.id = wvd.device_id`,
   ]
 
+  // Telemetry is estimated as rows-per-device x average row size. The previous
+  // version called pg_column_size() on every telemetry row (a full scan that
+  // also decompresses Timescale chunks), which grows with the data and hits the
+  // 120 s timeout on large databases. Row counts come from the 1-day continuous
+  // aggregate when it exists (plus a raw count for the not-yet-materialized
+  // tail), otherwise from a COUNT(*) per device that needs no detoasting.
+  const sampleAverageBytes = (relationName, orderColumn) => `(
+    SELECT COALESCE(AVG(pg_column_size(sample_row)), 0)
+    FROM (
+      SELECT *
+      FROM ${relationName}
+      ORDER BY ${orderColumn} DESC
+      LIMIT 2000
+    ) sample_row
+  )`
+  const hasDailyAggregate = existingRelations.has('device_metric_readings_1d')
+
+  const metricRowCounts = hasDailyAggregate
+    ? `
+      SELECT device_id, SUM(sample_count)::bigint AS row_count
+      FROM device_metric_readings_1d
+      WHERE bucket >= time_bucket(
+        INTERVAL '1 day',
+        (SELECT MIN(time) FROM device_metric_readings)
+      )
+      GROUP BY device_id
+      UNION ALL
+      SELECT device_id, COUNT(*)::bigint AS row_count
+      FROM device_metric_readings
+      WHERE time >= COALESCE(
+        (SELECT MAX(bucket) + INTERVAL '1 day' FROM device_metric_readings_1d),
+        TIMESTAMPTZ '-infinity'
+      )
+      GROUP BY device_id`
+    : `
+      SELECT device_id, COUNT(*)::bigint AS row_count
+      FROM device_metric_readings
+      GROUP BY device_id`
+
   const telemetryRows = [
-    `SELECT d.user_id, pg_column_size(sr)::bigint AS bytes
-     FROM sensor_readings sr
-     JOIN devices d ON d.id = sr.device_id`,
-    `SELECT d.user_id, pg_column_size(dmr)::bigint AS bytes
-     FROM device_metric_readings dmr
-     JOIN devices d ON d.id = dmr.device_id`,
+    `SELECT d.user_id, (counts.row_count * ${sampleAverageBytes('sensor_readings', 'time')})::bigint AS bytes
+     FROM (
+       SELECT device_id, COUNT(*)::bigint AS row_count
+       FROM sensor_readings
+       GROUP BY device_id
+     ) counts
+     JOIN devices d ON d.id = counts.device_id`,
+    `SELECT d.user_id, (counts.row_count * ${sampleAverageBytes('device_metric_readings', 'time')})::bigint AS bytes
+     FROM (${metricRowCounts}
+     ) counts
+     JOIN devices d ON d.id = counts.device_id`,
   ]
 
-  for (const relationName of [
-    'device_metric_readings_1m',
-    'device_metric_readings_1h',
-    'device_metric_readings_1d',
-  ]) {
-    if (!existingRelations.has(relationName)) continue
+  if (hasDailyAggregate) {
+    // One 1d row per day; up to 24 1h rows and 1440 1m rows per day, never
+    // more than the raw samples in that day.
+    const aggregateRowsPerDay = ['1']
+    if (existingRelations.has('device_metric_readings_1h')) {
+      aggregateRowsPerDay.push('LEAST(sample_count, 24)')
+    }
+    if (existingRelations.has('device_metric_readings_1m')) {
+      aggregateRowsPerDay.push('LEAST(sample_count, 1440)')
+    }
 
     telemetryRows.push(
-      `SELECT d.user_id, pg_column_size(aggregate_row)::bigint AS bytes
-       FROM ${relationName} aggregate_row
-       JOIN devices d ON d.id = aggregate_row.device_id`
+      `SELECT d.user_id, (aggregate_counts.row_count * ${sampleAverageBytes('device_metric_readings_1d', 'bucket')})::bigint AS bytes
+       FROM (
+         SELECT device_id, SUM(${aggregateRowsPerDay.join(' + ')})::bigint AS row_count
+         FROM device_metric_readings_1d
+         GROUP BY device_id
+       ) aggregate_counts
+       JOIN devices d ON d.id = aggregate_counts.device_id`
     )
+  } else {
+    for (const relationName of [
+      'device_metric_readings_1m',
+      'device_metric_readings_1h',
+    ]) {
+      if (!existingRelations.has(relationName)) continue
+
+      telemetryRows.push(
+        `SELECT d.user_id, pg_column_size(aggregate_row)::bigint AS bytes
+         FROM ${relationName} aggregate_row
+         JOIN devices d ON d.id = aggregate_row.device_id`
+      )
+    }
   }
 
   const eventRows = [
@@ -174,7 +239,7 @@ function buildUsageQuery(existingRelations) {
         + organization_bytes
       )::bigint AS total_bytes,
       jsonb_build_object(
-        'measurement', 'logical_row_bytes',
+        'measurement', 'logical_row_bytes_telemetry_estimated',
         'includesSharedIndexes', false,
         'optionalRelations', $1::jsonb
       ) AS details,

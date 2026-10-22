@@ -16,6 +16,10 @@ function attachDevUser(req) {
 }
 
 export async function authUser(req, res, next) {
+  // Overlapping router mounts can run this middleware twice for one request;
+  // verify the Firebase token only once.
+  if (req.firebaseUser) return next()
+
   if (!firebaseReady) {
     if (env.isDevelopment && env.devAuthBypass) {
       attachDevUser(req)

@@ -5,8 +5,10 @@ import { AuthProvider } from './context/AuthContext.jsx'
 import { AlarmProvider } from './context/AlarmContext.jsx'
 import UiFeedbackHost from './components/common/UiFeedbackHost.jsx'
 import { applyLanguage, readLanguage } from './utils/languagePreferences.js'
-import './styles.css'
+// leaflet.css first: production builds have always emitted it before the app
+// stylesheet, so app overrides of .leaflet-* classes keep winning.
 import 'leaflet/dist/leaflet.css'
+import './styles.css'
 import './styles/button-shadow-reset.css'
 import './styles/typography-system.css'
 import './styles/selected-device-values-alarms-tabs.css'

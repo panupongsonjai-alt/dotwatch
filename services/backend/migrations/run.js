@@ -1002,6 +1002,47 @@ function createMetricRows(modelId, count, overrides = {}) {
   return rows
 }
 
+// Indexes behind foreign keys. Without them every DELETE of a device or an
+// alarm rule (ON DELETE CASCADE / SET NULL) scans alarm_events and
+// activity_logs completely, and those tables grow without bound.
+// Built CONCURRENTLY so a deploy does not block ingest/alarm writes.
+const FOREIGN_KEY_INDEXES = [
+  ['idx_alarm_events_device', 'alarm_events', '(device_id)'],
+  ['idx_alarm_events_rule', 'alarm_events', '(rule_id) WHERE rule_id IS NOT NULL'],
+  ['idx_alarm_states_rule', 'alarm_states', '(rule_id) WHERE rule_id IS NOT NULL'],
+  ['idx_activity_logs_device_created', 'activity_logs', '(device_id, created_at DESC) WHERE device_id IS NOT NULL'],
+]
+
+async function createForeignKeyIndexes() {
+  for (const [indexName, tableName, definition] of FOREIGN_KEY_INDEXES) {
+    const existing = await client.query(
+      `
+      SELECT i.indisvalid
+      FROM pg_class c
+      JOIN pg_index i ON i.indexrelid = c.oid
+      WHERE c.relname = $1
+        AND c.relnamespace = 'public'::regnamespace
+      `,
+      [indexName]
+    )
+
+    if (existing.rows[0]?.indisvalid === true) continue
+
+    if (existing.rows.length > 0) {
+      // A previous CONCURRENTLY build was interrupted and left an invalid index.
+      await runOptional(
+        `drop invalid ${indexName}`,
+        `DROP INDEX CONCURRENTLY IF EXISTS public.${indexName}`
+      )
+    }
+
+    await runOptional(
+      `index ${indexName}`,
+      `CREATE INDEX CONCURRENTLY IF NOT EXISTS ${indexName} ON public.${tableName} ${definition}`
+    )
+  }
+}
+
 async function seedDeviceModels() {
   const models = [
     {
@@ -1437,6 +1478,7 @@ async function main() {
     await runSqlFileIfExists('023_add_device_last_local_ip_address.sql')
     await createDemoTables()
     await createIndexes()
+    await createForeignKeyIndexes()
     await seedDeviceModels()
     await runSqlFileIfExists('024_weather_api_virtual_devices.sql')
     await runSqlFileIfExists('025_user_database_usage_snapshots.sql')

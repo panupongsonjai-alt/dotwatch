@@ -180,6 +180,93 @@ def read_one(client, item, default_unit_id):
     raise RuntimeError(f"Unsupported function: {function}")
 
 
+REGISTER_FUNCTIONS = {
+    "holding": "holding",
+    "holding_registers": "holding",
+    "hr": "holding",
+    "fc3": "holding",
+    "input": "input",
+    "input_registers": "input",
+    "ir": "input",
+    "fc4": "input",
+}
+
+# Modbus allows up to 125 registers per read; stay well below it.
+MAX_BLOCK_REGISTERS = 100
+
+
+def item_register_layout(item, default_unit_id):
+    function = REGISTER_FUNCTIONS.get(str(item.get("function", "holding")).lower())
+    if function is None:
+        return None
+    data_type = str(item.get("data_type", "uint16")).lower()
+    count = int(item.get("count", 2 if data_type in ("float32", "int32", "uint32") else 1))
+    return {
+        "function": function,
+        "unit_id": int(item.get("unit_id") or default_unit_id or 1),
+        "address": int(item.get("address", 0)),
+        "count": count,
+        "data_type": data_type,
+    }
+
+
+def build_register_blocks(items, default_unit_id):
+    """Group contiguous holding/input registers of the same unit into blocks.
+
+    A 20-value profile used to cost 20 Modbus round trips per cycle (each one
+    ~20-50 ms on RTU). Contiguous registers are now read with one request.
+    Only exactly adjacent registers are merged, so no unmapped register is
+    ever requested.
+    """
+    layouts = []
+    for item in items:
+        layout = item_register_layout(item, default_unit_id)
+        if layout is not None:
+            layouts.append((layout, item))
+
+    layouts.sort(key=lambda pair: (pair[0]["function"], pair[0]["unit_id"], pair[0]["address"]))
+
+    blocks = []
+    for layout, item in layouts:
+        current = blocks[-1] if blocks else None
+        if (
+            current is not None
+            and current["function"] == layout["function"]
+            and current["unit_id"] == layout["unit_id"]
+            and layout["address"] == current["address"] + current["count"]
+            and current["count"] + layout["count"] <= MAX_BLOCK_REGISTERS
+        ):
+            current["count"] += layout["count"]
+            current["items"].append((layout, item))
+        else:
+            blocks.append(
+                {
+                    "function": layout["function"],
+                    "unit_id": layout["unit_id"],
+                    "address": layout["address"],
+                    "count": layout["count"],
+                    "items": [(layout, item)],
+                }
+            )
+
+    return blocks
+
+
+def read_block(client, block):
+    method = client.read_holding_registers if block["function"] == "holding" else client.read_input_registers
+    response = call_read(method, block["address"], block["count"], block["unit_id"])
+    registers = getattr(response, "registers", None)
+    if not registers or len(registers) < block["count"]:
+        raise RuntimeError("Incomplete block read")
+
+    values = {}
+    for layout, item in block["items"]:
+        start = layout["address"] - block["address"]
+        chunk = registers[start : start + layout["count"]]
+        values[str(item.get("metric_key", "")).strip()] = decode_registers(chunk, layout["data_type"], item)
+    return values
+
+
 def read_modbus_metrics(config_path):
     config = load_modbus_config(config_path)
 
@@ -200,14 +287,29 @@ def read_modbus_metrics(config_path):
 
     try:
         default_unit_id = int(config.get("unit_id", 1))
+        active_items = [
+            item
+            for item in registers
+            if item.get("enabled", True) and str(item.get("metric_key", "")).strip()
+        ]
+        pending_items = active_items
 
-        for item in registers:
-            if not item.get("enabled", True):
-                continue
+        if config.get("block_read", True):
+            handled = set()
+            for block in build_register_blocks(active_items, default_unit_id):
+                if len(block["items"]) < 2:
+                    continue
+                try:
+                    metrics.update(read_block(client, block))
+                    handled.update(id(item) for _, item in block["items"])
+                except Exception:
+                    # Some devices reject multi-register reads; fall back to
+                    # reading these items one by one below.
+                    pass
+            pending_items = [item for item in active_items if id(item) not in handled]
 
+        for item in pending_items:
             metric_key = str(item.get("metric_key", "")).strip()
-            if not metric_key:
-                continue
 
             try:
                 metrics[metric_key] = read_one(client, item, default_unit_id)

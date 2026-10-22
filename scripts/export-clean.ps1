@@ -49,6 +49,7 @@ function Test-IgnoredPath {
     '.idea',
     '_archive',
     '_backups',
+    '.dotwatch-backup',
     '_export',
     '_reports',
     'diagnostics',
@@ -76,7 +77,8 @@ function Test-IgnoredPath {
     'Thumbs.db',
     'desktop.ini',
     'modbus_last_test_result.json',
-    'offline_queue.jsonl'
+    'offline_queue.jsonl',
+    'sdkconfig.secure.local'
   )
 
   if ($ignoredLeafNames -contains $leaf) {
@@ -111,7 +113,7 @@ function Test-IgnoredPath {
     return $true
   }
 
-  if ($leaf -like '*.bak-*' -or $leaf -like '*.pre-*.bak') {
+  if ($leaf -like '*.bak-*' -or $leaf -like '*.pre-*.bak' -or $leaf -like '*.generated') {
     return $true
   }
 
@@ -150,10 +152,39 @@ if (Test-Path $stagingRoot) {
 
 New-Item -ItemType Directory -Path $stagingProject | Out-Null
 
-$files = Get-ChildItem -Path $projectRootPath -Recurse -Force -File | Where-Object {
-  $relative = Get-RelativePathCompat -BasePath $projectRootPath -TargetPath $_.FullName
-  -not (Test-IgnoredPath -RelativePath $relative)
+# Walk the tree manually and never descend into ignored folders. The previous
+# Get-ChildItem -Recurse enumerated every file under node_modules (tens of
+# thousands per app) before filtering them out, which made exports slow.
+function Get-ExportFiles {
+  param([Parameter(Mandatory = $true)][string]$Root)
+
+  $result = New-Object System.Collections.Generic.List[System.IO.FileInfo]
+  $pending = New-Object System.Collections.Generic.Stack[string]
+  $pending.Push($Root)
+
+  while ($pending.Count -gt 0) {
+    $directory = $pending.Pop()
+
+    foreach ($item in Get-ChildItem -LiteralPath $directory -Force) {
+      $relative = Get-RelativePathCompat -BasePath $Root -TargetPath $item.FullName
+
+      if ($item.PSIsContainer) {
+        if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) { continue }
+        if (Test-IgnoredPath -RelativePath ($relative + '/placeholder')) { continue }
+        $pending.Push($item.FullName)
+        continue
+      }
+
+      if (-not (Test-IgnoredPath -RelativePath $relative)) {
+        $result.Add($item)
+      }
+    }
+  }
+
+  return $result
 }
+
+$files = Get-ExportFiles -Root $projectRootPath
 
 foreach ($file in $files) {
   $relative = Get-RelativePathCompat -BasePath $projectRootPath -TargetPath $file.FullName
@@ -171,9 +202,36 @@ if (Test-Path $zipPath) {
   Remove-Item -Force $zipPath
 }
 
-Compress-Archive -Path (Join-Path $stagingRoot 'dotwatch') -DestinationPath $zipPath -Force
+# Build the zip with forward-slash entry names. Windows PowerShell 5.1's
+# Compress-Archive writes backslashes, which unzip on Linux/macOS (and many
+# CI tools) treat as part of the file name instead of as folders.
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-$sourceSizeMb = [math]::Round((Get-ChildItem -Path $projectRootPath -Recurse -Force -File | Measure-Object -Property Length -Sum).Sum / 1MB, 2)
+$zipStream = [System.IO.File]::Open($zipPath, [System.IO.FileMode]::CreateNew)
+try {
+  $archive = New-Object System.IO.Compression.ZipArchive($zipStream, [System.IO.Compression.ZipArchiveMode]::Create)
+  try {
+    foreach ($file in $files) {
+      $relative = Get-RelativePathCompat -BasePath $projectRootPath -TargetPath $file.FullName
+      $entryName = 'dotwatch/' + $relative.Replace('\', '/')
+      [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+        $archive,
+        (Join-Path $stagingProject $relative),
+        $entryName,
+        [System.IO.Compression.CompressionLevel]::Optimal
+      ) | Out-Null
+    }
+  }
+  finally {
+    $archive.Dispose()
+  }
+}
+finally {
+  $zipStream.Dispose()
+}
+
+$sourceSizeMb = [math]::Round(($files | Measure-Object -Property Length -Sum).Sum / 1MB, 2)
 $zipSizeMb = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
 $fileCount = $files.Count
 
@@ -181,7 +239,7 @@ Write-Host ''
 Write-Host 'dotWatch clean export completed' -ForegroundColor Green
 Write-Host "Project root : $projectRootPath"
 Write-Host "Files copied : $fileCount"
-Write-Host "Source size  : $sourceSizeMb MB"
+Write-Host "Exported size: $sourceSizeMb MB"
 Write-Host "Zip size     : $zipSizeMb MB"
 Write-Host "Output zip   : $zipPath" -ForegroundColor Cyan
 Write-Host ''

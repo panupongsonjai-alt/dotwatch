@@ -11,6 +11,13 @@ services:
       - "5432:5432"
     volumes:
       - dotwatch_pgdata:/var/lib/postgresql/data
+    # Lets the backend wait for a database that accepts connections instead of
+    # crash-looping on `npm run migrate` while Postgres is still starting.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dotwatch -d dotwatch"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   backend:
     build:
@@ -19,7 +26,8 @@ services:
     container_name: dotwatch-backend
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - ./services/backend/.env
     ports:

@@ -178,6 +178,42 @@ export const env = {
     nodeEnv === 'production'
   ),
   databaseSslCa: normalizePrivateKey(process.env.DATABASE_SSL_CA),
+  databasePoolMax: parsePositiveInteger(process.env.DATABASE_POOL_MAX, 10, {
+    min: 1,
+    max: 200,
+  }),
+  databasePoolIdleTimeoutMs: parsePositiveInteger(
+    process.env.DATABASE_POOL_IDLE_TIMEOUT_MS,
+    30_000,
+    { min: 1000, max: 10 * 60_000 }
+  ),
+  databasePoolConnectionTimeoutMs: parsePositiveInteger(
+    process.env.DATABASE_POOL_CONNECTION_TIMEOUT_MS,
+    10_000,
+    { min: 500, max: 120_000 }
+  ),
+  // 0 = disabled (Postgres default). Recommended in production: 30000.
+  databaseStatementTimeoutMs: parsePositiveInteger(
+    process.env.DATABASE_STATEMENT_TIMEOUT_MS,
+    0,
+    { min: 0, max: 10 * 60_000 }
+  ),
+
+  // Cache successful device secret checks so bcrypt does not run on every
+  // ingest request. The cache key includes the stored hash, so a secret reset
+  // invalidates it immediately. 0 disables the cache.
+  deviceAuthCacheTtlMs: parsePositiveInteger(
+    process.env.DEVICE_AUTH_CACHE_TTL_MS,
+    10 * 60_000,
+    { min: 0, max: 24 * 60 * 60_000 }
+  ),
+  // Cache the per-user provisioning done by loadUser (users upsert + default
+  // organization/site/group/subscription). 0 disables the cache.
+  userContextCacheTtlMs: parsePositiveInteger(
+    process.env.USER_CONTEXT_CACHE_TTL_MS,
+    60_000,
+    { min: 0, max: 60 * 60_000 }
+  ),
 
   corsOrigin: cleanEnvString(process.env.CORS_ORIGIN) || 'http://localhost:5173',
   corsOrigins: parseCorsOrigins(process.env.CORS_ORIGIN),
@@ -222,6 +258,14 @@ export const env = {
     process.env.INGEST_BATCH_MAX_READINGS,
     120,
     { min: 1, max: 1000 }
+  ),
+  // How old a reading may be and still be written to history. 0 keeps the
+  // previous behaviour (= DEVICE_OFFLINE_AFTER_SECONDS), which drops readings
+  // that a gateway buffered while offline. Set e.g. 86400 to keep them.
+  ingestHistoryBackfillSeconds: parsePositiveInteger(
+    process.env.INGEST_HISTORY_BACKFILL_SECONDS,
+    0,
+    { min: 0, max: 7 * 24 * 60 * 60 }
   ),
 
   historyRawMaxHours: parsePositiveInteger(
@@ -278,6 +322,12 @@ export const env = {
 
   logLevel: cleanEnvString(process.env.LOG_LEVEL) || (nodeEnv === 'production' ? 'info' : 'debug'),
   httpLogEnabled: parseBoolean(process.env.HTTP_LOG_ENABLED, true),
+  // Successful device ingest requests are the bulk of all traffic. Errors and
+  // slow ingests are always logged; successful ones only when enabled.
+  httpLogIngestSuccess: parseBoolean(
+    process.env.HTTP_LOG_INGEST_SUCCESS,
+    nodeEnv !== 'production'
+  ),
   slowRequestMs: parsePositiveInteger(
     process.env.SLOW_REQUEST_MS,
     1000,
@@ -524,6 +574,13 @@ export function getPublicRuntimeConfig() {
     historyRawMaxHours: env.historyRawMaxHours,
     historyMaxRows: env.historyMaxRows,
     historyUseContinuousAggregates: env.historyUseContinuousAggregates,
+    databasePoolMax: env.databasePoolMax,
+    databasePoolConnectionTimeoutMs: env.databasePoolConnectionTimeoutMs,
+    databaseStatementTimeoutMs: env.databaseStatementTimeoutMs,
+    deviceAuthCacheTtlMs: env.deviceAuthCacheTtlMs,
+    userContextCacheTtlMs: env.userContextCacheTtlMs,
+    httpLogIngestSuccess: env.httpLogIngestSuccess,
+    ingestHistoryBackfillSeconds: env.ingestHistoryBackfillSeconds,
   }
 }
 

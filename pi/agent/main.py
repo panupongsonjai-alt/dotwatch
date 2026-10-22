@@ -6,7 +6,10 @@ from datetime import datetime, timezone
 from config import settings
 from runtime.offline_queue import OfflineQueue
 from services.dotwatch_api import (
+    BATCH_MAX_READINGS,
+    HttpStatusError,
     build_ingest_payload,
+    post_ingest_batch_payload,
     post_ingest_payload,
 )
 from sensors.dummy_sensor import read_dummy_metrics
@@ -88,33 +91,137 @@ def read_metrics():
     return normalize_metrics_result(read_dummy_metrics())
 
 
-def flush_offline_queue(queue):
-    """Send at most one queued payload per loop cycle.
+def get_flush_limit():
+    # One slot of the batch is reserved for the live reading.
+    return max(1, min(int(settings.queue_flush_limit), BATCH_MAX_READINGS - 1))
 
-    The backend enforces per-device pacing. Sending many queued items in the
-    same cycle, or sending a live payload immediately after a queued payload,
-    can trigger HTTP 429. This function therefore flushes exactly one item
-    per successful cycle and lets the main loop sleep before the next send.
+
+# The backend rejects readings older than 7 days or more than 5 minutes in the
+# future (HTTP 400). Such an item would block the queue forever, so it is
+# dropped before sending (with a margin so nothing near the limit is sent).
+MAX_QUEUED_AGE_SECONDS = 7 * 24 * 3600 - 3600
+MAX_FUTURE_SECONDS = 4 * 60
+REJECTED_STATUS_CODES = {400, 413, 422}
+
+
+def is_sendable(item, now=None):
+    now = now or datetime.now(timezone.utc)
+    try:
+        timestamp = datetime.fromisoformat(str(item.get("timestamp")).replace("Z", "+00:00"))
+    except Exception:
+        return False
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=timezone.utc)
+    age_seconds = (now - timestamp).total_seconds()
+    return -MAX_FUTURE_SECONDS <= age_seconds <= MAX_QUEUED_AGE_SECONDS
+
+
+def send_items_individually(items):
+    """Isolate rejected items after a batch was refused (HTTP 400/413/422).
+
+    Each item goes in its own one-reading batch (the batch route has no
+    per-request pacing). Items the backend rejects are dropped; a network or
+    server error stops the loop so the rest is retried next cycle.
+    Returns (processed_count, dropped_count, error).
     """
-    if not settings.offline_queue_enabled:
-        return {"sent": 0, "remaining": 0, "error": None}
+    processed = 0
+    dropped = 0
+    for item in items:
+        try:
+            post_ingest_batch_payload(settings, [item])
+        except HttpStatusError as error:
+            if error.status not in REJECTED_STATUS_CODES:
+                return processed, dropped, str(error)
+            dropped += 1
+        except Exception as error:
+            return processed, dropped, str(error)
+        processed += 1
+    return processed, dropped, None
 
-    items = queue.load()
-    if not items:
-        return {"sent": 0, "remaining": 0, "error": None}
 
-    remaining = list(items)
-    item = remaining[0]
+def flush_offline_queue(queue, live_payload=None):
+    """Send queued readings (and the live reading) via /api/ingest/batch.
+
+    Previously one queued item was sent per loop cycle and the live reading
+    was skipped while the queue drained, so after a 1-hour outage the gateway
+    spent another hour replaying old data. Now each cycle sends up to
+    QUEUE_FLUSH_LIMIT queued items in one request.
+
+    Ordering: the backend records history in time order per device, so while
+    the backlog is larger than one batch the live reading is appended to the
+    queue (sent after the older items). Once the remaining backlog fits in one
+    batch it is sent together with the live reading.
+    """
+    flush_limit = get_flush_limit()
+    window = []
+    live_queued = False
+
+    if settings.offline_queue_enabled:
+        window = queue.peek(flush_limit + 1)
+
+        if len(window) > flush_limit:
+            window = window[:flush_limit]
+            if live_payload is not None:
+                queue.append(live_payload)
+                live_payload = None
+                live_queued = True
+
+    queued = [item for item in window if is_sendable(item)]
+    stale_dropped = len(window) - len(queued)
+
+    def result_dict(sent, remaining, error=None, result=None, dropped=0):
+        return {
+            "sent": sent,
+            "remaining": remaining,
+            "error": error,
+            "result": result,
+            "live_queued": live_queued,
+            "dropped": dropped,
+        }
+
+    if not queued and live_payload is None:
+        remaining = queue.drop_first(len(window)) if window else 0
+        return result_dict(0, remaining, dropped=stale_dropped)
+
+    batch = list(queued)
+    if live_payload is not None:
+        batch.append(live_payload)
 
     try:
-        post_ingest_payload(settings, item)
+        if len(batch) == 1 and live_payload is not None:
+            result = post_ingest_payload(settings, live_payload)
+        else:
+            result = post_ingest_batch_payload(settings, batch)
+    except HttpStatusError as error:
+        if error.status not in REJECTED_STATUS_CODES or not queued:
+            return result_dict(0, queue.size(), error=str(error))
+
+        processed, dropped, item_error = send_items_individually(queued)
+        if item_error is not None:
+            # Remove what was already handled; keep the rest for next cycle.
+            handled = window[: window.index(queued[processed - 1]) + 1] if processed else []
+            remaining = queue.drop_first(len(handled)) if handled else queue.size()
+            return result_dict(processed - dropped, remaining, error=item_error, dropped=dropped + stale_dropped)
+
+        remaining = queue.drop_first(len(window))
+        if live_payload is None:
+            return result_dict(processed - dropped, remaining, dropped=dropped + stale_dropped)
+
+        try:
+            result = post_ingest_batch_payload(settings, [live_payload])
+        except Exception as live_error:
+            return result_dict(processed - dropped, remaining, error=str(live_error), dropped=dropped + stale_dropped)
+        return result_dict(processed - dropped, remaining, result=result, dropped=dropped + stale_dropped)
     except Exception as error:
-        return {"sent": 0, "remaining": len(remaining), "error": str(error)}
+        return result_dict(
+            0,
+            queue.size() if settings.offline_queue_enabled else 0,
+            error=str(error),
+        )
 
-    remaining.pop(0)
-    queue.write(remaining)
+    remaining = queue.drop_first(len(window)) if window else queue.size()
 
-    return {"sent": 1, "remaining": len(remaining), "error": None}
+    return result_dict(len(queued), remaining, result=result, dropped=stale_dropped)
 
 
 def sleep_interruptible(seconds):
@@ -154,34 +261,27 @@ def main():
         try:
             settings.validate()
 
-            flush_result = flush_offline_queue(queue)
+            metrics, read_errors = read_metrics()
+            payload = build_ingest_payload(settings, metrics, timestamp=utc_now_iso())
 
-            if flush_result["sent"]:
-                consecutive_errors = 0
+            flush_result = flush_offline_queue(queue, live_payload=payload)
+            if flush_result["live_queued"]:
+                # Already stored in the queue; do not queue it twice on error.
+                payload = None
+            if flush_result["error"]:
+                raise RuntimeError(flush_result["error"])
+
+            result = flush_result["result"] or {}
+            consecutive_errors = 0
+
+            if flush_result["sent"] or flush_result.get("dropped"):
                 print(
                     f"[{now_text()}] QUEUE_FLUSHED sent={flush_result['sent']} "
+                    f"dropped={flush_result.get('dropped', 0)} "
                     f"remaining={flush_result['remaining']}",
                     flush=True,
                 )
-                sleep_interruptible(settings.send_interval_seconds)
-                continue
 
-            if flush_result["error"]:
-                print(f"[{now_text()}] QUEUE_WAIT error={flush_result['error']}", flush=True)
-                consecutive_errors += 1
-                backoff = min(
-                    settings.max_backoff_seconds,
-                    settings.send_interval_seconds * min(consecutive_errors, 6),
-                )
-                print(f"[{now_text()}] RETRY_AFTER {backoff}s", flush=True)
-                sleep_interruptible(backoff)
-                continue
-
-            metrics, read_errors = read_metrics()
-            payload = build_ingest_payload(settings, metrics, timestamp=utc_now_iso())
-            result = post_ingest_payload(settings, payload)
-
-            consecutive_errors = 0
             if settings.log_metrics:
                 print(f"[{now_text()}] SENT {format_metrics(metrics)}", flush=True)
             else:
