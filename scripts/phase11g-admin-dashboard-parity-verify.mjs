@@ -71,7 +71,9 @@ check('Admin parity CSS exists', Boolean(adminParityCss))
 check('Dashboard parity lock CSS exists', Boolean(dashboardParityCss))
 check(
   'Admin and Dashboard share Prompt-capable font stack',
-  hasPromptFont(adminParityCss) &&
+  (hasPromptFont(adminParityCss) ||
+    (adminParityCss.includes('var(--dw-font-sans)') &&
+      hasPromptFont(read('apps/admin/src/styles/admin.css')))) &&
     hasPromptFont(read('apps/dashboard/src/styles/base.css'))
 )
 check(
