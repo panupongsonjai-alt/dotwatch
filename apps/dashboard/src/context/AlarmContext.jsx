@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import { showUiToast } from '../utils/uiFeedback'
 import { formatMetricValue } from '../utils/metricDisplayConfig'
 
@@ -7,7 +7,7 @@ const AlarmContext = createContext()
 export function AlarmProvider({ children }) {
   const [alarms, setAlarms] = useState([])
 
-  function addAlarm(alarm) {
+  const addAlarm = useCallback((alarm) => {
     if (alarm.severity === 'critical') {
       const notificationMessage = String(
         alarm.notification_message || ''
@@ -36,17 +36,17 @@ export function AlarmProvider({ children }) {
         ...prev,
       ].slice(0, 50)
     )
-  }
+  }, [])
 
-  function clearAlarms() {
+  const clearAlarms = useCallback(() => {
     setAlarms([])
-  }
+  }, [])
 
-  function removeAlarm(id) {
+  const removeAlarm = useCallback((id) => {
     setAlarms((prev) => prev.filter((alarm) => alarm.id !== id))
-  }
+  }, [])
 
-  function acknowledgeAlarmLocal(id) {
+  const acknowledgeAlarmLocal = useCallback((id) => {
     setAlarms((prev) =>
       prev.map((alarm) =>
         alarm.id === id
@@ -58,23 +58,28 @@ export function AlarmProvider({ children }) {
           : alarm
       )
     )
-  }
+  }, [])
 
   const activeAlarmCount = useMemo(() => {
     return alarms.filter((alarm) => alarm.status !== 'acknowledged').length
   }, [alarms])
 
+  // Stable value: consumers re-render only when alarms actually change,
+  // not every time a parent (AuthProvider) re-renders.
+  const value = useMemo(
+    () => ({
+      alarms,
+      addAlarm,
+      clearAlarms,
+      removeAlarm,
+      acknowledgeAlarmLocal,
+      activeAlarmCount,
+    }),
+    [alarms, addAlarm, clearAlarms, removeAlarm, acknowledgeAlarmLocal, activeAlarmCount]
+  )
+
   return (
-    <AlarmContext.Provider
-      value={{
-        alarms,
-        addAlarm,
-        clearAlarms,
-        removeAlarm,
-        acknowledgeAlarmLocal,
-        activeAlarmCount,
-      }}
-    >
+    <AlarmContext.Provider value={value}>
       {children}
     </AlarmContext.Provider>
   )

@@ -1,0 +1,147 @@
+name: CI
+
+# Runs the same checks as `npm run check:all` on every push / pull request so
+# a broken build is caught before Render deploys it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/backend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check:syntax
+
+  backend-e2e:
+    # Same database image as docker-compose.yml. Runs migrations, starts the
+    # API and executes the end-to-end smoke test (ingest under load, alarms,
+    # history, settings, secret reset) plus the maintenance dry runs.
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_USER: dotwatch
+          POSTGRES_PASSWORD: dotwatch
+          POSTGRES_DB: dotwatch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dotwatch -d dotwatch"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    defaults:
+      run:
+        working-directory: services/backend
+    env:
+      NODE_ENV: development
+      DATABASE_URL: postgres://dotwatch:dotwatch@localhost:5432/dotwatch
+      DATABASE_SSL_DISABLED: 'true'
+      DEV_AUTH_BYPASS: 'true'
+      CORS_ORIGIN: http://localhost:5173
+      INGEST_MIN_INTERVAL_SECONDS: '0'
+      API_RATE_LIMIT_PER_MINUTE: '100000'
+      INGEST_DEVICE_RATE_LIMIT_PER_MINUTE: '10000'
+      WEATHER_SCHEDULER_ENABLED: 'false'
+      PORT: '4100'
+      SMOKE_API_URL: http://localhost:4100
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/backend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: echo "DEVICE_SECRET_ENCRYPTION_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+      - run: npm run migrate
+      - name: Start backend
+        run: |
+          nohup node src/server.js > backend.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:4100/health/live && exit 0
+            sleep 1
+          done
+          cat backend.log
+          exit 1
+      - run: node scripts/local-smoke-test.mjs
+      - run: node scripts/db-dedupe-indexes.mjs
+      - run: node scripts/db-retention.mjs
+      - if: failure()
+        run: tail -n 200 backend.log
+
+  web:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [dashboard, admin]
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    env:
+      VITE_API_URL: https://api.example.invalid
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci --no-audit --no-fund --ignore-scripts
+      - run: npm run typecheck
+
+  pi-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m compileall -q pi/agent
+
+  repo-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Existing phase/security verification scripts
+        run: |
+          for f in scripts/verify-phase-*.mjs scripts/test-phase-*.mjs scripts/phase*-verify.mjs; do
+            echo "::group::$f"
+            node "$f"
+            echo "::endgroup::"
+          done

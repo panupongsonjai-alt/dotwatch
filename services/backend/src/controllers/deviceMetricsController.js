@@ -267,6 +267,13 @@ async function syncLockedDeviceMetrics(client, deviceId, model) {
     existingResult.rows
   )
 
+  // listDeviceMetrics runs this on every read. Skip the upserts and the
+  // delete when the stored rows already match the locked definition, so a
+  // page load does not rewrite (and WAL-log) the same rows each time.
+  if (lockedMetricsAreCurrent(existingResult.rows, canonicalMetrics)) {
+    return false
+  }
+
   for (const metric of canonicalMetrics) {
     await client.query(
       `
@@ -320,6 +327,45 @@ async function syncLockedDeviceMetrics(client, deviceId, model) {
   )
 
   return true
+}
+
+const LOCKED_METRIC_TEXT_FIELDS = ['source_key', 'metric_name', 'metric_type', 'unit', 'icon']
+
+function lockedMetricsAreCurrent(existingRows, canonicalMetrics) {
+  if (existingRows.length !== canonicalMetrics.length) return false
+
+  return canonicalMetrics.every((metric) => {
+    const row = existingRows.find((item) => item.metric_key === metric.metric_key)
+    if (!row) return false
+
+    return (
+      LOCKED_METRIC_TEXT_FIELDS.every(
+        (field) => (row[field] ?? null) === (metric[field] ?? null)
+      ) &&
+      row.visible === metric.visible &&
+      Number(row.sort_order) === Number(metric.sort_order) &&
+      Number(row.decimal_places) === Number(metric.decimal_places)
+    )
+  })
+}
+
+// Takes a pooled connection only for the duration of the transaction. Taking
+// it at the start of a handler and then running pool.query() checks while
+// holding it needs two connections per request and can exhaust the pool.
+async function withTransaction(work) {
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+    const result = await work(client)
+    await client.query('COMMIT')
+    return result
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {})
+    throw error
+  } finally {
+    client.release()
+  }
 }
 
 async function getMetrics(deviceId) {
@@ -512,7 +558,6 @@ export async function updateDeviceRecordSettings(req, res) {
 
 export async function listDeviceMetrics(req, res) {
   await ensureDeviceMetricSettingsSchema()
-  const client = await pool.connect()
 
   try {
     const userId = req.dbUser?.id
@@ -532,40 +577,37 @@ export async function listDeviceMetrics(req, res) {
       })
     }
 
-    const model = await getDeviceModel(deviceId, client)
+    const model = await getDeviceModel(deviceId)
     let metrics = await getMetrics(deviceId)
 
     if (getLockedDeviceModelPolicy(model?.model_key)) {
-      await client.query('BEGIN')
-      await syncLockedDeviceMetrics(client, deviceId, model)
-      await client.query('COMMIT')
-      metrics = await getMetrics(deviceId)
+      const changed = await withTransaction((client) =>
+        syncLockedDeviceMetrics(client, deviceId, model)
+      )
+
+      if (changed) {
+        metrics = await getMetrics(deviceId)
+      }
     } else if (metrics.length === 0) {
-      await client.query('BEGIN')
-      await insertModelMetrics(client, deviceId)
-      await client.query('COMMIT')
+      await withTransaction((client) => insertModelMetrics(client, deviceId))
 
       metrics = await getMetrics(deviceId)
     }
 
-    const settings = await getMetricSettings(deviceId, client)
+    const settings = await getMetricSettings(deviceId)
 
     res.json({ metrics, settings })
   } catch (error) {
-    await client.query('ROLLBACK').catch(() => {})
     console.error('listDeviceMetrics error:', error)
 
     res.status(500).json({
       message: 'Failed to load device values',
     })
-  } finally {
-    client.release()
   }
 }
 
 export async function saveDeviceMetrics(req, res) {
   await ensureDeviceMetricSettingsSchema()
-  const client = await pool.connect()
 
   try {
     const userId = req.dbUser?.id
@@ -631,81 +673,107 @@ export async function saveDeviceMetrics(req, res) {
       seen.add(metric.metric_key)
     }
 
-    await client.query('BEGIN')
-
-    await client.query(
-      `
-      DELETE FROM device_metrics
-      WHERE device_id = $1
-      `,
-      [deviceId]
-    )
-
-    for (const metric of cleaned) {
+    await withTransaction(async (client) => {
       await client.query(
         `
-        INSERT INTO device_metrics (
-          device_id,
-          metric_key,
-          source_key,
-          metric_name,
-          metric_type,
-          unit,
-          icon,
-          visible,
-          sort_order,
-          decimal_places
+        DELETE FROM device_metrics
+        WHERE device_id = $1
+        `,
+        [deviceId]
+      )
+
+      if (cleaned.length > 0) {
+        // One multi-row insert instead of one INSERT per value.
+        await client.query(
+          `
+          INSERT INTO device_metrics (
+            device_id,
+            metric_key,
+            source_key,
+            metric_name,
+            metric_type,
+            unit,
+            icon,
+            visible,
+            sort_order,
+            decimal_places
+          )
+          SELECT
+            $1,
+            input_rows.metric_key,
+            input_rows.source_key,
+            input_rows.metric_name,
+            input_rows.metric_type,
+            input_rows.unit,
+            input_rows.icon,
+            input_rows.visible,
+            input_rows.sort_order,
+            input_rows.decimal_places
+          FROM unnest(
+            $2::text[],
+            $3::text[],
+            $4::text[],
+            $5::text[],
+            $6::text[],
+            $7::text[],
+            $8::boolean[],
+            $9::integer[],
+            $10::smallint[]
+          ) AS input_rows(
+            metric_key,
+            source_key,
+            metric_name,
+            metric_type,
+            unit,
+            icon,
+            visible,
+            sort_order,
+            decimal_places
+          )
+          `,
+          [
+            deviceId,
+            cleaned.map((metric) => metric.metric_key),
+            cleaned.map((metric) => metric.source_key || metric.metric_key),
+            cleaned.map((metric) => metric.metric_name),
+            cleaned.map((metric) => metric.metric_type),
+            cleaned.map((metric) => metric.unit),
+            cleaned.map((metric) => metric.icon),
+            cleaned.map((metric) => metric.visible),
+            cleaned.map((metric) => Math.trunc(metric.sort_order)),
+            cleaned.map((metric) => metric.decimal_places),
+          ]
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        `,
-        [
-          deviceId,
-          metric.metric_key,
-          metric.source_key || metric.metric_key,
-          metric.metric_name,
-          metric.metric_type,
-          metric.unit,
-          metric.icon,
-          metric.visible,
-          metric.sort_order,
-          metric.decimal_places,
-        ]
-      )
-    }
+      }
 
-    if (settings) {
-      await client.query(
-        `
-        UPDATE devices
-        SET
-          record_interval_seconds = $2,
-          last_recorded_at = NULL
-        WHERE id = $1
-        `,
-        [deviceId, settings.record_interval_seconds]
-      )
-    }
-
-    await client.query('COMMIT')
+      if (settings) {
+        await client.query(
+          `
+          UPDATE devices
+          SET
+            record_interval_seconds = $2,
+            last_recorded_at = NULL
+          WHERE id = $1
+          `,
+          [deviceId, settings.record_interval_seconds]
+        )
+      }
+    })
 
     const result = await getMetrics(deviceId)
     const savedSettings = await getMetricSettings(deviceId)
     res.json({ metrics: result, settings: savedSettings })
   } catch (error) {
-    await client.query('ROLLBACK').catch(() => {})
     console.error('saveDeviceMetrics error:', error)
 
     res.status(500).json({
       message: 'Failed to save device values',
     })
-  } finally {
-    client.release()
   }
 }
 
 export async function resetDeviceMetrics(req, res) {
   await ensureDeviceMetricSettingsSchema()
-  const client = await pool.connect()
 
   try {
     const userId = req.dbUser?.id
@@ -725,38 +793,33 @@ export async function resetDeviceMetrics(req, res) {
       })
     }
 
-    await client.query('BEGIN')
+    await withTransaction(async (client) => {
+      const model = await getDeviceModel(deviceId, client)
 
-    const model = await getDeviceModel(deviceId, client)
+      await client.query(
+        `
+        DELETE FROM device_metrics
+        WHERE device_id = $1
+        `,
+        [deviceId]
+      )
 
-    await client.query(
-      `
-      DELETE FROM device_metrics
-      WHERE device_id = $1
-      `,
-      [deviceId]
-    )
-
-    if (getLockedDeviceModelPolicy(model?.model_key)) {
-      await syncLockedDeviceMetrics(client, deviceId, model)
-    } else {
-      await insertModelMetrics(client, deviceId)
-    }
-
-    await client.query('COMMIT')
+      if (getLockedDeviceModelPolicy(model?.model_key)) {
+        await syncLockedDeviceMetrics(client, deviceId, model)
+      } else {
+        await insertModelMetrics(client, deviceId)
+      }
+    })
 
     const result = await getMetrics(deviceId)
     const settings = await getMetricSettings(deviceId)
     res.json({ metrics: result, settings })
   } catch (error) {
-    await client.query('ROLLBACK').catch(() => {})
     console.error('resetDeviceMetrics error:', error)
 
     res.status(500).json({
       message: 'Failed to reset device values',
     })
-  } finally {
-    client.release()
   }
 }
 

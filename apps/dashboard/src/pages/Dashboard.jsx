@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { MetricIcon, normalizeMetricIconName } from '../utils/metricIcons.jsx'
 import { isWifiRssiMetricConfig } from '../utils/metricDisplayConfig'
 import {
@@ -21,6 +21,15 @@ import { EmptyState, PageHeader, StatCard } from '../components/common'
 import '../styles/dashboard.css'
 import '../styles/data-overview-combined-card.css'
 const DeviceMap = lazy(() => import('../components/DeviceMap'))
+
+// Readings arrive once per device every few seconds. Applying each one with
+// its own setDevices re-rendered the whole Dashboard (cards + map) per
+// message; batching keeps it to at most a few renders per second.
+const REALTIME_FLUSH_MS = 500
+
+function getRealtimeDeviceKey(device = {}) {
+  return String(device.id ?? device.device_id ?? device.device_code ?? '')
+}
 
 function getMetricIconName(metricConfig = {}) {
   return normalizeMetricIconName(
@@ -420,32 +429,65 @@ function Dashboard({ onOpenDevice }) {
     })
   }
 
-  function updateRealtimeDevice(reading) {
-    const realtimeDevice = normalizeRealtimeDevice(reading)
+  const pendingRealtimeDevicesRef = useRef(new Map())
+  const realtimeFlushTimerRef = useRef(null)
 
-    setDevices((prev) => {
-      const exists = prev.some((device) => isSameDevice(device, realtimeDevice))
+  function applyRealtimeDevice(prev, realtimeDevice) {
+    const exists = prev.some((device) => isSameDevice(device, realtimeDevice))
 
-      if (!exists) {
-        return [realtimeDevice, ...prev]
+    if (!exists) {
+      return [realtimeDevice, ...prev]
+    }
+
+    return prev.map((device) => {
+      if (!isSameDevice(device, realtimeDevice)) return device
+
+      return {
+        ...device,
+        ...realtimeDevice,
+        id: device.id,
+        user_id: device.user_id || realtimeDevice.user_id,
+        model_id: device.model_id || realtimeDevice.model_id,
+        model_key: device.model_key || realtimeDevice.model_key,
+        model_name: device.model_name || realtimeDevice.model_name,
+        metric_count: device.metric_count || realtimeDevice.metric_count,
       }
-
-      return prev.map((device) => {
-        if (!isSameDevice(device, realtimeDevice)) return device
-
-        return {
-          ...device,
-          ...realtimeDevice,
-          id: device.id,
-          user_id: device.user_id || realtimeDevice.user_id,
-          model_id: device.model_id || realtimeDevice.model_id,
-          model_key: device.model_key || realtimeDevice.model_key,
-          model_name: device.model_name || realtimeDevice.model_name,
-          metric_count: device.metric_count || realtimeDevice.metric_count,
-        }
-      })
     })
   }
+
+  function updateRealtimeDevice(reading) {
+    const realtimeDevice = normalizeRealtimeDevice(reading)
+    const pending = pendingRealtimeDevicesRef.current
+    const key = getRealtimeDeviceKey(realtimeDevice)
+
+    // Keep only the newest update per device until the next flush.
+    pending.delete(key)
+    pending.set(key, realtimeDevice)
+
+    if (realtimeFlushTimerRef.current) return
+
+    realtimeFlushTimerRef.current = window.setTimeout(() => {
+      realtimeFlushTimerRef.current = null
+      const updates = Array.from(pending.values())
+      pending.clear()
+
+      if (updates.length > 0) {
+        setDevices((prev) => updates.reduce(applyRealtimeDevice, prev))
+      }
+    }, REALTIME_FLUSH_MS)
+  }
+
+  useEffect(() => {
+    const pending = pendingRealtimeDevicesRef.current
+
+    return () => {
+      if (realtimeFlushTimerRef.current) {
+        window.clearTimeout(realtimeFlushTimerRef.current)
+        realtimeFlushTimerRef.current = null
+      }
+      pending.clear()
+    }
+  }, [])
 
   useEffect(() => {
     const timer = window.setTimeout(() => setMapReady(true), 700)
@@ -490,6 +532,10 @@ function Dashboard({ onOpenDevice }) {
         if (payload.type === 'device:delete') {
           const deletedDevice = payload.data || payload.device
           if (!deletedDevice) return
+
+          pendingRealtimeDevicesRef.current.delete(
+            getRealtimeDeviceKey(deletedDevice)
+          )
 
           setDevices((prev) =>
             prev.filter((device) => !isSameDevice(device, deletedDevice))

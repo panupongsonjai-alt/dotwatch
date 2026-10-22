@@ -27,6 +27,11 @@ function getClientIp(req) {
   return req.socket?.remoteAddress || 'unknown'
 }
 
+function isIngestRequest(req) {
+  const url = req.originalUrl || req.url || ''
+  return url === '/api/ingest' || url.startsWith('/api/ingest/') || url.startsWith('/api/ingest?')
+}
+
 function shouldIgnoreAutoLog(req) {
   if (!env.httpLogEnabled) return true
 
@@ -84,6 +89,9 @@ export function createHttpLogger() {
       if (env.slowRequestMs > 0 && res.responseTime >= env.slowRequestMs) {
         return 'warn'
       }
+      // Every device posts every few seconds; one access-log line per
+      // successful ingest is most of the log volume. Errors/slow still log.
+      if (!env.httpLogIngestSuccess && isIngestRequest(req)) return 'silent'
       return 'info'
     },
     customProps(req, res) {

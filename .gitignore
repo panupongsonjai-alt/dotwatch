@@ -102,6 +102,7 @@ services/**/.env.*
 !services/**/*.env.example
 
 # Local temporary exports/backups
+.dotwatch-backup/
 *.bak-*
 *.pre-*.bak
 fix-*.ps1
@@ -129,3 +130,8 @@ esp32/dotwatch_esp32_product/security/local/
 **/*.secure-boot-private.pem
 _reports/esp32-security/
 _backups/esp32-flash/
+
+# Example env files hold placeholders only and are read by the verify scripts
+# and CI. Keep them in git even though .env.* files are ignored above.
+!**/.env.example
+!**/.env.*.example

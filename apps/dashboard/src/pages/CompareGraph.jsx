@@ -1497,6 +1497,8 @@ function CompareGraph() {
     )
 
     const timerId = window.setInterval(() => {
+      // Skip refreshes while the tab is hidden (N series x 1 request each).
+      if (document.hidden) return
       loadCompareHistory({ silent: true })
     }, refreshMs)
 

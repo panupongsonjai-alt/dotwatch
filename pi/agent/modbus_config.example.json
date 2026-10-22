@@ -1,5 +1,6 @@
 {
   "enabled": true,
+  "block_read": true,
   "mode": "rtu",
   "unit_id": 1,
   "tcp": {

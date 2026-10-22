@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { isIP } from 'node:net'
 import { pool } from '../db/pool.js'
 import { env } from '../config/env.js'
+import { logger } from '../utils/logger.js'
 import { checkAlarms } from '../services/alarm.service.js'
 import {
   createAlarmActivity,
@@ -92,6 +93,12 @@ function getDeviceRecordIntervalSeconds(device = {}) {
 }
 
 function getOnlineHistoryWindowSeconds() {
+  const backfillSeconds = Number(env.ingestHistoryBackfillSeconds)
+
+  if (Number.isFinite(backfillSeconds) && backfillSeconds > 0) {
+    return backfillSeconds
+  }
+
   const value = Number(env.deviceOfflineAfterSeconds)
 
   return Number.isFinite(value) && value > 0 ? value : 120
@@ -476,6 +483,64 @@ function broadcastIngestEvent(req, userIds, payload) {
   }, 0)
 }
 
+async function recordIngestActivities({
+  req,
+  updatedDevice,
+  previousStatus,
+  reading,
+  alerts,
+  realtimeTargets,
+}) {
+  const deviceName = updatedDevice.name || updatedDevice.device_code
+
+  const readingActivity = await createReadingActivity({
+    userId: updatedDevice.user_id,
+    deviceId: updatedDevice.id,
+    deviceName,
+    latestMetrics: reading.latestMetrics,
+    createdAt: reading.time,
+  })
+
+  if (readingActivity) {
+    broadcastIngestEvent(req, realtimeTargets, {
+      type: 'activity',
+      data: readingActivity,
+    })
+  }
+
+  if (previousStatus !== 'online') {
+    const statusActivity = await createDeviceStatusActivity({
+      userId: updatedDevice.user_id,
+      deviceId: updatedDevice.id,
+      deviceName,
+      status: 'online',
+      createdAt: reading.time,
+    })
+
+    if (statusActivity) {
+      broadcastIngestEvent(req, realtimeTargets, {
+        type: 'activity',
+        data: statusActivity,
+      })
+    }
+  }
+
+  for (const alert of alerts) {
+    const alarmActivity = await createAlarmActivity({
+      userId: updatedDevice.user_id,
+      deviceId: updatedDevice.id,
+      alarm: alert,
+    })
+
+    if (alarmActivity) {
+      broadcastIngestEvent(req, realtimeTargets, {
+        type: 'activity',
+        data: alarmActivity,
+      })
+    }
+  }
+}
+
 async function publishIngestSideEffects({
   req,
   updatedDevice,
@@ -526,46 +591,18 @@ async function publishIngestSideEffects({
 
   const sentCount = broadcastIngestEvent(req, realtimeTargets, readingPayload)
 
-  const readingActivity = await createReadingActivity({
-    userId: updatedDevice.user_id,
-    deviceId: updatedDevice.id,
-    deviceName: updatedDevice.name || updatedDevice.device_code,
-    latestMetrics,
-    createdAt: time,
-  })
-
-  if (readingActivity) {
-    broadcastIngestEvent(req, realtimeTargets, {
-      type: 'activity',
-      data: readingActivity,
-    })
-  }
-
-  if (previousStatus !== 'online') {
-    const statusActivity = await createDeviceStatusActivity({
-      userId: updatedDevice.user_id,
-      deviceId: updatedDevice.id,
-      deviceName: updatedDevice.name || updatedDevice.device_code,
-      status: 'online',
-      createdAt: time,
-    })
-
-    if (statusActivity) {
-      broadcastIngestEvent(req, realtimeTargets, {
-        type: 'activity',
-        data: statusActivity,
-      })
-    }
-  }
-
   if (sentCount === 0) {
-    console.warn('Ingest realtime broadcast had no active subscribers:', {
-      deviceId: updatedDevice.id,
-      deviceCode: updatedDevice.device_code,
-      firebaseUid: updatedDevice.firebase_uid,
-      isBatch,
-      batchSize,
-    })
+    // Normal whenever nobody has the dashboard open; keep it out of info logs.
+    logger.debug(
+      {
+        event: 'ingest_broadcast_no_subscribers',
+        deviceId: updatedDevice.id,
+        deviceCode: updatedDevice.device_code,
+        isBatch,
+        batchSize,
+      },
+      'Ingest realtime broadcast had no active subscribers'
+    )
   }
 
   if (alerts.length > 0) {
@@ -573,41 +610,81 @@ async function publishIngestSideEffects({
       type: 'alarm',
       data: alerts,
     })
-
-    for (const alert of alerts) {
-      const alarmActivity = await createAlarmActivity({
-        userId: updatedDevice.user_id,
-        deviceId: updatedDevice.id,
-        alarm: alert,
-      })
-
-      if (alarmActivity) {
-        broadcastIngestEvent(req, realtimeTargets, {
-          type: 'activity',
-          data: alarmActivity,
-        })
-      }
-    }
   }
 
+  // Activity rows are informational. Write them after the device has its
+  // response so a slow activity_logs insert never delays ingest.
+  void recordIngestActivities({
+    req,
+    updatedDevice,
+    previousStatus,
+    reading,
+    alerts,
+    realtimeTargets,
+  }).catch((error) => {
+    logger.warn(
+      {
+        event: 'ingest_activity_failed',
+        deviceId: updatedDevice.id,
+        err: error,
+      },
+      'Ingest activity logging failed'
+    )
+  })
+
   return alerts
+}
+
+// The readings are already committed when side effects run. A failure here
+// (alarm query, broadcast) must not turn into an HTTP 500, otherwise the
+// device retries and the same readings are stored twice.
+async function runIngestSideEffects(options) {
+  try {
+    return await publishIngestSideEffects(options)
+  } catch (error) {
+    logger.error(
+      {
+        event: 'ingest_side_effects_failed',
+        deviceId: options.updatedDevice?.id,
+        err: error,
+      },
+      'Ingest side effects failed after readings were saved'
+    )
+    return []
+  }
+}
+
+// Holds a pooled connection only for the transaction itself. Releasing it
+// before alarms/activities run is what prevents pool exhaustion: those steps
+// use pool.query() and would otherwise need a second connection per request.
+async function persistInTransaction(work) {
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+    const result = await work(client)
+    await client.query('COMMIT')
+    return result
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {})
+    throw error
+  } finally {
+    client.release()
+  }
 }
 
 export async function ingestVirtualReading({ app, device, data }) {
   const parsedData = ingestSchema.parse(data)
   const previousStatus = device.status || 'offline'
   const reading = normalizeReading(parsedData)
-  const client = await pool.connect()
 
-  try {
-    await client.query('BEGIN')
-
-    const {
-      updatedDevice,
-      metricRowsInserted,
-      legacyRowsInserted,
-      historyReadingsRecorded,
-    } = await persistReadings({
+  const {
+    updatedDevice,
+    metricRowsInserted,
+    legacyRowsInserted,
+    historyReadingsRecorded,
+  } = await persistInTransaction((client) =>
+    persistReadings({
       client,
       device,
       readings: [reading],
@@ -616,29 +693,22 @@ export async function ingestVirtualReading({ app, device, data }) {
       localIp: null,
       wifiSsid: null,
     })
+  )
 
-    await client.query('COMMIT')
+  const alerts = await runIngestSideEffects({
+    req: { app },
+    updatedDevice,
+    previousStatus,
+    reading,
+  })
 
-    const alerts = await publishIngestSideEffects({
-      req: { app },
-      updatedDevice,
-      previousStatus,
-      reading,
-    })
-
-    return {
-      updatedDevice,
-      reading,
-      metricRowsInserted,
-      historyReadingsRecorded,
-      legacyRowsInserted,
-      alerts,
-    }
-  } catch (error) {
-    await client.query('ROLLBACK')
-    throw error
-  } finally {
-    client.release()
+  return {
+    updatedDevice,
+    reading,
+    metricRowsInserted,
+    historyReadingsRecorded,
+    legacyRowsInserted,
+    alerts,
   }
 }
 
@@ -660,56 +730,45 @@ export async function ingestReading(req, res) {
   }
 
   const reading = normalizeReading(data)
-  const client = await pool.connect()
 
-  try {
-    await client.query('BEGIN')
+  const {
+    updatedDevice,
+    metricRowsInserted,
+    legacyRowsInserted,
+    historyReadingsRecorded,
+  } = await persistInTransaction((client) =>
+    persistReadings({
+      client,
+      device,
+      readings: [reading],
+      firmwareVersion: data.firmwareVersion || null,
+      ipAddress: getRequestIp(req),
+      localIp: data.localIp || reading.localIp || null,
+      wifiSsid: data.wifiSsid || reading.wifiSsid || null,
+    })
+  )
 
-    const {
-      updatedDevice,
-      metricRowsInserted,
-      legacyRowsInserted,
+  const alerts = await runIngestSideEffects({
+    req,
+    updatedDevice,
+    previousStatus,
+    reading,
+  })
+
+  res.status(201).json({
+    ok: true,
+    data: {
+      deviceId: updatedDevice.id,
+      deviceCode: updatedDevice.device_code,
+      time: reading.time,
+      latest_metrics: reading.latestMetrics,
+      metrics: reading.latestMetrics,
+      rowsInserted: metricRowsInserted,
       historyReadingsRecorded,
-    } =
-      await persistReadings({
-        client,
-        device,
-        readings: [reading],
-        firmwareVersion: data.firmwareVersion || null,
-        ipAddress: getRequestIp(req),
-        localIp: data.localIp || reading.localIp || null,
-        wifiSsid: data.wifiSsid || reading.wifiSsid || null,
-      })
-
-    await client.query('COMMIT')
-
-    const alerts = await publishIngestSideEffects({
-      req,
-      updatedDevice,
-      previousStatus,
-      reading,
-    })
-
-    res.status(201).json({
-      ok: true,
-      data: {
-        deviceId: updatedDevice.id,
-        deviceCode: updatedDevice.device_code,
-        time: reading.time,
-        latest_metrics: reading.latestMetrics,
-        metrics: reading.latestMetrics,
-        rowsInserted: metricRowsInserted,
-        historyReadingsRecorded,
-        legacyRowsInserted,
-        alerts,
-      },
-    })
-  } catch (error) {
-    await client.query('ROLLBACK')
-    throw error
-  } finally {
-    client.release()
-  }
+      legacyRowsInserted,
+      alerts,
+    },
+  })
 }
 
 export async function ingestBatch(req, res) {
@@ -726,57 +785,46 @@ export async function ingestBatch(req, res) {
 
   const readings = data.readings.map((reading) => normalizeReading(reading))
   const newestReading = pickNewestReading(readings)
-  const client = await pool.connect()
 
-  try {
-    await client.query('BEGIN')
+  const {
+    updatedDevice,
+    metricRowsInserted,
+    legacyRowsInserted,
+    historyReadingsRecorded,
+  } = await persistInTransaction((client) =>
+    persistReadings({
+      client,
+      device,
+      readings,
+      firmwareVersion: data.firmwareVersion || newestReading?.firmwareVersion || null,
+      ipAddress: getRequestIp(req),
+      localIp: data.localIp || newestReading?.localIp || null,
+      wifiSsid: data.wifiSsid || newestReading?.wifiSsid || null,
+    })
+  )
 
-    const {
-      updatedDevice,
-      metricRowsInserted,
-      legacyRowsInserted,
+  const alerts = await runIngestSideEffects({
+    req,
+    updatedDevice,
+    previousStatus,
+    reading: newestReading,
+    isBatch: true,
+    batchSize: readings.length,
+  })
+
+  res.status(201).json({
+    ok: true,
+    data: {
+      deviceId: updatedDevice.id,
+      deviceCode: updatedDevice.device_code,
+      acceptedReadings: readings.length,
+      rowsInserted: metricRowsInserted,
       historyReadingsRecorded,
-    } =
-      await persistReadings({
-        client,
-        device,
-        readings,
-        firmwareVersion: data.firmwareVersion || newestReading?.firmwareVersion || null,
-        ipAddress: getRequestIp(req),
-        localIp: data.localIp || newestReading?.localIp || null,
-        wifiSsid: data.wifiSsid || newestReading?.wifiSsid || null,
-      })
-
-    await client.query('COMMIT')
-
-    const alerts = await publishIngestSideEffects({
-      req,
-      updatedDevice,
-      previousStatus,
-      reading: newestReading,
-      isBatch: true,
-      batchSize: readings.length,
-    })
-
-    res.status(201).json({
-      ok: true,
-      data: {
-        deviceId: updatedDevice.id,
-        deviceCode: updatedDevice.device_code,
-        acceptedReadings: readings.length,
-        rowsInserted: metricRowsInserted,
-        historyReadingsRecorded,
-        legacyRowsInserted,
-        latestTime: newestReading.time,
-        latest_metrics: newestReading.latestMetrics,
-        metrics: newestReading.latestMetrics,
-        alerts,
-      },
-    })
-  } catch (error) {
-    await client.query('ROLLBACK')
-    throw error
-  } finally {
-    client.release()
-  }
+      legacyRowsInserted,
+      latestTime: newestReading.time,
+      latest_metrics: newestReading.latestMetrics,
+      metrics: newestReading.latestMetrics,
+      alerts,
+    },
+  })
 }

@@ -1,6 +1,8 @@
 import { findOrCreateUser } from "../services/user.service.js";
 
 export async function loadUser(req, res, next) {
+  if (req.dbUser) return next();
+
   try {
     const user = await findOrCreateUser({
       firebaseUid: req.user.uid,

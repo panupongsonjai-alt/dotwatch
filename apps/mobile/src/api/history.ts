@@ -8,9 +8,11 @@ const MS: Record<HistoryRange, number> = {
   '7d': 604_800_000
 };
 
+// Keep every range under the request limit below so the newest points are
+// never cut off (6h of raw 10 s data is 2,160 rows).
 const RESOLUTION: Record<HistoryRange, string> = {
   '1h': 'raw',
-  '6h': 'raw',
+  '6h': '1m',
   '24h': '5m',
   '7d': '30m'
 };
@@ -47,7 +49,7 @@ export async function getMetricHistory({
     from: from.toISOString(),
     to: to.toISOString(),
     resolution: RESOLUTION[range],
-    limit: '300'
+    limit: '500'
   });
   const payload = await apiRequest<HistoryPoint[] | HistoryResponse>(
     `/api/devices/${encodeURIComponent(String(deviceId))}/history?${query}`

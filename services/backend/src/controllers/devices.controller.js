@@ -20,6 +20,8 @@ import {
 import { createOrganizationAuditLog } from '../services/organizationAudit.service.js'
 import { assertOrganizationCanCreateDevice } from '../services/organizationUsage.service.js'
 import { ensureDeviceMetricSettingsSchema } from '../services/schemaCompatibility.service.js'
+import { forgetVerifiedDeviceSecret } from '../middlewares/authDevice.js'
+import { logger } from '../utils/logger.js'
 import {
   WEATHER_MODEL_KEY,
   pollWeatherVirtualDevices,
@@ -175,6 +177,30 @@ function pickHistorySource(diffHours, resolution = 'auto') {
 }
 
 
+// Continuous aggregates only exist on TimescaleDB. On plain Postgres every
+// history request used to run a query that failed with "relation does not
+// exist", log a warning and then fall back. Remember availability instead.
+const RELATION_AVAILABILITY_TTL_MS = 10 * 60_000
+const relationAvailability = new Map()
+
+async function isRelationAvailable(relationName) {
+  const cached = relationAvailability.get(relationName)
+  if (cached && cached.expiresAt > Date.now()) return cached.available
+
+  const result = await pool.query(
+    'SELECT to_regclass($1) IS NOT NULL AS available',
+    [`public.${relationName}`]
+  )
+  const available = Boolean(result.rows[0]?.available)
+
+  relationAvailability.set(relationName, {
+    available,
+    expiresAt: Date.now() + RELATION_AVAILABILITY_TTL_MS,
+  })
+
+  return available
+}
+
 const LEGACY_HISTORY_METRIC_COLUMNS = new Map([
   ['metric_1', 'temperature'],
   ['temperature', 'temperature'],
@@ -193,23 +219,29 @@ async function queryRawMetricHistory({
   bucketSeconds = null,
 }) {
   if (!bucketSeconds) {
+    // Newest rows win when the range holds more than `limit` rows; the
+    // previous ORDER BY time ASC LIMIT dropped the most recent data.
     const result = await pool.query(
       `
-      SELECT
-        time,
-        time AS bucket_time,
-        metric_key,
-        value,
-        value AS avg_value,
-        value AS min_value,
-        value AS max_value,
-        1 AS sample_count
-      FROM device_metric_readings
-      WHERE device_id = $1
-        AND metric_key = $2
-        AND time BETWEEN $3 AND $4
+      SELECT *
+      FROM (
+        SELECT
+          time,
+          time AS bucket_time,
+          metric_key,
+          value,
+          value AS avg_value,
+          value AS min_value,
+          value AS max_value,
+          1 AS sample_count
+        FROM device_metric_readings
+        WHERE device_id = $1
+          AND metric_key = $2
+          AND time BETWEEN $3 AND $4
+        ORDER BY time DESC
+        LIMIT $5
+      ) newest_rows
       ORDER BY time ASC
-      LIMIT $5
       `,
       [deviceId, metricKey, fromDate, toDate, limit]
     )
@@ -241,13 +273,13 @@ async function queryRawMetricHistory({
         AND time BETWEEN $3 AND $4
     ) bucketed
     GROUP BY bucket_time, metric_key
-    ORDER BY bucket_time ASC
+    ORDER BY bucket_time DESC
     LIMIT $6
     `,
     [deviceId, metricKey, fromDate, toDate, bucketSeconds, limit]
   )
 
-  return result.rows
+  return result.rows.reverse()
 }
 
 async function queryLegacyMetricHistory({
@@ -280,13 +312,13 @@ async function queryLegacyMetricHistory({
       WHERE device_id = $1
         AND time BETWEEN $2 AND $3
         AND ${column} IS NOT NULL
-      ORDER BY time ASC
+      ORDER BY time DESC
       LIMIT $4
       `,
       [deviceId, fromDate, toDate, limit, metricKey]
     )
 
-    return result.rows
+    return result.rows.reverse()
   }
 
   const result = await pool.query(
@@ -312,13 +344,13 @@ async function queryLegacyMetricHistory({
         AND ${column} IS NOT NULL
     ) bucketed
     GROUP BY bucket_time
-    ORDER BY bucket_time ASC
+    ORDER BY bucket_time DESC
     LIMIT $4
     `,
     [deviceId, fromDate, toDate, limit, bucketSeconds, metricKey]
   )
 
-  return result.rows
+  return result.rows.reverse()
 }
 
 async function queryLatestMetricHistory({
@@ -519,7 +551,10 @@ export async function listDevices(req, res) {
       FROM device_metrics dm_cfg
       WHERE dm_cfg.device_id = d.id
         AND dm_cfg.visible = true
-        AND NOT (d.model_id = 5 AND dm_cfg.metric_key = 'metric_3')
+        AND NOT (
+          COALESCE(dm.model_key, '') = 'esp32_dht3'
+          AND dm_cfg.metric_key = 'metric_3'
+        )
     ) metric_config ON true
 
     WHERE ${buildTenantDeviceAccessWhere('$1')}
@@ -871,7 +906,10 @@ export async function getDevice(req, res) {
       FROM device_metrics dm_cfg
       WHERE dm_cfg.device_id = d.id
         AND dm_cfg.visible = true
-        AND NOT (d.model_id = 5 AND dm_cfg.metric_key = 'metric_3')
+        AND NOT (
+          COALESCE(dm.model_key, '') = 'esp32_dht3'
+          AND dm_cfg.metric_key = 'metric_3'
+        )
     ) metric_config ON true
 
     WHERE d.id = $1
@@ -1165,6 +1203,8 @@ export async function resetDeviceSecret(req, res) {
     })
   }
 
+  forgetVerifiedDeviceSecret(result.rows[0].id)
+
   await createOrganizationAuditLog({
     organizationId: access.organization_id || null,
     actorUserId: user.id,
@@ -1205,6 +1245,8 @@ export async function deleteDevice(req, res) {
       message: 'Device not found',
     })
   }
+
+  forgetVerifiedDeviceSecret(result.rows[0].id)
 
   await createOrganizationAuditLog({
     organizationId: access.organization_id || null,
@@ -1606,6 +1648,12 @@ export async function getHistory(req, res) {
     }
 
     try {
+      if (!(await isRelationAvailable(historySource.table))) {
+        throw Object.assign(new Error('Continuous aggregate is not available'), {
+          code: 'DW_AGGREGATE_UNAVAILABLE',
+        })
+      }
+
       let aggregateRows = []
 
       if (historySource.type === 'aggregate_bucket') {
@@ -1625,13 +1673,13 @@ export async function getHistory(req, res) {
             AND metric_key = $2
             AND bucket BETWEEN $3 AND $4
           GROUP BY time_bucket($5::interval, bucket), metric_key
-          ORDER BY bucket_time ASC
+          ORDER BY bucket_time DESC
           LIMIT $6
           `,
           [id, metricKey, fromDate, toDate, historySource.interval, limit]
         )
 
-        aggregateRows = result.rows
+        aggregateRows = result.rows.reverse()
       } else {
         const result = await pool.query(
           `
@@ -1648,32 +1696,39 @@ export async function getHistory(req, res) {
           WHERE device_id = $1
             AND metric_key = $2
             AND bucket BETWEEN $3 AND $4
-          ORDER BY bucket ASC
+          ORDER BY bucket DESC
           LIMIT $5
           `,
           [id, metricKey, fromDate, toDate, limit]
         )
 
-        aggregateRows = result.rows
+        aggregateRows = result.rows.reverse()
       }
 
       if (aggregateRows.length) {
         return res.json(aggregateRows)
       }
 
-      console.warn('History aggregate returned no rows; using raw fallback:', {
-        deviceId: id,
-        metricKey,
-        source: historySource.table,
-        resolution,
-      })
+      // Normal for recent ranges that the aggregate has not materialized yet.
+      logger.debug(
+        {
+          event: 'history_aggregate_empty',
+          deviceId: id,
+          metricKey,
+          source: historySource.table,
+          resolution,
+        },
+        'History aggregate returned no rows; using raw fallback'
+      )
     } catch (error) {
-      console.warn('History aggregate query fallback:', {
-        deviceId: id,
-        metricKey,
-        source: historySource.table,
-        message: error.message,
-      })
+      if (error.code !== 'DW_AGGREGATE_UNAVAILABLE') {
+        console.warn('History aggregate query fallback:', {
+          deviceId: id,
+          metricKey,
+          source: historySource.table,
+          message: error.message,
+        })
+      }
     }
 
     const fallback = await queryMetricHistoryFallback({

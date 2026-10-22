@@ -1,5 +1,6 @@
 ﻿import { pool } from '../db/pool.js'
-
+
+
 import { sendAlarmTriggeredPush } from './mobilePush.service.js'
 import { sendAlarmChannelNotifications } from './alarmNotification.service.js'
 const STATE_RANK = {
@@ -28,11 +29,15 @@ function pickHighestSeverityRule(triggeredRules = []) {
     .sort((a, b) => getStateRank(b.severity) - getStateRank(a.severity))[0]
 }
 
-async function getPreviousState({ userId, deviceId, metric }) {
+// One query for all metrics of the device instead of one per metric.
+async function getPreviousStates({ userId, deviceId, metrics }) {
+  if (!metrics.length) return new Map()
+
   const result = await pool.query(
     `
     SELECT
       id,
+      metric,
       state,
       severity,
       rule_id,
@@ -40,28 +45,43 @@ async function getPreviousState({ userId, deviceId, metric }) {
     FROM alarm_states
     WHERE user_id = $1
       AND device_id = $2
-      AND metric = $3
-    LIMIT 1
+      AND metric = ANY($3::text[])
     `,
-    [userId, deviceId, metric]
+    [userId, deviceId, metrics]
   )
 
-  return result.rows[0] || null
+  return new Map(result.rows.map((row) => [row.metric, row]))
 }
 
-async function upsertState({
-  userId,
-  deviceId,
-  metric,
-  nextState,
-  rule,
-  value,
-  time,
-}) {
-  const eventTime = time ? new Date(time) : new Date()
-  const isNormal = nextState === 'normal'
+// Batched version of the previous per-metric upsert. The ON CONFLICT rules are
+// unchanged; only the round trips are reduced (N queries -> 1).
+async function upsertStates({ userId, deviceId, evaluations, time }) {
+  if (!evaluations.length) return
 
-  const result = await pool.query(
+  const eventTime = time ? new Date(time) : new Date()
+
+  const metrics = []
+  const states = []
+  const severities = []
+  const ruleIds = []
+  const operators = []
+  const thresholds = []
+  const values = []
+
+  for (const evaluation of evaluations) {
+    const isNormal = evaluation.nextState === 'normal'
+    const rule = evaluation.triggeredRule
+
+    metrics.push(evaluation.metric)
+    states.push(evaluation.nextState)
+    severities.push(isNormal ? null : rule?.severity || evaluation.nextState)
+    ruleIds.push(isNormal ? null : rule?.id || null)
+    operators.push(isNormal ? null : rule?.operator || null)
+    thresholds.push(isNormal ? null : Number(rule?.threshold))
+    values.push(evaluation.value)
+  }
+
+  await pool.query(
     `
     INSERT INTO alarm_states (
       user_id,
@@ -77,19 +97,35 @@ async function upsertState({
       recovered_at,
       updated_at
     )
-    VALUES (
+    SELECT
       $1,
       $2,
-      $3,
-      $4,
-      $5,
-      $6,
-      $7,
-      $8,
-      $9,
-      CASE WHEN $4 = 'normal' THEN NULL ELSE $10::timestamptz END,
-      CASE WHEN $4 = 'normal' THEN $10::timestamptz ELSE NULL END,
+      input_rows.metric,
+      input_rows.state,
+      input_rows.severity,
+      input_rows.rule_id,
+      input_rows.operator,
+      input_rows.threshold,
+      input_rows.current_value,
+      CASE WHEN input_rows.state = 'normal' THEN NULL ELSE $3::timestamptz END,
+      CASE WHEN input_rows.state = 'normal' THEN $3::timestamptz ELSE NULL END,
       NOW()
+    FROM unnest(
+      $4::text[],
+      $5::text[],
+      $6::text[],
+      $7::bigint[],
+      $8::text[],
+      $9::double precision[],
+      $10::double precision[]
+    ) AS input_rows(
+      metric,
+      state,
+      severity,
+      rule_id,
+      operator,
+      threshold,
+      current_value
     )
     ON CONFLICT (device_id, metric)
     DO UPDATE SET
@@ -116,23 +152,20 @@ async function upsertState({
         ELSE NULL
       END,
       updated_at = NOW()
-    RETURNING *
     `,
     [
       userId,
       deviceId,
-      metric,
-      nextState,
-      isNormal ? null : rule?.severity || nextState,
-      isNormal ? null : rule?.id || null,
-      isNormal ? null : rule?.operator || null,
-      isNormal ? null : Number(rule?.threshold),
-      value,
       eventTime,
+      metrics,
+      states,
+      severities,
+      ruleIds,
+      operators,
+      thresholds,
+      values,
     ]
   )
-
-  return result.rows[0]
 }
 
 async function createAlarmEvent({
@@ -222,6 +255,8 @@ export async function checkAlarms({ userId, deviceId, reading }) {
 
   const alerts = []
 
+  const evaluations = []
+
   for (const [metric, rules] of Object.entries(rulesByMetric)) {
     const value = Number(reading[metric])
 
@@ -232,25 +267,36 @@ export async function checkAlarms({ userId, deviceId, reading }) {
     )
 
     const triggeredRule = pickHighestSeverityRule(triggeredRules)
-    const nextState = triggeredRule?.severity || 'normal'
-    const previousState = await getPreviousState({
-      userId,
-      deviceId,
-      metric,
-    })
 
+    evaluations.push({
+      metric,
+      rules,
+      value,
+      triggeredRule,
+      nextState: triggeredRule?.severity || 'normal',
+    })
+  }
+
+  if (!evaluations.length) return alerts
+
+  const previousStates = await getPreviousStates({
+    userId,
+    deviceId,
+    metrics: evaluations.map((evaluation) => evaluation.metric),
+  })
+
+  await upsertStates({
+    userId,
+    deviceId,
+    evaluations,
+    time: reading.time,
+  })
+
+  for (const evaluation of evaluations) {
+    const { metric, rules, value, triggeredRule, nextState } = evaluation
+    const previousState = previousStates.get(metric) || null
     const previousStateName = previousState?.state || 'normal'
     const stateChanged = previousStateName !== nextState
-
-    await upsertState({
-      userId,
-      deviceId,
-      metric,
-      nextState,
-      rule: triggeredRule,
-      value,
-      time: reading.time,
-    })
 
     if (!stateChanged) continue
 

@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import { env } from '../config/env.js'
 import { pool } from '../db/pool.js'
 import { FixedWindowLimiter } from '../security/fixedWindowLimiter.js'
@@ -59,6 +60,72 @@ function recordFailedDeviceAuth(ipKey, deviceKey) {
   failedAuthByDevice.consume(deviceKey)
 }
 
+// bcryptjs is pure JavaScript and runs on the main thread (~50-100 ms per
+// compare at cost 10). Devices authenticate on every ingest, so without a
+// cache bcrypt dominates backend CPU. After one successful bcrypt check we
+// remember sha256(stored hash + secret) for a limited time. A changed secret
+// hash (secret reset) or a different secret never matches the cached value,
+// so those requests still go through bcrypt.
+const VERIFIED_SECRET_CACHE_MAX_ENTRIES = 20_000
+const verifiedSecretCache = new Map()
+
+function getSecretFingerprint(secretHash, deviceSecret) {
+  return crypto
+    .createHash('sha256')
+    .update(String(secretHash))
+    .update('\0')
+    .update(String(deviceSecret))
+    .digest()
+}
+
+function isCachedSecretMatch(deviceId, fingerprint) {
+  if (!env.deviceAuthCacheTtlMs) return false
+
+  const entry = verifiedSecretCache.get(deviceId)
+  if (!entry) return false
+
+  if (entry.expiresAt <= Date.now()) {
+    verifiedSecretCache.delete(deviceId)
+    return false
+  }
+
+  return (
+    entry.fingerprint.length === fingerprint.length &&
+    crypto.timingSafeEqual(entry.fingerprint, fingerprint)
+  )
+}
+
+function rememberVerifiedSecret(deviceId, fingerprint) {
+  if (!env.deviceAuthCacheTtlMs) return
+
+  if (verifiedSecretCache.size >= VERIFIED_SECRET_CACHE_MAX_ENTRIES) {
+    const oldestKey = verifiedSecretCache.keys().next().value
+    verifiedSecretCache.delete(oldestKey)
+  }
+
+  verifiedSecretCache.delete(deviceId)
+  verifiedSecretCache.set(deviceId, {
+    fingerprint,
+    expiresAt: Date.now() + env.deviceAuthCacheTtlMs,
+  })
+}
+
+export function forgetVerifiedDeviceSecret(deviceId) {
+  verifiedSecretCache.delete(String(deviceId))
+}
+
+async function verifyDeviceSecret(device, deviceSecret) {
+  const cacheKey = String(device.id)
+  const fingerprint = getSecretFingerprint(device.secret_hash, deviceSecret)
+
+  if (isCachedSecretMatch(cacheKey, fingerprint)) return true
+
+  const ok = await bcrypt.compare(deviceSecret, device.secret_hash)
+  if (ok) rememberVerifiedSecret(cacheKey, fingerprint)
+
+  return ok
+}
+
 export async function authDevice(req, res, next) {
   const deviceCode = getHeaderValue(req, ['x-device-code', 'x-device-id'])
   const deviceSecret = getHeaderValue(req, ['x-device-secret'])
@@ -109,7 +176,7 @@ export async function authDevice(req, res, next) {
       })
     }
 
-    const ok = await bcrypt.compare(deviceSecret, device.secret_hash)
+    const ok = await verifyDeviceSecret(device, deviceSecret)
 
     if (!ok) {
       recordFailedDeviceAuth(ipKey, deviceKey)

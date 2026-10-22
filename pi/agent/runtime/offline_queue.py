@@ -1,11 +1,20 @@
 import json
 import os
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import Iterable, List
 
 
 class OfflineQueue:
-    """Small JSONL queue for Raspberry Pi offline telemetry buffering."""
+    """Small JSONL queue for Raspberry Pi offline telemetry buffering.
+
+    Appends are O(1) (one line written in append mode). The file is only
+    rewritten when items are removed or when it grows past max_items, which
+    keeps SD-card writes low while the backend is unreachable.
+    """
+
+    # Allow the file to grow a little past max_items before trimming so a long
+    # outage does not rewrite the whole file on every append.
+    TRIM_SLACK_RATIO = 0.1
 
     def __init__(self, path, max_items=1000):
         self.path = Path(path)
@@ -13,8 +22,9 @@ class OfflineQueue:
             self.max_items = max(0, int(max_items))
         except Exception:
             self.max_items = 1000
+        self._line_count = None
 
-    def load(self) -> List[dict]:
+    def _read_items(self) -> List[dict]:
         if not self.path.exists():
             return []
 
@@ -35,11 +45,29 @@ class OfflineQueue:
             if isinstance(item, dict) and isinstance(item.get("metrics"), dict):
                 items.append(item)
 
+        return items
+
+    def load(self) -> List[dict]:
+        items = self._read_items()
+
         if self.max_items and len(items) > self.max_items:
             items = items[-self.max_items :]
             self.write(items)
+        else:
+            self._line_count = len(items)
 
         return items
+
+    def peek(self, limit: int) -> List[dict]:
+        """Return up to `limit` oldest items without modifying the queue."""
+        return self.load()[: max(0, int(limit))]
+
+    def drop_first(self, count: int) -> int:
+        """Remove the `count` oldest items. Returns the number remaining."""
+        items = self.load()
+        remaining = items[max(0, int(count)) :]
+        self.write(remaining)
+        return len(remaining)
 
     def write(self, items: Iterable[dict]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -53,6 +81,7 @@ class OfflineQueue:
                 self.path.unlink()
             except FileNotFoundError:
                 pass
+            self._line_count = 0
             return
 
         temp_path = self.path.with_suffix(self.path.suffix + ".tmp")
@@ -62,15 +91,32 @@ class OfflineQueue:
                 handle.write("\n")
 
         os.replace(temp_path, self.path)
+        self._line_count = len(clean_items)
 
     def append(self, item: dict) -> int:
-        items = self.load()
-        items.append(item)
-        self.write(items)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
+        with self.path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(item, ensure_ascii=False, separators=(",", ":")))
+            handle.write("\n")
+
+        if self._line_count is None:
+            self._line_count = len(self._read_items())
+        else:
+            self._line_count += 1
+
+        trim_at = self.max_items + max(1, int(self.max_items * self.TRIM_SLACK_RATIO))
+        if self.max_items and self._line_count > trim_at:
+            self.write(self._read_items())
+
         return self.size()
 
     def size(self) -> int:
-        return len(self.load())
+        if self._line_count is None:
+            self._line_count = len(self._read_items())
+        if self.max_items:
+            return min(self._line_count, self.max_items)
+        return self._line_count
 
     def describe(self) -> dict:
         items = self.load()

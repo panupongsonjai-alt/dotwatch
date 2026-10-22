@@ -1,8 +1,22 @@
 import json
+import time
 from datetime import datetime, timezone
 import subprocess
 import urllib.error
 import urllib.request
+
+# The SSID rarely changes; spawning iwgetid/nmcli for every reading is waste.
+WIFI_SSID_CACHE_SECONDS = 60
+_wifi_ssid_cache = {"value": "", "expires_at": 0.0}
+
+# Backend default INGEST_BATCH_MAX_READINGS is 120.
+BATCH_MAX_READINGS = 100
+
+
+class HttpStatusError(RuntimeError):
+    def __init__(self, status, message):
+        super().__init__(message)
+        self.status = status
 
 
 def utc_now_iso():
@@ -41,13 +55,24 @@ def request_json(url, *, method="GET", payload=None, headers=None, timeout=15):
 
     except urllib.error.HTTPError as error:
         text = error.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"HTTP {error.code}: {text}") from error
+        raise HttpStatusError(error.code, f"HTTP {error.code}: {text}") from error
 
     except urllib.error.URLError as error:
         raise RuntimeError(f"Network error: {error.reason}") from error
 
 
 def get_connected_wifi_ssid():
+    now = time.monotonic()
+    if now < _wifi_ssid_cache["expires_at"]:
+        return _wifi_ssid_cache["value"]
+
+    value = _lookup_connected_wifi_ssid()
+    _wifi_ssid_cache["value"] = value
+    _wifi_ssid_cache["expires_at"] = now + WIFI_SSID_CACHE_SECONDS
+    return value
+
+
+def _lookup_connected_wifi_ssid():
     commands = [
         ["iwgetid", "-r"],
         ["nmcli", "-t", "-f", "active,ssid", "dev", "wifi"],
@@ -129,14 +154,45 @@ def post_ingest_payload(settings, payload):
 
 
 def post_ingest_batch_payload(settings, payloads):
-    """Flush queued payloads safely using the normal ingest endpoint.
+    """Send several readings in one request via POST /api/ingest/batch.
 
-    This intentionally sends items one by one instead of assuming a backend
-    batch endpoint exists. It keeps compatibility with /api/ingest and prevents
-    queue flushing from failing because of a missing /api/ingest/batch route.
+    One request instead of one per reading: a single TLS handshake, a single
+    device authentication, one database transaction. Falls back to sending
+    items one by one only when the backend has no batch route (HTTP 404).
     """
+    payloads = list(payloads or [])
     if not payloads:
         return {"ok": True, "status": 200, "sent": 0, "results": []}
+
+    if not settings.api_url:
+        raise RuntimeError("DOTWATCH_API_URL is missing")
+
+    url = f"{settings.api_url.rstrip('/')}/api/ingest/batch"
+    readings = [
+        {key: value for key, value in payload.items() if key != "firmwareVersion"}
+        for payload in payloads
+    ]
+    body = {
+        "firmwareVersion": payloads[-1].get("firmwareVersion") or settings.firmware_version,
+        "readings": readings,
+    }
+    wifi_ssid = payloads[-1].get("wifiSsid")
+    if wifi_ssid:
+        body["wifiSsid"] = wifi_ssid
+
+    try:
+        result = request_json(
+            url,
+            method="POST",
+            payload=body,
+            timeout=getattr(settings, "request_timeout_seconds", 15),
+            headers=build_device_headers(settings),
+        )
+        result["sent"] = len(payloads)
+        return result
+    except HttpStatusError as error:
+        if error.status != 404:
+            raise
 
     results = []
     for payload in payloads:
